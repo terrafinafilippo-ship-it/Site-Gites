@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nos gîtes — Les Gîtes de Samoyas</title>
+  <link rel="stylesheet" href="assets/tokens.css">
+  <link rel="stylesheet" href="assets/site.css">
+  <style>
+    .page-hero {
+      padding-block: 80px 56px;
+      border-bottom: 1px solid #e3dfd1;
+    }
+    .page-hero__grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 64px;
+      align-items: end;
+    }
+    .page-hero h1 { font-size: clamp(48px, 6vw, 76px); letter-spacing: -0.015em; max-width: 12ch; }
+    .page-hero p { font-size: 18px; color: var(--color-charcoal); line-height: 1.6; max-width: 44ch; }
+    @media (max-width: 900px) { .page-hero__grid { grid-template-columns: 1fr; gap: 24px; } }
+
+    .gite-row {
+      padding-block: 64px;
+      border-bottom: 1px solid #e3dfd1;
+    }
+    .gite-row__grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 56px;
+      align-items: center;
+    }
+    .gite-row.reverse .gite-row__grid { direction: rtl; }
+    .gite-row.reverse .gite-row__grid > * { direction: ltr; }
+    @media (max-width: 900px) {
+      .gite-row__grid { grid-template-columns: 1fr; gap: 28px; }
+      .gite-row.reverse .gite-row__grid { direction: ltr; }
+    }
+    .gite-row__media {
+      aspect-ratio: 4/3;
+      position: relative;
+      border-radius: var(--radius-default);
+      overflow: hidden;
+      background: linear-gradient(135deg, #c0bba1, #7d7c5e);
+    }
+    .gite-row__media image-slot { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .gite-row__media .target {
+      position: absolute; top: 16px; left: 16px;
+      padding: 6px 12px;
+      background: rgba(251,250,246,0.94);
+      color: var(--tw-green-dark);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border-radius: var(--radius-sharp);
+      font-weight: 500;
+    }
+    .gite-row__body { display: flex; flex-direction: column; gap: 18px; }
+    .gite-row__head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      gap: 24px; flex-wrap: wrap;
+    }
+    .gite-row h2 { font-size: clamp(36px, 4vw, 52px); letter-spacing: -0.01em; }
+    .gite-row__code {
+      font-size: 12px; letter-spacing: 0.1em; color: var(--color-gray-medium);
+    }
+    .gite-row__caps {
+      display: flex; gap: 18px; font-size: 14px;
+      color: var(--color-gray-medium); flex-wrap: wrap;
+    }
+    .gite-row__caps span { display: inline-flex; align-items: center; gap: 6px; }
+    .gite-row__lead {
+      font-family: var(--tw-font-serif);
+      font-size: 20px; line-height: 1.5;
+      color: var(--color-charcoal);
+      max-width: 36ch;
+    }
+    .gite-row__proof {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 18px;
+      background: rgba(212,165,116,0.08);
+      border: 1px solid rgba(212,165,116,0.32);
+      border-radius: var(--radius-default);
+      font-size: 14px;
+      align-self: flex-start;
+    }
+    .gite-row__proof svg { color: #b88847; }
+    .gite-row__proof .sep { width: 1px; height: 16px; background: rgba(0,0,0,0.1); }
+    .gite-row__foot {
+      display: flex; justify-content: space-between; align-items: center;
+      padding-top: 12px;
+      border-top: 1px solid #e3dfd1;
+      gap: 16px; flex-wrap: wrap;
+    }
+    .gite-row__price strong { font-family: var(--tw-font-serif); font-size: 28px; font-weight: 400; }
+    .gite-row__price small { color: var(--color-gray-medium); font-size: 13px; }
+    .gite-row__actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    .combine {
+      padding-block: 80px;
+      background: rgba(20,104,61,0.04);
+    }
+    .combine__grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+    }
+    .combine h2 { max-width: 16ch; font-size: clamp(32px, 3.4vw, 44px); margin-bottom: 16px; }
+    .combine p { font-size: 16px; color: var(--color-charcoal); line-height: 1.6; max-width: 44ch; }
+    .combine__diagram {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      align-items: center;
+    }
+    .combine__diagram > div {
+      background: #fff; border: 1px solid #e3dfd1;
+      padding: 18px; border-radius: var(--radius-default);
+      text-align: center;
+    }
+    .combine__diagram strong {
+      font-family: var(--tw-font-serif);
+      font-size: 20px; font-weight: 400;
+      display: block; margin-bottom: 4px;
+    }
+    .combine__diagram small { font-size: 11px; color: var(--color-gray-medium); letter-spacing: 0.08em; text-transform: uppercase; }
+    @media (max-width: 900px) { .combine__grid { grid-template-columns: 1fr; gap: 24px; } }
+  </style>
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <section class="page-hero" data-screen-label="03 Nos gîtes — Index">
+    <div class="wrap">
+      <div class="page-hero__grid">
+        <div>
+          <span class="eyebrow">Nos trois écrins</span>
+          <h1 style="margin-top:16px">Trois gîtes,<br>un même hameau.</h1>
+        </div>
+        <p>Choisissez le gîte qui vous ressemble — l'intime pour deux, l'écrin familial, ou le plus ancien avec sauna. Et si vous êtes nombreux, regroupez-les jusqu'à dix personnes. Un hameau à vous, sans pour autant être coupés du monde : commerces et services restent à cinq minutes.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Row LaPhine -->
+  <section class="gite-row">
+    <div class="wrap">
+      <div class="gite-row__grid">
+        <div class="gite-row__media">
+          <image-slot id="row-laphine" placeholder="LaPhine — extérieur, fin de journée"></image-slot>
+          <span class="target">Famille</span>
+        </div>
+        <div class="gite-row__body">
+          <div class="gite-row__head">
+            <h2>LaPhine</h2>
+            <span class="gite-row__code">07G310701</span>
+          </div>
+          <div class="gite-row__caps">
+            <span>4 personnes</span><span>2 chambres</span><span>70 m²</span><span>Spa encastré · garage</span>
+          </div>
+          <p class="gite-row__lead">L'écrin familial — un spa encastré sous la véranda chauffée, deux chambres calmes, et le garage qui vous épargne les averses.</p>
+          <div class="gite-row__proof">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 17 14 19 21 12 17 5 21 7 14 2 9 9 9"/></svg>
+            <strong>5,0/5</strong>
+            <span class="sep"></span><span>16 avis</span>
+            <span class="sep"></span><span>100 % reco</span>
+          </div>
+          <div class="gite-row__foot">
+            <div class="gite-row__price">
+              <strong>Dès 670 €</strong> <small>la semaine TTC</small>
+            </div>
+            <div class="gite-row__actions">
+              <a class="btn btn-secondary" href="gite.html?id=laphine">Voir le gîte</a>
+              <a class="btn btn-primary" href="reserver.html?gite=laphine">Réserver un séjour</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Row L'Armu -->
+  <section class="gite-row reverse">
+    <div class="wrap">
+      <div class="gite-row__grid">
+        <div class="gite-row__media">
+          <image-slot id="row-larmu" placeholder="L'Armu — jacuzzi véranda, cheminée"></image-slot>
+          <span class="target">Couple</span>
+        </div>
+        <div class="gite-row__body">
+          <div class="gite-row__head">
+            <h2>L'Armu</h2>
+            <span class="gite-row__code">07G310700</span>
+          </div>
+          <div class="gite-row__caps">
+            <span>2 personnes</span><span>1 chambre mansardée</span><span>45 m²</span><span>Jacuzzi · cheminée</span>
+          </div>
+          <p class="gite-row__lead">Un refuge pour deux — chambre mansardée à hauteur de toits, jacuzzi sous la véranda, cheminée d'ambiance pour les soirs frais.</p>
+          <div class="gite-row__proof">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 17 14 19 21 12 17 5 21 7 14 2 9 9 9"/></svg>
+            <strong>5,0/5</strong>
+            <span class="sep"></span><span>22 avis</span>
+            <span class="sep"></span><span>100 % reco</span>
+          </div>
+          <div class="gite-row__foot">
+            <div class="gite-row__price">
+              <strong>Dès 450 €</strong> <small>la semaine TTC</small>
+            </div>
+            <div class="gite-row__actions">
+              <a class="btn btn-secondary" href="gite.html?id=larmu">Voir le gîte</a>
+              <a class="btn btn-primary" href="reserver.html?gite=larmu">Réserver un séjour</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Row La Maison Vieille -->
+  <section class="gite-row">
+    <div class="wrap">
+      <div class="gite-row__grid">
+        <div class="gite-row__media">
+          <image-slot id="row-maisonvieille" placeholder="La Maison Vieille — pierre ancienne, sauna"></image-slot>
+          <span class="target">Famille + sauna</span>
+        </div>
+        <div class="gite-row__body">
+          <div class="gite-row__head">
+            <h2>La Maison Vieille</h2>
+            <span class="gite-row__code">07G310702</span>
+          </div>
+          <div class="gite-row__caps">
+            <span>4 personnes</span><span>2 chambres</span><span>85 m²</span><span>Spa + sauna privatifs</span>
+          </div>
+          <p class="gite-row__lead">La plus ancienne du hameau — pierre apparente, volumes nobles, et la seule à conjuguer spa et sauna privatifs.</p>
+          <div class="gite-row__proof">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 17 14 19 21 12 17 5 21 7 14 2 9 9 9"/></svg>
+            <strong>4,9/5</strong>
+            <span class="sep"></span><span>8 avis</span>
+            <span class="sep"></span><span>100 % reco</span>
+          </div>
+          <div class="gite-row__foot">
+            <div class="gite-row__price">
+              <strong>Dès 690 €</strong> <small>la semaine TTC</small>
+            </div>
+            <div class="gite-row__actions">
+              <a class="btn btn-secondary" href="gite.html?id=maisonvieille">Voir le gîte</a>
+              <a class="btn btn-primary" href="reserver.html?gite=maisonvieille">Réserver un séjour</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Combine block -->
+  <section class="combine">
+    <div class="wrap">
+      <div class="combine__grid">
+        <div>
+          <span class="eyebrow">Tribu ou retrouvailles</span>
+          <h2 style="margin-top:14px">Regroupez les trois gîtes,<br>jusqu'à dix personnes.</h2>
+          <p>Les trois gîtes se touchent. Vous pouvez les louer ensemble pour un mariage, un anniversaire, ou simplement parce qu'il fait bon se retrouver entre amis sans se gêner.</p>
+          <p style="margin-top:14px"><a href="contact.html" class="btn btn-secondary">Nous écrire pour un séjour groupé</a></p>
+        </div>
+        <div class="combine__diagram">
+          <div><strong>2</strong><small>L'Armu</small></div>
+          <div><strong>4</strong><small>LaPhine</small></div>
+          <div><strong>4</strong><small>La Maison Vieille</small></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="site-footer"></div>
+
+  <script src="assets/image-slot.js"></script>
+  <script src="assets/site.js"></script>
+  <script>SamoyasSite.mountSiteShell({ active: "gites" });</script>
+</body>
+</html>

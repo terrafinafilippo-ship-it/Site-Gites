@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Suivi de réservation — Les Gîtes de Samoyas</title>
+  <link rel="stylesheet" href="assets/tokens.css">
+  <link rel="stylesheet" href="assets/site.css">
+  <style>
+    /* Identity banner */
+    .id-banner {
+      background: #16221b;
+      color: #f0ece1;
+      padding-block: 56px;
+      position: relative;
+      overflow: hidden;
+    }
+    .id-banner::before {
+      content: ""; position: absolute; inset: 0;
+      background: radial-gradient(circle at 30% 40%, rgba(20,104,61,0.20), transparent 50%);
+    }
+    .id-banner .wrap { position: relative; z-index: 2; }
+    .id-banner__grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 32px;
+      align-items: end;
+    }
+    @media (max-width: 800px) { .id-banner__grid { grid-template-columns: 1fr; } }
+    .id-banner h1 { color: #fff; font-size: clamp(32px, 4vw, 48px); margin-bottom: 14px; max-width: 18ch; }
+    .id-banner__ref-row {
+      display: flex; gap: 24px; flex-wrap: wrap;
+      color: rgba(240,236,225,0.7);
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .id-banner__ref-row strong { color: #fff; font-family: monospace; font-size: 14px; letter-spacing: 0.04em; }
+    .id-banner__price {
+      text-align: right;
+    }
+    .id-banner__price small { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.5); display: block; margin-bottom: 4px; }
+    .id-banner__price strong { font-family: var(--tw-font-serif); font-size: 36px; font-weight: 400; color: #fff; }
+
+    /* Status section */
+    .status {
+      padding-block: 56px;
+    }
+    .status__head {
+      display: flex; justify-content: space-between; align-items: end;
+      flex-wrap: wrap; gap: 16px; margin-bottom: 28px;
+    }
+    .status__head h2 { font-size: clamp(28px, 3vw, 36px); }
+    .status__grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+    @media (max-width: 1000px) { .status__grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 520px) { .status__grid { grid-template-columns: 1fr; } }
+    .status-card {
+      background: #fff;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      padding: 24px;
+      position: relative;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .status-card__num {
+      font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--color-gray-medium);
+    }
+    .status-card h4 { font-family: var(--tw-font-serif); font-size: 19px; font-weight: 400; }
+    .status-card__icon {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 6px;
+    }
+    .status-card__icon.todo     { background: rgba(212,165,116,0.18); color: #8a5e22; }
+    .status-card__icon.done     { background: rgba(20,104,61,0.12); color: var(--tw-green-dark); }
+    .status-card__icon.scheduled{ background: rgba(20,104,61,0.06); color: var(--tw-green-dark); }
+    .status-card__icon.upcoming { background: rgba(180,173,153,0.18); color: #6b6655; }
+    .status-card__state {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 500;
+      padding: 4px 10px;
+      border-radius: var(--radius-sharp);
+      align-self: flex-start;
+    }
+    .status-card__state.todo     { background: rgba(212,165,116,0.18); color: #8a5e22; }
+    .status-card__state.done     { background: rgba(90,140,58,0.12); color: #3f6e1f; }
+    .status-card__state.scheduled{ background: rgba(20,104,61,0.08); color: var(--tw-green-dark); }
+    .status-card__state.upcoming { background: rgba(180,173,153,0.18); color: #6b6655; }
+    .status-card p { font-size: 13px; color: var(--color-gray-medium); line-height: 1.5; }
+    .status-card__when {
+      font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--color-gray-medium);
+      margin-top: auto;
+      padding-top: 8px;
+    }
+    .status-card__cta {
+      margin-top: 6px;
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 13px; color: var(--tw-green-dark); font-weight: 500;
+    }
+
+    /* Locked arrival info */
+    .arrival-locked {
+      margin-top: 32px;
+      background: #fafaf6;
+      border: 1px dashed #d4cebd;
+      border-radius: var(--radius-default);
+      padding: 32px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: center;
+    }
+    @media (max-width: 700px) { .arrival-locked { grid-template-columns: 1fr; text-align: center; } }
+    .arrival-locked__icon {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: rgba(212,165,116,0.16);
+      color: #8a5e22;
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 12px;
+    }
+    .arrival-locked h3 { font-family: var(--tw-font-serif); font-size: 22px; font-weight: 400; margin-bottom: 6px; }
+    .arrival-locked p { font-size: 14px; color: var(--color-gray-medium); max-width: 50ch; }
+
+    .arrival-unlocked {
+      margin-top: 32px;
+      background: #fff;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      padding: 32px;
+      display: none;
+    }
+    .arrival-unlocked.is-shown { display: block; }
+    .arrival-unlocked h3 { font-family: var(--tw-font-serif); font-size: 22px; font-weight: 400; margin-bottom: 18px; }
+    .arrival-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 600px) { .arrival-grid { grid-template-columns: 1fr; } }
+    .arrival-grid > div { padding: 12px 0; border-bottom: 1px solid #ebe7d8; }
+    .arrival-grid small { display: block; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-gray-medium); margin-bottom: 4px; }
+
+    /* Secondary actions */
+    .actions {
+      padding-block: 48px;
+      background: rgba(20,104,61,0.04);
+      border-top: 1px solid #e3dfd1;
+      border-bottom: 1px solid #e3dfd1;
+    }
+    .actions h2 { font-size: clamp(24px, 2.4vw, 32px); margin-bottom: 8px; }
+    .actions p { color: var(--color-gray-medium); margin-bottom: 24px; max-width: 50ch; }
+    .actions__grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 800px) { .actions__grid { grid-template-columns: 1fr; } }
+    .action-card {
+      background: #fff;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      padding: 22px;
+    }
+    .action-card svg { color: var(--tw-green-dark); margin-bottom: 10px; }
+    .action-card strong { font-family: var(--tw-font-serif); font-size: 18px; font-weight: 400; display: block; margin-bottom: 4px; }
+    .action-card p { font-size: 13px; color: var(--color-gray-medium); line-height: 1.5; margin-bottom: 14px; }
+    .action-card a { font-size: 13px; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <section class="id-banner" data-screen-label="14 Suivi — Bandeau">
+    <div class="wrap">
+      <div class="id-banner__grid">
+        <div>
+          <span class="eyebrow on-dark" style="color:var(--color-gold-taupe)">Votre séjour</span>
+          <h1 style="margin-top:14px"><span id="gite-name">LaPhine</span> — du 11 au 18 juillet 2026</h1>
+          <div class="id-banner__ref-row">
+            <span>Réservation <strong id="ref">SAM-2026-07-LP-4271</strong></span>
+            <span>Patricia &amp; Nicolas — réponse sous 24 h</span>
+            <span>7 nuits · 2 voyageurs</span>
+          </div>
+        </div>
+        <div class="id-banner__price">
+          <small>Total TTC</small>
+          <strong>907,30 €</strong>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="status">
+    <div class="wrap">
+      <div class="status__head">
+        <div>
+          <span class="eyebrow">Avancement</span>
+          <h2 style="margin-top:10px">Où en est votre dossier ?</h2>
+        </div>
+        <div style="font-size:13px;color:var(--color-gray-medium)">Mise à jour automatique · accès par lien sécurisé reçu par email</div>
+      </div>
+      <div class="status__grid">
+        <!-- 1. Contrat — todo -->
+        <div class="status-card">
+          <div class="status-card__num">01</div>
+          <div class="status-card__icon todo">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+          </div>
+          <h4>Contrat à signer</h4>
+          <span class="status-card__state todo">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>
+            À faire
+          </span>
+          <p>Signature électronique eIDAS. Verrouille les coordonnées d'arrivée.</p>
+          <div class="status-card__when">Sous 48 h</div>
+          <a href="#" class="status-card__cta" id="sign-cta">Signer le contrat
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+          </a>
+        </div>
+
+        <!-- 2. Acompte — done -->
+        <div class="status-card">
+          <div class="status-card__num">02</div>
+          <div class="status-card__icon done">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <h4>Acompte 30 %</h4>
+          <span class="status-card__state done">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Réglé · 272,19 €
+          </span>
+          <p>Reçu envoyé à votre adresse email. Téléchargeable en PDF.</p>
+          <div class="status-card__when">19 mai 2026</div>
+          <a href="#" class="status-card__cta">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><line x1="4" y1="20" x2="20" y2="20"/></svg>
+            Reçu PDF
+          </a>
+        </div>
+
+        <!-- 3. Solde — scheduled -->
+        <div class="status-card">
+          <div class="status-card__num">03</div>
+          <div class="status-card__icon scheduled">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <h4>Solde du séjour</h4>
+          <span class="status-card__state scheduled">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Programmé
+          </span>
+          <p>635,11 € prélevés automatiquement sur la même carte. Modifiable jusqu'à J-31.</p>
+          <div class="status-card__when">J − 30 · 11 juin 2026</div>
+        </div>
+
+        <!-- 4. Caution — upcoming -->
+        <div class="status-card">
+          <div class="status-card__num">04</div>
+          <div class="status-card__icon upcoming">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="11" width="14" height="10" rx="1"/><path d="M9 11V7a3 3 0 0 1 6 0v4"/></svg>
+          </div>
+          <h4>Caution Swikly</h4>
+          <span class="status-card__state upcoming">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg>
+            À venir
+          </span>
+          <p>Empreinte bancaire de 500 €, non débitée sauf dégât constaté. Libérée 7 jours après votre départ.</p>
+          <div class="status-card__when">J − 7 · 4 juillet 2026</div>
+        </div>
+      </div>
+
+      <!-- Locked arrival info -->
+      <div class="arrival-locked" id="arrival-locked">
+        <div>
+          <div class="arrival-locked__icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="11" width="14" height="10" rx="1"/><path d="M9 11V7a3 3 0 0 1 6 0v4"/></svg>
+          </div>
+          <h3>Coordonnées d'arrivée — verrouillées</h3>
+          <p>Le code de la boîte à clés, l'adresse précise du hameau et les numéros directs vous seront communiqués dès la signature du contrat. Ils s'afficheront ici, et un email vous sera envoyé à J-3.</p>
+        </div>
+        <a href="#" class="btn btn-primary" id="sign-cta-2">Signer le contrat</a>
+      </div>
+
+      <!-- Unlocked (toggled in demo) -->
+      <div class="arrival-unlocked" id="arrival-unlocked">
+        <h3>Coordonnées d'arrivée</h3>
+        <div class="arrival-grid">
+          <div><small>Adresse précise</small><strong>Hameau de Samoyas, 3ᵉ maison à droite — 07430 Savas</strong></div>
+          <div><small>Code boîte à clés</small><strong style="font-family:monospace;letter-spacing:0.1em">7430#</strong></div>
+          <div><small>Arrivée</small><strong>Samedi 11 juillet — entre 16h et 19h</strong></div>
+          <div><small>Départ</small><strong>Samedi 18 juillet — avant 10h</strong></div>
+          <div><small>Patricia</small><strong>+33 6 79 33 23 51</strong></div>
+          <div><small>Nicolas</small><strong>+33 6 66 89 96 24</strong></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="actions">
+    <div class="wrap">
+      <div class="status__head">
+        <div>
+          <span class="eyebrow">Actions sur votre dossier</span>
+          <h2 style="margin-top:10px">Besoin de modifier quelque chose ?</h2>
+        </div>
+      </div>
+      <div class="actions__grid">
+        <div class="action-card">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+          <strong>Modifier mes coordonnées</strong>
+          <p>Vous pouvez mettre à jour téléphone, email, adresse postale jusqu'au jour de l'arrivée.</p>
+          <a href="#">Modifier les coordonnées →</a>
+        </div>
+        <div class="action-card">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="6" width="20" height="13" rx="1.5"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          <strong>Changer de carte bancaire</strong>
+          <p>La nouvelle carte sera utilisée pour le solde du séjour. À faire avant J-30 (11 juin).</p>
+          <a href="#">Mettre à jour la carte →</a>
+        </div>
+        <div class="action-card">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          <strong>Annuler ma réservation</strong>
+          <p>Selon le barème CGV. Plus vous nous prévenez tôt, plus le remboursement est élevé.</p>
+          <a href="legal.html?s=cgv">Voir le barème d'annulation →</a>
+        </div>
+      </div>
+
+      <!-- Demo toggle -->
+      <details style="margin-top:32px;font-size:12px;color:var(--color-gray-medium);background:#fff;border:1px dashed #d4cebd;border-radius:4px;padding:12px 16px">
+        <summary style="cursor:pointer">⚙ Démo — simuler la signature du contrat</summary>
+        <p style="margin-top:8px">Cliquez pour basculer entre coordonnées verrouillées (avant signature) et déverrouillées (après signature).</p>
+        <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;min-height:36px;margin-top:8px" id="toggle-arrival">Basculer l'état</button>
+      </details>
+    </div>
+  </section>
+
+  <div id="site-footer"></div>
+
+  <script src="assets/site.js"></script>
+  <script>
+    document.getElementById("toggle-arrival").addEventListener("click", () => {
+      const locked = document.getElementById("arrival-locked");
+      const unlocked = document.getElementById("arrival-unlocked");
+      const shown = unlocked.classList.toggle("is-shown");
+      locked.style.display = shown ? "none" : "";
+    });
+    SamoyasSite.mountSiteShell({ active: "home" });
+  </script>
+</body>
+</html>

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contact — Les Gîtes de Samoyas</title>
+  <link rel="stylesheet" href="assets/tokens.css">
+  <link rel="stylesheet" href="assets/site.css">
+  <style>
+    .page-hero { padding-block: 80px 48px; border-bottom: 1px solid #e3dfd1; }
+    .page-hero h1 { font-size: clamp(44px, 5.4vw, 68px); letter-spacing: -0.015em; max-width: 14ch; }
+    .page-hero p { font-family: var(--tw-font-serif); font-size: 22px; line-height: 1.5; color: var(--color-charcoal); margin-top: 16px; max-width: 36ch; font-style: italic; }
+
+    .contact-grid {
+      padding-block: 64px 96px;
+      display: grid;
+      grid-template-columns: 1fr 1.1fr;
+      gap: 64px;
+    }
+    @media (max-width: 900px) { .contact-grid { grid-template-columns: 1fr; gap: 40px; } }
+
+    /* LEFT — coords */
+    .coords h2 { font-size: clamp(28px, 3vw, 36px); margin-bottom: 24px; }
+    .coords__block { margin-bottom: 28px; }
+    .coords__label {
+      font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--color-gray-medium);
+      margin-bottom: 8px;
+    }
+    .coords__value {
+      font-family: var(--tw-font-serif); font-size: 20px;
+      color: var(--color-charcoal);
+      line-height: 1.5;
+    }
+    .coords__sub { font-size: 14px; color: var(--color-gray-medium); margin-top: 4px; }
+
+    .coords__map {
+      aspect-ratio: 5/3;
+      background: linear-gradient(160deg, #d9d0b8 0%, #b4b69a 40%, #8aa088 70%, #5a7d67 100%);
+      border-radius: var(--radius-default);
+      position: relative; overflow: hidden;
+      margin-top: 24px;
+    }
+    .coords__map::before {
+      content: ""; position: absolute; inset: 0;
+      background-image:
+        linear-gradient(0deg, rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .coords__pin {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -100%);
+      color: var(--tw-green-dark);
+    }
+    .coords__pulse {
+      position: absolute; top: 50%; left: 50%;
+      width: 80px; height: 80px; border-radius: 50%;
+      border: 1px solid rgba(20,104,61,0.5);
+      transform: translate(-50%, -50%);
+      animation: pulse 2.2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0% { transform: translate(-50%, -50%) scale(0.6); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+    }
+    .coords__route-btn { margin-top: 14px; }
+    .coords__map-attr { position: absolute; bottom: 8px; right: 10px; font-size: 10px; color: rgba(255,255,255,0.7); }
+
+    /* RIGHT — form */
+    .form {
+      background: #fff;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      padding: 40px;
+    }
+    .form h2 { font-size: clamp(26px, 2.4vw, 32px); margin-bottom: 8px; }
+    .form > p { color: var(--color-gray-medium); font-size: 14px; margin-bottom: 28px; }
+    .form__row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+      margin-bottom: 16px;
+    }
+    .form__row.full { grid-template-columns: 1fr; }
+    @media (max-width: 520px) { .form__row { grid-template-columns: 1fr; } }
+    .form__field label {
+      display: block;
+      font-size: 13px;
+      color: var(--color-charcoal);
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    .form__field label span { color: var(--color-sienna); }
+    .form__field--error input,
+    .form__field--error textarea,
+    .form__field--error select { border-color: var(--color-sienna); box-shadow: 0 0 0 3px rgba(138,79,46,0.12); }
+    .form__error {
+      display: none;
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--color-sienna);
+      align-items: center; gap: 5px;
+    }
+    .form__field--error .form__error { display: flex; }
+    .form__error svg { flex-shrink: 0; }
+
+    .consent {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 14px;
+      background: #fafaf6;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      font-size: 13px;
+      color: var(--color-charcoal);
+      margin-bottom: 20px;
+      cursor: pointer;
+    }
+    .consent input { width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; }
+
+    .form__success {
+      display: none;
+      padding: 32px;
+      background: rgba(90,140,58,0.08);
+      border: 1px solid rgba(90,140,58,0.4);
+      border-radius: var(--radius-default);
+      text-align: center;
+    }
+    .form__success.is-shown { display: block; }
+    .form__success svg {
+      width: 48px; height: 48px;
+      color: var(--color-sage);
+      margin-bottom: 16px;
+    }
+    .form__success h3 { font-family: var(--tw-font-serif); font-size: 24px; margin-bottom: 8px; }
+    .form__success p { font-size: 14px; color: var(--color-gray-medium); }
+  </style>
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <section class="page-hero" data-screen-label="05 Contact — Hero">
+    <div class="wrap">
+      <span class="eyebrow">Contact</span>
+      <h1 style="margin-top:16px">Une question ?<br>Patricia &amp; Nicolas vous répondent.</h1>
+      <p>Décrochez-nous, ou écrivez-nous. Nous parlons français, anglais et italien — et nous répondons toujours sous 24 heures.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="contact-grid">
+        <div class="coords">
+          <h2>Nous joindre</h2>
+
+          <div class="coords__block">
+            <div class="coords__label">Patricia Terrafina</div>
+            <div class="coords__value">+33 6 79 33 23 51</div>
+            <div class="coords__sub">FR · EN · IT — 9h → 20h</div>
+          </div>
+          <div class="coords__block">
+            <div class="coords__label">Nicolas Terrafina</div>
+            <div class="coords__value">+33 6 66 89 96 24</div>
+            <div class="coords__sub">FR · EN · IT — 9h → 20h</div>
+          </div>
+          <div class="coords__block">
+            <div class="coords__label">Adresse</div>
+            <div class="coords__value">Hameau de Samoyas<br>07430 Savas, Ardèche</div>
+          </div>
+          <div class="coords__block">
+            <div class="coords__label">Email</div>
+            <div class="coords__value" style="font-size:17px;font-family:var(--font-sans)">contact@gites-samoyas.fr</div>
+          </div>
+
+          <div class="coords__map" aria-label="Carte de Samoyas">
+            <div class="coords__pulse"></div>
+            <div class="coords__pin">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.5-7-11a7 7 0 0 1 14 0c0 6.5-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5" fill="#fbfaf6"/></svg>
+            </div>
+            <span class="coords__map-attr">© OpenStreetMap</span>
+          </div>
+          <a class="btn btn-secondary coords__route-btn" href="#">Itinéraire vers Samoyas
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10"/></svg>
+          </a>
+        </div>
+
+        <div class="form" id="contact-form">
+          <h2>Écrivez-nous</h2>
+          <p>Précisez vos dates et le gîte qui vous intéresse — nous vous répondrons avec une disponibilité ferme.</p>
+
+          <form id="cf" novalidate>
+            <div class="form__row">
+              <div class="form__field" data-field="firstname">
+                <label>Prénom <span>*</span></label>
+                <input type="text" name="firstname" placeholder="Patricia">
+                <div class="form__error"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Veuillez indiquer votre prénom.</div>
+              </div>
+              <div class="form__field" data-field="lastname">
+                <label>Nom <span>*</span></label>
+                <input type="text" name="lastname" placeholder="Terrafina">
+                <div class="form__error"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Veuillez indiquer votre nom.</div>
+              </div>
+            </div>
+            <div class="form__row">
+              <div class="form__field" data-field="email">
+                <label>Email <span>*</span></label>
+                <input type="email" name="email" placeholder="patricia@exemple.fr">
+                <div class="form__error"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Adresse email invalide.</div>
+              </div>
+              <div class="form__field" data-field="phone">
+                <label>Téléphone</label>
+                <input type="tel" name="phone" placeholder="+33 6 12 34 56 78">
+                <div class="form__error"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>Format invalide.</div>
+              </div>
+            </div>
+            <div class="form__row">
+              <div class="form__field" data-field="gite">
+                <label>Gîte qui vous intéresse</label>
+                <select name="gite">
+                  <option value="">— Tous les gîtes —</option>
+                  <option value="laphine">LaPhine (4 pers.)</option>
+                  <option value="larmu">L'Armu (2 pers.)</option>
+                  <option value="maisonvieille">La Maison Vieille (4 pers. + sauna)</option>
+                  <option value="multi">Plusieurs gîtes / séjour groupé</option>
+                </select>
+              </div>
+              <div class="form__field" data-field="period">
+                <label>Période envisagée</label>
+                <input type="text" name="period" placeholder="ex. 12 → 19 juillet 2026">
+              </div>
+            </div>
+            <div class="form__row full">
+              <div class="form__field" data-field="message">
+                <label>Votre message <span>*</span></label>
+                <textarea name="message" rows="5" placeholder="Quelques mots sur votre séjour, vos voyageurs, vos envies…"></textarea>
+                <div class="form__error"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Merci d'écrire un court message.</div>
+              </div>
+            </div>
+
+            <label class="consent">
+              <input type="checkbox" name="consent">
+              <span>J'accepte que mes données soient utilisées pour répondre à ma demande. Aucun envoi commercial — voir notre <a href="legal.html?s=privacy">politique de confidentialité</a>.</span>
+            </label>
+
+            <button class="btn btn-primary btn-block" type="submit" style="padding:16px">Envoyer le message</button>
+          </form>
+
+          <div class="form__success" id="cf-success" role="status">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>
+            <h3>Votre message a bien été envoyé.</h3>
+            <p>Patricia ou Nicolas vous répondra sous 24 heures, sur l'adresse que vous avez indiquée.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="site-footer"></div>
+
+  <script src="assets/site.js"></script>
+  <script>
+    const form = document.getElementById("cf");
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      let ok = true;
+      form.querySelectorAll(".form__field").forEach(f => f.classList.remove("form__field--error"));
+      function bad(name) {
+        const f = form.querySelector(`[data-field="${name}"]`);
+        if (f) f.classList.add("form__field--error");
+        ok = false;
+      }
+      if (!fd.get("firstname")?.trim()) bad("firstname");
+      if (!fd.get("lastname")?.trim()) bad("lastname");
+      const em = fd.get("email")?.trim() || "";
+      if (!em.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) bad("email");
+      if (!fd.get("message")?.trim()) bad("message");
+      if (!ok) {
+        form.querySelector(".form__field--error input, .form__field--error textarea")?.focus();
+        return;
+      }
+      form.style.display = "none";
+      document.getElementById("cf-success").classList.add("is-shown");
+    });
+    SamoyasSite.mountSiteShell({ active: "contact" });
+  </script>
+</body>
+</html>

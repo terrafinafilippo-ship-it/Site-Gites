@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Réserver un séjour — Les Gîtes de Samoyas</title>
+  <link rel="stylesheet" href="assets/tokens.css">
+  <link rel="stylesheet" href="assets/site.css">
+  <style>
+    /* Slim header on funnel pages */
+    .funnel-header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(251,250,246,0.96);
+      backdrop-filter: saturate(140%) blur(10px);
+      border-bottom: 1px solid #e3dfd1;
+    }
+    .funnel-header__row {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 72px;
+    }
+    .funnel-header .brand {
+      display: flex; align-items: center; gap: 12px;
+      color: var(--tw-green-dark);
+      font-family: var(--tw-font-serif); font-size: 19px;
+    }
+    .funnel-header .brand img { height: 32px; }
+    .funnel-header__quit {
+      font-size: 14px; color: var(--color-gray-medium);
+      display: inline-flex; gap: 6px; align-items: center;
+    }
+    .funnel-header__quit:hover { color: var(--color-charcoal); opacity: 1; }
+
+    /* Progress bar */
+    .progress {
+      padding-block: 28px 24px;
+      border-bottom: 1px solid #e3dfd1;
+    }
+    .progress__bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .progress__seg {
+      height: 4px;
+      background: #e3dfd1;
+      border-radius: 2px;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress__seg.is-done::after,
+    .progress__seg.is-current::after {
+      content: ""; position: absolute; inset: 0;
+      background: var(--tw-green-dark);
+      transform-origin: left;
+      animation: segFill 280ms ease both;
+    }
+    @keyframes segFill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    .progress__steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .progress__step { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--color-gray-medium); }
+    .progress__step .num {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: #fff;
+      border: 1px solid #d4cebd;
+      font-size: 12px; font-weight: 500;
+    }
+    .progress__step.is-current .num { background: var(--tw-green-dark); color: #fff; border-color: var(--tw-green-dark); }
+    .progress__step.is-done .num { background: var(--tw-green-dark); color: #fff; border-color: var(--tw-green-dark); }
+    .progress__step.is-done .num::after { content: ""; }
+    .progress__step.is-current,
+    .progress__step.is-done { color: var(--color-charcoal); }
+    @media (max-width: 720px) {
+      .progress__steps .lbl { display: none; }
+      .progress__steps { gap: 4px; justify-content: center; }
+    }
+
+    /* Layout */
+    .funnel {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 48px;
+      padding-block: 48px 80px;
+      align-items: start;
+    }
+    @media (max-width: 1000px) {
+      .funnel { grid-template-columns: 1fr; gap: 28px; }
+      .recap { position: relative !important; top: 0 !important; }
+    }
+    .step-pane h1 {
+      font-size: clamp(32px, 4vw, 44px); margin-bottom: 10px;
+      letter-spacing: -0.01em;
+    }
+    .step-pane > p.lead {
+      color: var(--color-gray-medium); font-size: 17px; margin-bottom: 32px; max-width: 50ch;
+    }
+
+    /* Recap sidebar */
+    .recap {
+      background: #fff;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      padding: 24px;
+      position: sticky;
+      top: 96px;
+    }
+    .recap__head {
+      display: flex; gap: 14px; align-items: center;
+      padding-bottom: 14px; margin-bottom: 14px;
+      border-bottom: 1px solid #e3dfd1;
+    }
+    .recap__img {
+      width: 64px; height: 64px;
+      background: linear-gradient(135deg, #c0bba1, #6d735a);
+      border-radius: 4px;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .recap__img image-slot { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .recap__name {
+      font-family: var(--tw-font-serif); font-size: 19px;
+      margin-bottom: 2px;
+    }
+    .recap__sub { font-size: 12px; color: var(--color-gray-medium); }
+    .recap dl { margin: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+    .recap dl > div { display: flex; justify-content: space-between; gap: 12px; }
+    .recap dl dt { color: var(--color-gray-medium); }
+    .recap dl dd { margin: 0; color: var(--color-charcoal); text-align: right; }
+    .recap__lines {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid #e3dfd1;
+      display: flex; flex-direction: column; gap: 8px;
+      font-size: 13px;
+    }
+    .recap__line { display: flex; justify-content: space-between; gap: 12px; }
+    .recap__line dt { color: var(--color-gray-medium); }
+    .recap__line dd { margin: 0; color: var(--color-charcoal); }
+    .recap__total {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid #e3dfd1;
+      display: flex; justify-content: space-between; align-items: baseline;
+    }
+    .recap__total dt { font-size: 13px; color: var(--color-gray-medium); }
+    .recap__total dd { font-family: var(--tw-font-serif); font-size: 24px; margin: 0; font-weight: 400; }
+    .recap__deposit {
+      margin-top: 16px;
+      padding: 14px;
+      background: rgba(20,104,61,0.06);
+      border-left: 2px solid var(--tw-green-dark);
+      font-size: 13px;
+    }
+    .recap__deposit strong { display: block; font-size: 16px; margin-bottom: 2px; color: var(--tw-green-dark); font-family: var(--tw-font-serif); font-weight: 400; }
+    .recap__caution {
+      margin-top: 12px;
+      font-size: 11px;
+      color: var(--color-gray-medium);
+      line-height: 1.5;
+      letter-spacing: 0.01em;
+    }
+
+    /* Step 1 — Dates + voyageurs */
+    .field-group { background: #fff; border: 1px solid #e3dfd1; border-radius: var(--radius-default); padding: 24px; margin-bottom: 20px; }
+    .field-group h3 { font-family: var(--tw-font-serif); font-size: 20px; font-weight: 400; margin-bottom: 18px; }
+    .dates {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 520px) { .dates { grid-template-columns: 1fr; } }
+
+    .date-card {
+      background: #fafaf6;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      padding: 16px;
+      cursor: pointer;
+    }
+    .date-card__label {
+      font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--color-gray-medium); margin-bottom: 4px;
+    }
+    .date-card__value {
+      font-family: var(--tw-font-serif); font-size: 22px; font-weight: 400; line-height: 1.2;
+    }
+    .date-card__sub { font-size: 12px; color: var(--color-gray-medium); margin-top: 4px; }
+    .date-card.is-active { border-color: var(--tw-green-dark); background: #fff; }
+
+    .mini-cal {
+      background: #fff;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      padding: 24px;
+      margin-top: 20px;
+    }
+    .mini-cal__nav {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px;
+    }
+    .mini-cal__title {
+      font-family: var(--tw-font-serif); font-size: 18px; font-weight: 400;
+    }
+    .mini-cal__nav button {
+      background: none; border: 1px solid #d4cebd;
+      border-radius: 4px;
+      width: 32px; height: 32px;
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+    .mini-cal__grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    .mc-day {
+      aspect-ratio: 1;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .mc-day.dayname { color: var(--color-gray-medium); font-size: 10px; font-weight: 500; text-transform: uppercase; cursor: default; }
+    .mc-day { background: #fff; border: 1px solid transparent; }
+    .mc-day:hover:not(.disabled):not(.dayname) { background: rgba(20,104,61,0.08); }
+    .mc-day.in-range { background: rgba(20,104,61,0.16); border-radius: 0; }
+    .mc-day.start { background: var(--tw-green-dark); color: #fff; border-radius: 4px 0 0 4px; }
+    .mc-day.end   { background: var(--tw-green-dark); color: #fff; border-radius: 0 4px 4px 0; }
+    .mc-day.disabled, .mc-day.past {
+      color: #b0a99a;
+      text-decoration: line-through;
+      cursor: not-allowed;
+    }
+    .mc-day.busy {
+      color: #b0a99a;
+      background: repeating-linear-gradient(45deg, transparent 0 4px, rgba(0,0,0,0.06) 4px 5px);
+      cursor: not-allowed;
+    }
+    .mc-day.empty { background: transparent; cursor: default; }
+
+    /* Steppers */
+    .stepper-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid #ebe7d8;
+    }
+    .stepper-row:last-child { border-bottom: 0; }
+    .stepper-row__info strong {
+      font-family: var(--tw-font-serif); font-size: 17px; font-weight: 400;
+      display: block;
+    }
+    .stepper-row__info small { color: var(--color-gray-medium); font-size: 13px; }
+    .stepper {
+      display: inline-flex; align-items: center; gap: 12px;
+      background: #fafaf6;
+      border-radius: var(--radius-default);
+      padding: 4px;
+    }
+    .stepper button {
+      width: 36px; height: 36px;
+      border-radius: 4px;
+      background: #fff; border: 1px solid #d4cebd;
+      cursor: pointer; font-size: 18px;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .stepper button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .stepper span { min-width: 24px; text-align: center; font-weight: 500; }
+
+    /* Step 2 — Coordinates */
+    .field-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+      margin-bottom: 14px;
+    }
+    .field-row.full { grid-template-columns: 1fr; }
+    @media (max-width: 520px) { .field-row { grid-template-columns: 1fr; } }
+    .field label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+    .field label span { color: var(--color-sienna); }
+    .field--error input, .field--error select { border-color: var(--color-sienna); box-shadow: 0 0 0 3px rgba(138,79,46,0.12); }
+    .field__error { display: none; font-size: 12px; color: var(--color-sienna); margin-top: 5px; }
+    .field--error .field__error { display: block; }
+
+    /* Step 3 — Options + detailed recap */
+    .option-card {
+      display: flex; align-items: center; gap: 16px;
+      background: #fafaf6;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: border-color 200ms ease, background 200ms ease;
+    }
+    .option-card.is-on {
+      background: #fff;
+      border-color: var(--tw-green-dark);
+    }
+    .option-card__check {
+      width: 22px; height: 22px;
+      border: 1.5px solid #d4cebd;
+      border-radius: 4px;
+      flex-shrink: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: #fff;
+      transition: background 180ms ease, border-color 180ms ease;
+    }
+    .option-card.is-on .option-card__check {
+      background: var(--tw-green-dark);
+      border-color: var(--tw-green-dark);
+    }
+    .option-card__check svg { opacity: 0; }
+    .option-card.is-on .option-card__check svg { opacity: 1; }
+    .option-card__body { flex: 1; }
+    .option-card__name { font-family: var(--tw-font-serif); font-size: 18px; font-weight: 400; }
+    .option-card__desc { font-size: 13px; color: var(--color-gray-medium); margin-top: 2px; }
+    .option-card__price { font-weight: 500; }
+
+    .detailed-recap {
+      background: #fff;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      padding: 24px;
+    }
+    .detailed-recap h4 { font-family: var(--tw-font-serif); font-size: 20px; font-weight: 400; margin-bottom: 14px; }
+    .dr-line {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: baseline;
+      padding: 10px 0;
+      border-bottom: 1px solid #ebe7d8;
+      font-size: 14px;
+    }
+    .dr-line:last-of-type { border-bottom: 0; }
+    .dr-line strong { font-weight: 500; }
+    .dr-line small { color: var(--color-gray-medium); display: block; margin-top: 2px; font-size: 12px; }
+    .dr-total {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 2px solid var(--color-charcoal);
+    }
+    .dr-total span { font-family: var(--tw-font-serif); font-size: 16px; }
+    .dr-total strong { font-family: var(--tw-font-serif); font-size: 32px; font-weight: 400; }
+    .dr-deposit {
+      margin-top: 12px;
+      padding: 14px;
+      background: rgba(20,104,61,0.06);
+      border-radius: var(--radius-default);
+      display: flex; justify-content: space-between; align-items: baseline;
+    }
+    .dr-deposit span strong { display: block; font-family: var(--tw-font-serif); font-size: 18px; color: var(--tw-green-dark); font-weight: 400; }
+    .dr-deposit span small { color: var(--color-gray-medium); font-size: 12px; }
+    .dr-deposit em { font-style: normal; font-family: var(--tw-font-serif); font-size: 24px; color: var(--tw-green-dark); }
+
+    /* Step 4 — Payment */
+    .stripe-block {
+      background: #fff;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      padding: 32px;
+      margin-bottom: 20px;
+    }
+    .stripe-block__head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .stripe-block__head h3 { font-family: var(--tw-font-serif); font-size: 22px; font-weight: 400; }
+    .secure-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px;
+      background: rgba(20,104,61,0.08);
+      color: var(--tw-green-dark);
+      border-radius: var(--radius-sharp);
+      font-size: 12px; font-weight: 500;
+    }
+    .stripe-mock {
+      background: #fafaf6;
+      border: 1px dashed #d4cebd;
+      border-radius: var(--radius-default);
+      padding: 56px 32px;
+      text-align: center;
+    }
+    .stripe-mock svg { color: var(--color-gray-medium); margin-bottom: 12px; }
+    .stripe-mock h4 { font-family: var(--tw-font-serif); font-size: 18px; font-weight: 400; margin-bottom: 6px; }
+    .stripe-mock p { font-size: 13px; color: var(--color-gray-medium); }
+    .stripe-mock__cards {
+      display: flex; gap: 10px; justify-content: center;
+      margin-top: 18px;
+      opacity: 0.6;
+    }
+    .stripe-mock__cards i {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 4px 10px;
+      background: #fff;
+      border: 1px solid #e3dfd1;
+      border-radius: 3px;
+      font-family: monospace;
+      font-style: normal;
+      font-size: 11px;
+      color: var(--color-charcoal);
+      letter-spacing: 0.05em;
+    }
+
+    .consent-block {
+      background: #fff;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .consent-block label {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 10px 0;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .consent-block input { width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; }
+    .consent-block label + label { border-top: 1px solid #ebe7d8; }
+    .consent-block .req { color: var(--color-sienna); }
+
+    .step-actions {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; margin-top: 24px;
+      flex-wrap: wrap;
+    }
+    .step-back {
+      background: none; border: 0;
+      color: var(--color-gray-medium);
+      cursor: pointer; padding: 8px 0;
+      font-size: 14px;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .step-back:hover { color: var(--color-charcoal); }
+
+    /* Overlays */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(15,30,20,0.6);
+      backdrop-filter: blur(6px);
+      z-index: 500;
+      display: none;
+      align-items: center; justify-content: center;
+      padding: 24px;
+      animation: fadeIn 240ms ease both;
+    }
+    .overlay.is-shown { display: flex; }
+    .overlay__card {
+      background: #fff;
+      border-radius: var(--radius-default);
+      padding: 40px 36px;
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+    }
+    .overlay__icon {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: rgba(20,104,61,0.08);
+      color: var(--tw-green-dark);
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+    }
+    .overlay__card h3 { font-family: var(--tw-font-serif); font-size: 24px; font-weight: 400; margin-bottom: 8px; }
+    .overlay__card p { color: var(--color-gray-medium); font-size: 14px; line-height: 1.5; }
+    .spinner {
+      width: 28px; height: 28px;
+      border: 2.5px solid rgba(20,104,61,0.18);
+      border-top-color: var(--tw-green-dark);
+      border-radius: 50%;
+      animation: spinner 0.8s linear infinite;
+    }
+    @keyframes spinner { to { transform: rotate(360deg); } }
+
+    /* Success state */
+    .success-banner {
+      background: #16221b;
+      color: #f0ece1;
+      padding-block: 64px;
+      position: relative;
+      overflow: hidden;
+    }
+    .success-banner::before {
+      content: ""; position: absolute; inset: 0;
+      background: radial-gradient(circle at 30% 40%, rgba(20,104,61,0.25), transparent 50%);
+    }
+    .success-banner .wrap { position: relative; z-index: 2; }
+    .success-banner__check {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: var(--tw-green-dark);
+      display: inline-flex; align-items: center; justify-content: center;
+      color: #fff;
+      margin-bottom: 24px;
+    }
+    .success-banner h1 { color: #fff; font-size: clamp(40px, 5vw, 64px); margin-bottom: 14px; max-width: 18ch; }
+    .success-banner > .wrap > p { color: rgba(240,236,225,0.8); font-size: 17px; max-width: 50ch; }
+    .success-banner__ref {
+      display: inline-flex; gap: 16px; align-items: baseline;
+      margin-top: 32px;
+      padding: 18px 24px;
+      background: rgba(255,255,255,0.06);
+      border-left: 2px solid var(--color-gold-taupe);
+      border-radius: 0 var(--radius-default) var(--radius-default) 0;
+    }
+    .success-banner__ref span { color: rgba(255,255,255,0.65); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; }
+    .success-banner__ref strong { font-family: monospace; font-size: 20px; color: #fff; letter-spacing: 0.04em; }
+
+    .next-steps {
+      padding-block: 64px;
+    }
+    .next-steps h2 { margin-bottom: 32px; font-size: clamp(28px, 3vw, 38px); }
+    .step-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 700px) { .step-list { grid-template-columns: 1fr; } }
+    .step-card {
+      background: #fff;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      padding: 24px;
+      display: flex; gap: 16px;
+    }
+    .step-card__num {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: rgba(20,104,61,0.08);
+      color: var(--tw-green-dark);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-family: var(--tw-font-serif); font-size: 18px;
+      flex-shrink: 0;
+    }
+    .step-card h4 { font-family: var(--tw-font-serif); font-size: 19px; font-weight: 400; margin-bottom: 6px; }
+    .step-card p { font-size: 13px; color: var(--color-gray-medium); line-height: 1.5; }
+    .step-card__when { font-size: 11px; color: var(--tw-green-dark); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 6px; }
+
+    .success-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 32px; }
+
+    /* State-specific banner blocks (conflict, refused, 3DS pending) */
+    .state-block {
+      background: #fff;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      padding: 40px;
+      margin-bottom: 24px;
+    }
+    .state-block__head {
+      display: flex; gap: 16px; align-items: flex-start;
+      margin-bottom: 24px;
+    }
+    .state-block__icon {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .state-block__icon.warning { background: rgba(212,165,116,0.18); color: #8a5e22; }
+    .state-block__icon.error   { background: rgba(138,79,46,0.12); color: var(--color-sienna); }
+    .state-block__icon.info    { background: rgba(20,104,61,0.10); color: var(--tw-green-dark); }
+    .state-block h1 { font-size: 32px; line-height: 1.2; margin-bottom: 8px; }
+    .state-block__sub { font-size: 16px; color: var(--color-gray-medium); }
+    .no-charge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 18px;
+      background: rgba(90,140,58,0.08);
+      border: 1px solid rgba(90,140,58,0.32);
+      border-radius: var(--radius-default);
+      color: #3f6e1f;
+      font-size: 14px; font-weight: 500;
+      margin-bottom: 24px;
+    }
+    .no-charge svg { color: var(--color-sage); }
+    .alt-dates {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 24px 0;
+    }
+    @media (max-width: 700px) { .alt-dates { grid-template-columns: 1fr; } }
+    .alt-date {
+      background: #fafaf6;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      padding: 16px;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 200ms ease;
+    }
+    .alt-date:hover { border-color: var(--tw-green-dark); }
+    .alt-date strong { font-family: var(--tw-font-serif); font-size: 16px; font-weight: 400; display: block; }
+    .alt-date small { font-size: 11px; color: var(--color-gray-medium); letter-spacing: 0.08em; text-transform: uppercase; }
+    .alt-date em { font-style: normal; color: var(--color-charcoal); font-size: 13px; display: block; margin-top: 4px; }
+
+    .recourses {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-top: 24px;
+    }
+    @media (max-width: 700px) { .recourses { grid-template-columns: 1fr; } }
+    .recourse {
+      background: #fafaf6;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      padding: 20px;
+    }
+    .recourse svg { color: var(--tw-green-dark); margin-bottom: 8px; }
+    .recourse strong { font-family: var(--tw-font-serif); font-size: 17px; font-weight: 400; display: block; margin-bottom: 4px; }
+    .recourse p { font-size: 13px; color: var(--color-gray-medium); line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <header class="funnel-header">
+    <div class="wrap funnel-header__row">
+      <a href="index.html" class="brand">
+        <img src="assets/Logo-header.png" alt="Les Gîtes de Samoyas" style="height:72px;width:auto">
+      </a>
+      <a class="funnel-header__quit" href="index.html">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        Quitter la réservation
+      </a>
+    </div>
+  </header>
+
+  <!-- Progress bar (hidden on success/error states) -->
+  <section class="progress" id="progress">
+    <div class="wrap">
+      <div class="progress__bar">
+        <div class="progress__seg" data-pseg="1"></div>
+        <div class="progress__seg" data-pseg="2"></div>
+        <div class="progress__seg" data-pseg="3"></div>
+        <div class="progress__seg" data-pseg="4"></div>
+      </div>
+      <div class="progress__steps">
+        <div class="progress__step" data-pstep="1"><span class="num">1</span><span class="lbl">Dates &amp; voyageurs</span></div>
+        <div class="progress__step" data-pstep="2"><span class="num">2</span><span class="lbl">Coordonnées</span></div>
+        <div class="progress__step" data-pstep="3"><span class="num">3</span><span class="lbl">Options &amp; récapitulatif</span></div>
+        <div class="progress__step" data-pstep="4"><span class="num">4</span><span class="lbl">Paiement</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== STEP 1 ============== -->
+  <section class="state-pane" data-state="step1" data-screen-label="06 Réserver — Étape 1 Dates">
+    <div class="wrap">
+      <div class="funnel">
+        <div class="step-pane">
+          <h1>Quand venez-vous, et combien êtes-vous&nbsp;?</h1>
+          <p class="lead">Sélectionnez vos dates dans le calendrier — les nuits déjà réservées apparaissent rayées.</p>
+
+          <div class="field-group">
+            <h3>Vos dates</h3>
+            <div class="dates">
+              <div class="date-card is-active" data-date-card="start">
+                <div class="date-card__label">Arrivée</div>
+                <div class="date-card__value">sam. 11 juil. 2026</div>
+                <div class="date-card__sub">À partir de 16h</div>
+              </div>
+              <div class="date-card" data-date-card="end">
+                <div class="date-card__label">Départ</div>
+                <div class="date-card__value">sam. 18 juil. 2026</div>
+                <div class="date-card__sub">Avant 10h</div>
+              </div>
+            </div>
+            <div class="mini-cal" id="mini-cal">
+              <div class="mini-cal__nav">
+                <button aria-label="Mois précédent">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 6 9 12 15 18"/></svg>
+                </button>
+                <span class="mini-cal__title">Juillet 2026</span>
+                <button aria-label="Mois suivant">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 6 15 12 9 18"/></svg>
+                </button>
+              </div>
+              <div class="mini-cal__grid" id="mini-cal-grid"></div>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <h3>Voyageurs</h3>
+            <div class="stepper-row">
+              <div class="stepper-row__info">
+                <strong>Adultes</strong>
+                <small>13 ans et plus</small>
+              </div>
+              <div class="stepper">
+                <button data-step="adults" data-delta="-1">−</button>
+                <span data-stepper="adults">2</span>
+                <button data-step="adults" data-delta="1">+</button>
+              </div>
+            </div>
+            <div class="stepper-row">
+              <div class="stepper-row__info">
+                <strong>Enfants</strong>
+                <small>2 à 12 ans</small>
+              </div>
+              <div class="stepper">
+                <button data-step="children" data-delta="-1">−</button>
+                <span data-stepper="children">0</span>
+                <button data-step="children" data-delta="1">+</button>
+              </div>
+            </div>
+            <div class="stepper-row">
+              <div class="stepper-row__info">
+                <strong>Lit bébé</strong>
+                <small>Moins de 2 ans · inclus sans surcoût</small>
+              </div>
+              <div class="stepper">
+                <button data-step="baby" data-delta="-1">−</button>
+                <span data-stepper="baby">0</span>
+                <button data-step="baby" data-delta="1">+</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-actions">
+            <span></span>
+            <button class="btn btn-primary" data-goto="step2">Continuer
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <aside class="recap" id="recap"></aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== STEP 2 ============== -->
+  <section class="state-pane" data-state="step2" data-screen-label="07 Réserver — Étape 2 Coordonnées" style="display:none">
+    <div class="wrap">
+      <div class="funnel">
+        <div class="step-pane">
+          <h1>Vos coordonnées</h1>
+          <p class="lead">Nous vous transmettons toutes les informations pratiques par email — assurez-vous qu'il soit lisible.</p>
+
+          <div class="field-group">
+            <h3>Identité</h3>
+            <div class="field-row">
+              <div class="field" data-fld="firstname">
+                <label>Prénom <span>*</span></label>
+                <input type="text" name="firstname" value="">
+                <div class="field__error">Veuillez indiquer votre prénom.</div>
+              </div>
+              <div class="field" data-fld="lastname">
+                <label>Nom <span>*</span></label>
+                <input type="text" name="lastname" value="">
+                <div class="field__error">Veuillez indiquer votre nom.</div>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field" data-fld="email">
+                <label>Email <span>*</span></label>
+                <input type="email" name="email" value="">
+                <div class="field__error">Adresse email invalide.</div>
+              </div>
+              <div class="field" data-fld="phone">
+                <label>Téléphone <span>*</span></label>
+                <input type="tel" name="phone" value="">
+                <div class="field__error">Format invalide.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <h3>Adresse postale</h3>
+            <div class="field-row full">
+              <div class="field" data-fld="address">
+                <label>Adresse <span>*</span></label>
+                <input type="text" name="address" value="">
+                <div class="field__error">Veuillez indiquer votre adresse.</div>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field" data-fld="zip">
+                <label>Code postal <span>*</span></label>
+                <input type="text" name="zip" value="">
+                <div class="field__error">Code postal invalide.</div>
+              </div>
+              <div class="field" data-fld="city">
+                <label>Ville <span>*</span></label>
+                <input type="text" name="city" value="">
+                <div class="field__error">Veuillez indiquer la ville.</div>
+              </div>
+            </div>
+            <div class="field-row full">
+              <div class="field" data-fld="country">
+                <label>Pays</label>
+                <select name="country">
+                  <option>France</option>
+                  <option>Belgique</option>
+                  <option>Suisse</option>
+                  <option>Italie</option>
+                  <option>Allemagne</option>
+                  <option>Pays-Bas</option>
+                  <option>Royaume-Uni</option>
+                  <option>Autre</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-actions">
+            <button class="step-back" data-goto="step1">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 6 9 12 15 18"/></svg>
+              Retour
+            </button>
+            <button class="btn btn-primary" data-goto="step3">Continuer
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <aside class="recap" id="recap2"></aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== STEP 3 ============== -->
+  <section class="state-pane" data-state="step3" data-screen-label="08 Réserver — Étape 3 Options" style="display:none">
+    <div class="wrap">
+      <div class="funnel">
+        <div class="step-pane">
+          <h1>Quelques options pour votre séjour</h1>
+          <p class="lead">Aucune n'est obligatoire — choisissez ce qui vous fait plaisir.</p>
+
+          <div class="field-group">
+            <h3>Lit bébé</h3>
+            <div class="option-card is-on" data-opt="baby">
+              <div class="option-card__check">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="option-card__body">
+                <div class="option-card__name">Lit bébé fourni</div>
+                <div class="option-card__desc">Lit et linge inclus, sans surcoût. Précisez-le nous si vous en avez besoin.</div>
+              </div>
+              <div class="option-card__price" style="color: var(--color-gray-medium)">Inclus</div>
+            </div>
+            <p style="font-size:13px;color:var(--color-gray-medium);margin-top:14px;line-height:1.6">Une demande particulière (panier d'accueil, soin à domicile, transfert) ? Écrivez-nous à l'arrivée — nous nous arrangeons sur place.</p>
+          </div>
+
+          <div class="detailed-recap" id="dr">
+            <h4>Récapitulatif détaillé</h4>
+            <div class="dr-line">
+              <div>
+                <strong>7 nuits × 111,43 €</strong>
+                <small>Moyenne saison · LaPhine</small>
+              </div>
+              <span>780,00 €</span>
+            </div>
+            <div class="dr-line">
+              <div>
+                <strong>Forfait ménage</strong>
+                <small>Final, inclus dans le total</small>
+              </div>
+              <span>80,00 €</span>
+            </div>
+            <div class="dr-line">
+              <div>
+                <strong>Taxe de séjour</strong>
+                <small>5,5 % TTC</small>
+              </div>
+              <span data-dr-tax>47,30 €</span>
+            </div>
+            <div class="dr-total">
+              <span>Total TTC</span>
+              <strong data-dr-total>907,30 €</strong>
+            </div>
+            <div class="dr-deposit">
+              <span>
+                <strong>À régler maintenant — acompte 30 %</strong>
+                <small>Le solde sera prélevé J-30 sur la même carte.</small>
+              </span>
+              <em data-dr-deposit>272,19 €</em>
+            </div>
+            <p style="font-size:12px;color:var(--color-gray-medium);margin-top:14px;line-height:1.5">
+              Caution Swikly de 500 € : empreinte bancaire prélevée J-7 et libérée 7 jours après votre départ. <strong>Non débitée</strong> sauf dégât constaté.
+            </p>
+          </div>
+
+          <div class="step-actions">
+            <button class="step-back" data-goto="step2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 6 9 12 15 18"/></svg>
+              Retour
+            </button>
+            <button class="btn btn-primary" data-goto="step4">Procéder au paiement
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <aside class="recap" id="recap3"></aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== STEP 4 ============== -->
+  <section class="state-pane" data-state="step4" data-screen-label="09 Réserver — Étape 4 Paiement" style="display:none">
+    <div class="wrap">
+      <div class="funnel">
+        <div class="step-pane">
+          <h1>Paiement de l'acompte</h1>
+          <p class="lead">Le récapitulatif ci-contre est figé. Vous réglez 30 % aujourd'hui, le solde J-30 sera prélevé sur la même carte.</p>
+
+          <div class="stripe-block">
+            <div class="stripe-block__head">
+              <h3>Carte bancaire</h3>
+              <span class="secure-tag">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="11" width="16" height="10" rx="1"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                Paiement sécurisé · Stripe
+              </span>
+            </div>
+            <div class="stripe-mock">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2" y="6" width="20" height="13" rx="1.5"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              <h4>Champs de carte Stripe Elements</h4>
+              <p>Les champs CB sont injectés par Stripe — aucun numéro n'est traité par notre site.</p>
+              <div class="stripe-mock__cards">
+                <i>VISA</i><i>MC</i><i>AMEX</i><i>CB</i><i>3-D&nbsp;SECURE</i>
+              </div>
+            </div>
+          </div>
+
+          <div class="consent-block">
+            <label>
+              <input type="checkbox" id="ck-cgv">
+              <span><strong>J'accepte les <a href="legal.html?s=cgv">conditions générales de vente</a></strong>, le barème d'annulation et la politique de caution Swikly. <span class="req">*</span></span>
+            </label>
+            <label>
+              <input type="checkbox" id="ck-review">
+              <span>J'accepte d'être recontacté(e) après mon séjour pour publier un avis vérifié sur Gîtes de France.</span>
+            </label>
+          </div>
+
+          <div class="step-actions">
+            <button class="step-back" data-goto="step3">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="15 6 9 12 15 18"/></svg>
+              Retour
+            </button>
+            <button class="btn btn-primary" id="pay-btn" disabled>Payer l'acompte de 272,19 €
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="11" width="16" height="10" rx="1"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            </button>
+          </div>
+
+          <p style="font-size:12px;color:var(--color-gray-medium);text-align:center;margin-top:20px">
+            En cliquant Payer, vous serez peut-être redirigé(e) vers votre application bancaire pour valider l'opération (3-D Secure).
+          </p>
+
+          <!-- Demo state switcher — hidden but discoverable -->
+          <details style="margin-top:48px;font-size:12px;color:var(--color-gray-medium);background:#fafaf6;border:1px dashed #d4cebd;border-radius:4px;padding:12px 16px">
+            <summary style="cursor:pointer">⚙ Démo — déclencher chaque état de paiement</summary>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+              <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;min-height:36px" data-demo="processing">Traitement</button>
+              <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;min-height:36px" data-demo="3ds">3-D Secure</button>
+              <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;min-height:36px" data-demo="success">Succès</button>
+              <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;min-height:36px" data-demo="conflict">Conflit dates</button>
+              <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;min-height:36px" data-demo="refused">Paiement refusé</button>
+              <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px;min-height:36px" data-demo="3ds-failed">3DS non finalisé</button>
+            </div>
+          </details>
+        </div>
+
+        <aside class="recap" id="recap4"></aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== SUCCESS ============== -->
+  <section class="state-pane" data-state="success" data-screen-label="10 Réserver — Succès" style="display:none">
+    <div class="success-banner">
+      <div class="wrap">
+        <div class="success-banner__check">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h1>Votre séjour est confirmé.</h1>
+        <p>Un email récapitulatif vient de partir vers votre boîte. Vous recevrez ensuite votre contrat eIDAS à signer sous 48 heures.</p>
+        <div class="success-banner__ref">
+          <div>
+            <span>Numéro de réservation</span>
+            <strong>SAM-2026-07-LP-4271</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section class="next-steps">
+      <div class="wrap">
+        <h2>Prochaines étapes</h2>
+        <div class="step-list">
+          <div class="step-card">
+            <div class="step-card__num">1</div>
+            <div>
+              <h4>Contrat à signer en ligne</h4>
+              <p>Signature électronique eIDAS, sans imprimer. Le lien arrive dans les minutes qui suivent.</p>
+              <div class="step-card__when">Sous 48 heures</div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-card__num">2</div>
+            <div>
+              <h4>Empreinte caution Swikly</h4>
+              <p>500 € pré-autorisés, non débités. Libérés 7 jours après votre départ sauf dégât.</p>
+              <div class="step-card__when">J − 7</div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-card__num">3</div>
+            <div>
+              <h4>Solde du séjour</h4>
+              <p>Prélèvement automatique du solde sur la carte utilisée aujourd'hui — 635,11 € restants.</p>
+              <div class="step-card__when">J − 30</div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-card__num">4</div>
+            <div>
+              <h4>Coordonnées d'arrivée</h4>
+              <p>Adresse précise, code de la boîte à clés, numéros directs, infos pratiques — tout en un email.</p>
+              <div class="step-card__when">J − 3</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="success-actions">
+          <a class="btn btn-primary" href="suivi.html?ref=SAM-2026-07-LP-4271">Suivre ma réservation
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+          </a>
+          <a class="btn btn-secondary" href="#">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><line x1="4" y1="20" x2="20" y2="20"/></svg>
+            Télécharger le récap PDF
+          </a>
+          <a class="btn btn-ghost" href="index.html">Retour à l'accueil</a>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ============== CONFLICT ============== -->
+  <section class="state-pane" data-state="conflict" data-screen-label="11 Réserver — Conflit dates" style="display:none">
+    <div class="wrap" style="padding-block: 56px">
+      <div class="state-block">
+        <div class="state-block__head">
+          <div class="state-block__icon warning">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.7 3.86a2 2 0 0 0-3.4 0Z"/></svg>
+          </div>
+          <div>
+            <h1>Ces dates viennent d'être prises.</h1>
+            <p class="state-block__sub">Pendant que vous remplissiez vos coordonnées, un autre hôte a finalisé sa réservation sur la même période.</p>
+          </div>
+        </div>
+        <div class="no-charge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>
+          Aucun débit · 0,00 €
+        </div>
+        <p style="margin-bottom:8px">Voici trois alternatives au même gîte, aux dates les plus proches :</p>
+        <div class="alt-dates">
+          <button class="alt-date">
+            <small>1 semaine plus tôt</small>
+            <strong>4 → 11 juil. 2026</strong>
+            <em>780,00 € TTC</em>
+          </button>
+          <button class="alt-date">
+            <small>1 semaine plus tard</small>
+            <strong>18 → 25 juil. 2026</strong>
+            <em>920,00 € TTC · haute saison</em>
+          </button>
+          <button class="alt-date">
+            <small>2 semaines plus tard</small>
+            <strong>25 juil. → 1ᵉʳ août 2026</strong>
+            <em>920,00 € TTC · haute saison</em>
+          </button>
+        </div>
+        <h3 style="font-family:var(--tw-font-serif);font-weight:400;margin-top:32px;margin-bottom:8px;font-size:22px">Ou les deux autres gîtes, aux dates initiales</h3>
+        <div class="recourses">
+          <div class="recourse">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21V9l9-6 9 6v12"/><path d="M9 21V12h6v9"/></svg>
+            <strong>L'Armu — couple, 2 pers.</strong>
+            <p>Disponible 11 → 18 juillet · jacuzzi véranda · 690 € TTC</p>
+            <a href="reserver.html?gite=larmu" class="btn btn-secondary" style="margin-top:12px;width:100%">Choisir L'Armu</a>
+          </div>
+          <div class="recourse">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21V9l9-6 9 6v12"/><path d="M9 21V12h6v9"/></svg>
+            <strong>La Maison Vieille — 4 pers. + sauna</strong>
+            <p>Disponible 11 → 18 juillet · spa et sauna · 960 € TTC</p>
+            <a href="reserver.html?gite=maisonvieille" class="btn btn-secondary" style="margin-top:12px;width:100%">Choisir La Maison Vieille</a>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap">
+          <a class="btn btn-ghost" href="contact.html">Nous écrire pour de l'aide</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== REFUSED ============== -->
+  <section class="state-pane" data-state="refused" data-screen-label="12 Réserver — Paiement refusé" style="display:none">
+    <div class="wrap" style="padding-block: 56px">
+      <div class="state-block">
+        <div class="state-block__head">
+          <div class="state-block__icon error">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          </div>
+          <div>
+            <h1>Votre paiement n'a pas pu aboutir.</h1>
+            <p class="state-block__sub">Votre banque n'a pas autorisé l'opération. Ne vous inquiétez pas — c'est fréquent et ça se règle en quelques secondes.</p>
+          </div>
+        </div>
+        <div class="no-charge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>
+          Aucune somme prélevée · dates non bloquées
+        </div>
+        <p>Trois pistes pour finaliser votre séjour&nbsp;:</p>
+        <div class="recourses">
+          <div class="recourse">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 4 21 10 15 10"/></svg>
+            <strong>Réessayer maintenant</strong>
+            <p>Même carte, même paiement. Souvent ça passe au second essai si votre banque a juste demandé une confirmation.</p>
+            <button class="btn btn-primary" style="margin-top:12px;width:100%" data-resume="step4">Réessayer le paiement</button>
+          </div>
+          <div class="recourse">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="6" width="20" height="13" rx="1.5"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            <strong>Utiliser une autre carte</strong>
+            <p>Vous pouvez aussi tenter avec une autre carte. Aucun blocage : vos données saisies sont gardées.</p>
+            <button class="btn btn-secondary" style="margin-top:12px;width:100%" data-resume="step4">Changer de carte</button>
+          </div>
+          <div class="recourse">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.91.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.33 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z"/></svg>
+            <strong>Nous appeler directement</strong>
+            <p>Patricia (+33 6 79 33 23 51) et Nicolas (+33 6 66 89 96 24) vous bloquent les dates à la voix.</p>
+            <a href="contact.html" class="btn btn-ghost" style="margin-top:12px;width:100%">Voir nos coordonnées</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== 3DS FAILED ============== -->
+  <section class="state-pane" data-state="3ds-failed" data-screen-label="13 Réserver — 3DS non finalisé" style="display:none">
+    <div class="wrap" style="padding-block: 56px">
+      <div class="state-block">
+        <div class="state-block__head">
+          <div class="state-block__icon info">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="11" width="14" height="10" rx="1"/><path d="M9 11V7a3 3 0 0 1 6 0v4"/><circle cx="12" cy="16" r="1"/></svg>
+          </div>
+          <div>
+            <h1>L'authentification 3-D Secure n'a pas abouti.</h1>
+            <p class="state-block__sub">Pas d'inquiétude — votre banque attendait une confirmation et n'en a pas reçu à temps. C'est très fréquent.</p>
+          </div>
+        </div>
+        <div class="no-charge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>
+          0 € débité — votre carte est intacte
+        </div>
+        <h3 style="font-family:var(--tw-font-serif);font-weight:400;margin-top:24px;margin-bottom:8px;font-size:22px">Trois choses à essayer dans l'ordre</h3>
+        <div class="recourses">
+          <div class="recourse">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            <strong>Ouvrir votre appli bancaire</strong>
+            <p>Une notification y attend peut-être votre validation. Acceptez-la, puis revenez ici pour relancer.</p>
+          </div>
+          <div class="recourse">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <strong>Patienter 1 à 2 minutes</strong>
+            <p>Si la validation se fait par SMS, il arrive avec un peu de délai. Réessayez ensuite avec la même carte.</p>
+          </div>
+          <div class="recourse">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="6" width="20" height="13" rx="1.5"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            <strong>Essayer une autre carte</strong>
+            <p>Si l'échec se répète, basculez sur une autre carte. Vos informations sont conservées.</p>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap">
+          <button class="btn btn-primary" data-resume="step4">Reprendre le paiement</button>
+          <a class="btn btn-ghost" href="contact.html">Nous appeler</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Processing overlay -->
+  <div class="overlay" id="ov-processing" role="dialog" aria-live="assertive">
+    <div class="overlay__card">
+      <div class="overlay__icon"><div class="spinner"></div></div>
+      <h3>Traitement en cours</h3>
+      <p>Ne fermez pas cette page. Nous communiquons avec votre banque pour valider l'acompte.</p>
+    </div>
+  </div>
+
+  <!-- 3DS overlay -->
+  <div class="overlay" id="ov-3ds" role="dialog">
+    <div class="overlay__card">
+      <div class="overlay__icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+      </div>
+      <h3>Authentification bancaire requise</h3>
+      <p>Validez l'opération dans votre application bancaire ou via le code reçu par SMS.<br>Cette fenêtre se fermera dès la confirmation reçue.</p>
+      <div style="margin-top:24px;display:flex;gap:8px;justify-content:center">
+        <div class="spinner"></div>
+        <span style="color:var(--color-gray-medium);font-size:13px;align-self:center">En attente de votre banque…</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="site-footer"></div>
+
+  <script src="assets/image-slot.js"></script>
+  <script src="assets/site.js"></script>
+  <script>
+    // ============== BOOKING STATE (single source of truth) ==============
+    const params = new URLSearchParams(location.search);
+    const giteId = params.get("gite") || "laphine";
+
+    const BOOKING = {
+      gite: SamoyasSite.GITES[giteId] || SamoyasSite.GITES.laphine,
+      start: "sam. 11 juil. 2026",
+      end: "sam. 18 juil. 2026",
+      nights: 7,
+      adults: 2,
+      children: 0,
+      baby: 0,
+      season: "Moyenne saison",
+      nightPrice: 111.43,
+      cleaning: 80,
+      taxRate: 0.055,
+      options: { baby: true },
+    };
+
+    function fmt(n) {
+      return n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+    }
+    function compute() {
+      const nights = BOOKING.nights * BOOKING.nightPrice;
+      const subtotal = nights + BOOKING.cleaning;
+      // Taxe de séjour: 5,5% appliquée à l'hébergement + ménage (= brief: 47,30 €)
+      const tax = subtotal * BOOKING.taxRate;
+      const total = subtotal + tax;
+      const deposit = total * 0.3;
+      const balance = total - deposit;
+      return { nights, subtotal, tax, total, deposit, balance };
+    }
+
+    // ============== RECAP RENDER (sidebar) ==============
+    function renderRecap(el) {
+      const c = compute();
+      el.innerHTML = `
+        <div class="recap__head">
+          <div class="recap__img"><image-slot id="recap-${BOOKING.gite.id}" placeholder="${BOOKING.gite.name}"></image-slot></div>
+          <div>
+            <div class="recap__name">${BOOKING.gite.name}</div>
+            <div class="recap__sub">${BOOKING.gite.target}</div>
+          </div>
+        </div>
+        <dl>
+          <div><dt>Arrivée</dt><dd>${BOOKING.start.replace(/^\w+\.\s/, "")}</dd></div>
+          <div><dt>Départ</dt><dd>${BOOKING.end.replace(/^\w+\.\s/, "")}</dd></div>
+          <div><dt>Voyageurs</dt><dd>${BOOKING.adults + BOOKING.children} pers.${BOOKING.baby ? " + bébé" : ""}</dd></div>
+          <div><dt>Saison</dt><dd>${BOOKING.season}</dd></div>
+        </dl>
+        <div class="recap__lines">
+          <div class="recap__line"><dt>${BOOKING.nights} nuits × ${fmt(BOOKING.nightPrice)}</dt><dd>${fmt(c.nights)}</dd></div>
+          <div class="recap__line"><dt>Ménage</dt><dd>${fmt(BOOKING.cleaning)}</dd></div>
+          <div class="recap__line"><dt>Taxe séjour 5,5 %</dt><dd>${fmt(c.tax)}</dd></div>
+        </div>
+        <div class="recap__total">
+          <dt>Total TTC</dt>
+          <dd>${fmt(c.total)}</dd>
+        </div>
+        <div class="recap__deposit">
+          <strong>Acompte 30 %</strong>
+          ${fmt(c.deposit)} aujourd'hui
+        </div>
+        <div class="recap__caution">Caution Swikly 500 € · empreinte J-7 · non débitée sauf dégât. Solde de ${fmt(c.balance)} prélevé J-30.</div>
+      `;
+    }
+    function refreshAllRecaps() {
+      ["recap","recap2","recap3","recap4"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) renderRecap(el);
+      });
+      // Step 3 detailed recap
+      const c = compute();
+      const dr = document.getElementById("dr");
+      if (dr) {
+        dr.querySelector("[data-dr-tax]").textContent = fmt(c.tax);
+        dr.querySelector("[data-dr-total]").textContent = fmt(c.total);
+        dr.querySelector("[data-dr-deposit]").textContent = fmt(c.deposit);
+      }
+      // Step 4 pay button
+      const pay = document.getElementById("pay-btn");
+      if (pay) {
+        const cgv = document.getElementById("ck-cgv");
+        pay.firstChild.textContent = `Payer l'acompte de ${fmt(c.deposit)}`;
+        pay.disabled = !cgv.checked;
+      }
+    }
+
+    // ============== STATE MACHINE ==============
+    function goTo(state) {
+      document.querySelectorAll(".state-pane").forEach(p => {
+        p.style.display = p.dataset.state === state ? "" : "none";
+      });
+      const stepStates = { step1: 1, step2: 2, step3: 3, step4: 4 };
+      const isStep = stepStates[state];
+      document.getElementById("progress").style.display = isStep ? "" : "none";
+
+      if (isStep) {
+        document.querySelectorAll("[data-pseg]").forEach(s => {
+          const n = parseInt(s.dataset.pseg, 10);
+          s.classList.toggle("is-done", n < isStep);
+          s.classList.toggle("is-current", n === isStep);
+        });
+        document.querySelectorAll("[data-pstep]").forEach(s => {
+          const n = parseInt(s.dataset.pstep, 10);
+          s.classList.toggle("is-done", n < isStep);
+          s.classList.toggle("is-current", n === isStep);
+        });
+      }
+      refreshAllRecaps();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      try { history.replaceState({}, "", `?gite=${giteId}&state=${state}`); } catch(e) {}
+    }
+
+    // Navigation buttons
+    document.querySelectorAll("[data-goto]").forEach(b => {
+      b.addEventListener("click", () => goTo(b.dataset.goto));
+    });
+    document.querySelectorAll("[data-resume]").forEach(b => {
+      b.addEventListener("click", () => goTo(b.dataset.resume));
+    });
+
+    // Steppers
+    document.querySelectorAll("[data-step]").forEach(b => {
+      b.addEventListener("click", () => {
+        const k = b.dataset.step;
+        const d = parseInt(b.dataset.delta, 10);
+        const cur = BOOKING[k] || 0;
+        const next = Math.max(0, Math.min(k === "baby" ? 1 : 10, cur + d));
+        BOOKING[k] = next;
+        document.querySelector(`[data-stepper="${k}"]`).textContent = next;
+        refreshAllRecaps();
+      });
+    });
+
+    // Options (just the baby — non-paid, non-toggleable)
+    document.querySelectorAll(".option-card").forEach(c => {
+      c.addEventListener("click", () => {
+        // baby is included; no other options
+      });
+    });
+
+    // CGV toggle on step 4
+    document.getElementById("ck-cgv").addEventListener("change", refreshAllRecaps);
+
+    // Pay flow simulation
+    document.getElementById("pay-btn").addEventListener("click", () => {
+      const ov = document.getElementById("ov-processing");
+      ov.classList.add("is-shown");
+      setTimeout(() => {
+        ov.classList.remove("is-shown");
+        const ov2 = document.getElementById("ov-3ds");
+        ov2.classList.add("is-shown");
+        setTimeout(() => {
+          ov2.classList.remove("is-shown");
+          goTo("success");
+        }, 1800);
+      }, 1500);
+    });
+
+    // Demo state switcher
+    document.querySelectorAll("[data-demo]").forEach(b => {
+      b.addEventListener("click", () => {
+        const s = b.dataset.demo;
+        if (s === "processing") { document.getElementById("ov-processing").classList.add("is-shown"); setTimeout(() => document.getElementById("ov-processing").classList.remove("is-shown"), 2400); return; }
+        if (s === "3ds") { document.getElementById("ov-3ds").classList.add("is-shown"); setTimeout(() => document.getElementById("ov-3ds").classList.remove("is-shown"), 2800); return; }
+        goTo(s);
+      });
+    });
+
+    // Mini calendar (visual)
+    function renderMiniCal() {
+      const grid = document.getElementById("mini-cal-grid");
+      const dayNames = ["L","M","M","J","V","S","D"];
+      let html = dayNames.map(d => `<div class="mc-day dayname">${d}</div>`).join("");
+      const m = new Date(2026, 6, 1);
+      const days = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
+      const firstDow = (new Date(m.getFullYear(), m.getMonth(), 1).getDay() + 6) % 7;
+      for (let i = 0; i < firstDow; i++) html += `<div class="mc-day empty"></div>`;
+      for (let d = 1; d <= days; d++) {
+        let cls = "";
+        if (d < 5) cls = "past";
+        else if (d >= 21 && d <= 26) cls = "busy";
+        else if (d === 11) cls = "start in-range";
+        else if (d === 18) cls = "end in-range";
+        else if (d > 11 && d < 18) cls = "in-range";
+        html += `<div class="mc-day ${cls}">${d}</div>`;
+      }
+      grid.innerHTML = html;
+    }
+    renderMiniCal();
+
+    // Initial state — from ?state= if provided
+    refreshAllRecaps();
+    const startState = params.get("state") || "step1";
+    goTo(startState);
+
+    SamoyasSite.mountSiteShell({ active: "home" });
+  </script>
+</body>
+</html>

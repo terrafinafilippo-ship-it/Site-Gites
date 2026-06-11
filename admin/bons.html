@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bons cadeaux — Back office Samoyas</title>
+  <link rel="stylesheet" href="../assets/tokens.css">
+  <link rel="stylesheet" href="../assets/admin.css">
+  <style>
+    .bons-summary {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+      margin-bottom: 18px;
+    }
+    .bons-summary .adm-card { padding: 14px 16px; }
+    .bons-summary .lbl { font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--adm-fg-faint); }
+    .bons-summary .big { font-family: var(--font-serif); font-size: 24px; margin-top: 4px; }
+    .bons-summary .sub { font-size: 11.5px; color: var(--adm-fg-muted); margin-top: 2px; }
+    @media (max-width: 900px) { .bons-summary { grid-template-columns: repeat(2, 1fr); } }
+
+    .bons-toolbar {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .bons-toolbar .spacer { flex: 1; }
+
+    .bon-code {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      background: var(--adm-bg-sunk);
+      border: 1px dashed var(--adm-border-strong);
+      border-radius: 6px;
+      padding: 4px 9px;
+      white-space: nowrap;
+      color: var(--adm-fg);
+    }
+
+    /* Aperçu du bon */
+    .bon-preview {
+      border-radius: 10px;
+      background: var(--adm-sidebar);
+      color: #efe4c8;
+      padding: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+    .bon-preview::after {
+      content: "";
+      position: absolute; inset: 8px;
+      border: 1px solid rgba(239, 228, 200, 0.25);
+      border-radius: 6px;
+      pointer-events: none;
+    }
+    .bon-preview .eyebrow {
+      font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: #b8a87f;
+    }
+    .bon-preview .title {
+      font-family: var(--font-serif);
+      font-size: 24px;
+      margin: 8px 0 2px;
+    }
+    .bon-preview .amount {
+      font-family: var(--font-serif);
+      font-size: 40px;
+      color: var(--adm-gold);
+      margin: 10px 0 4px;
+    }
+    .bon-preview .meta { font-size: 12px; color: #b8c4ba; }
+    .bon-preview .code {
+      display: inline-block;
+      margin-top: 14px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      border: 1px dashed rgba(239, 228, 200, 0.45);
+      border-radius: 6px;
+      padding: 6px 12px;
+    }
+  </style>
+</head>
+<body data-page="bons" data-title="Bons cadeaux" data-sub="6 bons actifs · 1 130 € en circulation" data-wide="1">
+
+  <div class="bons-summary">
+    <div class="adm-card">
+      <div class="lbl">Bons actifs</div>
+      <div class="big">6</div>
+      <div class="sub">dont 1 expire dans moins de 30 jours</div>
+    </div>
+    <div class="adm-card">
+      <div class="lbl">Valeur en circulation</div>
+      <div class="big">1 130 €</div>
+      <div class="sub">encaissée, séjours non consommés</div>
+    </div>
+    <div class="adm-card">
+      <div class="lbl">Vendus ce trimestre</div>
+      <div class="big">4</div>
+      <div class="sub">820 € · surtout à Noël</div>
+    </div>
+    <div class="adm-card">
+      <div class="lbl">Utilisés ce trimestre</div>
+      <div class="big">3</div>
+      <div class="sub">570 € déduits de réservations</div>
+    </div>
+  </div>
+
+  <div class="bons-toolbar">
+    <div class="adm-chip is-active">Tous <span class="count">13</span></div>
+    <div class="adm-chip">Actifs <span class="count">6</span></div>
+    <div class="adm-chip">Utilisés <span class="count">5</span></div>
+    <div class="adm-chip">Expirés <span class="count">2</span></div>
+    <div class="spacer"></div>
+    <button class="adm-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      Exporter CSV
+    </button>
+    <button class="adm-btn adm-btn--primary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Créer un bon cadeau
+    </button>
+  </div>
+
+  <div class="adm-grid adm-grid--3-1">
+    <div class="adm-card adm-card--flush">
+      <table class="adm-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Acheteur</th>
+            <th>Bénéficiaire</th>
+            <th class="right">Montant</th>
+            <th>Émis le</th>
+            <th>Expire le</th>
+            <th>Statut</th>
+            <th style="width:42px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="bon-code">SAMO-NOEL-7H2K</span></td>
+            <td>Mme Collin Anne</td>
+            <td>M. &amp; Mme Collin (parents)</td>
+            <td class="right num" style="font-weight:500;">250 €</td>
+            <td>18 déc 2025</td>
+            <td>18 déc 2026</td>
+            <td><span class="adm-pill adm-pill--success">Actif</span></td>
+            <td><button class="adm-btn adm-btn--ghost adm-btn--sm">⋯</button></td>
+          </tr>
+          <tr>
+            <td><span class="bon-code">SAMO-NOEL-4R8M</span></td>
+            <td>M. Vasseur Thomas</td>
+            <td>Mme Vasseur Élise</td>
+            <td class="right num" style="font-weight:500;">200 €</td>
+            <td>21 déc 2025</td>
+            <td>21 déc 2026</td>
+            <td><span class="adm-pill adm-pill--success">Actif</span></td>
+            <td><button class="adm-btn adm-btn--ghost adm-btn--sm">⋯</button></td>
+          </tr>
+          <tr style="background: linear-gradient(90deg, var(--adm-warn-tint) 0%, transparent 8%);">
+            <td><span class="bon-code">SAMO-2025-9B3T</span></td>
+            <td>Mme Royer Claire</td>
+            <td>Famille Royer</td>
+            <td class="right num" style="font-weight:500;">180 €</td>
+            <td>9 mars 2025</td>
+            <td style="color: var(--adm-warn); font-weight:500;">9 mars 2026</td>
+            <td><span class="adm-pill adm-pill--warn">Expire bientôt</span></td>
+            <td><button class="adm-btn adm-btn--ghost adm-btn--sm">⋯</button></td>
+          </tr>
+          <tr>
+            <td><span class="bon-code">SAMO-ANNI-2W6P</span></td>
+            <td>M. Charpentier Luc</td>
+            <td>Mme Charpentier Inès</td>
+            <td class="right num" style="font-weight:500;">300 €</td>
+            <td>4 janv 2026</td>
+            <td>4 janv 2027</td>
+            <td><span class="adm-pill adm-pill--success">Actif</span></td>
+            <td><button class="adm-btn adm-btn--ghost adm-btn--sm">⋯</button></td>
+          </tr>
+          <tr>
+            <td><span class="bon-code">SAMO-2026-5K1V</span></td>
+            <td>Mme Berthelot Sophie</td>
+            <td>M. &amp; Mme Berthelot</td>
+            <td class="right num" style="font-weight:500;">120 €</td>
+            <td>26 janv 2026</td>
+            <td>26 janv 2027</td>
+            <td><span class="adm-pill adm-pill--success">Actif</span></td>
+            <td><button class="adm-btn adm-btn--ghost adm-btn--sm">⋯</button></td>
+          </tr>
+          <tr style="opacity: 0.72;">
+            <td><span class="bon-code">SAMO-2025-3J7D</span></td>
+            <td>M. Lambert Hugo</td>
+            <td>Famille Lambert</td>
+            <td class="right num" style="font-weight:500;">250 €</td>
+            <td>2 oct 2025</td>
+            <td>—</td>
+            <td><span class="adm-pill adm-pill--neutral">Utilisé · janv 2026</span></td>
+            <td><button class="adm-btn adm-btn--ghost adm-btn--sm">⋯</button></td>
+          </tr>
+          <tr style="opacity: 0.72;">
+            <td><span class="bon-code">SAMO-2025-8F4N</span></td>
+            <td>Mme Girard Paule</td>
+            <td>M. Girard Antoine</td>
+            <td class="right num" style="font-weight:500;">150 €</td>
+            <td>15 juin 2025</td>
+            <td style="color: var(--adm-danger);">15 déc 2025</td>
+            <td><span class="adm-pill adm-pill--danger">Expiré</span></td>
+            <td><button class="adm-btn adm-btn--ghost adm-btn--sm">⋯</button></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; padding: 12px 16px; border-top: 1px solid var(--adm-border); font-size:13px; color: var(--adm-fg-muted); background: var(--adm-bg-sunk);">
+        <div>7 sur 13 bons</div>
+        <div style="display:flex; gap:6px;">
+          <button class="adm-btn adm-btn--sm" disabled style="opacity:0.5;">←</button>
+          <button class="adm-btn adm-btn--sm" style="background: var(--adm-accent); color:#fff; border-color: var(--adm-accent);">1</button>
+          <button class="adm-btn adm-btn--sm">2</button>
+          <button class="adm-btn adm-btn--sm">→</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Side: preview + règles -->
+    <div style="display:flex; flex-direction:column; gap:18px;">
+      <div class="adm-card">
+        <div class="adm-card__head">
+          <h3>Aperçu du bon envoyé</h3>
+        </div>
+        <div class="bon-preview">
+          <div class="eyebrow">Les Gîtes de Samoyas</div>
+          <div class="title">Bon cadeau</div>
+          <div class="meta">Offert à Mme Vasseur Élise<br>de la part de Thomas</div>
+          <div class="amount">200 €</div>
+          <div class="meta">valable jusqu'au 21 décembre 2026<br>sur tout séjour dans nos 3 gîtes</div>
+          <span class="code">SAMO-NOEL-4R8M</span>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:12px;">
+          <button class="adm-btn adm-btn--sm" style="flex:1; justify-content:center;">Renvoyer par email</button>
+          <button class="adm-btn adm-btn--ghost adm-btn--sm">PDF</button>
+        </div>
+      </div>
+
+      <div class="adm-card">
+        <div class="adm-card__head">
+          <h3>Règles des bons</h3>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px; font-size:13px; color:var(--adm-fg-muted);">
+          <div style="display:flex; justify-content:space-between; gap:10px;">
+            <span>Validité</span><b style="color:var(--adm-fg); font-weight:500;">12 mois</b>
+          </div>
+          <div style="display:flex; justify-content:space-between; gap:10px;">
+            <span>Montants proposés</span><b style="color:var(--adm-fg); font-weight:500;">120 / 200 / 300 € ou libre</b>
+          </div>
+          <div style="display:flex; justify-content:space-between; gap:10px;">
+            <span>Utilisable en plusieurs fois</span><b style="color:var(--adm-fg); font-weight:500;">Oui</b>
+          </div>
+          <div style="display:flex; justify-content:space-between; gap:10px;">
+            <span>Rappel avant expiration</span><b style="color:var(--adm-fg); font-weight:500;">Email à J-30</b>
+          </div>
+        </div>
+        <button class="adm-btn adm-btn--ghost adm-btn--sm" style="margin-top:12px;">Modifier les règles</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../assets/admin-shell.js"></script>
+</body>
+</html>

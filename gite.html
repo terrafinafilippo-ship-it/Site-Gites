@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LaPhine — Les Gîtes de Samoyas</title>
+  <link rel="stylesheet" href="assets/tokens.css">
+  <link rel="stylesheet" href="assets/site.css">
+  <style>
+    /* ===== Breadcrumb ===== */
+    .crumb {
+      padding-block: 20px;
+      font-size: 13px;
+      color: var(--color-gray-medium);
+      border-bottom: 1px solid #e3dfd1;
+    }
+    .crumb a { color: var(--color-gray-medium); }
+    .crumb a:hover { color: var(--tw-green-dark); opacity: 1; }
+    .crumb .sep { margin-inline: 8px; opacity: 0.5; }
+    .crumb .current { color: var(--color-charcoal); }
+
+    /* ===== Gallery ===== */
+    .gallery {
+      padding-block: 32px;
+    }
+    .gallery__grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 8px;
+      height: 540px;
+      border-radius: var(--radius-default);
+      overflow: hidden;
+    }
+    .gallery__cell {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, #d8dac4 0%, #b9b18d 100%);
+    }
+    .gallery__cell.dominant { grid-row: 1 / 3; }
+    .gallery__cell image-slot { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .gallery__more {
+      position: absolute; bottom: 16px; right: 16px;
+      padding: 8px 14px;
+      background: rgba(15,15,15,0.7);
+      color: #fff;
+      border-radius: var(--radius-sharp);
+      font-size: 13px;
+      backdrop-filter: blur(8px);
+      display: inline-flex; gap: 6px; align-items: center;
+      cursor: pointer;
+      z-index: 5;
+    }
+    @media (max-width: 900px) {
+      .gallery__grid {
+        height: auto;
+        grid-template-columns: 1fr;
+        grid-template-rows: none;
+      }
+      .gallery__cell { aspect-ratio: 4/3; }
+      .gallery__cell.dominant { aspect-ratio: 4/3; }
+      .gallery__cell:nth-child(n+4) { display: none; }
+    }
+
+    /* ===== Identity row ===== */
+    .identity {
+      padding-block: 56px 24px;
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 48px;
+      align-items: start;
+    }
+    .identity .eyebrow { margin-bottom: 12px; }
+    .identity h1 { margin-bottom: 16px; font-size: clamp(40px, 5vw, 64px); letter-spacing: -0.015em; }
+    .identity__caps {
+      display: flex; gap: 22px; flex-wrap: wrap;
+      color: var(--color-gray-medium); font-size: 14px;
+      margin-bottom: 24px;
+    }
+    .identity__caps span { display: inline-flex; align-items: center; gap: 6px; }
+    .identity__lead {
+      font-family: var(--tw-font-serif);
+      font-size: 22px;
+      line-height: 1.5;
+      color: var(--color-charcoal);
+      font-weight: 400;
+      max-width: 32ch;
+    }
+
+    .gdf-card {
+      background: #fff;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      padding: 24px;
+    }
+    .gdf-card__head {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 16px;
+    }
+    .gdf-card__head svg { color: var(--color-gold-taupe); }
+    .gdf-card__label {
+      font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--color-gray-medium);
+    }
+    .gdf-card__brand {
+      font-family: var(--tw-font-serif); font-size: 16px;
+    }
+    .gdf-card__score {
+      font-family: var(--tw-font-serif);
+      font-size: 48px;
+      line-height: 1;
+      color: var(--tw-green-dark);
+      letter-spacing: -0.01em;
+    }
+    .gdf-card__score sup { font-size: 0.4em; color: var(--color-gold-taupe); }
+    .gdf-card__stats {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 14px; margin: 18px 0 22px;
+      padding: 14px 0;
+      border-top: 1px solid #e3dfd1;
+      border-bottom: 1px solid #e3dfd1;
+    }
+    .gdf-card__stats div { font-size: 13px; color: var(--color-gray-medium); }
+    .gdf-card__stats strong { display: block; font-family: var(--tw-font-serif); font-size: 22px; color: var(--color-charcoal); font-weight: 400; }
+    .gdf-card__link {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 14px; color: var(--tw-green-dark); font-weight: 500;
+    }
+    .gdf-card__note {
+      font-size: 12px; color: var(--color-gray-medium);
+      margin-top: 10px;
+    }
+    @media (max-width: 900px) { .identity { grid-template-columns: 1fr; gap: 32px; } }
+
+    /* ===== Storytelling ===== */
+    .story {
+      padding-block: 24px 56px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: start;
+    }
+    .story h2 { font-size: clamp(28px, 3vw, 38px); margin-bottom: 18px; max-width: 12ch; }
+    .story p {
+      font-size: 16px; line-height: 1.7;
+      color: var(--color-charcoal);
+      margin-bottom: 14px;
+    }
+    .story p.lead { font-size: 18px; color: var(--color-charcoal); }
+    @media (max-width: 900px) { .story { grid-template-columns: 1fr; gap: 24px; } }
+
+    /* ===== Equipments table ===== */
+    .equip {
+      padding-block: 56px;
+      border-top: 1px solid #e3dfd1;
+    }
+    .equip__head {
+      display: flex; justify-content: space-between; align-items: end;
+      gap: 24px; margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+    .equip__head h2 { font-size: clamp(28px, 3vw, 38px); }
+    .equip__grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      background: #e3dfd1;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      overflow: hidden;
+    }
+    .equip__cat {
+      background: #fff;
+      padding: 22px 20px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .equip__cat-label {
+      font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--tw-green-dark);
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    .equip__cat ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+    .equip__cat li {
+      font-size: 14px;
+      display: flex; align-items: center; gap: 8px;
+      color: var(--color-charcoal);
+    }
+    .equip__cat li svg { color: var(--tw-green-dark); flex-shrink: 0; }
+    @media (max-width: 900px) {
+      .equip__grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 520px) {
+      .equip__grid { grid-template-columns: 1fr; }
+    }
+
+    /* ===== Spa block (dark) ===== */
+    .spa-block {
+      background: #16221b;
+      color: #f0ece1;
+      padding-block: 88px;
+      position: relative;
+      overflow: hidden;
+    }
+    .spa-block::before {
+      content: "";
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(circle at 25% 30%, rgba(212,165,116,0.10), transparent 40%),
+        radial-gradient(circle at 75% 70%, rgba(20,104,61,0.20), transparent 50%);
+    }
+    .spa-block .wrap { position: relative; z-index: 2; }
+    .spa-block__grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+    }
+    .spa-block h2 { color: #fff; font-size: clamp(36px, 4vw, 52px); margin-bottom: 20px; max-width: 14ch; }
+    .spa-block p { color: rgba(240,236,225,0.86); font-size: 17px; line-height: 1.65; max-width: 44ch; }
+    .spa-block .eyebrow { color: var(--color-gold-taupe); margin-bottom: 14px; }
+    .spa-block__chips {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      margin-top: 28px;
+    }
+    .spa-block__chips span {
+      padding: 8px 14px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: var(--radius-sharp);
+      font-size: 13px;
+    }
+    .spa-block__media {
+      aspect-ratio: 4/5;
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius-default);
+      background: linear-gradient(135deg, #2a4030 0%, #1a201c 100%);
+    }
+    .spa-block__media image-slot { position: absolute; inset: 0; width: 100%; height: 100%; }
+    @media (max-width: 900px) {
+      .spa-block__grid { grid-template-columns: 1fr; gap: 32px; }
+      .spa-block__media { aspect-ratio: 4/3; }
+    }
+
+    /* ===== Calendar ===== */
+    .calendar {
+      padding-block: 56px;
+    }
+    .calendar__head {
+      display: flex; justify-content: space-between; align-items: end;
+      gap: 24px; margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+    .calendar__legend {
+      display: flex; gap: 18px; font-size: 12px; color: var(--color-gray-medium);
+      flex-wrap: wrap;
+    }
+    .calendar__legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .calendar__legend i {
+      width: 12px; height: 12px; border-radius: 2px; display: inline-block;
+    }
+    .legend-free { background: #fff; border: 1px solid #cdc9bb; }
+    .legend-busy { background: var(--tw-green-dark); }
+    .legend-past { background: #e8e4d4; }
+    .legend-changeover {
+      background: linear-gradient(135deg, #fff 50%, var(--tw-green-dark) 50%);
+      border: 1px solid #cdc9bb;
+    }
+    .calendar__months {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+    }
+    @media (max-width: 1100px) { .calendar__months { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 700px) { .calendar__months { grid-template-columns: 1fr; } }
+    .cal-month h3 {
+      font-family: var(--tw-font-serif);
+      font-size: 18px;
+      margin-bottom: 12px;
+      color: var(--color-charcoal);
+      font-weight: 400;
+    }
+    .cal-month__grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+    }
+    .cal-day, .cal-dayname {
+      aspect-ratio: 1;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      border-radius: 2px;
+    }
+    .cal-dayname { color: var(--color-gray-medium); font-size: 10px; font-weight: 500; text-transform: uppercase; }
+    .cal-day { background: #fff; border: 1px solid #ebe7d8; color: var(--color-charcoal); }
+    .cal-day.past { background: #e8e4d4; color: #a39e8d; border-color: #e8e4d4; }
+    .cal-day.busy { background: var(--tw-green-dark); color: #fff; border-color: var(--tw-green-dark); }
+    .cal-day.changeover {
+      background: linear-gradient(135deg, #fff 50%, var(--tw-green-dark) 50%);
+      color: var(--color-charcoal);
+    }
+    .cal-day.empty { background: transparent; border-color: transparent; }
+
+    .calendar__error {
+      padding: 18px 22px;
+      background: #fff4ec;
+      border: 1px solid #ddc3a8;
+      border-radius: var(--radius-default);
+      color: #6b4419;
+      font-size: 14px;
+      display: none;
+      align-items: center; gap: 12px;
+    }
+    .calendar__error.is-shown { display: flex; }
+    .calendar__error svg { color: var(--color-sienna); flex-shrink: 0; }
+
+    /* ===== Pricing grid + conditions ===== */
+    .pricing {
+      padding-block: 56px;
+      background: rgba(20,104,61,0.04);
+      border-top: 1px solid #e3dfd1;
+      border-bottom: 1px solid #e3dfd1;
+    }
+    .pricing__grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 48px;
+      align-items: start;
+    }
+    @media (max-width: 900px) { .pricing__grid { grid-template-columns: 1fr; gap: 32px; } }
+    .pricing h2 { font-size: clamp(28px, 3vw, 38px); margin-bottom: 24px; }
+    .price-table {
+      background: #fff;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      overflow: hidden;
+    }
+    .price-row {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid #ebe7d8;
+      font-size: 14px;
+    }
+    .price-row:last-child { border-bottom: 0; }
+    .price-row.hd {
+      font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--color-gray-medium);
+      background: #fafaf6;
+    }
+    .price-row strong {
+      font-family: var(--tw-font-serif);
+      font-weight: 400;
+      font-size: 18px;
+      color: var(--color-charcoal);
+    }
+    .price-row .period { color: var(--color-gray-medium); font-size: 13px; }
+    .conditions {
+      background: #fff;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      padding: 28px;
+    }
+    .conditions h4 { font-family: var(--tw-font-serif); font-size: 20px; font-weight: 400; margin-bottom: 18px; }
+    .conditions ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+    .conditions li {
+      display: flex; justify-content: space-between; gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #ebe7d8;
+      font-size: 14px;
+    }
+    .conditions li:last-child { border-bottom: 0; padding-bottom: 0; }
+    .conditions li span:first-child { color: var(--color-gray-medium); }
+    .conditions li strong { color: var(--color-charcoal); font-weight: 500; }
+    .conditions__note { font-size: 12px; color: var(--color-gray-medium); margin-top: 14px; }
+
+    /* ===== Cross-sell ===== */
+    .crosssell { padding-block: 64px; }
+    .crosssell h2 {
+      font-size: clamp(28px, 3vw, 38px);
+      margin-bottom: 28px;
+      max-width: 16ch;
+    }
+    .crosssell__grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+    }
+    @media (max-width: 700px) { .crosssell__grid { grid-template-columns: 1fr; } }
+    .crosssell-card {
+      background: #fff;
+      border: 1px solid #e3dfd1;
+      border-radius: var(--radius-default);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      transition: box-shadow 240ms ease;
+    }
+    @media (max-width: 520px) { .crosssell-card { grid-template-columns: 1fr; } }
+    .crosssell-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.06); }
+    .crosssell-card__media {
+      position: relative; min-height: 180px;
+      background: linear-gradient(135deg, #b9b18d, #6b7a5f);
+    }
+    .crosssell-card__media image-slot { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .crosssell-card__body { padding: 24px; display: flex; flex-direction: column; gap: 10px; }
+    .crosssell-card__name { font-family: var(--tw-font-serif); font-size: 24px; }
+    .crosssell-card__meta { font-size: 13px; color: var(--color-gray-medium); }
+    .crosssell-card__price { color: var(--color-charcoal); font-weight: 500; font-size: 14px; }
+    .crosssell-card__cta {
+      align-self: flex-start;
+      margin-top: 4px;
+      font-size: 14px; color: var(--tw-green-dark); font-weight: 500;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+
+    /* ===== CTA bar (desktop full-width + sticky mobile) ===== */
+    .booking-bar-desk {
+      background: #1a201c;
+      color: #fff;
+      padding-block: 28px;
+    }
+    .booking-bar-desk .wrap {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .booking-bar-desk__txt {
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .booking-bar-desk__txt strong {
+      font-family: var(--tw-font-serif);
+      font-size: 24px; font-weight: 400;
+    }
+    .booking-bar-desk__txt span { color: rgba(255,255,255,0.7); font-size: 14px; }
+    .booking-bar-desk .btn { padding: 16px 28px; }
+
+    .booking-bar-mob {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      z-index: 150;
+      background: #fff;
+      border-top: 1px solid #e3dfd1;
+      padding: 12px 16px;
+      display: none;
+      align-items: center; gap: 12px;
+      box-shadow: 0 -8px 24px rgba(0,0,0,0.08);
+    }
+    .booking-bar-mob__price {
+      display: flex; flex-direction: column; line-height: 1.2;
+    }
+    .booking-bar-mob__price strong {
+      font-family: var(--tw-font-serif);
+      font-size: 20px;
+      font-weight: 400;
+    }
+    .booking-bar-mob__price small { font-size: 11px; color: var(--color-gray-medium); }
+    .booking-bar-mob .btn { flex: 1; }
+    @media (max-width: 900px) {
+      .booking-bar-mob { display: flex; }
+      .booking-bar-desk { display: none; }
+      body { padding-bottom: 80px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <!-- Breadcrumb -->
+  <div class="crumb">
+    <div class="wrap">
+      <a href="index.html">Accueil</a>
+      <span class="sep">›</span>
+      <a href="gites.html">Nos gîtes</a>
+      <span class="sep">›</span>
+      <span class="current" data-bind="name">LaPhine</span>
+    </div>
+  </div>
+
+  <!-- Gallery -->
+  <section class="gallery" data-screen-label="02 Page gîte — Galerie">
+    <div class="wrap">
+      <div class="gallery__grid">
+        <div class="gallery__cell dominant">
+          <image-slot id="g-1" placeholder="Photo dominante : véranda spa au crépuscule"></image-slot>
+        </div>
+        <div class="gallery__cell">
+          <image-slot id="g-2" placeholder="Salon — pierre, lin, lumière oblique"></image-slot>
+        </div>
+        <div class="gallery__cell">
+          <image-slot id="g-3" placeholder="Cuisine ouverte sur la véranda"></image-slot>
+        </div>
+        <div class="gallery__cell">
+          <image-slot id="g-4" placeholder="Chambre principale, draps fournis"></image-slot>
+        </div>
+        <div class="gallery__cell">
+          <image-slot id="g-5" placeholder="Extérieur — vue collines"></image-slot>
+          <span class="gallery__more">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="1"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
+            Voir les 18 photos
+          </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Identity / GdF -->
+  <section>
+    <div class="wrap">
+      <div class="identity">
+        <div>
+          <span class="badge-pill badge-target" data-bind="target">Famille — 4 personnes</span>
+          <span class="badge-pill" style="margin-left:6px"><span data-bind="code">07G310701</span></span>
+          <h1 data-bind="name" style="margin-top:18px">LaPhine</h1>
+          <div class="identity__caps">
+            <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2"/><path d="M3 21v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/><path d="M21 21v-1a3 3 0 0 0-3-3"/></svg><span data-bind="sleeps">4</span> personnes</span>
+            <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 18v-6h18v6"/><path d="M5 12V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4"/></svg><span data-bind="bedrooms">2</span> chambres</span>
+            <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 9h18M9 3v18"/></svg><span data-bind="surface">70 m²</span></span>
+            <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12s-3-7-9-7-9 7-9 7 3 7 9 7 9-7 9-7Z"/><circle cx="12" cy="12" r="3"/></svg>Animaux non admis</span>
+          </div>
+          <p class="identity__lead" data-bind="tagline">L'écrin familial — spa encastré, véranda chauffée, garage privatif.</p>
+        </div>
+        <aside class="gdf-card">
+          <div class="gdf-card__head">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9 17 14 19 21 12 17 5 21 7 14 2 9 9 9"/></svg>
+            <div>
+              <div class="gdf-card__label">Avis vérifiés</div>
+              <div class="gdf-card__brand">Gîtes de France</div>
+            </div>
+          </div>
+          <div class="gdf-card__score"><span data-bind="rating">5,0</span><sup>/5</sup></div>
+          <div class="gdf-card__stats">
+            <div><strong data-bind="reviews">16</strong>avis publiés</div>
+            <div><strong data-bind="reco">100 %</strong>de recommandation</div>
+          </div>
+          <a href="#" class="gdf-card__link">
+            Lire les avis sur Gîtes de France
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 17L17 7M7 7h10v10"/></svg>
+          </a>
+          <div class="gdf-card__note">Tous nos avis sont collectés et vérifiés par Gîtes de France après le séjour.</div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- Storytelling -->
+  <section>
+    <div class="wrap">
+      <div class="story">
+        <div>
+          <span class="eyebrow">L'esprit du lieu</span>
+          <h2 style="margin-top:14px;font-family:var(--tw-font-serif)">Un gîte qui sait se faire oublier.</h2>
+        </div>
+        <div>
+          <p class="lead" data-story-intro>Au bout du hameau, <span data-bind="name">LaPhine</span> tourne le dos au monde. Les murs de pierre encadrent une véranda chauffée toute l'année, où le spa attend que le soir tombe sur les collines.</p>
+          <p data-story-body>Deux chambres calmes, un garage qui vous épargne les averses, et juste assez de cuisine pour vous croire chez vous. Patricia et Nicolas habitent à trois pas : ils sont là si vous les appelez, invisibles sinon.</p>
+          <p data-story-foot>Le linge est fourni, le chauffage compris, le silence en sus.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Equipments -->
+  <section class="equip">
+    <div class="wrap">
+      <div class="equip__head">
+        <h2>Tout ce qu'il faut, rien de superflu.</h2>
+        <span class="text-secondary" style="font-size:14px">Linge fourni · chauffage compris · Wi-Fi · animaux non admis</span>
+      </div>
+      <div class="equip__grid">
+        <div class="equip__cat">
+          <div class="equip__cat-label">Bien-être</div>
+          <ul>
+            <li data-eq-spa><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>Spa encastré 4 places</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>Véranda chauffée &amp; climatisée</li>
+            <li data-eq-sauna style="display:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>Sauna privatif</li>
+            <li data-eq-fireplace style="display:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>Cheminée d'ambiance</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>Linge &amp; draps fournis</li>
+          </ul>
+        </div>
+        <div class="equip__cat">
+          <div class="equip__cat-label">Cuisine</div>
+          <ul>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>Cuisine équipée</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>Lave-vaisselle</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>Four &amp; micro-ondes</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>Machine à café</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>Vaisselle pour <span data-bind="sleeps">4</span></li>
+          </ul>
+        </div>
+        <div class="equip__cat">
+          <div class="equip__cat-label">Confort</div>
+          <ul>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>Wi-Fi fibre</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>Chauffage compris</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>Lave-linge</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>Sèche-cheveux</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>Lit bébé sur demande</li>
+          </ul>
+        </div>
+        <div class="equip__cat">
+          <div class="equip__cat-label">Extérieur</div>
+          <ul>
+            <li data-eq-garage><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>Garage privatif</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>Terrasse ombragée</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>Salon de jardin</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>Barbecue</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>Vue dégagée collines</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Spa block dark -->
+  <section class="spa-block">
+    <div class="wrap">
+      <div class="spa-block__grid">
+        <div>
+          <span class="eyebrow on-dark" style="color:var(--color-gold-taupe)">Le bien-être à demeure</span>
+          <h2 data-spa-title>Un spa privatif, sous la véranda chauffée.</h2>
+          <p data-spa-body>Eau à 36 °C toute l'année, jets multiples, accès direct depuis le salon. C'est un instant de votre séjour, pas une option à réserver.</p>
+          <div class="spa-block__chips" data-spa-chips>
+            <span>Spa encastré 4 places</span>
+            <span>Véranda chauffée</span>
+            <span>Climatisation l'été</span>
+            <span>Accès illimité</span>
+          </div>
+        </div>
+        <div class="spa-block__media">
+          <image-slot id="spa-photo" placeholder="Spa privatif sous la véranda — lumière chaude, vapeur"></image-slot>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Calendar -->
+  <section class="calendar">
+    <div class="wrap">
+      <div class="calendar__head">
+        <div>
+          <span class="eyebrow">Disponibilités</span>
+          <h2 style="margin-top:10px;font-size:clamp(28px,3vw,36px)">Quand venir nous rejoindre ?</h2>
+        </div>
+        <div class="calendar__legend">
+          <span><i class="legend-free"></i>Libre</span>
+          <span><i class="legend-busy"></i>Occupé</span>
+          <span><i class="legend-changeover"></i>Changement de séjour</span>
+          <span><i class="legend-past"></i>Passé</span>
+        </div>
+      </div>
+      <div class="calendar__error" id="cal-error" role="alert">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>Disponibilités momentanément indisponibles. <a href="contact.html">Contactez-nous</a> pour vos dates.</span>
+      </div>
+      <div class="calendar__months" id="cal-months"></div>
+    </div>
+  </section>
+
+  <!-- Pricing + conditions -->
+  <section class="pricing">
+    <div class="wrap">
+      <div class="pricing__grid">
+        <div>
+          <span class="eyebrow">Tarifs par saison</span>
+          <h2 style="margin-top:14px">À partir de <span data-bind="price">670</span> €<br>la semaine, tout compris.</h2>
+          <div class="price-table" id="price-table">
+            <div class="price-row hd">
+              <span>Saison</span><span>Semaine</span><span>Période</span>
+            </div>
+            <!-- rows injected by JS -->
+          </div>
+        </div>
+        <aside class="conditions">
+          <h4>Conditions &amp; bon à savoir</h4>
+          <ul>
+            <li><span>Caution Swikly</span><strong>500 €</strong></li>
+            <li><span>Forfait ménage</span><strong>80 €</strong></li>
+            <li><span>Taxe de séjour</span><strong>5,5 % TTC</strong></li>
+            <li><span>Acompte à la réservation</span><strong>30 %</strong></li>
+            <li><span>Solde</span><strong>J−30</strong></li>
+            <li><span>Animaux</span><strong>Non admis</strong></li>
+            <li><span>Linge &amp; draps</span><strong>Fournis</strong></li>
+            <li><span>Chauffage</span><strong>Compris</strong></li>
+          </ul>
+          <div class="conditions__note">La caution Swikly est une empreinte bancaire, non débitée sauf dégât constaté à votre départ.</div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cross-sell -->
+  <section class="crosssell">
+    <div class="wrap">
+      <span class="eyebrow">Et les deux autres ?</span>
+      <h2 style="margin-top:14px">Ce séjour ne vous va pas tout à fait ?</h2>
+      <div class="crosssell__grid" id="crosssell"></div>
+    </div>
+  </section>
+
+  <!-- Booking bar desktop -->
+  <section class="booking-bar-desk">
+    <div class="wrap">
+      <div class="booking-bar-desk__txt">
+        <strong><span data-bind="name">LaPhine</span> · à partir de <span data-bind="price">670</span> €/sem.</strong>
+        <span>Spa privatif · linge fourni · taxe de séjour 5,5 % visible au paiement</span>
+      </div>
+      <a class="btn btn-primary" href="reserver.html" data-cta-gite>Réserver ce gîte
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- Booking bar mobile sticky -->
+  <div class="booking-bar-mob">
+    <div class="booking-bar-mob__price">
+      <strong>Dès <span data-bind="price">670</span> €</strong>
+      <small>la semaine TTC</small>
+    </div>
+    <a class="btn btn-primary" href="reserver.html" data-cta-gite>Réserver ce gîte</a>
+  </div>
+
+  <div id="site-footer"></div>
+
+  <script src="assets/image-slot.js"></script>
+  <script src="assets/site.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const id = params.get("id") || "laphine";
+    const gite = SamoyasSite.GITES[id] || SamoyasSite.GITES.laphine;
+
+    // Bind dynamic fields
+    document.title = gite.name + " — Les Gîtes de Samoyas";
+    document.querySelectorAll("[data-bind]").forEach(el => {
+      const k = el.dataset.bind;
+      if (gite[k] !== undefined) {
+        let v = gite[k];
+        if (k === "rating") v = String(v).replace(".", ",");
+        if (k === "reco") v = v + " %";
+        el.textContent = v;
+      }
+    });
+
+    // Per-gîte storytelling
+    const stories = {
+      laphine: {
+        intro: "Au bout du hameau, LaPhine tourne le dos au monde. Les murs de pierre encadrent une véranda chauffée toute l'année, où le spa attend que le soir tombe sur les collines.",
+        body:  "Deux chambres calmes, un garage qui vous épargne les averses, et juste assez de cuisine pour vous croire chez vous. Patricia et Nicolas habitent à trois pas : ils sont là si vous les appelez, invisibles sinon.",
+        foot:  "Le linge est fourni, le chauffage compris, le silence en sus.",
+        spaTitle: "Un spa privatif, sous la véranda chauffée.",
+        spaBody:  "Eau à 36 °C toute l'année, jets multiples, accès direct depuis le salon. C'est un instant de votre séjour, pas une option à réserver.",
+        spaChips: ["Spa encastré 4 places", "Véranda chauffée", "Climatisation l'été", "Accès illimité"],
+        h2: "Un gîte qui sait se faire oublier.",
+      },
+      larmu: {
+        intro: "L'Armu, c'est l'intime — une chambre mansardée qui regarde les toits, un jacuzzi sous la véranda, et un feu qui crépite quand il faut.",
+        body:  "Tout est pensé pour deux : la table à manger juste assez grande, le canapé qui s'étire, la baignoire qui prend son temps. La cheminée d'ambiance n'est pas un décor — elle chauffe vraiment.",
+        foot:  "Pour un anniversaire de mariage, une parenthèse à deux, ou simplement un week-end qui ressemble à autre chose.",
+        spaTitle: "Un jacuzzi pour deux, et la cheminée juste à côté.",
+        spaBody:  "Sous la véranda, le jacuzzi rond chauffe à 37 °C en toute saison. À l'intérieur, le feu d'ambiance fait le reste — pour un instant en suspension.",
+        spaChips: ["Jacuzzi privatif 2 places", "Cheminée d'ambiance", "Véranda chauffée", "Accès illimité"],
+        h2: "Un refuge pour deux, à hauteur de toits.",
+      },
+      maisonvieille: {
+        intro: "La Maison Vieille est la plus ancienne du hameau, et la seule à conjuguer spa et sauna privatifs. La pierre est apparente, les poutres anciennes, le confort très moderne.",
+        body:  "Deux chambres, des volumes nobles, et un protocole bien-être sur place : spa, sauna, douche fraîche, puis le canapé. Tous les jours si vous voulez.",
+        foot:  "Idéale pour une famille ou pour se regrouper jusqu'à dix avec les autres gîtes du hameau.",
+        spaTitle: "Spa et sauna privatifs, dans la même demeure.",
+        spaBody:  "Le seul de nos gîtes à proposer les deux. Cabine sauna en bois clair pour quatre personnes, spa en véranda chauffée — l'expérience bien-être au complet.",
+        spaChips: ["Spa privatif", "Sauna 4 places", "Pierre apparente", "Accès illimité"],
+        h2: "Pierre ancienne, bien-être complet.",
+      },
+    };
+    const s = stories[id] || stories.laphine;
+    document.querySelector("[data-story-intro]").innerHTML = s.intro;
+    document.querySelector("[data-story-body]").textContent = s.body;
+    document.querySelector("[data-story-foot]").textContent = s.foot;
+    document.querySelector("[data-spa-title]").textContent = s.spaTitle;
+    document.querySelector("[data-spa-body]").textContent = s.spaBody;
+    document.querySelectorAll(".story h2")[0].textContent = s.h2;
+    const chipsEl = document.querySelector("[data-spa-chips]");
+    chipsEl.innerHTML = s.spaChips.map(c => `<span>${c}</span>`).join("");
+
+    // Per-gîte equipment toggles
+    if (id === "larmu")        { document.querySelector("[data-eq-fireplace]").style.display = ""; document.querySelector("[data-eq-garage]").style.display = "none"; }
+    if (id === "maisonvieille"){ document.querySelector("[data-eq-sauna]").style.display = ""; }
+
+    // CTA href with gîte preselect
+    document.querySelectorAll("[data-cta-gite]").forEach(a => a.href = "reserver.html?gite=" + id);
+
+    // Per-gîte pricing
+    const pricesByGite = {
+      laphine: [
+        { season: "Basse",   week: 670, period: "Janv. · Fév. · Nov." },
+        { season: "Moyenne", week: 780, period: "Mars · Avril · Mai · Oct." },
+        { season: "Haute",   week: 920, period: "Juin · Juillet · Août · Sept." },
+        { season: "Fêtes",   week: 1050, period: "Vacances scolaires · 24 déc. → 2 janv." },
+      ],
+      larmu: [
+        { season: "Basse",   week: 450, period: "Janv. · Fév. · Nov." },
+        { season: "Moyenne", week: 560, period: "Mars · Avril · Mai · Oct." },
+        { season: "Haute",   week: 690, period: "Juin · Juillet · Août · Sept." },
+        { season: "Fêtes",   week: 820, period: "Vacances scolaires · 24 déc. → 2 janv." },
+      ],
+      maisonvieille: [
+        { season: "Basse",   week: 690, period: "Janv. · Fév. · Nov." },
+        { season: "Moyenne", week: 820, period: "Mars · Avril · Mai · Oct." },
+        { season: "Haute",   week: 960, period: "Juin · Juillet · Août · Sept." },
+        { season: "Fêtes",   week: 1090, period: "Vacances scolaires · 24 déc. → 2 janv." },
+      ],
+    };
+    const tbl = document.getElementById("price-table");
+    pricesByGite[id].forEach(p => {
+      tbl.insertAdjacentHTML("beforeend", `
+        <div class="price-row">
+          <strong>${p.season}</strong>
+          <span>${p.week} € / semaine</span>
+          <span class="period">${p.period}</span>
+        </div>
+      `);
+    });
+
+    // Cross-sell — the other two gîtes
+    const others = Object.values(SamoyasSite.GITES).filter(g => g.id !== id);
+    const cs = document.getElementById("crosssell");
+    cs.innerHTML = others.map(g => `
+      <a class="crosssell-card" href="gite.html?id=${g.id}">
+        <div class="crosssell-card__media">
+          <image-slot id="cs-${g.id}" placeholder="${g.name} — extérieur"></image-slot>
+        </div>
+        <div class="crosssell-card__body">
+          <div class="crosssell-card__name">${g.name}</div>
+          <div class="crosssell-card__meta">${g.target} · ${g.surface} · ${g.highlight}</div>
+          <div class="crosssell-card__price">Dès ${g.price} € / sem.</div>
+          <span class="crosssell-card__cta">Voir le gîte
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+          </span>
+        </div>
+      </a>
+    `).join("");
+
+    // Calendar — 3 months starting next month
+    function renderMonths() {
+      const root = document.getElementById("cal-months");
+      const today = new Date(2026, 4, 19); // anchored for predictable preview
+      const months = [];
+      for (let i = 0; i < 3; i++) {
+        const m = new Date(today.getFullYear(), today.getMonth() + i + 1, 1);
+        months.push(m);
+      }
+      const monthNames = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+      const dayNames = ["L","M","M","J","V","S","D"];
+      // Deterministic busy ranges per gîte
+      const busySets = {
+        laphine: [[1, 5,12],[1,19,26],[2, 8,15]],
+        larmu:   [[0, 7,14],[1, 1, 8],[2,15,22]],
+        maisonvieille:[[0,22,29],[2, 5,12],[2,19,26]],
+      };
+      const busy = (busySets[id] || []).map(([offset, s, e]) => ({ monthIdx: offset, start: s, end: e }));
+
+      root.innerHTML = months.map((m, monthIdx) => {
+        const days = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
+        // Compute first-day offset (Mon = 0)
+        const firstDow = (new Date(m.getFullYear(), m.getMonth(), 1).getDay() + 6) % 7;
+        let cells = dayNames.map(d => `<div class="cal-dayname">${d}</div>`).join("");
+        for (let i = 0; i < firstDow; i++) cells += `<div class="cal-day empty"></div>`;
+        for (let d = 1; d <= days; d++) {
+          const dt = new Date(m.getFullYear(), m.getMonth(), d);
+          let cls = "";
+          if (dt < today) cls = "past";
+          for (const b of busy) {
+            if (b.monthIdx === monthIdx) {
+              if (d === b.start || d === b.end) cls = "changeover";
+              else if (d > b.start && d < b.end) cls = "busy";
+            }
+          }
+          cells += `<div class="cal-day ${cls}">${d}</div>`;
+        }
+        return `<div class="cal-month"><h3>${monthNames[m.getMonth()]} ${m.getFullYear()}</h3><div class="cal-month__grid">${cells}</div></div>`;
+      }).join("");
+    }
+    renderMonths();
+
+    // Demo: toggle calendar error with ?cal=error
+    if (params.get("cal") === "error") {
+      document.getElementById("cal-error").classList.add("is-shown");
+      document.getElementById("cal-months").style.display = "none";
+    }
+
+    SamoyasSite.mountSiteShell({ active: "gites" });
+  </script>
+</body>
+</html>

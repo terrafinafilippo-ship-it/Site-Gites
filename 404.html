@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Page introuvable — Les Gîtes de Samoyas</title>
+  <link rel="stylesheet" href="assets/tokens.css">
+  <link rel="stylesheet" href="assets/site.css">
+  <style>
+    .nf {
+      padding-block: 80px 96px;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 64px;
+      align-items: center;
+      min-height: 60vh;
+    }
+    @media (max-width: 900px) { .nf { grid-template-columns: 1fr; gap: 32px; } }
+    .nf__big {
+      font-family: var(--tw-font-serif);
+      font-style: italic;
+      font-weight: 400;
+      font-size: clamp(140px, 22vw, 280px);
+      line-height: 0.85;
+      color: rgba(60,60,60,0.10);
+      letter-spacing: -0.04em;
+      margin-bottom: 24px;
+      user-select: none;
+    }
+    .nf h1 {
+      font-size: clamp(36px, 4.4vw, 56px);
+      letter-spacing: -0.01em;
+      margin-bottom: 16px;
+      max-width: 16ch;
+    }
+    .nf p {
+      font-size: 17px;
+      color: var(--color-charcoal);
+      line-height: 1.6;
+      max-width: 44ch;
+      margin-bottom: 32px;
+    }
+    .nf__search {
+      display: flex;
+      gap: 0;
+      max-width: 440px;
+      margin-bottom: 24px;
+      border: 1px solid #cdc9bb;
+      border-radius: var(--radius-default);
+      overflow: hidden;
+      background: #fff;
+    }
+    .nf__search input {
+      border: 0;
+      flex: 1;
+      padding: 14px 18px;
+      font-size: 15px;
+    }
+    .nf__search input:focus { box-shadow: none; }
+    .nf__search button {
+      background: var(--tw-green-dark);
+      color: #fff; border: 0; cursor: pointer;
+      padding: 0 22px;
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 14px; font-weight: 500;
+    }
+    .nf__actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    .nf__media {
+      aspect-ratio: 4/5;
+      position: relative;
+      border-radius: var(--radius-default);
+      overflow: hidden;
+      background: linear-gradient(180deg, #c5c2a4 0%, #6a7259 60%, #2f3a30 100%);
+    }
+    .nf__media image-slot { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .nf__media::after {
+      content: ""; position: absolute; inset: 0;
+      background: radial-gradient(circle at 60% 30%, rgba(255,255,255,0.18), transparent 50%);
+    }
+    .nf__media-overlay {
+      position: absolute; bottom: 24px; left: 24px; right: 24px;
+      color: rgba(255,255,255,0.86);
+      font-family: var(--tw-font-serif);
+      font-style: italic;
+      font-size: 17px;
+      z-index: 2;
+    }
+  </style>
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <section data-screen-label="16 404">
+    <div class="wrap">
+      <div class="nf">
+        <div>
+          <div class="nf__big">404</div>
+          <span class="eyebrow">Vous avez pris un sentier de traverse</span>
+          <h1 style="margin-top:16px">Cette page<br>s'est égarée dans les collines.</h1>
+          <p>Le lien que vous avez suivi ne mène plus à rien — ou pas encore. Pas d'inquiétude, on vous remet sur le bon chemin.</p>
+          <form class="nf__search" onsubmit="event.preventDefault();window.location='gites.html'">
+            <input type="search" placeholder="Chercher un gîte, une activité, une question…" aria-label="Rechercher">
+            <button type="submit">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+              Chercher
+            </button>
+          </form>
+          <div class="nf__actions">
+            <a class="btn btn-primary" href="index.html">Retour à l'accueil</a>
+            <a class="btn btn-secondary" href="gites.html">Voir les gîtes</a>
+          </div>
+        </div>
+        <div class="nf__media">
+          <image-slot id="nf-photo" placeholder="Paysage Ardèche verte — chemin qui s'éloigne"></image-slot>
+          <div class="nf__media-overlay">« Tous les chemins de Samoyas mènent au spa. »</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="site-footer"></div>
+
+  <script src="assets/image-slot.js"></script>
+  <script src="assets/site.js"></script>
+  <script>SamoyasSite.mountSiteShell({ active: "home" });</script>
+</body>
+</html>
