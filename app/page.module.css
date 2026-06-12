@@ -1,0 +1,394 @@
+/* Styles de l'accueil — extraits du <style> inline de index.html.
+   (.gite-card* a migré dans components/ui/GiteCard.module.css) */
+
+/* ===== HERO ===== */
+.hero {
+  position: relative;
+  min-height: 86vh;
+  display: flex;
+  align-items: flex-end;
+  color: #fff;
+  overflow: hidden;
+}
+.heroMedia {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(15,30,20,0.05) 0%, rgba(15,30,20,0.55) 70%, rgba(15,30,20,0.85) 100%),
+    linear-gradient(135deg, #4a6b50 0%, #2a3f30 60%, #1d2a23 100%);
+}
+.heroMedia::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(15,30,20,0.05) 0%, rgba(15,30,20,0.4) 60%, rgba(15,30,20,0.85) 100%);
+  pointer-events: none;
+}
+.heroInner {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  padding-block: 56px clamp(56px, 8vh, 96px);
+}
+.heroLockup {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  align-items: end;
+  gap: 64px;
+}
+.hero h1 {
+  color: #fff;
+  font-size: clamp(40px, 5.6vw, 78px);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+  max-width: 10ch;
+}
+.hero h1 em {
+  font-style: italic;
+  color: #efe4c8;
+  font-weight: 400;
+}
+.heroSub {
+  color: rgba(255,255,255,0.86);
+  font-size: 17px;
+  line-height: 1.6;
+  max-width: 38ch;
+  margin-top: 24px;
+}
+.heroActions {
+  display: flex;
+  gap: 14px;
+  margin-top: 32px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.heroMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px 28px;
+  background: rgba(15,30,20,0.45);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--radius-default);
+  color: rgba(255,255,255,0.92);
+  max-width: 360px;
+  justify-self: end;
+}
+.heroMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+.heroMetaRow svg { color: #efe4c8; flex-shrink: 0; }
+.heroScroll {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 16px;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.65);
+  z-index: 2;
+}
+.heroCorner {
+  position: absolute;
+  top: 32px;
+  right: clamp(16px, 4vw, 80px);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  color: rgba(255,255,255,0.78);
+  font-size: 13px;
+  z-index: 2;
+}
+.heroCorner .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c9d5ce;
+}
+@media (max-width: 900px) {
+  .heroLockup { grid-template-columns: 1fr; gap: 32px; }
+  .heroMeta { justify-self: start; }
+  .heroCorner { display: none; }
+}
+
+/* ===== CE QUI VOUS ATTEND À L'ARRIVÉE ===== */
+.arrival {
+  border-block-end: 1px solid #e3dfd1;
+  padding-block: 96px;
+}
+.arrivalHead {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: end;
+  margin-bottom: 56px;
+}
+.arrivalHead h2 { max-width: 16ch; }
+.arrivalHead p {
+  color: var(--color-gray-medium);
+  font-size: 17px;
+  max-width: 52ch;
+  line-height: 1.55;
+}
+@media (max-width: 900px) {
+  .arrivalHead { grid-template-columns: 1fr; gap: 24px; }
+}
+.arrivalGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px 56px;
+}
+.arrivalItem {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.arrivalIcon {
+  width: 44px;
+  height: 44px;
+  color: var(--tw-green-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.arrivalLabel {
+  font-family: var(--tw-font-serif);
+  font-size: 22px;
+  line-height: 1.15;
+  margin: 0;
+}
+@media (max-width: 900px) {
+  .arrival { padding-block: 72px; }
+  .arrivalGrid { grid-template-columns: 1fr; gap: 32px; }
+}
+
+/* ===== GÎTES TROIS CARTES ===== */
+.gitesIntro {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: end;
+  margin-bottom: 56px;
+}
+.gitesIntro h2 { max-width: 14ch; }
+.gitesIntro p {
+  color: var(--color-gray-medium);
+  font-size: 17px;
+  max-width: 52ch;
+}
+@media (max-width: 900px) {
+  .gitesIntro { grid-template-columns: 1fr; gap: 24px; }
+}
+.gitesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+@media (max-width: 1100px) { .gitesGrid { grid-template-columns: 1fr 1fr; gap: 24px; } }
+@media (max-width: 700px)  { .gitesGrid { grid-template-columns: 1fr; } }
+
+/* ===== SOCIAL PROOF DARK ===== */
+.socialProof {
+  background: #1a201c;
+  color: #f0ece1;
+  padding-block: 96px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.socialProof::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(20,104,61,0.18), transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(20,104,61,0.10), transparent 40%);
+  pointer-events: none;
+}
+.socialProofInner { position: relative; z-index: 2; }
+.socialProofInner :global(.eyebrow) { color: rgba(255,255,255,0.55); margin-bottom: 16px; }
+.socialProofBig {
+  font-family: var(--tw-font-serif);
+  font-size: clamp(60px, 8vw, 120px);
+  line-height: 1;
+  color: #fff;
+  margin: 12px 0 24px 0;
+  letter-spacing: -0.02em;
+}
+.socialProofBig sup {
+  font-size: 0.45em;
+  color: var(--color-gold-taupe);
+  vertical-align: super;
+  font-style: italic;
+  margin-left: 8px;
+}
+.socialProofStats {
+  display: flex;
+  justify-content: center;
+  gap: 64px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+  color: rgba(240,236,225,0.78);
+}
+.socialProofStat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.socialProofStat strong {
+  font-family: var(--tw-font-serif);
+  font-size: 32px;
+  font-weight: 400;
+  color: #fff;
+}
+.socialProofStat span {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+}
+@media (max-width: 600px) {
+  .socialProofStats { gap: 24px; }
+  .socialProofStat strong { font-size: 24px; }
+}
+
+/* ===== ACTIVITÉS APERÇU ===== */
+.actsPreview {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+.actCard {
+  background: #fff;
+  border: 1px solid #e3dfd1;
+  border-radius: var(--radius-default);
+  overflow: hidden;
+  transition: box-shadow 240ms ease;
+}
+.actCard:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+.actCardMedia {
+  aspect-ratio: 4 / 3;
+  position: relative;
+  background: linear-gradient(135deg, var(--tw-season-accent), #6b4a2a);
+  filter: saturate(0.85);
+}
+.actCardMedia.spring { background: linear-gradient(135deg, #9bb074, #4a6837); }
+.actCardMedia.summer { background: linear-gradient(135deg, #c4a472, #7a5429); }
+.actCardMedia.year   { background: linear-gradient(135deg, #6b8170, #3a4f3f); }
+.actCardMedia.winter { background: linear-gradient(135deg, #8da0a8, #3d5b78); }
+.actCardBody { padding: 16px 18px; }
+.actCardDist {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-gray-medium);
+  margin-bottom: 6px;
+}
+.actCardTitle { font-family: var(--tw-font-serif); font-size: 18px; }
+@media (max-width: 900px) { .actsPreview { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 480px) { .actsPreview { grid-template-columns: 1fr 1fr; gap: 14px; } }
+
+/* ===== AMBIANCE BAND ===== */
+.ambiance {
+  padding-block: 80px;
+  text-align: center;
+  border-top: 1px solid #e3dfd1;
+  border-bottom: 1px solid #e3dfd1;
+}
+.ambianceQuote {
+  font-family: var(--tw-font-serif);
+  font-style: italic;
+  font-size: clamp(22px, 2.4vw, 30px);
+  line-height: 1.4;
+  color: var(--color-gray-medium);
+  max-width: 30ch;
+  margin: 0 auto;
+  font-weight: 400;
+}
+
+/* ===== CONTACT LOC ===== */
+.contactLoc {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+}
+@media (max-width: 900px) { .contactLoc { grid-template-columns: 1fr; gap: 40px; } }
+.contactLocMap {
+  aspect-ratio: 4 / 3;
+  background:
+    linear-gradient(160deg, #d9d0b8 0%, #b4b69a 40%, #8aa088 70%, #5a7d67 100%);
+  border-radius: var(--radius-default);
+  position: relative;
+  overflow: hidden;
+}
+.contactLocMap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(0deg, rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+.contactLocPin {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  color: var(--tw-green-dark);
+}
+.contactLocPinPulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 1px solid rgba(20,104,61,0.5);
+  transform: translate(-50%, -50%);
+  animation: pulse 2.2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0% { transform: translate(-50%, -50%) scale(0.6); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+}
+.contactLocMapAttr {
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  font-size: 10px;
+  color: rgba(255,255,255,0.7);
+}
+.contactLoc h2 { margin-bottom: 16px; }
+.contactLocAddress {
+  font-family: var(--tw-font-serif);
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--color-charcoal);
+  margin-bottom: 24px;
+}
+.contactLocCoords {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 15px;
+  color: var(--color-charcoal);
+  margin-bottom: 32px;
+}
+.contactLocCoords span {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-gray-medium);
+}
+.contactLocCoords strong { color: var(--color-charcoal); font-weight: 500; }
+.contactLocActions { display: flex; gap: 12px; flex-wrap: wrap; }
