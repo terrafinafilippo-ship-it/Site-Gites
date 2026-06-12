@@ -1,0 +1,269 @@
+/* Styles de la page Activités — extraits du <style> inline de activites.html. */
+
+.pageHero {
+  padding-block: 80px 56px;
+  transition: background 400ms ease;
+  background: var(--tw-season-tint);
+  border-bottom: 1px solid #e3dfd1;
+  position: relative;
+  overflow: hidden;
+}
+.pageHero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 80% 30%, var(--tw-season-tint), transparent 50%);
+  pointer-events: none;
+}
+.pageHeroGrid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 64px;
+  align-items: end;
+  position: relative;
+  z-index: 2;
+}
+.pageHero h1 {
+  font-size: clamp(48px, 6vw, 76px);
+  letter-spacing: -0.015em;
+  max-width: 14ch;
+}
+.pageHero h1 em {
+  font-style: italic;
+  color: var(--tw-season-accent);
+  font-weight: 400;
+  transition: color 400ms ease;
+}
+.pageHero p {
+  font-size: 18px;
+  color: var(--color-charcoal);
+  line-height: 1.6;
+  max-width: 44ch;
+}
+@media (max-width: 900px) {
+  .pageHeroGrid { grid-template-columns: 1fr; gap: 24px; }
+}
+
+/* ===== Hero spa card (toujours visible, hors filtre) ===== */
+.spaHero {
+  padding-block: 56px;
+}
+.spaHeroCard {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: stretch;
+  background: #1a201c;
+  color: #f0ece1;
+  border-radius: var(--radius-default);
+  overflow: hidden;
+  min-height: 360px;
+}
+@media (max-width: 900px) {
+  .spaHeroCard { grid-template-columns: 1fr; }
+}
+.spaHeroMedia {
+  background: linear-gradient(135deg, #2a4030 0%, #16221b 100%);
+  position: relative;
+  min-height: 280px;
+}
+.spaHeroBody {
+  padding: 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+}
+.spaHeroTag {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-gold-taupe);
+}
+.spaHeroBody h2 {
+  color: #fff;
+  font-size: clamp(28px, 3.4vw, 40px);
+  max-width: 14ch;
+}
+.spaHeroBody p {
+  color: rgba(240,236,225,0.84);
+  font-size: 16px;
+  max-width: 42ch;
+  line-height: 1.6;
+}
+.spaHeroFeatures {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  color: rgba(255,255,255,0.7);
+  font-size: 13px;
+}
+.spaHeroFeatures span { display: inline-flex; align-items: center; gap: 8px; }
+.spaHeroFeatures svg { color: var(--color-gold-taupe); }
+@media (max-width: 600px) {
+  .spaHeroBody { padding: 28px; }
+}
+
+/* ===== Filtre saison ===== */
+.seasonFilter {
+  padding-block: 32px 8px;
+  position: sticky;
+  top: 84px;
+  background: var(--tw-bg-page);
+  z-index: 30;
+  border-bottom: 1px solid #e3dfd1;
+}
+.seasonFilterRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.seasonFilterLabel {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-gray-medium);
+  margin-right: 8px;
+}
+.seasonChip {
+  padding: 10px 18px;
+  background: #fff;
+  border: 1px solid #e3dfd1;
+  border-radius: var(--radius-sharp);
+  font-size: 14px;
+  color: var(--color-charcoal);
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+.seasonChip:hover { border-color: #b4ad99; }
+.seasonChip.isActive {
+  background: var(--tw-season-accent);
+  border-color: var(--tw-season-accent);
+  color: #fff;
+}
+
+/* ===== Activities grid ===== */
+.acts {
+  padding-block: 48px 80px;
+}
+.actsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 28px;
+}
+@media (max-width: 1100px) { .actsGrid { grid-template-columns: 1fr 1fr; gap: 20px; } }
+@media (max-width: 480px)  { .actsGrid { grid-template-columns: 1fr 1fr; gap: 14px; } }
+
+.actCard {
+  background: #fff;
+  border: 1px solid #e3dfd1;
+  border-radius: var(--radius-default);
+  overflow: hidden;
+  transition: opacity 300ms ease, box-shadow 240ms ease, filter 300ms ease;
+}
+.actCard.isDimmed { opacity: 0.32; filter: grayscale(0.6); }
+.actCard:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+.actCardMedia {
+  aspect-ratio: 4/3;
+  position: relative;
+  overflow: hidden;
+}
+.actCardMedia .photo {
+  position: absolute;
+  inset: 0;
+  transition: background 500ms ease, filter 500ms ease;
+}
+.actCardMedia[data-act-img="parc"] .photo      { background: linear-gradient(135deg, #6e8e5a, #2f4628); }
+.actCardMedia[data-act-img="village"] .photo   { background: linear-gradient(135deg, #b8a584, #6d5a37); }
+.actCardMedia[data-act-img="golf"] .photo      { background: linear-gradient(135deg, #9bb87a, #4f6e3b); }
+.actCardMedia[data-act-img="velo"] .photo      { background: linear-gradient(135deg, #a4be7e, #5a7236); }
+.actCardMedia[data-act-img="marche"] .photo    { background: linear-gradient(135deg, #c98a3a, #6e4516); }
+.actCardMedia[data-act-img="chataigne"] .photo { background: linear-gradient(135deg, #b9763a, #4d2916); }
+.actCardMedia[data-act-img="ski"] .photo       { background: linear-gradient(135deg, #b8c8d0, #3d5f74); }
+.actCardMedia[data-act-img="riviere"] .photo   { background: linear-gradient(135deg, #87b8a0, #2e6b58); }
+.actCardMedia[data-act-img="pilat"] .photo     { background: linear-gradient(135deg, #6e8a78, #2f4838); }
+.actCardMedia[data-act-img="vignerons"] .photo { background: linear-gradient(135deg, #8d5b65, #3d1f28); }
+.actCardMedia[data-act-img="sentier"] .photo   { background: linear-gradient(135deg, #82a07a, #354d2e); }
+.actCardMedia[data-act-img="annonay"] .photo   { background: linear-gradient(135deg, #c4a572, #6b4a28); }
+
+.actCardMedia .grain {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 4px 4px;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+.actCardSeason {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  background: rgba(251,250,246,0.94);
+  color: var(--color-charcoal);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  border-radius: var(--radius-sharp);
+}
+.actCardBody { padding: 20px; }
+.actCardDist {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-gray-medium);
+  margin-bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.actCardTitle {
+  font-family: var(--tw-font-serif);
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+.actCardOne {
+  font-size: 13px;
+  color: var(--color-gray-medium);
+  line-height: 1.5;
+}
+
+/* Practical info */
+.practical {
+  padding-block: 64px;
+  border-top: 1px solid #e3dfd1;
+  background: rgba(20,104,61,0.04);
+}
+.practicalGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+@media (max-width: 900px) { .practicalGrid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 480px) { .practicalGrid { grid-template-columns: 1fr; } }
+.practicalItem {
+  background: #fff;
+  border: 1px solid #e3dfd1;
+  border-radius: var(--radius-default);
+  padding: 22px;
+}
+.practicalItem strong {
+  font-family: var(--tw-font-serif);
+  font-size: 22px;
+  font-weight: 400;
+  display: block;
+  margin-bottom: 6px;
+}
+.practicalItem span {
+  font-size: 13px;
+  color: var(--color-gray-medium);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 14px;
+}
+.practicalItem p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-charcoal);
+}

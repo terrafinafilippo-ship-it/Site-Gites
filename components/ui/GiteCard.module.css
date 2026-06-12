@@ -1,0 +1,88 @@
+/* Carte gîte — styles extraits du <style> inline de index.html. */
+.card {
+  background: #fff;
+  border: 1px solid #e3dfd1;
+  border-radius: var(--radius-default);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 240ms ease, border-color 240ms ease;
+}
+.card:hover {
+  box-shadow: 0 6px 24px rgba(20, 60, 40, 0.08);
+  border-color: #d5d0c0;
+}
+.media {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+}
+.target {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  padding: 5px 10px;
+  background: rgba(251, 250, 246, 0.94);
+  color: var(--tw-green-dark);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sharp);
+  font-weight: 500;
+}
+.body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex-grow: 1;
+}
+.head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.name { font-family: var(--tw-font-serif); font-size: 26px; line-height: 1.1; }
+.code { font-size: 11px; letter-spacing: 0.1em; color: var(--color-gray-medium); }
+.caps {
+  display: flex;
+  gap: 14px;
+  font-size: 13px;
+  color: var(--color-gray-medium);
+  flex-wrap: wrap;
+}
+.caps span { display: inline-flex; align-items: center; gap: 5px; }
+.caps svg { stroke: var(--color-gray-medium); }
+.desc {
+  font-size: 14px;
+  color: var(--color-gray-medium);
+  line-height: 1.5;
+}
+.proof {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(212, 165, 116, 0.10);
+  border: 1px solid rgba(212, 165, 116, 0.32);
+  border-radius: var(--radius-default);
+  font-size: 13px;
+}
+.proof svg { color: #b88847; }
+.proof strong { font-weight: 500; }
+.sep { width: 1px; height: 16px; background: rgba(0, 0, 0, 0.1); }
+.foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 8px;
+  gap: 12px;
+}
+.price small { color: var(--color-gray-medium); font-size: 11px; display: block; }
+.price strong { font-family: var(--tw-font-serif); font-size: 22px; font-weight: 400; }
+.cta {
+  font-size: 14px;
+  color: var(--tw-green-dark);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  font-weight: 500;
+}
