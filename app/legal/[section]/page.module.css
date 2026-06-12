@@ -1,0 +1,125 @@
+/* Styles de la page légale — extraits du <style> inline de legal.html. */
+
+.crumb {
+  padding-block: 20px;
+  font-size: 13px;
+  color: var(--color-gray-medium);
+  border-bottom: 1px solid #e3dfd1;
+}
+.crumb a { color: var(--color-gray-medium); }
+.crumbSep { margin-inline: 8px; opacity: 0.5; }
+.crumbCurrent { color: var(--color-charcoal); }
+
+.legal {
+  padding-block: 56px 96px;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 56px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .legal { grid-template-columns: 1fr; gap: 24px; }
+  .toc { position: relative !important; top: 0 !important; }
+}
+.toc {
+  position: sticky;
+  top: 96px;
+}
+.tocLabel {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-gray-medium);
+  margin-bottom: 14px;
+}
+.toc ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.toc a {
+  display: block;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--color-charcoal);
+  border-left: 2px solid transparent;
+  transition: border-color 200ms ease, background 200ms ease;
+}
+.toc a:hover { background: rgba(0,0,0,0.03); opacity: 1; }
+.toc a.isActive {
+  border-color: var(--tw-green-dark);
+  color: var(--tw-green-dark);
+  background: rgba(20,104,61,0.06);
+}
+
+.doc { max-width: 720px; }
+.doc h1 {
+  font-size: clamp(40px, 5vw, 56px);
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+.docMeta {
+  font-size: 13px;
+  color: var(--color-gray-medium);
+  margin-bottom: 40px;
+}
+.doc section { margin-bottom: 48px; }
+.doc h2 {
+  font-size: 24px;
+  margin-bottom: 14px;
+}
+.doc h3 {
+  font-size: 17px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  margin: 18px 0 8px 0;
+}
+.doc p {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--color-charcoal);
+  margin-bottom: 14px;
+}
+.doc ul {
+  padding-left: 22px;
+  margin: 0 0 14px;
+}
+.doc li {
+  font-size: 16px;
+  line-height: 1.7;
+}
+.doc :global(.legal__num) {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tw-green-dark);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.doc table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  margin: 8px 0 14px;
+}
+.doc th,
+.doc td {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid #e3dfd1;
+}
+.doc th {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-gray-medium);
+  font-weight: 500;
+  background: #fafaf6;
+}
+.doc td strong {
+  color: var(--tw-green-dark);
+  font-weight: 500;
+}

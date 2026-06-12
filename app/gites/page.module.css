@@ -1,0 +1,173 @@
+/* Styles de la page Nos gîtes — extraits du <style> inline de gites.html. */
+
+.pageHero {
+  padding-block: 80px 56px;
+  border-bottom: 1px solid #e3dfd1;
+}
+.pageHeroGrid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 64px;
+  align-items: end;
+}
+.pageHero h1 {
+  font-size: clamp(48px, 6vw, 76px);
+  letter-spacing: -0.015em;
+  max-width: 12ch;
+}
+.pageHero p {
+  font-size: 18px;
+  color: var(--color-charcoal);
+  line-height: 1.6;
+  max-width: 44ch;
+}
+@media (max-width: 900px) {
+  .pageHeroGrid { grid-template-columns: 1fr; gap: 24px; }
+}
+
+.giteRow {
+  padding-block: 64px;
+  border-bottom: 1px solid #e3dfd1;
+}
+.giteRowGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+  align-items: center;
+}
+.reverse .giteRowGrid { direction: rtl; }
+.reverse .giteRowGrid > * { direction: ltr; }
+@media (max-width: 900px) {
+  .giteRowGrid { grid-template-columns: 1fr; gap: 28px; }
+  .reverse .giteRowGrid { direction: ltr; }
+}
+.giteRowMedia {
+  aspect-ratio: 4/3;
+  position: relative;
+  border-radius: var(--radius-default);
+  overflow: hidden;
+  background: linear-gradient(135deg, #c0bba1, #7d7c5e);
+}
+.giteRowMedia .target {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  padding: 6px 12px;
+  background: rgba(251,250,246,0.94);
+  color: var(--tw-green-dark);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sharp);
+  font-weight: 500;
+  z-index: 2;
+}
+.giteRowBody { display: flex; flex-direction: column; gap: 18px; }
+.giteRowHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.giteRow h2 { font-size: clamp(36px, 4vw, 52px); letter-spacing: -0.01em; }
+.giteRowCode {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--color-gray-medium);
+}
+.giteRowCaps {
+  display: flex;
+  gap: 18px;
+  font-size: 14px;
+  color: var(--color-gray-medium);
+  flex-wrap: wrap;
+}
+.giteRowCaps span { display: inline-flex; align-items: center; gap: 6px; }
+.giteRowLead {
+  font-family: var(--tw-font-serif);
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--color-charcoal);
+  max-width: 36ch;
+}
+.giteRowProof {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: rgba(212,165,116,0.08);
+  border: 1px solid rgba(212,165,116,0.32);
+  border-radius: var(--radius-default);
+  font-size: 14px;
+  align-self: flex-start;
+}
+.giteRowProof svg { color: #b88847; }
+.giteRowProof .sep { width: 1px; height: 16px; background: rgba(0,0,0,0.1); }
+.giteRowFoot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid #e3dfd1;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.giteRowPrice strong {
+  font-family: var(--tw-font-serif);
+  font-size: 28px;
+  font-weight: 400;
+}
+.giteRowPrice small { color: var(--color-gray-medium); font-size: 13px; }
+.giteRowActions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+.combine {
+  padding-block: 80px;
+  background: rgba(20,104,61,0.04);
+}
+.combineGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: center;
+}
+.combine h2 {
+  max-width: 16ch;
+  font-size: clamp(32px, 3.4vw, 44px);
+  margin-bottom: 16px;
+}
+.combine p {
+  font-size: 16px;
+  color: var(--color-charcoal);
+  line-height: 1.6;
+  max-width: 44ch;
+}
+.combineDiagram {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.combineDiagram > div {
+  background: #fff;
+  border: 1px solid #e3dfd1;
+  padding: 18px;
+  border-radius: var(--radius-default);
+  text-align: center;
+}
+.combineDiagram strong {
+  font-family: var(--tw-font-serif);
+  font-size: 20px;
+  font-weight: 400;
+  display: block;
+  margin-bottom: 4px;
+}
+.combineDiagram small {
+  font-size: 11px;
+  color: var(--color-gray-medium);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+@media (max-width: 900px) {
+  .combineGrid { grid-template-columns: 1fr; gap: 24px; }
+}
