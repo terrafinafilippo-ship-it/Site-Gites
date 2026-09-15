@@ -33,7 +33,9 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: C.ink,
     lineHeight: 1.4,
-    paddingTop: 38,
+    // Marges resserrées (session B) pour que la ligne « Options » tienne sur
+    // une seule page avec le bloc des mentions légales (wrap={false}).
+    paddingTop: 32,
     paddingBottom: 48,
     paddingHorizontal: 42,
   },
@@ -46,7 +48,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1.5,
     borderBottomColor: C.accent,
     paddingBottom: 8,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   brand: {
     flexDirection: 'column',
@@ -128,7 +130,7 @@ const styles = StyleSheet.create({
     borderLeftColor: C.accent,
     paddingVertical: 7,
     paddingHorizontal: 12,
-    marginBottom: 12,
+    marginBottom: 10,
     gap: 10,
   },
   metaCell: {
@@ -234,13 +236,13 @@ const styles = StyleSheet.create({
   invoiceAmount: {
     backgroundColor: C.accent,
     color: C.white,
-    paddingVertical: 10,
+    paddingVertical: 9,
     paddingHorizontal: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 10,
+    marginTop: 8,
+    marginBottom: 8,
   },
   invoiceDescTop: {
     fontSize: 8,
@@ -269,7 +271,7 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
     borderLeftWidth: 2,
     borderLeftColor: C.rule,
-    marginBottom: 10,
+    marginBottom: 8,
     lineHeight: 1.4,
   },
   futureNoteBold: {
@@ -280,7 +282,7 @@ const styles = StyleSheet.create({
   // PAYMENT
   payment: {
     flexDirection: 'row',
-    marginBottom: 10,
+    marginBottom: 8,
     gap: 14,
   },
   paymentDetails: {
@@ -335,8 +337,8 @@ const styles = StyleSheet.create({
 
   // LEGAL
   legal: {
-    marginTop: 6,
-    paddingTop: 6,
+    marginTop: 4,
+    paddingTop: 4,
     borderTopWidth: 1,
     borderTopColor: C.ruleSoft,
     fontSize: 7.5,
