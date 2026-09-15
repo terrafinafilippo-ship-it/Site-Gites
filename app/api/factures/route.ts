@@ -9,6 +9,7 @@ import { getStorage } from '@/lib/storage';
 import { verifierSecret } from '@/lib/auth';
 import {
   calculerMontants,
+  instantaneFacture,
   mapFactureData,
   type Reservation,
   type FactureContext,
@@ -172,11 +173,14 @@ export async function POST(request: Request) {
     // Ré-émission pour le MÊME numéro (le PDF avait échoué).
     facture = existante;
   } else {
+    // Instantané PROVISOIRE : le numéro n'existe pas encore (il est frappé par
+    // creer_facture) ; il est complété à l'étape 8 avec le numéro et la date
+    // réels, dans la même opération que pdf_url.
     const ctxProvisoire = buildContext(type, resa, montants, factureAcompte, {
       numeroFacture: '', // connu seulement après creer_facture
       dateEmission: fmtDateFr(new Date().toISOString()),
     });
-    const donnees = mapFactureData(resa, montants, ctxProvisoire);
+    const donnees = instantaneFacture(mapFactureData(resa, montants, ctxProvisoire));
 
     // FRONTIÈRE MÉMOIRE → BASE : p_montant_ttc reste un numeric côté SQL (la
     // fonction n'est pas modifiée) ; les centimes sont convertis en texte
@@ -268,14 +272,19 @@ export async function POST(request: Request) {
     }
   }
 
-  // ── 8. Mémoriser le chemin de stockage sur la ligne facture ──────────────
+  // ── 8. Chemin de stockage + instantané définitif sur la ligne facture ────
   // (On stocke le CHEMIN relatif, pas une URL : les URL signées sont générées
-  //  à la demande.)
+  //  à la demande.) L'instantané `donnees` est mis à jour dans la MÊME
+  // opération avec les données exactement rendues : numéro et date d'émission
+  // réels (issus de la ligne), montants en centimes, marqueur d'unité.
   try {
-    await db.update(factures).set({ pdf_url: cheminStorage }).where(eq(factures.id, facture.id));
+    await db
+      .update(factures)
+      .set({ pdf_url: cheminStorage, donnees: instantaneFacture(data) })
+      .where(eq(factures.id, facture.id));
   } catch (e) {
     return NextResponse.json(
-      { error: `Mise à jour pdf_url échouée : ${messageErreur(e)}` },
+      { error: `Mise à jour pdf_url / donnees échouée : ${messageErreur(e)}` },
       { status: 500 },
     );
   }

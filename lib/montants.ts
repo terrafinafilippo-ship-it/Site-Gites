@@ -213,6 +213,26 @@ function mapSoldeData(
   };
 }
 
+// ─── Instantané jsonb (factures.donnees) ─────────────────────────────────────
+/**
+ * Version du format de l'instantané stocké dans factures.donnees :
+ *   1 = montants en euros flottants (session A, jamais stocké en base réelle) ;
+ *   2 = montants en CENTIMES ENTIERS + champs d'auto-description.
+ */
+export const INSTANTANE_FORMAT_VERSION = 2;
+
+/**
+ * Objet figé dans factures.donnees : les données exactes du PDF, en centimes,
+ * avec deux champs d'auto-description pour qu'un lecteur futur ne puisse pas
+ * se tromper d'unité. La ligne en base est le document légal ; cet instantané
+ * doit suffire à le reconstituer (numéro et date d'émission réels compris).
+ */
+export function instantaneFacture(
+  data: FactureAcompteData | FactureSoldeData,
+): Record<string, unknown> {
+  return { ...data, unite: 'centimes', formatVersion: INSTANTANE_FORMAT_VERSION };
+}
+
 // ─── Mapping CONTRAT ───────────────────────────────────────────────────────────
 /**
  * Construit l'objet `ContratData` à partir de la réservation, du gîte joint, des
