@@ -21,8 +21,8 @@ import {
   isUniqueViolation,
   isUuid,
   messageErreur,
-  resolveLogoUrl,
 } from '@/lib/route-helpers';
+import { chargerLogo } from '@/lib/logo';
 import {
   FactureAcomptePDF,
   type FactureAcompteData,
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
 
   const db = getDb();
   const storage = getStorage();
-  const logoUrl = resolveLogoUrl(request);
+  const logo = chargerLogo(); // null si illisible : la facture sort sans logo
 
   // ── 2. Réservation (+ gîte joint) ───────────────────────────────────────
   const resa = await chargerReservationAvecGite(reservationId, db);
@@ -234,11 +234,11 @@ export async function POST(request: Request) {
       type === 'acompte'
         ? createElement(FactureAcomptePDF, {
             data: data as FactureAcompteData,
-            logoUrl,
+            logo,
           })
         : createElement(FactureSoldePDF, {
             data: data as FactureSoldeData,
-            logoUrl,
+            logo,
           });
     // Les deux composants renvoient un <Document> ; createElement perd cette
     // information de type, on caste vers la signature attendue par renderToBuffer.

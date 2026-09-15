@@ -423,7 +423,8 @@ export type FactureAcompteData = {
   referenceTransaction: string;
 };
 
-export function FactureAcomptePDF({ data, logoUrl }: { data: FactureAcompteData; logoUrl: string }) {
+// `logo` : octets PNG lus sur le disque (lib/logo.ts), ou null → PDF sans logo.
+export function FactureAcomptePDF({ data, logo }: { data: FactureAcompteData; logo: Buffer | null }) {
   return (
     <Document
       title={`Facture acompte ${data.numeroFacture}`}
@@ -436,7 +437,7 @@ export function FactureAcomptePDF({ data, logoUrl }: { data: FactureAcompteData;
         {/* HEAD */}
         <View style={styles.head} fixed={false}>
           <View style={styles.brand}>
-            <Image src={logoUrl} style={styles.logo} />
+            {logo && <Image src={logo} style={styles.logo} />}
             <Text style={styles.tagline}>SARL DE LA VOUTE — Savas, Ardèche</Text>
           </View>
           <View style={styles.docTitle}>

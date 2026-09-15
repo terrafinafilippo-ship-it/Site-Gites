@@ -17,8 +17,8 @@ import {
   isUniqueViolation,
   isUuid,
   messageErreur,
-  resolveLogoUrl,
 } from '@/lib/route-helpers';
+import { chargerLogo } from '@/lib/logo';
 import { ContratPDF } from '@/components/pdf/ContratPDF';
 
 // react-pdf utilise fontkit/zlib → runtime Node obligatoire (pas Edge).
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const logoUrl = resolveLogoUrl(request);
+  const logo = chargerLogo(); // null si illisible : le contrat sort sans logo
   const token = randomBytes(24).toString('base64url'); // 32 caractères URL-safe
   const tokenExpireAt = new Date(Date.now() + TOKEN_TTL_JOURS * 24 * 60 * 60 * 1000);
   const dateEmission = fmtDateFr(new Date().toISOString());
@@ -141,7 +141,7 @@ export async function POST(request: Request) {
 
       let pdfBuffer: Buffer;
       try {
-        const element = createElement(ContratPDF, { data, logoUrl });
+        const element = createElement(ContratPDF, { data, logo });
         pdfBuffer = await renderToBuffer(element as Parameters<typeof renderToBuffer>[0]);
       } catch (e) {
         throw new EchecEmission(502, `Rendu PDF échoué : ${messageErreur(e)}`);

@@ -11,7 +11,8 @@ import { calculerMontants, mapContratData } from '@/lib/montants';
 import { chargerReservationAvecGite } from '@/lib/reservations';
 import { fmtDateFr } from '@/lib/format';
 import { texteConsentement } from '@/lib/constantes';
-import { isUniqueViolation, messageErreur, resolveLogoUrl } from '@/lib/route-helpers';
+import { isUniqueViolation, messageErreur } from '@/lib/route-helpers';
+import { chargerLogo } from '@/lib/logo';
 import { ContratPDF, type ContratData } from '@/components/pdf/ContratPDF';
 
 // react-pdf utilise fontkit/zlib → runtime Node obligatoire (pas Edge).
@@ -128,7 +129,7 @@ export async function POST(request: Request) {
 
   const consentement = texteConsentement(doc.numero);
   const cheminSigne = `contrats/${doc.reservation_id}/${doc.numero}-signe.pdf`;
-  const logoUrl = resolveLogoUrl(request);
+  const logo = chargerLogo(); // null si illisible : le contrat signé sort sans logo
 
   // ── 6 → 8. Transaction : preuve, PDF signé, statut ───────────────────────
   try {
@@ -165,7 +166,7 @@ export async function POST(request: Request) {
 
       let pdfSigne: Buffer;
       try {
-        const element = createElement(ContratPDF, { data: dataSignee, logoUrl });
+        const element = createElement(ContratPDF, { data: dataSignee, logo });
         pdfSigne = await renderToBuffer(element as Parameters<typeof renderToBuffer>[0]);
       } catch (e) {
         throw new EchecSignature(502, `Rendu du PDF signé échoué : ${messageErreur(e)}`);

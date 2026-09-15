@@ -432,7 +432,8 @@ export type FactureSoldeData = {
   referenceTransaction: string;
 };
 
-export function FactureSoldePDF({ data, logoUrl }: { data: FactureSoldeData; logoUrl: string }) {
+// `logo` : octets PNG lus sur le disque (lib/logo.ts), ou null → PDF sans logo.
+export function FactureSoldePDF({ data, logo }: { data: FactureSoldeData; logo: Buffer | null }) {
   return (
     <Document
       title={`Facture solde ${data.numeroFacture}`}
@@ -445,7 +446,7 @@ export function FactureSoldePDF({ data, logoUrl }: { data: FactureSoldeData; log
         {/* HEAD */}
         <View style={styles.head} fixed={false}>
           <View style={styles.brand}>
-            <Image src={logoUrl} style={styles.logo} />
+            {logo && <Image src={logo} style={styles.logo} />}
             <Text style={styles.tagline}>SARL DE LA VOUTE — Savas, Ardèche</Text>
           </View>
           <View style={styles.docTitle}>

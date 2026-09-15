@@ -456,11 +456,11 @@ export type ContratData = {
 };
 
 // ─── Sous-composants ────────────────────────────────
-function ArtHead({ data, logoUrl }: { data: ContratData; logoUrl: string }) {
+function ArtHead({ data, logo }: { data: ContratData; logo: Buffer | null }) {
   return (
     <View style={styles.artHead}>
       <View style={styles.artHeadBrand}>
-        <Image src={logoUrl} style={styles.artHeadLogo} />
+        {logo && <Image src={logo} style={styles.artHeadLogo} />}
         <Text style={styles.artHeadBrandText}>
           Les Gîtes de Samoyas — SARL DE LA VOUTE
         </Text>
@@ -503,12 +503,13 @@ function PageFooter({ data }: { data: ContratData }) {
 }
 
 // ─── COMPOSANT PRINCIPAL ────────────────────────────
+// `logo` : octets PNG lus sur le disque (lib/logo.ts), ou null → PDF sans logo.
 export function ContratPDF({
   data,
-  logoUrl,
+  logo,
 }: {
   data: ContratData;
-  logoUrl: string;
+  logo: Buffer | null;
 }) {
   const tauxTs = data.tauxTaxeSejour.toString().replace('.', ',');
 
@@ -524,7 +525,7 @@ export function ContratPDF({
       <Page size="A4" style={styles.page}>
         <View style={styles.coverHead}>
           <View style={styles.coverBrand}>
-            <Image src={logoUrl} style={styles.coverLogo} />
+            {logo && <Image src={logo} style={styles.coverLogo} />}
           </View>
           <View style={styles.coverDocId}>
             <Text style={styles.coverDocH1}>Contrat</Text>
@@ -803,7 +804,7 @@ export function ContratPDF({
 
       {/* ════════════════ PAGE 2 — ART. 1-5 ════════════════ */}
       <Page size="A4" style={styles.page}>
-        <ArtHead data={data} logoUrl={logoUrl} />
+        <ArtHead data={data} logo={logo} />
 
         <View style={styles.art}>
           <ArtTitle num="—" title="Préambule" />
@@ -1190,7 +1191,7 @@ export function ContratPDF({
 
       {/* ════════════════ PAGE 3 — ART. 6-10 ════════════════ */}
       <Page size="A4" style={styles.page}>
-        <ArtHead data={data} logoUrl={logoUrl} />
+        <ArtHead data={data} logo={logo} />
 
         <View style={styles.art}>
           <ArtTitle num="Art. 6" title="Dépôt de garantie (caution)" />
@@ -1491,7 +1492,7 @@ export function ContratPDF({
 
       {/* ════════════════ PAGE 4 — ART. 11-14 ════════════════ */}
       <Page size="A4" style={styles.page}>
-        <ArtHead data={data} logoUrl={logoUrl} />
+        <ArtHead data={data} logo={logo} />
 
         <View style={styles.art}>
           <ArtTitle
@@ -1693,7 +1694,7 @@ export function ContratPDF({
 
       {/* ════════════════ PAGE 5 — ART. 15-16 + SIGNATURE ════════════════ */}
       <Page size="A4" style={styles.page}>
-        <ArtHead data={data} logoUrl={logoUrl} />
+        <ArtHead data={data} logo={logo} />
 
         <View style={styles.art}>
           <ArtTitle

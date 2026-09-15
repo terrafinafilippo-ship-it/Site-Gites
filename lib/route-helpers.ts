@@ -5,18 +5,14 @@ import { isStorageError } from '@/lib/storage';
 
 /**
  * Origine publique du site, sans barre oblique finale : NEXT_PUBLIC_SITE_URL
- * en priorité (proxy, worker), sinon l'origine de la requête reçue.
+ * en priorité (proxy, worker), sinon l'origine de la requête reçue. Sert au
+ * lien de signature uniquement (le logo des PDF est lu sur le disque, lib/logo.ts).
  */
 export function resolveSiteOrigin(request: Request): string {
   return (
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ||
     new URL(request.url).origin
   );
-}
-
-/** URL du logo chargé par @react-pdf/renderer côté serveur (public/logo.png). */
-export function resolveLogoUrl(request: Request): string {
-  return `${resolveSiteOrigin(request)}/logo.png`;
 }
 
 /** Lien de signature envoyé au client : {origine du site}/signer/{token}. */
