@@ -129,6 +129,42 @@ export async function POST(request: Request) {
   const montants = calculerMontants(resa);
   const montantTtc = type === 'acompte' ? montants.acompte : montants.solde; // centimes
 
+  // ── 4 bis. Garde : acompte + solde = total, sinon aucune facture n'est émise ─
+  // En centimes entiers cette égalité est exacte par construction ; la garde
+  // protège contre une modification future du calcul.
+  //
+  // Cas A — incohérence de calcul interne sur des montants fraîchement
+  // calculés : c'est un bug du code. 500, message technique.
+  if (montants.acompte + montants.solde !== montants.totalTtc) {
+    return NextResponse.json(
+      {
+        error:
+          `Incohérence de calcul interne : acompte ${montants.acompte} + solde ${montants.solde} ` +
+          `≠ total ${montants.totalTtc} (centimes). Facture non émise.`,
+      },
+      { status: 500 },
+    );
+  }
+  // Cas B — la facture de solde rappelle l'acompte DÉJÀ FACTURÉ (ligne
+  // `factures` de l'acompte). Si la réservation a été modifiée depuis, les
+  // lignes de la facture de solde ne s'additionneraient plus : ce n'est pas un
+  // bug mais une situation métier. 409, avec la marche à suivre.
+  if (type === 'solde' && factureAcompte) {
+    const acompteFacture = centimesDepuisNumeric(factureAcompte.montant_ttc);
+    if (acompteFacture + montants.solde !== montants.totalTtc) {
+      return NextResponse.json(
+        {
+          error:
+            `Le montant de la réservation a changé depuis l'émission de la facture d'acompte ` +
+            `${factureAcompte.numero} (acompte facturé ${numericDepuisCentimes(acompteFacture)} €, ` +
+            `acompte recalculé ${numericDepuisCentimes(montants.acompte)} €). Émettez un avoir ou ` +
+            `rétablissez le montant d'origine avant de facturer le solde.`,
+        },
+        { status: 409 },
+      );
+    }
+  }
+
   // ── 5. Obtenir la ligne facture (existante ou nouvelle via creer_facture) ─
   let facture: FactureRow;
 
