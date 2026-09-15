@@ -203,3 +203,74 @@ acompte 214,62 €, solde 500,78 € ; aucune ligne Options sur aucun document.
 - Colonne `paiements.montant` passée en mode texte sans code appelant (Phase 3).
 - Les pages `/signer` d'erreur (lien invalide, déjà signé, expiré) répondent
   en HTTP 200 avec le message ; seul l'API renvoie 404 / 409 / 410.
+
+---
+
+## Avant le premier client réel
+
+Cinq points à traiter **avant qu'un vrai client signe un vrai contrat**. Aucun
+n'empêche le logiciel de fonctionner : ils empêchent qu'il fonctionne
+correctement le jour où il compte. À reprendre en tête de la dernière phase
+avant l'ouverture.
+
+### 1. Nommer les options sur les documents (Phase 5)
+
+La table `reservations` porte un montant d'options mais aucun libellé : les
+documents affichent l'intitulé générique « Options ». L'article L.441-9 du Code
+de commerce impose la dénomination précise des prestations facturées. Tant que
+le back-office ne permet pas de nommer les options, une facture comportant une
+ligne « Options 25,50 € » ne désigne pas ce qui a été vendu.
+
+**À faire :** ajouter le libellé en base (Phase 5), puis l'afficher à la place
+de l'intitulé générique dans les trois composants PDF et la page de signature.
+
+### 2. Rendre l'adresse IP du signataire non falsifiable (au déploiement)
+
+`app/api/contrats/signer/route.ts` lit l'adresse dans les en-têtes
+`x-forwarded-for` puis `x-real-ip`. Ces en-têtes sont écrits par le client tant
+qu'un proxy de confiance ne les réécrit pas : n'importe qui peut aujourd'hui
+faire enregistrer l'adresse de son choix dans la preuve de signature. Une preuve
+dont un élément est fourni par la personne à qui on l'oppose ne vaut rien.
+
+**À faire :** au déploiement, vérifier que le reverse proxy (Traefik sous
+Coolify) **écrase** `x-forwarded-for` au lieu de le transmettre, et ne faire
+confiance qu'à la valeur ajoutée par lui. Contrôler ensuite en envoyant une
+requête avec un `x-forwarded-for` fantaisiste : l'adresse enregistrée doit être
+l'adresse réelle, pas celle de l'en-tête.
+
+### 3. Swikly en service, ou retiré partout (Phase 4)
+
+Le contrat engage la SARL DE LA VOUTE sur un dépôt de garantie constitué par
+empreinte bancaire chez **Swikly** (articles 6 et 14.4 du contrat), et le site
+l'annonce au client (`app/gites/[slug]`, `app/reserver`, `app/suivi/[ref]`).
+Aucune intégration Swikly n'existe dans le code. Signer ce contrat sans le
+service, c'est promettre par écrit un mécanisme qui n'existe pas.
+
+**À faire :** soit mettre Swikly en service (Phase 4, paiements), soit retirer
+toute mention de Swikly du contrat, des templates (`docs/contrat-template.md`)
+et des trois pages du site, et décrire le mécanisme de caution réellement
+appliqué. Les deux options sont acceptables ; l'état actuel ne l'est pas.
+
+### 4. Refermer le port PostgreSQL
+
+La base du VPS est aujourd'hui joignable depuis l'extérieur (c'est ainsi que le
+poste de développement s'y connecte), sans TLS. Elle contient les coordonnées
+des clients et les preuves de signature.
+
+**À faire :** fermer le port au public dans Coolify et n'y accéder que par le
+réseau interne ou un tunnel SSH ; `DATABASE_URL` doit alors viser l'hôte
+**interne** du réseau Coolify. Si un accès externe reste nécessaire, exiger TLS
+(`?sslmode=require`).
+
+### 5. Vérifier le logo sur un PDF généré après déploiement
+
+Le logo est lu sur le disque (`public/logo.png` depuis `process.cwd()`). Selon
+le mode de build, ce dossier peut ne pas être présent à côté du code exécuté :
+avec `output: "standalone"`, Next.js ne copie pas `public/`. Le repli est
+silencieux par conception (un contrat sans logo reste valide, un contrat non
+généré après encaissement est un incident), donc rien ne signalera le problème
+en dehors d'une ligne dans les journaux.
+
+**À faire :** après le premier déploiement, générer un contrat et une facture
+de test et **ouvrir les PDF** pour voir le logo. Chercher aussi
+`[logo] Lecture … impossible` dans les journaux du conteneur.
