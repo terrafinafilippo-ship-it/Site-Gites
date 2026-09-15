@@ -15,7 +15,7 @@ import {
   type FactureContext,
 } from '@/lib/montants';
 import { chargerReservationAvecGite } from '@/lib/reservations';
-import { fmtDateFr } from '@/lib/format';
+import { fmtDateFr, fmtEuro } from '@/lib/format';
 import { centimesDepuisNumeric, numericDepuisCentimes } from '@/lib/centimes';
 import {
   isDuplicateError,
@@ -157,8 +157,8 @@ export async function POST(request: Request) {
         {
           error:
             `Le montant de la réservation a changé depuis l'émission de la facture d'acompte ` +
-            `${factureAcompte.numero} (acompte facturé ${numericDepuisCentimes(acompteFacture)} €, ` +
-            `acompte recalculé ${numericDepuisCentimes(montants.acompte)} €). Émettez un avoir ou ` +
+            `${factureAcompte.numero} (acompte facturé ${fmtEuro(acompteFacture)}, ` +
+            `acompte recalculé ${fmtEuro(montants.acompte)}). Émettez un avoir ou ` +
             `rétablissez le montant d'origine avant de facturer le solde.`,
         },
         { status: 409 },
