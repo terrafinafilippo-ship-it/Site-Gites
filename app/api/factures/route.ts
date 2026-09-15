@@ -15,6 +15,7 @@ import {
 } from '@/lib/montants';
 import { chargerReservationAvecGite } from '@/lib/reservations';
 import { fmtDateFr } from '@/lib/format';
+import { centimesDepuisNumeric, numericDepuisCentimes } from '@/lib/centimes';
 import {
   isDuplicateError,
   isUniqueViolation,
@@ -44,8 +45,9 @@ type FactureType = 'acompte' | 'solde';
 // Type enregistré dans la table `documents` (registre back-office).
 const docType = (t: FactureType) => (t === 'acompte' ? 'facture_acompte' : 'facture_solde');
 
-// Ligne `factures` telle que lue par Drizzle : montant_ttc en nombre (numeric
-// mode "number"), date_emission en chaîne yyyy-mm-dd (date mode "string").
+// Ligne `factures` telle que lue par Drizzle : montant_ttc en TEXTE ("173.00",
+// numeric mode "string", converti en centimes par centimesDepuisNumeric au seul
+// endroit où il est lu), date_emission en chaîne yyyy-mm-dd (date mode "string").
 type FactureRow = typeof factures.$inferSelect;
 
 /**
@@ -125,7 +127,7 @@ export async function POST(request: Request) {
   }
 
   const montants = calculerMontants(resa);
-  const montantTtc = type === 'acompte' ? montants.acompte : montants.solde;
+  const montantTtc = type === 'acompte' ? montants.acompte : montants.solde; // centimes
 
   // ── 5. Obtenir la ligne facture (existante ou nouvelle via creer_facture) ─
   let facture: FactureRow;
@@ -140,20 +142,21 @@ export async function POST(request: Request) {
     });
     const donnees = mapFactureData(resa, montants, ctxProvisoire);
 
+    // FRONTIÈRE MÉMOIRE → BASE : p_montant_ttc reste un numeric côté SQL (la
+    // fonction n'est pas modifiée) ; les centimes sont convertis en texte
+    // "173.00" par numericDepuisCentimes.
     // FRONTIÈRE SQL BRUT : creer_facture renvoie un type composite (une ligne
     // `factures` entière), lu avec `select * from creer_facture(...)`. Par ce
-    // chemin, le driver pg renvoie montant_ttc en TEXTE et date_emission en
-    // objet Date : on ne prend ici que l'id, et la ligne est relue juste après
-    // par Drizzle, qui applique les conversions déclarées dans db/schema
-    // (numeric → number, date → chaîne). Aucune conversion de montant n'est
-    // faite dans cette route.
+    // chemin, date_emission arrive en objet Date : on ne prend ici que l'id,
+    // et la ligne est relue juste après par Drizzle, qui applique les
+    // conversions déclarées dans db/schema (date → chaîne).
     let idFacture: unknown;
     try {
       const cree = await db.execute<{ id: unknown }>(sql`
         select * from creer_facture(
           ${reservationId}::uuid,
           ${type}::text,
-          ${montantTtc}::numeric,
+          ${numericDepuisCentimes(montantTtc)}::numeric,
           ${JSON.stringify(donnees)}::jsonb,
           ${factureAcompte?.id ?? null}::uuid
         )
@@ -306,7 +309,8 @@ function buildContext(
             datePaiement: resa.date_paiement_acompte
               ? fmtDateFr(resa.date_paiement_acompte.toISOString())
               : fmtDateFr(factureAcompte.date_emission),
-            montant: factureAcompte.montant_ttc,
+            // FRONTIÈRE BASE → MÉMOIRE : texte numeric → centimes.
+            montant: centimesDepuisNumeric(factureAcompte.montant_ttc),
           }
         : undefined,
   };

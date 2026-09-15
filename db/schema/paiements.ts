@@ -26,7 +26,8 @@ export const paiements = pgTable(
       .references(() => reservations.id),
     // 'acompte' | 'solde' | 'caution'
     type: text().$type<"acompte" | "solde" | "caution">().notNull(),
-    montant: numeric({ precision: 10, scale: 2, mode: "number" }).notNull(),
+    // Euros côté SQL, lu en TEXTE ; centimes en mémoire (lib/centimes.ts).
+    montant: numeric({ precision: 10, scale: 2, mode: "string" }).notNull(),
     // Statut côté prestataire (valeurs à figer en Phase 3).
     statut: text().notNull(),
     // Prestataire (ex. stripe, swikly).

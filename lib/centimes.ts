@@ -32,6 +32,8 @@ const NUMERIC_REGEX = /^(-)?(\d+)(?:\.(\d{1,2}))?$/;
  * numérique) plutôt que de tronquer en silence : un montant faux ne doit
  * jamais sortir d'ici.
  */
+export function centimesDepuisNumeric(v: string): number;
+export function centimesDepuisNumeric(v: string | null): number | null;
 export function centimesDepuisNumeric(v: string | null): number | null {
   if (v === null) return null;
   const m = NUMERIC_REGEX.exec(v.trim());

@@ -4,10 +4,13 @@
 // ⚠️ Aucun numéro de facture n'est construit ici : il provient exclusivement de
 // la fonction SQL `creer_facture`. Ce module ne fait que du calcul et du mapping.
 //
-// MONTANTS : les colonnes numeric sont déclarées `mode: "number"` dans
-// db/schema, donc les valeurs arrivent ici déjà en nombres (euros, deux
-// décimales). Ce fichier est le SEUL endroit qui calcule des montants ;
-// l'affichage passe par fmtEuro (lib/format.ts).
+// MONTANTS : en mémoire, un montant est un ENTIER DE CENTIMES (576,66 € =
+// 57666). Les colonnes numeric arrivent en texte et sont converties en
+// centimes par lib/reservations.ts (centimesDepuisNumeric, lib/centimes.ts) :
+// ici, tout est entier et exact, sans arrondi. Les TAUX (acompte, taxe de
+// séjour) restent des décimaux : un taux n'est pas de l'argent. Ce fichier
+// est le SEUL endroit qui calcule des montants ; l'affichage passe par
+// fmtEuro (lib/format.ts), qui prend des centimes.
 
 import type { FactureAcompteData } from '@/components/pdf/FactureAcomptePDF';
 import type { FactureSoldeData } from '@/components/pdf/FactureSoldePDF';
@@ -25,7 +28,6 @@ import {
   DELAI_TOLERANCE_COMMERCIALE_DEFAUT,
 } from '@/lib/constantes';
 import {
-  round2,
   fmtDateFr,
   fmtHeureFr,
   computeNbNuits,
@@ -39,10 +41,10 @@ import {
 export type Reservation = ReservationAvecGite;
 export type Gite = GiteRow;
 
-// ─── Résultat du calcul ───────────────────────────────────────────────────────
+// ─── Résultat du calcul (tous les champs en CENTIMES ENTIERS) ────────────────
 export interface Montants {
   base: number; // sous-total = séjour + forfait ménage + options (hors taxe)
-  acompte: number; // 30 % du total TTC (taxe de séjour incluse)
+  acompte: number; // 30 % du total TTC (taxe de séjour incluse), arrondi au centime
   solde: number; // totalTtc − acompte (70 % du total TTC)
   taxeSejour: number; // valeur fournie par la réservation (jamais recalculée)
   totalTtc: number; // base + taxe de séjour
@@ -60,22 +62,27 @@ export interface Montants {
  *   - solde   = totalTtc − acompte
  *   - la taxe de séjour est FOURNIE par la réservation, jamais recalculée ici.
  *
- * Le solde est dérivé de `totalTtc − acompte` (et non d'un second pourcentage)
- * pour garantir acompte + solde = totalTtc au centime près.
+ * Le solde est dérivé de `totalTtc − acompte` (et non d'un second pourcentage) :
+ * en centimes entiers, acompte + solde = totalTtc est exact par construction.
  */
 export function calculerMontants(resa: Reservation): Montants {
   const gite = resa.gites ?? undefined;
 
+  // Entrées en centimes entiers (frontière franchie dans lib/reservations.ts).
   const prixLocation = resa.prix_location ?? 0;
   const forfaitMenage =
     resa.forfait_menage ?? gite?.forfait_menage ?? FORFAIT_MENAGE_DEFAUT;
   const options = resa.options ?? 0;
   const taxeSejour = resa.taxe_sejour ?? 0;
 
-  const base = round2(prixLocation + forfaitMenage + options);
-  const totalTtc = round2(base + taxeSejour);
-  const acompte = round2(totalTtc * (TAUX_ACOMPTE / 100));
-  const solde = round2(totalTtc - acompte);
+  // Additions d'entiers : exactes, aucun arrondi.
+  const base = prixLocation + forfaitMenage + options;
+  const totalTtc = base + taxeSejour;
+  // SEUL arrondi du modèle : conversion du TAUX d'acompte en montant. Le `/ 100`
+  // porte sur le taux (30 % → 0,3), pas sur un montant ; Math.round ramène le
+  // résultat à un entier de centimes.
+  const acompte = Math.round(totalTtc * (TAUX_ACOMPTE / 100));
+  const solde = totalTtc - acompte;
 
   return { base, acompte, solde, taxeSejour, totalTtc, forfaitMenage, options };
 }
@@ -91,7 +98,7 @@ export interface FactureContext {
   factureAcompte?: {
     numero: string;
     datePaiement: string; // date d'encaissement de l'acompte, formatée
-    montant: number;
+    montant: number; // centimes, lu sur la ligne `factures` de l'acompte
   };
 }
 
@@ -267,7 +274,7 @@ export function mapContratData(
 // Décisions de calcul (validées) :
 //  - L'acompte est calculé sur le TOTAL TTC, taxe de séjour incluse
 //    (décision du 12/06/2026) ; solde = totalTtc − acompte.
-//  - forfait_menage : réservation > gîte > FORFAIT_MENAGE_DEFAUT (80 €).
+//  - forfait_menage : réservation > gîte > FORFAIT_MENAGE_DEFAUT (8000 centimes).
 //  - caution : gîte (base) > CAUTION_DEFAUT ; le gîte étant toujours joint,
 //    la valeur par défaut ne doit jamais apparaître dans un contrat réel.
 // ─────────────────────────────────────────────────────────────────────────────

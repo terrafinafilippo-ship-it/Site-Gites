@@ -29,10 +29,13 @@ export const MENTIONS = {
 // Acompte = 30 % / solde = 70 % du TOTAL TTC (séjour + forfait ménage + options
 // + taxe de séjour). La valeur de la taxe est fournie par la réservation et
 // n'est jamais recalculée ici.
-export const TAUX_ACOMPTE = 30; // %
-export const TAUX_SOLDE = 70; // %
-export const FORFAIT_MENAGE_DEFAUT = 80; // €
-export const CAUTION_DEFAUT = 500; // € (non facturée)
+//
+// UNITÉS : tout MONTANT est un ENTIER DE CENTIMES (voir lib/centimes.ts) ;
+// un TAUX est un nombre décimal en pourcentage (un taux n'est pas de l'argent).
+export const TAUX_ACOMPTE = 30; // % (taux)
+export const TAUX_SOLDE = 70; // % (taux)
+export const FORFAIT_MENAGE_DEFAUT = 8000; // centimes (80,00 €)
+export const CAUTION_DEFAUT = 50000; // centimes (500,00 €, non facturée)
 export const DELAI_SOLDE_DEFAUT = 30; // jours avant l'arrivée
 
 // Paramètres opérationnels du contrat (valeurs par défaut ; surchargées par la

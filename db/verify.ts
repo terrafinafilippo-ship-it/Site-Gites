@@ -26,6 +26,7 @@ import {
   validerChemin,
 } from "@/lib/storage";
 
+import { centimesDepuisNumeric } from "../lib/centimes";
 import { closeDb, getPool } from "./index";
 
 // ─── Rapport ──────────────────────────────────────────────────────────────────
@@ -289,7 +290,9 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
     noter("4", /^FAC-\d{4}-\d{3}$/.test(acompte.numero), "numéro au format FAC-AAAA-NNN", acompte.numero);
     noter("4", acompte.numero === `FAC-${anneeParis}-${pad3(fac0 + 1)}`, `numéro = 'FAC-${anneeParis}-${pad3(fac0 + 1)}'`, acompte.numero);
     noter("4", acompte.type === "acompte" && acompte.reservation_id === resaId, "type et reservation_id repris");
-    noter("4", Number(acompte.montant_ttc) === 123.45, "montant_ttc = 123.45", String(acompte.montant_ttc));
+    // montant_ttc arrive en TEXTE ("123.45") : comparaison exacte en centimes,
+    // par la fonction de frontière (jamais Number() sur un montant).
+    noter("4", centimesDepuisNumeric(acompte.montant_ttc) === 12345, "montant_ttc = 123.45 (12345 centimes)", String(acompte.montant_ttc));
     noter("4", acompte.pdf_url === null, "pdf_url NULL tant que le PDF n'est pas rendu");
     noter("4", acompte.donnees?.test === true, "donnees jsonb conservées");
     noter("4", acompte.date_emission_texte === dateParis, `date_emission = date du jour à Paris (${dateParis})`, acompte.date_emission_texte);
