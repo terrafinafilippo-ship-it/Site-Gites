@@ -26,6 +26,7 @@ import {
   validerChemin,
 } from "@/lib/storage";
 
+import { centimesDepuisNumeric } from "../lib/centimes";
 import { closeDb, getPool } from "./index";
 
 // ─── Rapport ──────────────────────────────────────────────────────────────────
@@ -202,6 +203,14 @@ async function verifierGites(client: PoolClient): Promise<string | null> {
 
 // ─── 3 à 6. Fonctions, triggers, index (transaction annulée) ────────────────
 
+/** Photographie des compteurs (« CTR/2026=2, FAC/2026=4 »), comparable avant / après ROLLBACK. */
+async function lireCompteurs(client: PoolClient): Promise<string> {
+  const { rows } = await client.query<{ serie: string; annee: number; dernier_numero: number }>(
+    `select serie, annee, dernier_numero from compteurs_documents order by serie, annee`,
+  );
+  return rows.map((r) => `${r.serie}/${r.annee}=${r.dernier_numero}`).join(", ");
+}
+
 async function compteur(client: PoolClient, serie: string, annee: number): Promise<number> {
   const { rows } = await client.query<{ n: number }>(
     `select coalesce((select dernier_numero from compteurs_documents where serie = $1 and annee = $2), 0)::int as n`,
@@ -231,6 +240,11 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
   const anneeParis = Number(
     new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", year: "numeric" }).format(new Date()),
   );
+
+  // État des compteurs AVANT la transaction : après le ROLLBACK ils doivent
+  // être strictement identiques (aucun numéro consommé par les tests), que la
+  // base soit vide ou déjà en service.
+  const cptAvant = await lireCompteurs(client);
 
   await client.query("BEGIN");
   try {
@@ -289,7 +303,9 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
     noter("4", /^FAC-\d{4}-\d{3}$/.test(acompte.numero), "numéro au format FAC-AAAA-NNN", acompte.numero);
     noter("4", acompte.numero === `FAC-${anneeParis}-${pad3(fac0 + 1)}`, `numéro = 'FAC-${anneeParis}-${pad3(fac0 + 1)}'`, acompte.numero);
     noter("4", acompte.type === "acompte" && acompte.reservation_id === resaId, "type et reservation_id repris");
-    noter("4", Number(acompte.montant_ttc) === 123.45, "montant_ttc = 123.45", String(acompte.montant_ttc));
+    // montant_ttc arrive en TEXTE ("123.45") : comparaison exacte en centimes,
+    // par la fonction de frontière (jamais Number() sur un montant).
+    noter("4", centimesDepuisNumeric(acompte.montant_ttc) === 12345, "montant_ttc = 123.45 (12345 centimes)", String(acompte.montant_ttc));
     noter("4", acompte.pdf_url === null, "pdf_url NULL tant que le PDF n'est pas rendu");
     noter("4", acompte.donnees?.test === true, "donnees jsonb conservées");
     noter("4", acompte.date_emission_texte === dateParis, `date_emission = date du jour à Paris (${dateParis})`, acompte.date_emission_texte);
@@ -393,10 +409,8 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
 
   // ── Après ROLLBACK : rien ne doit subsister ────────────────────────────────
   titre("Après ROLLBACK");
-  const cpt = await client.query<{ total: number; lignes: number }>(
-    `select coalesce(sum(dernier_numero), 0)::int as total, count(*)::int as lignes from compteurs_documents`,
-  );
-  noter("R", cpt.rows[0].total === 0, "compteurs_documents à 0 : aucun numéro de test consommé", `${cpt.rows[0].lignes} ligne(s), total ${cpt.rows[0].total}`);
+  const cptApres = await lireCompteurs(client);
+  noter("R", cptApres === cptAvant, "compteurs_documents inchangés : aucun numéro de test consommé", `avant ${cptAvant || "(vide)"} ; après ${cptApres || "(vide)"}`);
   const restes = await client.query<{ resas: number; docs: number; facs: number; sigs: number }>(
     `select (select count(*) from reservations where reference like 'VERIFY-%')::int as resas,
             (select count(*) from documents where numero like 'CTR-TEST-%')::int as docs,

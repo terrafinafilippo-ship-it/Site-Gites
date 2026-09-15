@@ -1,7 +1,7 @@
 // Table `gites` : les trois gîtes du hameau de Samoyas.
 //
-// Les noms de colonnes sont ceux lus par Logiciel-contrat- (lib/montants.ts,
-// interface Gite) : id, nom, ref_gdf, adresse, forfait_menage, capacite_max,
+// Les noms de colonnes sont ceux lus par lib/montants.ts (type Gite, dérivé
+// de cette table via lib/reservations.ts) : id, nom, ref_gdf, adresse, forfait_menage, capacite_max,
 // equipements_specifiques, a_spa, caution, contact_arrivee_tel.
 // Les clés de cet objet sont volontairement en snake_case et identiques aux
 // colonnes SQL : une ligne lue par Drizzle a exactement la forme attendue.
@@ -27,15 +27,17 @@ export const gites = pgTable(
     slug: text().notNull(),
     adresse: text().notNull(),
     capacite_max: integer().notNull(),
-    forfait_menage: numeric({ precision: 10, scale: 2, mode: "number" }).notNull(),
-    caution: numeric({ precision: 10, scale: 2, mode: "number" }).notNull(),
+    // Montants : numeric(10,2) en euros côté SQL, lus en TEXTE (mode "string")
+    // et convertis en centimes entiers par lib/reservations.ts (centimesDepuisNumeric).
+    forfait_menage: numeric({ precision: 10, scale: 2, mode: "string" }).notNull(),
+    caution: numeric({ precision: 10, scale: 2, mode: "string" }).notNull(),
     // Texte libre repris dans le contrat (ex. "sauna privatif").
     equipements_specifiques: text(),
     a_spa: boolean().notNull().default(false),
     contact_arrivee_tel: text(),
-    tarif_semaine_base: numeric({ precision: 10, scale: 2, mode: "number" }),
-    tarif_weekend: numeric({ precision: 10, scale: 2, mode: "number" }),
-    // Taux en pourcentage (5.50 = 5,5 %).
+    tarif_semaine_base: numeric({ precision: 10, scale: 2, mode: "string" }),
+    tarif_weekend: numeric({ precision: 10, scale: 2, mode: "string" }),
+    // Taux en pourcentage (5.50 = 5,5 %) : pas un montant, reste un nombre décimal.
     taux_taxe_sejour: numeric({ precision: 5, scale: 2, mode: "number" }),
     actif: boolean().notNull().default(true),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),

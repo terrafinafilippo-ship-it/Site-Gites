@@ -9,11 +9,10 @@
  * PRODUCTION (Coolify) : À LIRE AVANT DE DÉPLOYER
  *   STORAGE_PATH doit pointer vers un VOLUME PERSISTANT monté par Coolify
  *   (défaut : /data/documents). Les conteneurs Docker sont recréés à chaque
- *   déploiement : tout fichier écrit HORS de ce volume est PERDU. Le site et le
- *   module de contrat doivent monter le MÊME volume pour voir les mêmes PDF.
+ *   déploiement : tout fichier écrit HORS de ce volume est PERDU.
  *   En développement, .env.local pointe vers ./.data/documents (ignoré par git).
  *
- * CONVENTIONS DE CHEMIN (le module de contrat les construit : ne pas changer)
+ * CONVENTIONS DE CHEMIN (construites par app/api/contrats et app/api/factures : ne pas changer)
  *   contrats/{reservation_id}/{numero}.pdf         contrat non signé
  *   contrats/{reservation_id}/{numero}-signe.pdf   contrat signé
  *   factures/{numero}.pdf                          facture

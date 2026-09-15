@@ -29,8 +29,9 @@ commitée.
 
 - **gites** : les trois gîtes (LaPhine, L'Armu, La Maison Vieille). Nom,
   référence Gîtes de France, adresse, capacité, forfait ménage, caution, tarifs,
-  taux de taxe de séjour. Le module de contrat lit ces valeurs pour remplir les
-  documents : la base prime sur toute constante du code.
+  taux de taxe de séjour. Les routes de documents (`app/api/contrats`,
+  `app/api/factures`) lisent ces valeurs pour remplir les PDF : la base prime
+  sur toute constante du code.
 - **reservations** : une ligne par séjour. Coordonnées du client (et de son
   conjoint), dates et heures, nombre d'occupants, montants, informations de
   paiement de l'acompte, statut (`brouillon`, `en_attente_paiement`,
@@ -62,6 +63,36 @@ commitée.
   `airbnb`, `booking`, `gdf`).
 - **avis** : les avis clients affichés sur le site.
 - **audit_logs** : le journal des actions sensibles.
+
+## Génération des documents et signature (fusion du module de contrat)
+
+Depuis la Phase 1, le site contient lui-même la génération des contrats et des
+factures ainsi que la page de signature ; l'ancien dépôt `Logiciel-contrat-`
+n'est plus utilisé.
+
+| Point d'entrée | Rôle |
+|---|---|
+| `POST /api/contrats` | Émet le contrat d'une réservation : numéro `CTR-AAAA-NNN`, PDF non signé dans `contrats/{reservation_id}/{numero}.pdf`, ligne `documents` avec jeton de signature, recopie du numéro dans `reservations.numero_contrat`, le tout dans une transaction. Idempotent. En-tête `x-service-secret`. |
+| `GET /signer/{token}` | Page de signature : affiche le PDF, recueille nom et consentement. |
+| `POST /api/contrats/signer` | Enregistre la preuve de signature (`signatures`), écrit le PDF signé `{numero}-signe.pdf`, passe le document en `signe`. Publique : le jeton authentifie le signataire. |
+| `POST /api/factures` | Émet la facture d'acompte ou de solde via `creer_facture`, PDF dans `factures/{numero}.pdf`. En-tête `x-service-secret`. |
+| `GET /api/documents/{chemin}?token=…&expires=…` | Seul accès aux PDF, par lien signé à durée limitée. |
+
+Code correspondant : `app/api/contrats/`, `app/api/factures/`,
+`app/signer/[token]/`, `components/pdf/` (rendu @react-pdf/renderer),
+`lib/montants.ts` (calculs), `lib/reservations.ts` (réservation + gîte joint),
+`lib/storage.ts` (fichiers). Variables : `DOCUMENT_SERVICE_SECRET`,
+`STORAGE_PATH`, `STORAGE_SIGNING_SECRET`, `NEXT_PUBLIC_SITE_URL` (voir
+`.env.example`).
+
+### Base de test
+
+Chaque contrat, facture ou signature consomme un numéro légal irrécupérable,
+et une signature ne se supprime pas. Les parcours de test se font donc sur la
+base `gites_test` (même serveur) : renseigner `DATABASE_URL_TEST` dans
+`.env.local` et positionner `DB_CIBLE=test` dans le shell le temps des
+commandes (`npm run db:migrate`, `npm run db:seed`, `npm run dev`). Sans
+cette variable, tout s'exécute sur la base réelle.
 
 ## Appliquer les migrations
 
@@ -160,8 +191,8 @@ Les sauvegardes sont faites chaque jour par Coolify et envoyées sur Cloudflare
 R2. Elles contiennent la base, **pas les fichiers PDF** : ceux-ci vivent sur le
 volume persistant du VPS et doivent être sauvegardés à part.
 
-1. **Arrêter les applications** qui écrivent dans la base (le site et le module
-   de contrat) depuis Coolify, pour qu'aucune écriture n'arrive pendant la
+1. **Arrêter le site** depuis Coolify (il contient la génération des documents
+   et la page de signature), pour qu'aucune écriture n'arrive pendant la
    restauration.
 2. **Récupérer la sauvegarde.** Dans Coolify, ouvrir la base de données, onglet
    *Backups* : la liste des sauvegardes apparaît avec leur date. Si un bouton de
@@ -188,7 +219,7 @@ volume persistant du VPS et doivent être sauvegardés à part.
    émises entre la sauvegarde et la panne, elles doivent être ressaisies
    **avant** toute nouvelle émission, sinon la numérotation reprendrait sur des
    numéros déjà utilisés.
-6. **Redémarrer les applications.**
+6. **Redémarrer le site.**
 
 ## Sécurité et bonnes pratiques
 

@@ -1,9 +1,9 @@
 // Table `documents` : registre des PDF émis (contrat, facture d'acompte,
 // facture de solde) pour une réservation.
 //
-// LE CODE DE Logiciel-contrat- FAIT FOI (app/api/contrat/route.ts,
-// app/api/contrats/signer/route.ts, app/signer/[token]/page.tsx) :
-// le chemin de stockage est `url_pdf`, pas `chemin_storage`.
+// Lue et écrite par app/api/contrats/route.ts, app/api/contrats/signer/route.ts,
+// app/api/factures/route.ts et app/signer/[token]/page.tsx : le chemin de
+// stockage est `url_pdf` (chemin relatif dans lib/storage.ts).
 //
 // - L'index unique (reservation_id, type) est la garantie d'idempotence : un
 //   webhook déclenché deux fois ne peut pas créer deux contrats.

@@ -1,7 +1,7 @@
 // Table `factures` : factures d'acompte et de solde, à numérotation légale
 // continue (série FAC). Une facture EXISTE dès que la ligne est validée ; le
 // PDF n'est qu'un rendu de cette ligne (pdf_url reste NULL tant qu'il n'est
-// pas produit, et le code de Logiciel-contrat- s'appuie sur ce NULL pour
+// pas produit, et app/api/factures/route.ts s'appuie sur ce NULL pour
 // ré-émettre le même numéro).
 //
 // Les lignes sont créées EXCLUSIVEMENT par la fonction SQL creer_facture
@@ -37,13 +37,16 @@ export const factures = pgTable(
       .references(() => reservations.id),
     // Pour une facture de solde : la facture d'acompte qu'elle rappelle.
     facture_acompte_id: uuid().references((): AnyPgColumn => factures.id),
-    montant_ttc: numeric({ precision: 10, scale: 2, mode: "number" }).notNull(),
+    // Euros côté SQL, lu en TEXTE ; centimes en mémoire (lib/centimes.ts).
+    montant_ttc: numeric({ precision: 10, scale: 2, mode: "string" }).notNull(),
     date_emission: date({ mode: "string" })
       .notNull()
       .default(sql`current_date`),
     // Chemin de stockage du PDF (factures/{numero}.pdf), NULL tant que non rendu.
     pdf_url: text(),
-    // Instantané des données du PDF (forme FactureAcompteData / FactureSoldeData).
+    // Instantané des données du PDF (forme FactureAcompteData / FactureSoldeData
+    // + unite: "centimes" + formatVersion), mis à jour avec le numéro et la
+    // date réels par app/api/factures/route.ts, dans la même opération que pdf_url.
     donnees: jsonb().$type<Record<string, unknown>>().notNull(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },

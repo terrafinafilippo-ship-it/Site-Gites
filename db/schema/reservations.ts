@@ -1,8 +1,8 @@
 // Table `reservations` : une ligne par séjour, quel que soit son statut.
 //
 // Toutes les colonnes client_*, date_*, heure_*, nb_*, montants et paiement
-// sont celles lues par Logiciel-contrat- (lib/montants.ts, interface
-// Reservation). Le module lit chaque champ avec une valeur de repli, d'où
+// sont celles lues par lib/montants.ts (type Reservation, dérivé de cette
+// table via lib/reservations.ts). Le module lit chaque champ avec une valeur de repli, d'où
 // une majorité de colonnes nullables : seules les colonnes structurelles
 // (gîte, référence, statut, dates) sont obligatoires.
 //
@@ -76,11 +76,16 @@ export const reservations = pgTable(
     // Liste libre des occupants majeurs (contrat).
     occupants_majeurs: text(),
 
-    // Montants en euros
-    prix_location: numeric({ precision: 10, scale: 2, mode: "number" }),
-    forfait_menage: numeric({ precision: 10, scale: 2, mode: "number" }),
-    options: numeric({ precision: 10, scale: 2, mode: "number" }),
-    taxe_sejour: numeric({ precision: 10, scale: 2, mode: "number" }),
+    // Montants : numeric(10,2) en euros côté SQL, lus en TEXTE (mode "string",
+    // comportement natif du driver pg) et convertis en centimes entiers par
+    // lib/reservations.ts via centimesDepuisNumeric (lib/centimes.ts). Aucun
+    // montant ne circule en nombre flottant.
+    prix_location: numeric({ precision: 10, scale: 2, mode: "string" }),
+    forfait_menage: numeric({ precision: 10, scale: 2, mode: "string" }),
+    options: numeric({ precision: 10, scale: 2, mode: "string" }),
+    taxe_sejour: numeric({ precision: 10, scale: 2, mode: "string" }),
+    // Taux en pourcentage (5.50 = 5,5 %) : un taux n'est pas de l'argent, il
+    // reste un nombre décimal.
     taux_taxe_sejour: numeric({ precision: 5, scale: 2, mode: "number" }),
 
     // Paiement de l'acompte (données du prestataire)
