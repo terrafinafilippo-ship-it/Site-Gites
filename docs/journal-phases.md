@@ -124,3 +124,82 @@ Documents produits sur `gites_test` : CTR-2026-001 (signé), FAC-2026-001
   (`numeroFacture` vide).
 
 ---
+
+## Session B — Centimes entiers, options, logo, instantané (close le 16 septembre 2026)
+
+Branche `feat/fusion-module-contrat`, commits `0531df3` → `1bbf7e5` (non
+poussés).
+
+### Ce qui a été fait
+
+- **Modèle monétaire en centimes entiers.** En mémoire et dans tous les
+  calculs, un montant est un entier de centimes (576,66 € = 57666). Deux
+  fonctions de frontière, et deux seulement, dans `lib/centimes.ts` :
+  `centimesDepuisNumeric` (texte numeric PostgreSQL → centimes, par découpage
+  de chaîne, jamais ×100) et `numericDepuisCentimes` (centimes → texte à deux
+  décimales). Colonnes de montants du schéma en `mode: "string"` (aucune
+  migration : le type SQL ne change pas), conversion base → mémoire dans
+  `lib/reservations.ts`, `fmtEuro` prend des centimes, `round2` supprimé. Les
+  taux (taux de taxe de séjour, taux d'acompte) restent des décimaux ; le seul
+  arrondi du modèle est le `Math.round` de la conversion du taux d'acompte en
+  montant. Script de contrôle : `npm run verify:centimes` (51 cas).
+- **Ligne « Options »** sur les deux tableaux du contrat, les deux factures et
+  le récapitulatif de la page de signature, affichée seulement si le montant
+  est différent de zéro. Les lignes de la facture s'additionnent désormais
+  jusqu'au sous-total.
+- **Logo lu sur le disque** (`lib/logo.ts`, `public/logo.png` depuis
+  `process.cwd()`, gardé en mémoire). En cas d'échec de lecture, le PDF est
+  généré sans logo et l'erreur journalisée ; la route n'échoue jamais.
+- **Instantané `factures.donnees`** réécrit avec le numéro et la date
+  d'émission réels dans la même opération que `pdf_url`, et auto-décrit :
+  `unite: "centimes"`, `formatVersion: 2`.
+- **Garde d'émission** dans `POST /api/factures`, avant `creer_facture` :
+  HTTP 500 si acompte + solde ≠ total sur des montants fraîchement calculés
+  (bug du code) ; HTTP 409 si la réservation a changé depuis la facture
+  d'acompte déjà émise (situation métier, message avec la marche à suivre).
+- Factures resserrées de 24 pt pour tenir sur une page avec la ligne Options ;
+  `db:verify` compare les compteurs avant/après ROLLBACK au lieu d'exiger zéro.
+
+### Valeurs de référence des montants de test
+
+Même réservation Durand / L'Armu qu'en session A, rejouée sur `gites_test`
+remise à zéro. Les neuf montants sont identiques au centime à ceux de la
+session A (seule différence sur les documents : la ligne Options ajoutée et
+la date d'émission du jour).
+
+| Poste | Session A | Session B | Centimes en base |
+|---|---|---|---|
+| Location (7 nuits) | 457,30 € | 457,30 € | 45730 |
+| Forfait ménage | 80,00 € | 80,00 € | 8000 |
+| Options | 25,50 € | 25,50 € | 2550 |
+| Sous-total | 562,80 € | 562,80 € | 56280 |
+| Taxe de séjour (5,5 %) | 13,86 € | 13,86 € | 1386 |
+| Total TTC | 576,66 € | 576,66 € | 57666 |
+| Acompte (30 %) | 173,00 € | 173,00 € | 17300 |
+| Solde | 403,66 € | 403,66 € | 40366 |
+| Caution | 400,00 € | 400,00 € | 40000 |
+
+Seconde réservation Martin / LaPhine (620,00 € sans option) : total 715,40 €,
+acompte 214,62 €, solde 500,78 € ; aucune ligne Options sur aucun document.
+
+### Décisions structurantes
+
+- Un montant est un entier de centimes partout hors des deux fonctions de
+  frontière ; toute multiplication ou division par 100 sur un montant est
+  interdite (le `/ 100` de `lib/montants.ts` porte sur le taux, pas sur un
+  montant).
+- L'intitulé des options est générique (« Options ») tant que la table
+  `reservations` n'a pas de libellé.
+- Format 2 de l'instantané facture ; le format 1 (euros flottants) n'a jamais
+  été stocké en base réelle.
+
+### Points reportés
+
+- Phase 5 (back-office) : nommer les options (libellé en base) et remplacer
+  l'intitulé générique.
+- Déploiement : avec `output: "standalone"`, Next.js ne copie pas `public/` ;
+  vérifier au premier déploiement que `public/logo.png` est présent à côté
+  du serveur (le journal signale `[logo] Lecture … impossible` sinon).
+- Colonne `paiements.montant` passée en mode texte sans code appelant (Phase 3).
+- Les pages `/signer` d'erreur (lien invalide, déjà signé, expiré) répondent
+  en HTTP 200 avec le message ; seul l'API renvoie 404 / 409 / 410.
