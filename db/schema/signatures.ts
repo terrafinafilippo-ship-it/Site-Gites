@@ -1,8 +1,8 @@
 // Table `signatures` : preuve de signature électronique simple (SES) d'un
 // contrat. Une ligne = une preuve, écrite une seule fois.
 //
-// LE CODE DE Logiciel-contrat- FAIT FOI (app/api/contrats/signer/route.ts) :
-// la clé vers le document s'appelle `document_id` (pas contrat_id).
+// Écrite par app/api/contrats/signer/route.ts (INSERT uniquement, jamais
+// d'UPDATE ni de DELETE) : la clé vers le document s'appelle `document_id`.
 //
 // - Immutabilité : un trigger BEFORE UPDATE OR DELETE (migration 0001) lève
 //   une exception. Une preuve modifiable n'a aucune valeur juridique.

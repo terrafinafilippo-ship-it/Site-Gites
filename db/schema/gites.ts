@@ -1,7 +1,7 @@
 // Table `gites` : les trois gîtes du hameau de Samoyas.
 //
-// Les noms de colonnes sont ceux lus par Logiciel-contrat- (lib/montants.ts,
-// interface Gite) : id, nom, ref_gdf, adresse, forfait_menage, capacite_max,
+// Les noms de colonnes sont ceux lus par lib/montants.ts (type Gite, dérivé
+// de cette table via lib/reservations.ts) : id, nom, ref_gdf, adresse, forfait_menage, capacite_max,
 // equipements_specifiques, a_spa, caution, contact_arrivee_tel.
 // Les clés de cet objet sont volontairement en snake_case et identiques aux
 // colonnes SQL : une ligne lue par Drizzle a exactement la forme attendue.

@@ -1,7 +1,7 @@
 // Table `factures` : factures d'acompte et de solde, à numérotation légale
 // continue (série FAC). Une facture EXISTE dès que la ligne est validée ; le
 // PDF n'est qu'un rendu de cette ligne (pdf_url reste NULL tant qu'il n'est
-// pas produit, et le code de Logiciel-contrat- s'appuie sur ce NULL pour
+// pas produit, et app/api/factures/route.ts s'appuie sur ce NULL pour
 // ré-émettre le même numéro).
 //
 // Les lignes sont créées EXCLUSIVEMENT par la fonction SQL creer_facture

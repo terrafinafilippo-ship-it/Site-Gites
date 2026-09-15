@@ -1,8 +1,8 @@
 // Table `reservations` : une ligne par séjour, quel que soit son statut.
 //
 // Toutes les colonnes client_*, date_*, heure_*, nb_*, montants et paiement
-// sont celles lues par Logiciel-contrat- (lib/montants.ts, interface
-// Reservation). Le module lit chaque champ avec une valeur de repli, d'où
+// sont celles lues par lib/montants.ts (type Reservation, dérivé de cette
+// table via lib/reservations.ts). Le module lit chaque champ avec une valeur de repli, d'où
 // une majorité de colonnes nullables : seules les colonnes structurelles
 // (gîte, référence, statut, dates) sont obligatoires.
 //
