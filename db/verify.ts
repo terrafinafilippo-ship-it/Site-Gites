@@ -203,6 +203,14 @@ async function verifierGites(client: PoolClient): Promise<string | null> {
 
 // ─── 3 à 6. Fonctions, triggers, index (transaction annulée) ────────────────
 
+/** Photographie des compteurs (« CTR/2026=2, FAC/2026=4 »), comparable avant / après ROLLBACK. */
+async function lireCompteurs(client: PoolClient): Promise<string> {
+  const { rows } = await client.query<{ serie: string; annee: number; dernier_numero: number }>(
+    `select serie, annee, dernier_numero from compteurs_documents order by serie, annee`,
+  );
+  return rows.map((r) => `${r.serie}/${r.annee}=${r.dernier_numero}`).join(", ");
+}
+
 async function compteur(client: PoolClient, serie: string, annee: number): Promise<number> {
   const { rows } = await client.query<{ n: number }>(
     `select coalesce((select dernier_numero from compteurs_documents where serie = $1 and annee = $2), 0)::int as n`,
@@ -232,6 +240,11 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
   const anneeParis = Number(
     new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", year: "numeric" }).format(new Date()),
   );
+
+  // État des compteurs AVANT la transaction : après le ROLLBACK ils doivent
+  // être strictement identiques (aucun numéro consommé par les tests), que la
+  // base soit vide ou déjà en service.
+  const cptAvant = await lireCompteurs(client);
 
   await client.query("BEGIN");
   try {
@@ -396,10 +409,8 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
 
   // ── Après ROLLBACK : rien ne doit subsister ────────────────────────────────
   titre("Après ROLLBACK");
-  const cpt = await client.query<{ total: number; lignes: number }>(
-    `select coalesce(sum(dernier_numero), 0)::int as total, count(*)::int as lignes from compteurs_documents`,
-  );
-  noter("R", cpt.rows[0].total === 0, "compteurs_documents à 0 : aucun numéro de test consommé", `${cpt.rows[0].lignes} ligne(s), total ${cpt.rows[0].total}`);
+  const cptApres = await lireCompteurs(client);
+  noter("R", cptApres === cptAvant, "compteurs_documents inchangés : aucun numéro de test consommé", `avant ${cptAvant || "(vide)"} ; après ${cptApres || "(vide)"}`);
   const restes = await client.query<{ resas: number; docs: number; facs: number; sigs: number }>(
     `select (select count(*) from reservations where reference like 'VERIFY-%')::int as resas,
             (select count(*) from documents where numero like 'CTR-TEST-%')::int as docs,
