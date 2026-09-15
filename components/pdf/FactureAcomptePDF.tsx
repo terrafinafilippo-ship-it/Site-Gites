@@ -404,9 +404,10 @@ export type FactureAcompteData = {
   heureDepart: string;
   nbNuits: number;
   nbAdultes: number;
-  // Montants
+  // Montants : CENTIMES ENTIERS (fmtEuro les affiche) ; les taux sont des décimaux
   prixLocation: number;
   forfaitMenage: number;
+  montantOptions: number; // ligne « Options » affichée seulement si différent de 0
   sousTotal: number;
   tauxTaxeSejour: number;
   montantTaxeSejour: number;
@@ -533,6 +534,12 @@ export function FactureAcomptePDF({ data, logoUrl }: { data: FactureAcompteData;
             <Text style={styles.lineDesc}>Forfait ménage obligatoire</Text>
             <Text style={styles.lineAmount}>{fmtEuro(data.forfaitMenage)}</Text>
           </View>
+          {data.montantOptions !== 0 && (
+            <View style={styles.line}>
+              <Text style={styles.lineDesc}>Options</Text>
+              <Text style={styles.lineAmount}>{fmtEuro(data.montantOptions)}</Text>
+            </View>
+          )}
           <View style={[styles.line, styles.lineSubtotal]}>
             <Text style={[styles.lineDesc, styles.lineSubtotalText]}>
               Sous-total prestations

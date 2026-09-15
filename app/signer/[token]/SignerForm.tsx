@@ -27,6 +27,7 @@ export function SignerForm({
   dateArrivee,
   dateDepart,
   montantTtc,
+  montantOptions,
   consentement,
   pdfUrl,
 }: {
@@ -36,6 +37,7 @@ export function SignerForm({
   dateArrivee: string;
   dateDepart: string;
   montantTtc: string;
+  montantOptions: string | null; // null : aucune option, la ligne n'est pas affichée
   consentement: string;
   pdfUrl: string | null;
 }) {
@@ -112,6 +114,7 @@ export function SignerForm({
       <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 mb-6 p-4 border rounded">
         <Recap label="Gîte" value={giteNom} />
         <Recap label="Montant total du séjour" value={montantTtc} />
+        {montantOptions !== null && <Recap label="Dont options" value={montantOptions} />}
         <Recap label="Arrivée" value={dateArrivee} />
         <Recap label="Départ" value={dateDepart} />
       </dl>

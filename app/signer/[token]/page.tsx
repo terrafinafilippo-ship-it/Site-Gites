@@ -110,6 +110,7 @@ export default async function SignerPage({
       dateArrivee={fmtDateFr(resa.date_arrivee)}
       dateDepart={fmtDateFr(resa.date_depart)}
       montantTtc={fmtEuro(montants.totalTtc)}
+      montantOptions={montants.options !== 0 ? fmtEuro(montants.options) : null}
       consentement={texteConsentement(doc.numero)}
       pdfUrl={pdfUrl}
     />

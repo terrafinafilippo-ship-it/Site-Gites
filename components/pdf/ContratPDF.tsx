@@ -430,8 +430,10 @@ export type ContratData = {
   nbBebes: number;
   occupantsMajeurs: string;
 
+  // Montants : CENTIMES ENTIERS (fmtEuro les affiche) ; les taux sont des décimaux
   prixLocation: number;
   forfaitMenage: number;
+  montantOptions: number; // ligne « Options » affichée seulement si différent de 0
   sousTotal: number;
   tauxTaxeSejour: number;
   montantTaxeSejour: number;
@@ -657,6 +659,17 @@ export function ContratPDF({
                 —
               </Text>
             </View>
+            {data.montantOptions !== 0 && (
+              <View style={styles.echRow}>
+                <Text style={[styles.echTd, { flex: 3 }]}>Options</Text>
+                <Text style={[styles.echTd, { flex: 1.5, textAlign: 'right' }]}>
+                  {fmtEuro(data.montantOptions)}
+                </Text>
+                <Text style={[styles.echTd, { flex: 2.5, textAlign: 'right' }]}>
+                  —
+                </Text>
+              </View>
+            )}
             <View style={styles.echRow}>
               <Text style={[styles.echTd, { flex: 3 }]}>
                 Taxe de séjour ({tauxTs} %)
@@ -1000,6 +1013,16 @@ export function ContratPDF({
                 {fmtEuro(data.forfaitMenage)}
               </Text>
             </View>
+            {data.montantOptions !== 0 && (
+              <View style={styles.tblRow}>
+                <Text style={[styles.tblTd, { flex: 4 }]}>Options</Text>
+                <Text
+                  style={[styles.tblTd, { flex: 1.5, textAlign: 'right' }]}
+                >
+                  {fmtEuro(data.montantOptions)}
+                </Text>
+              </View>
+            )}
             <View style={styles.tblRow}>
               <Text style={[styles.tblTd, styles.tblTdBold, { flex: 4 }]}>
                 Sous-total prestations du Bailleur

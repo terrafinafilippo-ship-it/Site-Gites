@@ -168,6 +168,7 @@ function mapAcompteData(
     dateEmission: ctx.dateEmission,
 
     forfaitMenage: m.forfaitMenage,
+    montantOptions: m.options,
     sousTotal: m.base,
     montantTaxeSejour: m.taxeSejour,
     totalTtc: m.totalTtc,
@@ -196,6 +197,7 @@ function mapSoldeData(
     dateEmission: ctx.dateEmission,
 
     forfaitMenage: m.forfaitMenage,
+    montantOptions: m.options,
     sousTotal: m.base,
     montantTaxeSejour: m.taxeSejour,
     totalTtc: m.totalTtc,
@@ -248,6 +250,7 @@ export function mapContratData(
     occupantsMajeurs: resa.occupants_majeurs ?? '',
 
     forfaitMenage: montants.forfaitMenage,
+    montantOptions: montants.options,
     sousTotal: montants.base,
     montantTaxeSejour: montants.taxeSejour,
     totalTtc: montants.totalTtc,
@@ -275,6 +278,9 @@ export function mapContratData(
 //  - L'acompte est calculé sur le TOTAL TTC, taxe de séjour incluse
 //    (décision du 12/06/2026) ; solde = totalTtc − acompte.
 //  - forfait_menage : réservation > gîte > FORFAIT_MENAGE_DEFAUT (8000 centimes).
+//  - options : montant global reservations.options, sous l'intitulé générique
+//    « Options » (la table n'a pas de libellé ; à nommer en Phase 5) ; la
+//    ligne n'est affichée que si le montant est différent de zéro.
 //  - caution : gîte (base) > CAUTION_DEFAUT ; le gîte étant toujours joint,
 //    la valeur par défaut ne doit jamais apparaître dans un contrat réel.
 // ─────────────────────────────────────────────────────────────────────────────
