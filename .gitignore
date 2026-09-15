@@ -18,3 +18,5 @@ next-env.d.ts
 .env*.local
 # stockage local des PDF (developpement)
 /.data/
+# sorties des parcours de non-regression (scripts/parcours)
+/.parcours/

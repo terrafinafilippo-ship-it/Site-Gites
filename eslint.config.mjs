@@ -16,6 +16,8 @@ const config = [
       "admin/**",
       // Stockage local des PDF (développement).
       ".data/**",
+      // Sorties des parcours de non-régression (scripts/parcours).
+      ".parcours/**",
     ],
   },
   // Le composant <Image> de @react-pdf/renderer n'est pas un <img> HTML :
