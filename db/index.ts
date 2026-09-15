@@ -7,6 +7,11 @@
 //
 // Création paresseuse : rien n'est ouvert avant le premier appel à getDb(),
 // ce qui permet à `next build` de réussir sans DATABASE_URL.
+//
+// BASE DE TEST : quand DB_CIBLE vaut exactement "test", la connexion utilise
+// DATABASE_URL_TEST (base gites_test) au lieu de DATABASE_URL. Chaque contrat,
+// facture ou signature de test consomme sinon un numéro légal irrécupérable
+// sur la base réelle. DATABASE_URL n'est jamais modifiée par le code.
 import { Pool } from "pg";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 
@@ -20,15 +25,30 @@ const globalCache = globalThis as unknown as {
   __siteGitesDb?: { pool: Pool; db: Db };
 };
 
-function createPool(): Pool {
+/** Chaîne de connexion effective : base de test si DB_CIBLE=test, sinon base réelle. */
+export function resoudreDatabaseUrl(): string {
+  if (process.env.DB_CIBLE === "test") {
+    const urlTest = process.env.DATABASE_URL_TEST;
+    if (!urlTest) {
+      throw new Error(
+        "DB_CIBLE=test mais DATABASE_URL_TEST manquante : renseignez-la dans .env.local (voir .env.example).",
+      );
+    }
+    console.warn("[db] DB_CIBLE=test : connexion à la BASE DE TEST (DATABASE_URL_TEST).");
+    return urlTest;
+  }
   const url = process.env.DATABASE_URL;
   if (!url) {
     throw new Error(
       "DATABASE_URL manquante : renseignez-la dans .env.local (voir .env.example).",
     );
   }
+  return url;
+}
+
+function createPool(): Pool {
   return new Pool({
-    connectionString: url,
+    connectionString: resoudreDatabaseUrl(),
     max: POOL_MAX,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
