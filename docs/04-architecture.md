@@ -300,3 +300,9 @@ péremption de lien passait pour la mauvaise raison : le chemin transmis au calc
 de signature était corrompu par la conversion automatique des chemins de Git
 Bash. Le code de retour était bon, la démonstration nulle. Vérifier le **message
 d'erreur**, pas seulement le code.
+
+---
+
+## 9. Outillage
+
+**Fins de ligne : LF partout**, imposé par `.gitattributes` (explicitement pour `*.sh`, qu'un CRLF casse sous Git Bash avec `$'\r': command not found`), indépendamment du réglage `core.autocrlf` de chaque poste.

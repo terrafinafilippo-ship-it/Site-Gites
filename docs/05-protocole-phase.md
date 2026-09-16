@@ -39,6 +39,19 @@ elle existe déjà ailleurs. Si oui : ne pas la recopier, y renvoyer. Si elle do
 changer de domicile : la **déplacer**, et laisser un renvoi d'une ligne à
 l'ancien endroit.
 
+**Pointer n'est pas dupliquer.** Un renvoi d'une ligne ne contient aucune
+donnée : il ne peut pas diverger. La règle interdit de **recopier** un fait, pas
+d'y **pointer** — et un fait que personne n'est conduit à lire est aussi
+inopérant qu'un fait absent.
+
+**Application obligatoire : les échéances anticipées.** Toute entrée de
+`docs/06-avant-premier-client.md` dont l'échéance est **antérieure** à la phase
+qui la traite porte un renvoi d'une ligne dans la fiche de la phase **qu'elle
+précède** (`docs/phases/phase-N.md`). Raison : l'étape 1 fait ouvrir
+`CLAUDE.md`, ce protocole et la fiche de la phase — rien n'y oblige à ouvrir
+`06`. Sans ce renvoi, la session qui démarre la phase ne voit pas le point. Le
+renvoi nomme le point et son numéro ; le contenu reste dans `06`.
+
 Deux écarts à cette règle sont déjà ouverts dans le code et documentés : E-7
 (identité recopiée dans les PDF) et la caution affichée en dur sur le site
 (Phase 2).

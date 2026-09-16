@@ -5,6 +5,7 @@
 > (`docs/05-protocole-phase.md`, étape 2). Ce qui suit est le cadre.
 
 **Dépendances :** Phase 2 close. Bloque la Phase 4.
+**Prérequis à lever avant l'ouverture :** `docs/06-avant-premier-client.md`, point 9 (sauvegarde du volume des PDF).
 **Volume estimé :** 2 à 3 sessions.
 
 ---
