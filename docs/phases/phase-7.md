@@ -29,7 +29,7 @@ mettre en ligne.
    (`directe`, `airbnb`, `booking`, `gdf`).
 3. **Recette complète** : rejouer tous les parcours, sur toutes les phases.
 4. **DNS** et **mise en production**.
-5. Vérification finale de `docs/06-avant-premier-client.md` : **les huit points
+5. Vérification finale de `docs/06-avant-premier-client.md` : **les neuf points
    doivent être levés.**
 
 ---

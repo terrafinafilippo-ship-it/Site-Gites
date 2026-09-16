@@ -4,13 +4,13 @@
 > **seul** domicile de cette liste : elle ne doit être recopiée nulle part
 > ailleurs (voir `docs/05-protocole-phase.md`, règle 1).
 
-Huit points à traiter **avant qu'un vrai client signe un vrai contrat**. Aucun
+Neuf points à traiter **avant qu'un vrai client signe un vrai contrat**. Aucun
 n'empêche le logiciel de fonctionner : ils empêchent qu'il fonctionne
 **correctement le jour où il compte**.
 
 ## Qui peut lever un point
 
-Trois des huit points **ne se résolvent pas dans le dépôt**. Sans cette
+Trois des neuf points **ne se résolvent pas dans le dépôt**. Sans cette
 précision, une session future les lira comme des tâches techniques et cherchera
 la réponse au mauvais endroit — dans le code, où elle n'est pas.
 
@@ -20,6 +20,7 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | **Arbitrage** | Une décision de votre part, entre deux options toutes deux acceptables |
 | **Le comptable** | Ce qui relève de la fiscalité et de la forme juridique de l'exploitation |
 | **Les propriétaires** | Ce qui engage une dépense ou un contrat avec un tiers |
+| **Phase de déploiement** | Ce qui ne peut se faire que sur le serveur, au moment où le site y est installé |
 
 ## Vue d'ensemble
 
@@ -33,6 +34,7 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | 6 | Qui est le bailleur juridique des trois gîtes | **Le comptable** | Phase 6 |
 | 7 | Médiateur de la consommation : lequel, et adhésion en cours | **Les propriétaires** | Phase 6 |
 | 8 | Écrire les règles sauna à l'article 12 du contrat | Développement | Phase 6 |
+| 9 | Sauvegarder le volume des PDF, et tester une restauration | **Phase de déploiement** | Au déploiement — **avant la Phase 3** |
 
 ---
 
@@ -134,8 +136,8 @@ inclure :
 - **séparation des rôles PostgreSQL** : le rôle applicatif a aujourd'hui tous
   les droits. Un rôle en lecture seule pour le site vitrine était à décider en
   Phase 3 ;
-- **sauvegarde du volume de PDF**, distincte de celle de la base — voir
-  `docs/03-conformite.md` § 6.
+- **sauvegarde du volume de PDF**, distincte de celle de la base — traitée
+  au point 9, **plus tôt** que cette phase.
 
 ---
 
@@ -266,6 +268,41 @@ Deux options à arbitrer à l'ouverture de la phase : ajouter une colonne
 **Le contrôle.** Générer un contrat pour **La Maison Vieille** (le parcours de
 test actuel ne couvre que L'Armu et LaPhine) et vérifier que la section sauna
 apparaît ; générer un contrat pour L'Armu et vérifier qu'elle n'apparaît pas.
+
+---
+
+## 9. Sauvegarder le volume des PDF, et tester une restauration
+
+**Qui peut lever :** **phase de déploiement** · **au déploiement du site, avant
+la Phase 3**
+
+> **À traiter avant la Phase 3, pas avant le go-live.** Le premier contrat réel
+> peut apparaître dès qu'un paiement fonctionne. Attendre la mise en ligne
+> officielle, c'est laisser des PDF signés sans sauvegarde.
+
+**Le fait (vérifié le 17 septembre 2026).** La sauvegarde quotidienne de Coolify
+vers Cloudflare R2 couvre **la base PostgreSQL, pas les fichiers**. Aucune
+sauvegarde des PDF n'existe — et il n'y a encore rien à sauvegarder : le volume
+des PDF appartient à l'application, qui n'est pas déployée ; **le volume
+n'existe donc pas encore**.
+
+**La raison.** Un PDF signé perdu **n'est pas régénérable** : son empreinte
+SHA-256 est figée dans la preuve de signature, et un PDF reconstruit depuis la
+base ne la reproduirait pas. Ces pièces doivent être conservées **10 ans**
+(art. L123-22 C. com.). Voir `docs/03-conformite.md` § 6 et
+`docs/02-decisions.md`, D-09.
+
+**L'action, dans le même geste que la création du volume.**
+
+1. Configurer dans Coolify une **sauvegarde planifiée du volume** vers R2 —
+   Coolify le propose nativement pour les volumes d'application
+   (<https://coolify.io/docs/core/persistent-storage/storage-mounts/backups>).
+2. **Tester une restauration.** Une sauvegarde jamais restaurée est une
+   hypothèse, pas une sécurité.
+
+**Le contrôle.** Générer un PDF de test, attendre une sauvegarde, restaurer
+l'archive ailleurs que sur le volume en service, et vérifier que le fichier
+restauré a la même empreinte SHA-256 que l'original.
 
 ---
 

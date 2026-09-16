@@ -246,11 +246,20 @@ conservés **dix ans**.
 les migrations, lancer `npm run db:verify`, et comparer les compteurs aux
 derniers numéros présents.
 
-**Écart.** Les sauvegardes R2 contiennent **la base, pas les PDF**. Le volume de
-stockage doit être sauvegardé à part. **À COMPLÉTER** : cette sauvegarde
-existe-t-elle ? Sans elle, une perte de volume rend les PDF irrécupérables — la
-ligne en base permet de les régénérer, mais pas le **PDF signé**, dont
-l'empreinte SHA-256 est enregistrée dans la preuve et ne serait plus vérifiable.
+**Écart.** La sauvegarde quotidienne vers R2 couvre **la base, pas les
+fichiers**. Aucune sauvegarde des PDF n'existe (constat du 17 septembre 2026) —
+et il n'y a encore rien à sauvegarder : le volume de stockage appartient à
+l'application, qui n'est pas déployée, et n'existe donc pas encore.
+
+Le risque est réel dès le premier contrat : une perte de volume rend les PDF
+irrécupérables. La ligne en base permet de régénérer les documents non signés, mais **pas le
+PDF signé** : son empreinte SHA-256 est figée dans la preuve de signature, un PDF
+régénéré ne la reproduirait pas et la preuve deviendrait invérifiable. Or ces
+pièces doivent être conservées **10 ans** (art. L123-22 C. com.).
+
+**Tâche datée.** Au déploiement du site, dans le même geste que la création du
+volume : sauvegarde planifiée du volume vers R2, puis **test de restauration**.
+Suivi dans `docs/06-avant-premier-client.md`, point 9.
 
 ---
 

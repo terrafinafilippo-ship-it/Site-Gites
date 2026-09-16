@@ -266,8 +266,12 @@ choix — changer de stockage ne touche aucune route.
 **Point de vigilance permanent.** Les conteneurs Docker sont **recréés à chaque
 déploiement**. Tout fichier écrit hors du volume monté est perdu. Les
 sauvegardes R2 contiennent la **base, pas les PDF** : le volume doit être
-sauvegardé à part — **À COMPLÉTER** : cette sauvegarde du volume est-elle en
-place ?
+sauvegardé à part. **Constat du 17 septembre 2026 :** cette sauvegarde n'existe
+pas, et il n'y a encore rien à sauvegarder — le volume appartient à
+l'application, qui n'est pas déployée ; il n'existe donc pas encore. Sa
+sauvegarde planifiée vers R2 se configure au déploiement, dans le même geste
+que sa création, suivie d'un test de restauration : voir
+`docs/06-avant-premier-client.md`, point 9.
 
 **Si on revient dessus.** Servir les PDF en statique expose des données
 personnelles ; les écrire hors volume les détruit au prochain déploiement.

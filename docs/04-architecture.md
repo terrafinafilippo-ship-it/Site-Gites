@@ -15,7 +15,7 @@
 | Base de données | **PostgreSQL 17**, dans un conteneur Coolify |
 | Reverse proxy | **Traefik**, fourni par Coolify — c'est lui qui reçoit les requêtes HTTPS et les transmet au site |
 | Stockage des PDF | **Volume disque persistant** monté par Coolify (`STORAGE_PATH`, défaut `/data/documents`) |
-| Sauvegardes | Base : export quotidien par Coolify vers **Cloudflare R2**. PDF : **À COMPLÉTER** (voir `docs/03-conformite.md` § 6) |
+| Sauvegardes | Base : export quotidien par Coolify vers **Cloudflare R2**. PDF : **aucune** — le volume n'existe pas avant le déploiement ; sauvegarde vers R2 à configurer à sa création (voir `docs/03-conformite.md` § 6 et `docs/06-avant-premier-client.md`, point 9) |
 
 **Le piège permanent.** Un conteneur Docker est **recréé à chaque
 déploiement** : tout fichier écrit ailleurs que sur le volume monté disparaît.
