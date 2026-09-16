@@ -67,7 +67,9 @@ Chaque règle est suivie de ce qui se passe si elle est violée.
    change qui supporte le risque d'annulation.*
 
 5. **L'entité légale est SARL DE LA VOUTE** (`lib/constantes.ts`, `EMETTEUR`) —
-   « Les Gîtes de Samoyas » n'est qu'une enseigne.
+   « Les Gîtes de Samoyas » n'est qu'une enseigne. Attention : ces valeurs sont
+   aujourd'hui **recopiées en dur** dans les trois composants PDF, qui n'importent
+   pas `EMETTEUR` (écart E-7 de `docs/03-conformite.md`).
    *Violation : une facture émise sous une identité qui n'est pas celle du
    redevable n'est pas une facture régulière (art. L.441-9 C. com.).*
 
