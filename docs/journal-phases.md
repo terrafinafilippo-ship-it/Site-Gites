@@ -245,7 +245,23 @@ Branche `main`, commits `e341c01` → (commit de documentation).
 - Base injoignable (connexion refusée, puis base muette) : les quatre pages
   répondent **200** en mode dégradé, en **3,1 s** au pire, journal `BASE
   INJOIGNABLE`.
-- `bash scripts/parcours/lancer.sh` : **74 contrôles, 0 échec**.
+- `bash scripts/parcours/lancer.sh` **en entier** : ses **8 étapes** passent,
+  **0 échec**. Les compteurs, séparément — le parcours n'en publie pas un seul,
+  et les confondre fait passer une étape pour le filet complet :
+
+  | Étape | Contrôles |
+  |---|---|
+  | Conversion des montants (aller-retour centimes) | 51 cas |
+  | Remise à zéro de la base de test | — |
+  | Parcours L'Armu (avec options) | 12 |
+  | Parcours LaPhine (sans option, garde du cas B) | 13 |
+  | Accès aux PDF par URL signée | 5 |
+  | Contrôles en base (montants, instantanés, numérotation) | **81** |
+  | Contrôles sur les PDF produits | 92 |
+  | Auto-vérification de la base (`db:verify`) | **74** |
+
+  Les **81** de `scripts/parcours/controler.ts` et les **74** de `db:verify` sont
+  deux étapes distinctes : citer « 74 » seul décrit `db:verify`, pas le parcours.
 - Logo présent sur l'accueil, une fiche et le tunnel (captures d'écran).
 
 ### Points reportés
@@ -266,12 +282,42 @@ Branche `main`, commits `e341c01` → (commit de documentation).
 - **Les adresses de l'ancien site en ligne** restent à relever et à rediriger
   au moment de la mise en ligne : Phase 7.
 
+### Le mécanisme mis au jour : l'erreur devient visible
+
+Brancher une source sur la base **en laissant l'autre en dur** transforme une
+erreur **silencieuse** en erreur **visible**.
+
+Avant cette phase, la fiche de L'Armu et le tunnel affichaient tous les deux
+« Caution 500 € » : faux, mais **d'accord entre eux**, donc invisible. Depuis que
+la fiche lit la base (400 €) et que le tunnel garde sa valeur en dur (500 €), la
+contradiction saute aux yeux du premier lecteur.
+
+**C'est un progrès, pas une régression.** Une erreur visible se corrige ; une
+erreur cohérente survit des années, jusqu'au client qui la découvre sur son
+contrat. La bonne lecture d'une divergence apparue après un branchement est donc
+« la moitié du chemin est faite », et non « on a cassé quelque chose ».
+
+À garder en tête pour chaque phase qui branchera une source de plus : la liste
+des endroits **restés en dur** doit être écrite au moment du branchement, pas
+découverte plus tard. Pour la Phase 3, elle est dans `docs/phases/phase-3.md`.
+
 ### Deux formulations ont changé
 
 Elles portaient un chiffre que le code ne pouvait plus garantir :
 « regroupables jusqu'à **dix** personnes » devient « jusqu'à **10** personnes »,
 calculé depuis la base ; et le récit de La Maison Vieille ne porte plus ce
 total.
+
+**Une troisième a été corrigée après relecture.** Le titre de repli du bloc
+tarifs, écrit « La semaine, tout compris », a été remplacé par « Tarifs à la
+semaine ». « Tout compris » est une **allégation** — et une allégation inexacte,
+puisque le forfait ménage, la taxe de séjour et la caution s'ajoutent. C'était la
+même faute que celle refusée en DO-2.4 avec « tarif sur demande ». D'où la
+**règle 3** de `docs/05-protocole-phase.md` : une session écrit des libellés
+descriptifs, jamais des formules qui vendent ou qui promettent. La formule
+héritée de la variante avec prix (« À partir de X €, la semaine, tout compris »)
+n'a pas été réécrite d'autorité : elle devient l'écart **E-8** de
+`docs/03-conformite.md`, à trancher avec les propriétaires en Phase 6.
 
 ---
 

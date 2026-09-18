@@ -21,6 +21,7 @@ lettres.
 | E-5 | Options facturées sous un intitulé générique | Bloquant | 5 | Développement |
 | E-6 | Adresse IP du signataire falsifiable | Bloquant | Déploiement | Développement |
 | E-7 | Identité légale recopiée en dur dans les PDF, hors de `lib/constantes.ts` | Faible | 6 | Développement |
+| E-8 | « La semaine, tout compris » alors que ménage, taxe de séjour et caution s'ajoutent | Faible | 6 | **Les propriétaires** + développement |
 
 ---
 
@@ -224,6 +225,19 @@ est mis en service (Phase 4), soit toute mention en est retirée et le mécanism
 réellement appliqué est décrit.
 
 **Écart E-1 (bloquant, Phase 6) — identité du professionnel.** Voir § 9.
+
+**Écart E-8 (non bloquant, Phase 6) — « la semaine, tout compris ».** Le titre du
+bloc tarifs de la fiche gîte (`app/gites/[slug]/page.tsx`) annonce un prix
+« tout compris ». Or le séjour comporte en plus un **forfait ménage obligatoire
+de 80 €**, une **taxe de séjour** et une **caution**. L'allégation porte donc sur
+une condition de vente, comme le dossier Swikly, en moins grave : ici le
+mécanisme existe, c'est sa description qui promet trop.
+
+La formule vient du site d'origine : elle n'a pas été inventée par une session et
+n'est pas corrigée d'autorité (règle 3 de `docs/05-protocole-phase.md`). Deux
+issues, à trancher avec les propriétaires en Phase 6 : soit la formule disparaît,
+soit elle est rendue exacte — par exemple « linge et chauffage compris », qui est
+vrai. Repéré en Phase 2.
 
 ---
 

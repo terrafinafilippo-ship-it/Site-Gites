@@ -10,7 +10,7 @@ tenable.
 
 ---
 
-## Les deux règles de fond
+## Les trois règles de fond
 
 ### Règle 1 — Un fait, un seul domicile
 
@@ -73,6 +73,28 @@ noir sur blanc, dans la conversation :
 
 Si on ne parvient pas à écrire le point 2, c'est le signe qu'on n'a pas vraiment
 comparé les options : on a justifié un choix déjà fait.
+
+### Règle 3 — Aucune formulation commerciale n'est inventée par une session
+
+**Une session écrit des libellés DESCRIPTIFS. Elle n'écrit pas ce qui vend, ni
+ce qui promet.** « Tarifs à la semaine » décrit un tableau. « Tarif sur demande »,
+« tout compris », « sans frais cachés », « meilleur prix garanti » engagent le
+vendeur : ces formules viennent des propriétaires, qui seuls savent ce qu'ils
+pratiquent et ce qu'ils acceptent de promettre.
+
+**Pourquoi c'est une règle et pas une préférence.** Une allégation inexacte sur
+les caractéristiques ou les conditions de vente est une **pratique commerciale
+trompeuse** (art. L.121-2 C. conso.), indépendamment de l'intention. Le projet en
+porte déjà deux exemples : le dossier Swikly (E-4) et « la semaine, tout
+compris » (E-8), alors que ménage, taxe de séjour et caution s'ajoutent au prix
+annoncé. Une formule écrite en trois secondes se corrige un an plus tard, après
+signature d'un client.
+
+**En pratique.** Quand un chiffre manque, on **masque** — un blanc n'engage
+personne. Quand un titre doit rester, on le rend descriptif. Quand une formule
+commerciale semble nécessaire, on la **demande**, on ne la rédige pas.
+S'applique aussi aux formules héritées : on les signale comme écart, on ne les
+réécrit pas d'autorité.
 
 ---
 

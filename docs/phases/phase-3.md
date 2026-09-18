@@ -5,8 +5,27 @@
 > (`docs/05-protocole-phase.md`, étape 2). Ce qui suit est le cadre.
 
 **Dépendances :** Phase 2 close. Bloque la Phase 4.
-**Prérequis à lever avant l'ouverture :** `docs/06-avant-premier-client.md`, point 9 (sauvegarde du volume des PDF).
+**Prérequis à lever avant l'ouverture :** `docs/06-avant-premier-client.md`, point 9 (sauvegarde du volume des PDF) — **à arbitrer au cadrage, voir ci-dessous**.
 **Volume estimé :** 2 à 3 sessions.
+
+> **À TRANCHER À L'OUVERTURE, AVANT TOUTE AUTRE CHOSE — le point 9.**
+>
+> Il est écrit « prérequis avant l'ouverture », mais il **dépend du
+> déploiement**, qui n'a pas eu lieu : le volume persistant des PDF n'existe pas
+> encore, donc il n'y a rien à sauvegarder ni à restaurer. Le prérequis ne peut
+> pas être levé tel quel.
+>
+> Deux issues, et **une seule est à écarter** : le laisser se lever par oubli.
+>
+> 1. **Déployer d'abord**, configurer la sauvegarde du volume, tester une
+>    restauration, puis ouvrir la Phase 3.
+> 2. **Déplacer l'échéance** au déploiement effectif, en assumant que la Phase 3
+>    produit d'ici là des PDF non sauvegardés — ce qui est sans conséquence tant
+>    qu'aucun client réel ne signe, et intenable dès qu'il y en a un.
+>
+> Quel que soit le choix, il se consigne dans `docs/06-avant-premier-client.md`,
+> point 9, avec sa date. Ce qui est en jeu : un contrat signé est une **preuve**,
+> et une preuve sans sauvegarde disparaît avec le premier incident de volume.
 
 ---
 

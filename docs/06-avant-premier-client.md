@@ -34,7 +34,7 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | 6 | Qui est le bailleur juridique des trois gîtes | **Le comptable** | Phase 6 |
 | 7 | Médiateur de la consommation : lequel, et adhésion en cours | **Les propriétaires** | Phase 6 |
 | 8 | Écrire les règles sauna à l'article 12 du contrat | Développement | Phase 6 |
-| 9 | Sauvegarder le volume des PDF, et tester une restauration | **Phase de déploiement** | Au déploiement — **avant la Phase 3** |
+| 9 | Sauvegarder le volume des PDF, et tester une restauration | **Phase de déploiement** | Au déploiement — échéance **à arbitrer à l'ouverture de la Phase 3** |
 | 10 | Taxe de séjour : régime, taux et assiette exacts | **Les propriétaires + la commune** | Phase 3 |
 
 ---
@@ -274,12 +274,20 @@ apparaît ; générer un contrat pour L'Armu et vérifier qu'elle n'apparaît pa
 
 ## 9. Sauvegarder le volume des PDF, et tester une restauration
 
-**Qui peut lever :** **phase de déploiement** · **au déploiement du site, avant
-la Phase 3**
+**Qui peut lever :** **phase de déploiement** · **échéance à arbitrer à
+l'ouverture de la Phase 3**
 
 > **À traiter avant la Phase 3, pas avant le go-live.** Le premier contrat réel
 > peut apparaître dès qu'un paiement fonctionne. Attendre la mise en ligne
 > officielle, c'est laisser des PDF signés sans sauvegarde.
+>
+> **Mais ce point dépend du déploiement, qui n'a pas eu lieu** : le volume des
+> PDF n'existe pas encore, il n'y a donc ni sauvegarde à configurer ni
+> restauration à tester. Le prérequis ne peut pas être levé tel quel. Deux
+> issues — déployer d'abord, ou décaler l'échéance au déploiement effectif — sont
+> à trancher **à l'ouverture de la Phase 3**, et le choix retenu s'inscrit ici
+> avec sa date. Il ne doit pas se lever par oubli. Voir
+> `docs/phases/phase-3.md`.
 
 **Le fait (vérifié le 17 septembre 2026).** La sauvegarde quotidienne de Coolify
 vers Cloudflare R2 couvre **la base PostgreSQL, pas les fichiers**. Aucune

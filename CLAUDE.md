@@ -112,6 +112,7 @@ Chaque règle est suivie de ce qui se passe si elle est violée.
 4. Confirmer le plan de fichiers, puis exécuter en commits atomiques qui compilent.
 5. Vérifier (lint, `tsc --noEmit`, build, parcours), rapporter, puis mettre la documentation à jour.
 
-**Le détail complet, y compris la règle « un fait, un seul domicile » et la règle
-de garde, est dans `docs/05-protocole-phase.md`. Le lire en entier à l'ouverture
-de chaque phase.**
+**Le détail complet — la règle « un fait, un seul domicile », la règle de garde,
+et la règle « aucune formulation commerciale inventée par une session » — est
+dans `docs/05-protocole-phase.md`. Le lire en entier à l'ouverture de chaque
+phase.**

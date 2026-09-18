@@ -371,14 +371,19 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
             <div>
               <span className="eyebrow">Tarifs par saison</span>
               <h2 style={{ marginTop: 14 }}>
+                {/* Le titre de repli est DESCRIPTIF, jamais promissoire : une
+                    session n'invente pas de formulation commerciale (voir
+                    docs/05-protocole-phase.md, règle 3). « Tout compris » de la
+                    variante ci-dessus est une allégation héritée du site
+                    d'origine, à faire valider par les propriétaires — le séjour
+                    comporte un forfait ménage, une taxe de séjour et une
+                    caution (voir docs/03-conformite.md § 5). */}
                 {plancher !== null ? (
                   <>
                     À partir de {fmtPrix(plancher)}<br />la semaine, tout compris.
                   </>
                 ) : (
-                  <>
-                    La semaine,<br />tout compris.
-                  </>
+                  <>Tarifs à la semaine</>
                 )}
               </h2>
               {grille && (

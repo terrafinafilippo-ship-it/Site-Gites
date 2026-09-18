@@ -170,7 +170,9 @@ d'implémentation.
    après (preuve du cache), nouvelle valeur affichée **24 secondes** plus tard,
    puis valeur d'origine rétablie par `UPDATE`.
 4. `bash scripts/parcours/lancer.sh` passe **toujours** — la phase ne touche pas
-   à la facturation, aucun montant ne doit bouger. ✔ 74 contrôles, 0 échec.
+   à la facturation, aucun montant ne doit bouger. ✔ les **8 étapes** passent,
+   0 échec (dont 81 contrôles en base et 74 pour `db:verify` ; le détail par
+   étape est dans `docs/journal-phases.md`).
 5. Plus aucun fichier `.html` servi ni aucun `assets/` mort à la racine. ✔
 6. Le `README.md` décrit le projet tel qu'il est. ✔
 7. **Une base injoignable ne produit pas d'erreur 500.** ✔ les quatre pages
