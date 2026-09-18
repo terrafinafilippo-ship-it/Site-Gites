@@ -33,7 +33,10 @@ export const STORIES: Record<GiteId, GiteStory> = {
   "maison-vieille": {
     intro: "La Maison Vieille est la plus ancienne du hameau, et la seule à conjuguer spa et sauna privatifs. La pierre est apparente, les poutres anciennes, le confort très moderne.",
     body:  "Deux chambres, des volumes nobles, et un protocole bien-être sur place : spa, sauna, douche fraîche, puis le canapé. Tous les jours si vous voulez.",
-    foot:  "Idéale pour une famille ou pour se regrouper jusqu'à dix avec les autres gîtes du hameau.",
+    // Le total « jusqu'à dix » a quitté cette phrase : c'est une SOMME de trois
+    // capacités de la base, qu'un récit figé ne peut pas suivre. Le chiffre est
+    // calculé et affiché par l'accueil et /gites (capaciteTotale).
+    foot:  "Idéale pour une famille ou pour se regrouper avec les autres gîtes du hameau.",
     spaTitle: "Spa et sauna privatifs, dans la même demeure.",
     spaBody:  "Le seul de nos gîtes à proposer les deux. Cabine sauna en bois clair pour quatre personnes, spa en véranda chauffée — l'expérience bien-être au complet.",
     spaChips: ["Spa privatif", "Sauna 4 places", "Pierre apparente", "Accès illimité"],

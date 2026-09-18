@@ -35,7 +35,16 @@ export const gites = pgTable(
     equipements_specifiques: text(),
     a_spa: boolean().notNull().default(false),
     contact_arrivee_tel: text(),
+    // DÉFINITION (décidée en Phase 2, voir docs/02-decisions.md, D-15) :
+    // tarif_semaine_base est le tarif d'une semaine en BASSE SAISON, c'est-à-dire
+    // le prix plancher — celui qu'annoncent les « Dès … » du site. Ce N'EST PAS
+    // un tarif de référence dont les autres saisons se déduiraient : les saisons
+    // du site ne s'obtiennent ni par un coefficient ni par un écart constant.
+    // La colonne n'avait aucune définition écrite et deux lectures possibles ;
+    // sans trancher, la fiche gîte affichait le même prix depuis deux sources.
+    // La Phase 5 la remplacera par un vrai modèle de saisons.
     tarif_semaine_base: numeric({ precision: 10, scale: 2, mode: "string" }),
+    // Tarif d'un week-end. Aucun écran ne l'affiche à ce jour.
     tarif_weekend: numeric({ precision: 10, scale: 2, mode: "string" }),
     // Taux en pourcentage (5.50 = 5,5 %) : pas un montant, reste un nombre décimal.
     taux_taxe_sejour: numeric({ precision: 5, scale: 2, mode: "number" }),

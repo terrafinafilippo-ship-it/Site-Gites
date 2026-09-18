@@ -169,7 +169,9 @@ export default function ReserverFunnel({ gite }: { gite: GiteData }) {
         </div>
         <div>
           <div className={styles.recapName}>{gite.name}</div>
-          <div className={styles.recapSub}>{gite.target}</div>
+          {/* Phase 3 : le récapitulatif affichera la capacité lue en base, comme
+              les fiches gîtes. Ici, seul le profil rédactionnel est disponible. */}
+          <div className={styles.recapSub}>{gite.profil}</div>
         </div>
       </div>
       <dl>

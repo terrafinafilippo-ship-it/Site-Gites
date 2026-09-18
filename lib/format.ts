@@ -19,6 +19,28 @@ export const fmtEuro = (centimes: number): string => {
   return `${negatif ? '-' : ''}${entiersGroupes},${decimales} €`;
 };
 
+/**
+ * Affichage COMMERCIAL d'un montant en centimes : les centimes ronds
+ * disparaissent. 67000 → "670 €", 67050 → "670,50 €".
+ *
+ * Réservé aux pages publiques (tarifs affichés, forfait ménage, caution). Les
+ * documents légaux gardent fmtEuro et ses deux décimales : sur une facture,
+ * « 670 € » se lit comme un montant tronqué.
+ *
+ * Passe par fmtEuro : aucune division, la virgule est retirée sur le TEXTE.
+ */
+export const fmtPrix = (centimes: number): string =>
+  fmtEuro(centimes).replace(/,00 €$/, ' €');
+
+/**
+ * Affichage d'un TAUX en pourcentage (5.5 → "5,5 %", 30 → "30 %").
+ *
+ * Un taux n'est pas un montant : il reste un nombre décimal (cf. la règle 3 de
+ * CLAUDE.md, et le taux de taxe de séjour stocké en numeric(5,2) mode number).
+ */
+export const fmtTaux = (taux: number): string =>
+  `${taux.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} %`;
+
 export const fmtDateFr = (iso: string): string => {
   if (!iso) return '';
   return new Date(iso).toLocaleDateString('fr-FR', {

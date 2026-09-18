@@ -1,8 +1,16 @@
 import Link from "next/link";
 import ImageSlot from "@/components/ui/ImageSlot";
 import GiteCard from "@/components/ui/GiteCard";
-import { GITES } from "@/lib/data/gites";
+import { GITES, GITE_IDS } from "@/lib/data/gites";
+import { plancherDuGite } from "@/lib/data/pricing";
+import { fmtPrix } from "@/lib/format";
+import { capaciteTotale, chiffresDuGite, lireChiffresPublics } from "@/lib/gites-publics";
 import styles from "./page.module.css";
+
+// Rendu à la demande : les prix et les capacités viennent de la base, avec un
+// cache de 60 s dans lib/gites-publics.ts. Une page figée au build afficherait
+// les valeurs du jour du déploiement (voir docs/02-decisions.md, D-13).
+export const dynamic = "force-dynamic";
 
 const ArrowRight = (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -11,7 +19,22 @@ const ArrowRight = (
   </svg>
 );
 
-export default function HomePage() {
+export default async function HomePage() {
+  const publics = await lireChiffresPublics();
+  const total = capaciteTotale(publics);
+  // Fourchette « De X à Y € » : les deux bornes viennent des mêmes planchers que
+  // les cartes, donc le hero ne peut pas annoncer un prix qu'aucune carte ne
+  // montre. Masquée si un seul gîte manque — une fourchette sur deux gîtes est
+  // fausse, pas incomplète.
+  const planchers = GITE_IDS.map((slug) => {
+    const chiffres = chiffresDuGite(publics, slug);
+    return chiffres ? plancherDuGite(slug, chiffres.tarifSemaineBase) : null;
+  }).filter((p): p is number => p !== null);
+  const fourchette =
+    planchers.length === GITE_IDS.length
+      ? { mini: Math.min(...planchers), maxi: Math.max(...planchers) }
+      : null;
+
   return (
     <>
       {/* HERO */}
@@ -59,15 +82,19 @@ export default function HomePage() {
                 </svg>
                 <span>Savas, 07430 — Ardèche verte</span>
               </div>
-              <div className={styles.heroMetaRow}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <rect x="3" y="5" width="18" height="16" rx="1" />
-                  <line x1="3" y1="10" x2="21" y2="10" />
-                  <line x1="8" y1="3" x2="8" y2="7" />
-                  <line x1="16" y1="3" x2="16" y2="7" />
-                </svg>
-                <span>De 450 à 690 € la semaine — selon le gîte</span>
-              </div>
+              {fourchette && (
+                <div className={styles.heroMetaRow}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="3" y="5" width="18" height="16" rx="1" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                    <line x1="8" y1="3" x2="8" y2="7" />
+                    <line x1="16" y1="3" x2="16" y2="7" />
+                  </svg>
+                  <span>
+                    De {fmtPrix(fourchette.mini)} à {fmtPrix(fourchette.maxi)} la semaine — selon le gîte
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -86,26 +113,30 @@ export default function HomePage() {
             </div>
             <p>
               Chaque gîte a son atmosphère — pour un couple, une famille, ou les deux ensemble.
-              Regroupables jusqu&apos;à dix personnes, ils partagent la même attention : la pierre,
-              le linge, le spa, et l&apos;équilibre rare entre vrai calme et tout-à-portée.
+              {total !== null ? ` Regroupables jusqu'à ${total} personnes, ils` : " Regroupables, ils"}
+              {" "}partagent la même attention : la pierre, le linge, le spa, et l&apos;équilibre
+              rare entre vrai calme et tout-à-portée.
             </p>
           </div>
 
           <div className={styles.gitesGrid}>
             <GiteCard
               gite={GITES.laphine}
+              chiffres={chiffresDuGite(publics, "laphine")}
               bedroomsLabel="2 chambres"
               placeholder="LaPhine — véranda spa, vue Ardèche"
               description="Spa encastré en véranda chauffée, garage privatif, deux chambres pour la tribu."
             />
             <GiteCard
               gite={GITES.armu}
+              chiffres={chiffresDuGite(publics, "armu")}
               bedroomsLabel="1 chambre mansardée"
               placeholder="L'Armu — jacuzzi véranda, cheminée"
               description="Jacuzzi sous la véranda, cheminée d'ambiance, chambre mansardée — l'intime pour deux."
             />
             <GiteCard
               gite={GITES["maison-vieille"]}
+              chiffres={chiffresDuGite(publics, "maison-vieille")}
               bedroomsLabel="2 chambres"
               placeholder="La Maison Vieille — spa et sauna, pierre ancienne"
               description={

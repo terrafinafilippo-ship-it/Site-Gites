@@ -1,11 +1,17 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { GiteData } from "@/lib/data/gites";
+import { plancherDuGite } from "@/lib/data/pricing";
+import { fmtPrix } from "@/lib/format";
+import type { ChiffresGite } from "@/lib/gites-publics";
 import ImageSlot from "./ImageSlot";
 import styles from "./GiteCard.module.css";
 
 export interface GiteCardProps {
   gite: GiteData;
+  /** Chiffres lus en base. `null` = base injoignable ou gîte absent : la carte
+   *  s'affiche sans capacité ni prix plutôt que de montrer des valeurs figées. */
+  chiffres: ChiffresGite | null;
   /** Texte descriptif de la carte (peut contenir de l'emphase). */
   description: ReactNode;
   /** Libellé "chambres" (ex. "2 chambres", "1 chambre mansardée"). */
@@ -15,8 +21,16 @@ export interface GiteCardProps {
 }
 
 /** Carte gîte réutilisée (accueil + /gites) — reproduit .gite-card de index.html. */
-export default function GiteCard({ gite, description, bedroomsLabel, placeholder }: GiteCardProps) {
+export default function GiteCard({
+  gite,
+  chiffres,
+  description,
+  bedroomsLabel,
+  placeholder,
+}: GiteCardProps) {
   const rating = String(gite.rating.toFixed(1)).replace(".", ",");
+  const capacite = chiffres?.capaciteMax ?? null;
+  const plancher = chiffres ? plancherDuGite(gite.id, chiffres.tarifSemaineBase) : null;
   return (
     <article className={styles.card}>
       <div className={styles.media}>
@@ -29,14 +43,16 @@ export default function GiteCard({ gite, description, bedroomsLabel, placeholder
           <span className={styles.code}>{gite.code}</span>
         </div>
         <div className={styles.caps}>
-          <span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2" />
-              <path d="M3 21v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1" />
-              {gite.sleeps >= 4 && <path d="M21 21v-1a3 3 0 0 0-3-3" />}
-            </svg>
-            {gite.sleeps} personnes
-          </span>
+          {capacite !== null && (
+            <span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2" />
+                <path d="M3 21v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1" />
+                {capacite >= 4 && <path d="M21 21v-1a3 3 0 0 0-3-3" />}
+              </svg>
+              {capacite} personnes
+            </span>
+          )}
           <span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M3 18v-6h18v6" /><path d="M5 12V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4" />
@@ -62,11 +78,15 @@ export default function GiteCard({ gite, description, bedroomsLabel, placeholder
           <span>{gite.reco} % reco</span>
         </div>
         <div className={styles.foot}>
-          <div className={styles.price}>
-            <small>À partir de</small>
-            <strong>{gite.price} €</strong>
-            <small>la semaine TTC</small>
-          </div>
+          {plancher !== null ? (
+            <div className={styles.price}>
+              <small>À partir de</small>
+              <strong>{fmtPrix(plancher)}</strong>
+              <small>la semaine TTC</small>
+            </div>
+          ) : (
+            <div />
+          )}
           <Link className={styles.cta} href={`/gites/${gite.id}`}>
             Voir le gîte
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

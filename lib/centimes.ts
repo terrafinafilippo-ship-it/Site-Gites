@@ -14,6 +14,7 @@
 //
 // Points d'appel (documentation de référence, à tenir à jour) :
 //   centimesDepuisNumeric : lib/reservations.ts (réservation + gîte joints),
+//                           lib/gites-publics.ts (chiffres des pages publiques),
 //                           app/api/factures/route.ts (rappel de l'acompte),
 //                           db/verify.ts (contrôle de creer_facture).
 //   numericDepuisCentimes : app/api/factures/route.ts (p_montant_ttc de

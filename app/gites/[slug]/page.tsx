@@ -12,18 +12,24 @@ import {
   type GiteId,
 } from "@/lib/data/gites";
 import { STORIES } from "@/lib/data/stories";
-import { PRICES_BY_GITE } from "@/lib/data/pricing";
+import { construireGrille, plancherDuGite } from "@/lib/data/pricing";
+import { DELAI_SOLDE_DEFAUT, TAUX_ACOMPTE } from "@/lib/constantes";
+import { fmtPrix, fmtTaux } from "@/lib/format";
+import { chiffresDuGite, lireChiffresPublics } from "@/lib/gites-publics";
 import styles from "./page.module.css";
 
 interface Params {
   slug: string;
 }
 
-export function generateStaticParams(): Params[] {
-  return GITE_IDS.map((slug) => ({ slug }));
-}
-
-export const dynamicParams = false;
+// RENDU À LA DEMANDE, et non figé au build.
+//
+// La fiche affiche des prix et une capacité qui vivent en base. Avec
+// generateStaticParams + ISR, deux défauts se cumulaient : `next build` devait
+// joindre la base (un déploiement échouait dès que la base était momentanément
+// injoignable), et la page servie restait celle du jour du déploiement. Le
+// cache de 60 s de lib/gites-publics.ts remplace l'ISR sans rien figer au build.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { slug } = await params;
@@ -91,11 +97,20 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
 
   const gite = GITES[slug];
   const story = STORIES[slug];
-  const prices = PRICES_BY_GITE[slug];
   const others = GITE_IDS.filter((g) => g !== slug).map((g) => GITES[g]);
   const months = buildMonths(slug);
   const rating = gite.rating.toFixed(1).replace(".", ",");
   const reserveHref = `/reserver?gite=${slug}`;
+
+  // Chiffres de la base. Tout ce qui en dépend disparaît si elle ne répond pas :
+  // la fiche continue de vendre (récit, photos, équipements, bouton de
+  // réservation), elle ne montre simplement aucun chiffre qu'on ne sait plus
+  // garantir. Une erreur 500 dirait au visiteur que l'entreprise ne tourne pas.
+  const publics = await lireChiffresPublics();
+  const chiffres = chiffresDuGite(publics, slug);
+  const capacite = chiffres?.capaciteMax ?? null;
+  const grille = chiffres ? construireGrille(slug, chiffres.tarifSemaineBase) : null;
+  const plancher = chiffres ? plancherDuGite(slug, chiffres.tarifSemaineBase) : null;
 
   const dayClass = (cls: DayClass) =>
     `${styles.calDay}${cls ? ` ${styles[cls]}` : ""}`;
@@ -149,18 +164,22 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
         <div className="wrap">
           <div className={styles.identity}>
             <div>
-              <Badge variant="target">{gite.target}</Badge>
+              <Badge variant="target">
+                {capacite !== null ? `${gite.profil} — ${capacite} personnes` : gite.profil}
+              </Badge>
               <Badge style={{ marginLeft: 6 }}>{gite.code}</Badge>
               <h1 style={{ marginTop: 18 }}>{gite.name}</h1>
               <div className={styles.identityCaps}>
-                <span>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2" />
-                    <path d="M3 21v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1" />
-                    <path d="M21 21v-1a3 3 0 0 0-3-3" />
-                  </svg>
-                  {gite.sleeps} personnes
-                </span>
+                {capacite !== null && (
+                  <span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2" />
+                      <path d="M3 21v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1" />
+                      <path d="M21 21v-1a3 3 0 0 0-3-3" />
+                    </svg>
+                    {capacite} personnes
+                  </span>
+                )}
                 <span>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path d="M3 18v-6h18v6" /><path d="M5 12V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4" />
@@ -257,7 +276,7 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
                 <li>{Check}Lave-vaisselle</li>
                 <li>{Check}Four &amp; micro-ondes</li>
                 <li>{Check}Machine à café</li>
-                <li>{Check}Vaisselle pour {gite.sleeps}</li>
+                {capacite !== null && <li>{Check}Vaisselle pour {capacite}</li>}
               </ul>
             </div>
             <div className={styles.equipCat}>
@@ -352,29 +371,45 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
             <div>
               <span className="eyebrow">Tarifs par saison</span>
               <h2 style={{ marginTop: 14 }}>
-                À partir de {gite.price} €<br />la semaine, tout compris.
+                {plancher !== null ? (
+                  <>
+                    À partir de {fmtPrix(plancher)}<br />la semaine, tout compris.
+                  </>
+                ) : (
+                  <>
+                    La semaine,<br />tout compris.
+                  </>
+                )}
               </h2>
-              <div className={styles.priceTable}>
-                <div className={`${styles.priceRow} ${styles.hd}`}>
-                  <span>Saison</span><span>Semaine</span><span>Période</span>
-                </div>
-                {prices.map((p) => (
-                  <div className={styles.priceRow} key={p.season}>
-                    <strong>{p.season}</strong>
-                    <span>{p.week} € / semaine</span>
-                    <span className={styles.period}>{p.period}</span>
+              {grille && (
+                <div className={styles.priceTable}>
+                  <div className={`${styles.priceRow} ${styles.hd}`}>
+                    <span>Saison</span><span>Semaine</span><span>Période</span>
                   </div>
-                ))}
-              </div>
+                  {grille.map((ligne) => (
+                    <div className={styles.priceRow} key={ligne.saison}>
+                      <strong>{ligne.saison}</strong>
+                      <span>{fmtPrix(ligne.semaineCentimes)} / semaine</span>
+                      <span className={styles.period}>{ligne.periode}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <aside className={styles.conditions}>
               <h4>Conditions &amp; bon à savoir</h4>
               <ul>
-                <li><span>Caution Swikly</span><strong>500 €</strong></li>
-                <li><span>Forfait ménage</span><strong>80 €</strong></li>
-                <li><span>Taxe de séjour</span><strong>5,5 % TTC</strong></li>
-                <li><span>Acompte à la réservation</span><strong>30 %</strong></li>
-                <li><span>Solde</span><strong>J−30</strong></li>
+                {chiffres && (
+                  <>
+                    <li><span>Caution Swikly</span><strong>{fmtPrix(chiffres.caution)}</strong></li>
+                    <li><span>Forfait ménage</span><strong>{fmtPrix(chiffres.forfaitMenage)}</strong></li>
+                    {chiffres.tauxTaxeSejour !== null && (
+                      <li><span>Taxe de séjour</span><strong>{fmtTaux(chiffres.tauxTaxeSejour)} TTC</strong></li>
+                    )}
+                  </>
+                )}
+                <li><span>Acompte à la réservation</span><strong>{fmtTaux(TAUX_ACOMPTE)}</strong></li>
+                <li><span>Solde</span><strong>J−{DELAI_SOLDE_DEFAUT}</strong></li>
                 <li><span>Animaux</span><strong>Non admis</strong></li>
                 <li><span>Linge &amp; draps</span><strong>Fournis</strong></li>
                 <li><span>Chauffage</span><strong>Compris</strong></li>
@@ -393,7 +428,12 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
           <span className="eyebrow">Et les deux autres ?</span>
           <h2 style={{ marginTop: 14 }}>Ce séjour ne vous va pas tout à fait ?</h2>
           <div className={styles.crosssellGrid}>
-            {others.map((g) => (
+            {others.map((g) => {
+              const chiffresAutre = chiffresDuGite(publics, g.id);
+              const plancherAutre = chiffresAutre
+                ? plancherDuGite(g.id, chiffresAutre.tarifSemaineBase)
+                : null;
+              return (
               <Link className={styles.crosssellCard} href={`/gites/${g.id}`} key={g.id}>
                 <div className={styles.crosssellCardMedia}>
                   <ImageSlot placeholder={`${g.name} — extérieur`} />
@@ -401,16 +441,24 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
                 <div className={styles.crosssellCardBody}>
                   <div className={styles.crosssellCardName}>{g.name}</div>
                   <div className={styles.crosssellCardMeta}>
-                    {g.target} · {g.surface} · {g.highlight}
+                    {chiffresAutre !== null
+                      ? `${g.profil} — ${chiffresAutre.capaciteMax} personnes`
+                      : g.profil}{" "}
+                    · {g.surface} · {g.highlight}
                   </div>
-                  <div className={styles.crosssellCardPrice}>Dès {g.price} € / sem.</div>
+                  {plancherAutre !== null && (
+                    <div className={styles.crosssellCardPrice}>
+                      Dès {fmtPrix(plancherAutre)} / sem.
+                    </div>
+                  )}
                   <span className={styles.crosssellCardCta}>
                     Voir le gîte
                     {ArrowRight}
                   </span>
                 </div>
               </Link>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
@@ -419,8 +467,15 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
       <section className={styles.bookingBarDesk}>
         <div className="wrap">
           <div className={styles.bookingBarDeskTxt}>
-            <strong>{gite.name} · à partir de {gite.price} €/sem.</strong>
-            <span>Spa privatif · linge fourni · taxe de séjour 5,5 % visible au paiement</span>
+            <strong>
+              {gite.name}
+              {plancher !== null && ` · à partir de ${fmtPrix(plancher)}/sem.`}
+            </strong>
+            <span>
+              Spa privatif · linge fourni
+              {chiffres?.tauxTaxeSejour != null &&
+                ` · taxe de séjour ${fmtTaux(chiffres.tauxTaxeSejour)} visible au paiement`}
+            </span>
           </div>
           <Link className="btn btn-primary" href={reserveHref}>
             Réserver ce gîte
@@ -431,10 +486,16 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
 
       {/* Booking bar mobile sticky */}
       <div className={styles.bookingBarMob}>
-        <div className={styles.bookingBarMobPrice}>
-          <strong>Dès {gite.price} €</strong>
-          <small>la semaine TTC</small>
-        </div>
+        {plancher !== null ? (
+          <div className={styles.bookingBarMobPrice}>
+            <strong>Dès {fmtPrix(plancher)}</strong>
+            <small>la semaine TTC</small>
+          </div>
+        ) : (
+          <div className={styles.bookingBarMobPrice}>
+            <strong>{gite.name}</strong>
+          </div>
+        )}
         <Link className="btn btn-primary" href={reserveHref}>Réserver ce gîte</Link>
       </div>
     </div>

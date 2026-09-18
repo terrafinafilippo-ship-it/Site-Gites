@@ -5,19 +5,34 @@
 // serait introuvable en base) — voir docs/02-decisions.md, D-14.
 export type GiteId = "laphine" | "armu" | "maison-vieille";
 
+// CE QUI VIT ICI, ET CE QUI N'Y VIT PLUS.
+//
+// Ici : le rédactionnel et le descriptif de bâti (nom, accroche, surface, nombre
+// de chambres), plus le nom et la référence Gîtes de France. Ces deux derniers
+// sont volontairement dupliqués avec la base : ce sont eux qui permettent
+// d'afficher la fiche quand la base ne répond pas. lib/gites-publics.ts
+// journalise une INCOHÉRENCE si les valeurs divergent.
+//
+// Plus ici : la CAPACITÉ (gites.capacite_max) et le PRIX (gites.tarif_semaine_base).
+// Ils étaient recopiés en dur — `sleeps` et `price` — et affichaient donc des
+// chiffres que les propriétaires ne pouvaient pas corriger. Ils se lisent
+// désormais par lib/gites-publics.ts (voir docs/02-decisions.md, D-13).
+//
+// `profil` remplace `target` : « Famille — 4 personnes » mélangeait un fait
+// commercial (le profil visé, qui est du rédactionnel) et un fait de la base
+// (la capacité). Les pages les recomposent à l'affichage.
 export interface GiteData {
   id: GiteId;
   name: string;
   code: string;
-  target: string;
+  /** Profil visé, sans chiffre : « Couple », « Famille ». */
+  profil: string;
   short: string;
-  sleeps: number;
   bedrooms: number;
   surface: string;
   rating: number;
   reviews: number;
   reco: number;
-  price: number;
   tagline: string;
   highlight: string;
 }
@@ -27,15 +42,13 @@ export const GITES: Record<GiteId, GiteData> = {
     id: "laphine",
     name: "LaPhine",
     code: "07G310701",
-    target: "Famille — 4 personnes",
+    profil: "Famille",
     short: "Famille",
-    sleeps: 4,
     bedrooms: 2,
     surface: "70 m²",
     rating: 5.0,
     reviews: 16,
     reco: 100,
-    price: 670,
     tagline: "L'écrin familial — spa encastré, véranda chauffée, garage privatif.",
     highlight: "Spa encastré · véranda · garage",
   },
@@ -43,15 +56,13 @@ export const GITES: Record<GiteId, GiteData> = {
     id: "armu",
     name: "L'Armu",
     code: "07G310700",
-    target: "Couple — 2 personnes",
+    profil: "Couple",
     short: "Couple",
-    sleeps: 2,
     bedrooms: 1,
     surface: "45 m²",
     rating: 5.0,
     reviews: 22,
     reco: 100,
-    price: 450,
     tagline: "Un refuge pour deux — chambre mansardée, jacuzzi sous la véranda, cheminée d'ambiance.",
     highlight: "Jacuzzi véranda · cheminée",
   },
@@ -59,15 +70,13 @@ export const GITES: Record<GiteId, GiteData> = {
     id: "maison-vieille",
     name: "La Maison Vieille",
     code: "07G310702",
-    target: "Famille — 4 personnes",
+    profil: "Famille",
     short: "Famille + sauna",
-    sleeps: 4,
     bedrooms: 2,
     surface: "85 m²",
     rating: 4.9,
     reviews: 8,
     reco: 100,
-    price: 690,
     tagline: "La seule à conjuguer spa et sauna — pierre ancienne, volumes nobles.",
     highlight: "Spa + sauna privatif",
   },

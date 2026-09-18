@@ -1,12 +1,25 @@
 import type { Metadata } from "next";
+import { GITE_IDS, type GiteId } from "@/lib/data/gites";
+import { lireChiffresPublics } from "@/lib/gites-publics";
 import ContactForm from "./ContactForm";
 import styles from "./page.module.css";
+
+// Rendu à la demande : les capacités des options du formulaire viennent de la
+// base (cache de 60 s).
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Contact — Les Gîtes de Samoyas",
 };
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const publics = await lireChiffresPublics();
+  const capacites: Partial<Record<GiteId, number>> = {};
+  for (const slug of GITE_IDS) {
+    const chiffres = publics.parGite[slug];
+    if (chiffres) capacites[slug] = chiffres.capaciteMax;
+  }
+
   return (
     <>
       <section className={styles.pageHero}>
@@ -69,7 +82,7 @@ export default function ContactPage() {
               </a>
             </div>
 
-            <ContactForm />
+            <ContactForm capacites={capacites} />
           </div>
         </div>
       </section>

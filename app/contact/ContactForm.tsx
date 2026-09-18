@@ -2,9 +2,26 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
+import { GITES, GITE_IDS, type GiteId } from "@/lib/data/gites";
 import styles from "./page.module.css";
 
 type FieldName = "firstname" | "lastname" | "email" | "phone" | "message";
+
+export interface ContactFormProps {
+  /** Capacités lues en base par la page (composant serveur). Un gîte absent
+   *  garde son option, sans le « (N pers.) » : mieux vaut une option sans
+   *  chiffre qu'un chiffre faux. */
+  capacites: Partial<Record<GiteId, number>>;
+}
+
+/** Suffixe « (4 pers.) » d'une option, plus la mention sauna de la Maison Vieille. */
+function libelleOption(slug: GiteId, capacite: number | undefined): string {
+  const details = [
+    capacite !== undefined ? `${capacite} pers.` : null,
+    slug === "maison-vieille" ? "sauna" : null,
+  ].filter(Boolean);
+  return details.length > 0 ? `${GITES[slug].name} (${details.join(" + ")})` : GITES[slug].name;
+}
 
 const ErrorIcon = (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -16,7 +33,7 @@ const ErrorIcon = (
 
 /** Formulaire de contact — validation client uniquement, aucun appel réseau
  *  (reproduit le script inline de contact.html). */
-export default function ContactForm() {
+export default function ContactForm({ capacites }: ContactFormProps) {
   const [errors, setErrors] = useState<Set<FieldName>>(new Set());
   const [sent, setSent] = useState(false);
 
@@ -92,9 +109,11 @@ export default function ContactForm() {
             <label>Gîte qui vous intéresse</label>
             <select name="gite" defaultValue="">
               <option value="">— Tous les gîtes —</option>
-              <option value="laphine">LaPhine (4 pers.)</option>
-              <option value="armu">L&apos;Armu (2 pers.)</option>
-              <option value="maison-vieille">La Maison Vieille (4 pers. + sauna)</option>
+              {GITE_IDS.map((slug) => (
+                <option value={slug} key={slug}>
+                  {libelleOption(slug, capacites[slug])}
+                </option>
+              ))}
               <option value="multi">Plusieurs gîtes / séjour groupé</option>
             </select>
           </div>

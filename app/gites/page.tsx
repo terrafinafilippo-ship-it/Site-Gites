@@ -1,8 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import ImageSlot from "@/components/ui/ImageSlot";
-import { GITES, type GiteData } from "@/lib/data/gites";
+import { GITES, GITE_IDS, type GiteData } from "@/lib/data/gites";
+import { plancherDuGite } from "@/lib/data/pricing";
+import { fmtPrix } from "@/lib/format";
+import {
+  capaciteTotale,
+  chiffresDuGite,
+  lireChiffresPublics,
+  type ChiffresGite,
+} from "@/lib/gites-publics";
 import styles from "./page.module.css";
+
+// Rendu à la demande : capacités et prix viennent de la base (cache de 60 s).
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Nos gîtes — Les Gîtes de Samoyas",
@@ -11,6 +22,8 @@ export const metadata: Metadata = {
 interface RowContent {
   gite: GiteData;
   placeholder: string;
+  /** Caractéristiques rédactionnelles. La CAPACITÉ n'en fait plus partie : elle
+   *  est lue en base et insérée en tête à l'affichage. */
   caps: string[];
   lead: string;
   reverse?: boolean;
@@ -20,26 +33,36 @@ const ROWS: RowContent[] = [
   {
     gite: GITES.laphine,
     placeholder: "LaPhine — extérieur, fin de journée",
-    caps: ["4 personnes", "2 chambres", "70 m²", "Spa encastré · garage"],
+    caps: ["2 chambres", "70 m²", "Spa encastré · garage"],
     lead: "L'écrin familial — un spa encastré sous la véranda chauffée, deux chambres calmes, et le garage qui vous épargne les averses.",
   },
   {
     gite: GITES.armu,
     placeholder: "L'Armu — jacuzzi véranda, cheminée",
-    caps: ["2 personnes", "1 chambre mansardée", "45 m²", "Jacuzzi · cheminée"],
+    caps: ["1 chambre mansardée", "45 m²", "Jacuzzi · cheminée"],
     lead: "Un refuge pour deux — chambre mansardée à hauteur de toits, jacuzzi sous la véranda, cheminée d'ambiance pour les soirs frais.",
     reverse: true,
   },
   {
     gite: GITES["maison-vieille"],
     placeholder: "La Maison Vieille — pierre ancienne, sauna",
-    caps: ["4 personnes", "2 chambres", "85 m²", "Spa + sauna privatifs"],
+    caps: ["2 chambres", "85 m²", "Spa + sauna privatifs"],
     lead: "La plus ancienne du hameau — pierre apparente, volumes nobles, et la seule à conjuguer spa et sauna privatifs.",
   },
 ];
 
-function GiteRow({ gite, placeholder, caps, lead, reverse }: RowContent) {
+function GiteRow({
+  gite,
+  placeholder,
+  caps,
+  lead,
+  reverse,
+  chiffres,
+}: RowContent & { chiffres: ChiffresGite | null }) {
   const rating = gite.rating.toFixed(1).replace(".", ",");
+  const plancher = chiffres ? plancherDuGite(gite.id, chiffres.tarifSemaineBase) : null;
+  const toutesCaps =
+    chiffres !== null ? [`${chiffres.capaciteMax} personnes`, ...caps] : caps;
   return (
     <section className={`${styles.giteRow}${reverse ? ` ${styles.reverse}` : ""}`}>
       <div className="wrap">
@@ -54,7 +77,7 @@ function GiteRow({ gite, placeholder, caps, lead, reverse }: RowContent) {
               <span className={styles.giteRowCode}>{gite.code}</span>
             </div>
             <div className={styles.giteRowCaps}>
-              {caps.map((c) => (
+              {toutesCaps.map((c) => (
                 <span key={c}>{c}</span>
               ))}
             </div>
@@ -71,7 +94,11 @@ function GiteRow({ gite, placeholder, caps, lead, reverse }: RowContent) {
             </div>
             <div className={styles.giteRowFoot}>
               <div className={styles.giteRowPrice}>
-                <strong>Dès {gite.price} €</strong> <small>la semaine TTC</small>
+                {plancher !== null && (
+                  <>
+                    <strong>Dès {fmtPrix(plancher)}</strong> <small>la semaine TTC</small>
+                  </>
+                )}
               </div>
               <div className={styles.giteRowActions}>
                 <Link className="btn btn-secondary" href={`/gites/${gite.id}`}>Voir le gîte</Link>
@@ -85,7 +112,10 @@ function GiteRow({ gite, placeholder, caps, lead, reverse }: RowContent) {
   );
 }
 
-export default function GitesPage() {
+export default async function GitesPage() {
+  const publics = await lireChiffresPublics();
+  const total = capaciteTotale(publics);
+
   return (
     <>
       <section className={styles.pageHero}>
@@ -99,16 +129,16 @@ export default function GitesPage() {
             </div>
             <p>
               Choisissez le gîte qui vous ressemble — l&apos;intime pour deux, l&apos;écrin familial,
-              ou le plus ancien avec sauna. Et si vous êtes nombreux, regroupez-les jusqu&apos;à dix
-              personnes. Un hameau à vous, sans pour autant être coupés du monde : commerces et
-              services restent à cinq minutes.
+              ou le plus ancien avec sauna. Et si vous êtes nombreux, regroupez-les
+              {total !== null ? ` jusqu'à ${total} personnes` : ""}. Un hameau à vous, sans pour
+              autant être coupés du monde : commerces et services restent à cinq minutes.
             </p>
           </div>
         </div>
       </section>
 
       {ROWS.map((row) => (
-        <GiteRow key={row.gite.id} {...row} />
+        <GiteRow key={row.gite.id} {...row} chiffres={chiffresDuGite(publics, row.gite.id)} />
       ))}
 
       {/* Combine block */}
@@ -118,7 +148,14 @@ export default function GitesPage() {
             <div>
               <span className="eyebrow">Tribu ou retrouvailles</span>
               <h2 style={{ marginTop: 14 }}>
-                Regroupez les trois gîtes,<br />jusqu&apos;à dix personnes.
+                Regroupez les trois gîtes
+                {total !== null ? (
+                  <>
+                    ,<br />jusqu&apos;à {total} personnes.
+                  </>
+                ) : (
+                  "."
+                )}
               </h2>
               <p>
                 Les trois gîtes se touchent. Vous pouvez les louer ensemble pour un mariage, un
@@ -131,11 +168,16 @@ export default function GitesPage() {
                 </Link>
               </p>
             </div>
-            <div className={styles.combineDiagram}>
-              <div><strong>2</strong><small>L&apos;Armu</small></div>
-              <div><strong>4</strong><small>LaPhine</small></div>
-              <div><strong>4</strong><small>La Maison Vieille</small></div>
-            </div>
+            {total !== null && (
+              <div className={styles.combineDiagram}>
+                {GITE_IDS.map((slug) => (
+                  <div key={slug}>
+                    <strong>{chiffresDuGite(publics, slug)?.capaciteMax}</strong>
+                    <small>{GITES[slug].name}</small>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
