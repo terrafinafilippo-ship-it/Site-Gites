@@ -4,7 +4,7 @@
 
 **Dépendances :** Phase 2 close. **Parallélisable** avec les phases 4 et 5.
 
-**Cette phase porte trois des neuf points bloquants** de
+**Cette phase porte trois des dix points bloquants** de
 `docs/06-avant-premier-client.md` (6, 7 et 8), dont deux dépendent de réponses
 **extérieures au dépôt**. Les questions doivent être posées **dès l'ouverture de
 la phase**, pas à la fin : une réponse de comptable ne s'obtient pas en une

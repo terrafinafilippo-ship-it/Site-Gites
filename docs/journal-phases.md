@@ -45,8 +45,9 @@ Vocabulaire : ACOMPTE (jamais « arrhes »). Entité légale : SARL DE LA VOUTE.
 
 ### Points reportés
 
-- Le site vitrine (`lib/data/gites.ts`) utilise encore les slugs `larmu` et
-  `maisonvieille` : à aligner sur `armu` / `maison-vieille`.
+- ~~Le site vitrine (`lib/data/gites.ts`) utilise encore les slugs `larmu` et
+  `maisonvieille` : à aligner sur `armu` / `maison-vieille`.~~ **Fait en
+  Phase 2** (D-14).
 - Séparation des rôles PostgreSQL (lecture seule pour le site vitrine) à
   décider en Phase 3.
 - En production, `DATABASE_URL` doit viser l'hôte interne du réseau Coolify.
@@ -203,6 +204,74 @@ acompte 214,62 €, solde 500,78 € ; aucune ligne Options sur aucun document.
 - Colonne `paiements.montant` passée en mode texte sans code appelant (Phase 3).
 - Les pages `/signer` d'erreur (lien invalide, déjà signé, expiré) répondent
   en HTTP 200 avec le message ; seul l'API renvoie 404 / 409 / 410.
+
+---
+
+## Phase 2 — Assainissement et connexion du site (close le 18 septembre 2026)
+
+Branche `main`, commits `e341c01` → (commit de documentation).
+
+### Ce qui a été fait
+
+- **L'ancien site statique est supprimé** : les 9 `.html` de la racine,
+  `assets/` (11 fichiers) et `admin/` (9 maquettes du back-office), commit
+  `e341c01`. `eslint.config.mjs` n'a plus à les exclure. Les maquettes se
+  relisent par `git show e341c01^:admin/<page>.html`.
+- **Les slugs du site sont ceux de la base** (`armu`, `maison-vieille`), avec
+  deux redirections **301** pour les anciennes adresses. Décision D-14.
+- **Les chiffres des gîtes se lisent en base** par `lib/gites-publics.ts` :
+  capacité, tarif de basse saison, forfait ménage, caution, taux de taxe de
+  séjour. Décision D-13. Pages concernées : accueil, `/gites`, `/gites/[slug]`,
+  `/contact`, plus la carte gîte.
+- **`tarif_semaine_base` est défini** : tarif de **basse saison**, donc prix
+  plancher. Décision D-15, écrite aussi dans `db/schema/gites.ts`. Le « Dès … »
+  est le **minimum de la grille affichée**, pas une lecture séparée : la page
+  est cohérente par construction.
+- **Le taux d'acompte et le délai de solde** viennent de `lib/constantes.ts`,
+  les mêmes constantes que `lib/montants.ts` utilise pour les échéances.
+- **Le README** décrit l'application réelle, plus un site statique.
+
+### Ce qui a été vérifié
+
+- `npm run lint`, `npx tsc --noEmit`, et `npm run build` **tunnel fermé** :
+  le build ne dépend plus de la base (risque R-2 levé).
+- Caution affichée : **400 € sur L'Armu**, 500 € sur les deux autres — la valeur
+  fausse en dur a disparu.
+- Cache de 60 s, sur `gites_test` : tarif passé à 451,00 par `UPDATE`, ancienne
+  valeur encore servie juste après, nouvelle valeur affichée **24 s** plus tard,
+  puis valeur d'origine rétablie par `UPDATE` (jamais par `db:seed`).
+- `tarif_semaine_base` à `NULL` : page en 200, grille et « Dès » du gîte
+  masqués, journal `VALEUR ABSENTE EN BASE`.
+- Base injoignable (connexion refusée, puis base muette) : les quatre pages
+  répondent **200** en mode dégradé, en **3,1 s** au pire, journal `BASE
+  INJOIGNABLE`.
+- `bash scripts/parcours/lancer.sh` : **74 contrôles, 0 échec**.
+- Logo présent sur l'accueil, une fiche et le tunnel (captures d'écran).
+
+### Points reportés
+
+- **Le tunnel de réservation contredit les fiches** : il affiche « Caution
+  Swikly 500 € » pour L'Armu, dont la fiche affiche maintenant 400 €. Ses autres
+  chiffres (ménage, taxe, capacités) sont également en dur. À lever en Phase 3,
+  avant toute mise en ligne — voir `docs/phases/phase-3.md`.
+- **Un `?gite=` inconnu réserve LaPhine en silence** (`app/reserver/page.tsx`).
+  Phase 3.
+- **Taxe de séjour** : la méthode de calcul actuelle (5,5 % du séjour et du
+  ménage) ne suit pas la règle légale. Devenu le point **10** de
+  `docs/06-avant-premier-client.md`, détaillé dans `docs/03-conformite.md`
+  § 7 bis, à trancher en Phase 3.
+- **Le drapeau `actif` n'a aucun effet** sur le site : à décider en Phase 5.
+- **Les trois saisons hors basse** restent en code (`lib/data/pricing.ts`),
+  en attendant le modèle de saisons de la Phase 5.
+- **Les adresses de l'ancien site en ligne** restent à relever et à rediriger
+  au moment de la mise en ligne : Phase 7.
+
+### Deux formulations ont changé
+
+Elles portaient un chiffre que le code ne pouvait plus garantir :
+« regroupables jusqu'à **dix** personnes » devient « jusqu'à **10** personnes »,
+calculé depuis la base ; et le récit de La Maison Vieille ne porte plus ce
+total.
 
 ---
 

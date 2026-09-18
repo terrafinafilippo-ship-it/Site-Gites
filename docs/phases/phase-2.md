@@ -62,12 +62,15 @@ carte du dépôt, et un renvoi vers `CLAUDE.md` et `docs/`. Il ne recopie pas
 
 ### 4. Brancher les pages gîtes sur la base
 
-Lecture Drizzle depuis la table `gites`, avec **ISR `revalidate = 60`**.
+Lecture Drizzle depuis la table `gites`, par `lib/gites-publics.ts`, avec un
+**cache de 60 secondes** (`unstable_cache`, étiquette `gites`) et des pages en
+**rendu à la demande**.
 
-*ISR (Incremental Static Regeneration)* : la page est rendue une fois et servie
-telle quelle ; passé le délai indiqué, la première visite suivante déclenche un
-nouveau rendu en arrière-plan. Le visiteur ne paie jamais l'attente d'une requête
-en base, et une modification apparaît au plus tard **60 secondes** après.
+*Ce qui a été retenu, et pourquoi pas l'ISR.* L'ISR figeait la page au build,
+donc faisait lire la base **pendant le build** (voir R-2, levé). Le cache de
+`lib/gites-publics.ts` donne la même propriété au visiteur — il ne paie jamais
+l'attente d'une requête en base, et une modification apparaît au plus tard
+**60 secondes** après — sans rien exiger au build.
 
 **Architecture hybride — actée, à ne pas rediscuter :**
 
@@ -108,10 +111,25 @@ Pages concernées : `app/gites/page.tsx` (liste) et `app/gites/[slug]/page.tsx`
 
 ---
 
-## Décisions ouvertes connues
+## Décisions rendues (17 septembre 2026)
 
-À présenter en options numérotées à l'ouverture de la phase, avec recommandation,
-et à faire arbitrer (`docs/05-protocole-phase.md`, étape 3).
+Les décisions structurantes sont consignées dans `docs/02-decisions.md` : **D-13**
+(rendu à la demande, cache de 60 s, dégradation sans erreur 500), **D-14** (slugs
+de la base), **D-15** (définition de `tarif_semaine_base`). Ce qui suit est le
+relevé d'arbitrage, décision par décision.
+
+| # | Sujet | Arbitrage |
+|---|---|---|
+| DO-2.1 | Slugs divergents | Le site adopte ceux de la base (`armu`, `maison-vieille`), plus deux redirections 301. |
+| DO-2.2 | Archiver `admin/` | Suppression pure et simple. Point de récupération : commit `e341c01`. |
+| DO-2.3 | Rendu des pages | Rendu à la demande + cache de 60 s. **Correction apportée à la proposition initiale :** une base injoignable ne doit jamais produire une erreur 500 sur une fiche gîte ; elle emprunte le chemin de dégradation de DO-2.4. Les deux pannes se journalisent **distinctement**. |
+| DO-2.4 | Valeur absente en base | Masquer le chiffre. Pas de « tarif sur demande » : une formulation commerciale doit venir des propriétaires. |
+| DO-2.5 | Étendue du branchement | Accueil et carte gîte incluses, plus forfait ménage, taux de taxe de séjour, taux d'acompte et délai de solde sur leur source respective. |
+| DO-2.6 | Démonstration du critère 3 | **Refusée sur la base réelle.** Aucune écriture, même temporaire : le mécanisme est identique sur `gites_test`, et `db:seed` n'est pas un outil de restauration. |
+| DO-2.7 | Sens de `tarif_semaine_base` | Tarif de **basse saison** (prix plancher). Le code ne permettait pas de trancher ; la lecture la plus probable a été retenue et écrite (D-15). |
+| DO-2.8 | Adresses de l'ancien site en ligne | La liste se relève sur le site réel (plan du site, Search Console) au moment de la mise en ligne : voir `phase-7.md`. |
+| DO-2.9 | Capacités écrites en toutes lettres | Branchées sur la base, y compris le total des trois gîtes. « dix » devient « 10 ». |
+| DO-2.10 | Adresse du VPS dans la documentation | Écrite avec des marques de remplacement (`<utilisateur>@<ip du VPS>`), voir `docs/04-architecture.md` § 9. |
 
 ### DO-2.1 · Les slugs divergent entre le site et la base
 
@@ -141,16 +159,23 @@ d'implémentation.
 
 ## Critères d'acceptation
 
-1. `npm run lint`, `npx tsc --noEmit` et `npm run build` passent.
+1. `npm run lint`, `npx tsc --noEmit` et `npm run build` passent. ✔ le build
+   passe **tunnel fermé**, donc sans base joignable.
 2. Les fiches gîtes affichent les **données de la base** — en particulier la
    caution réelle de chaque gîte : **400 € pour L'Armu**, 500 € pour les deux
-   autres.
+   autres. ✔ vérifié à l'écran.
 3. Un changement de prix **en base** apparaît sur le site en **60 secondes au
-   plus**, sans redéploiement. À démontrer en conditions réelles, pas en théorie.
+   plus**, sans redéploiement. ✔ démontré sur `gites_test` (DO-2.6) : tarif
+   passé de 450,00 à 451,00 par `UPDATE`, ancienne valeur encore servie juste
+   après (preuve du cache), nouvelle valeur affichée **24 secondes** plus tard,
+   puis valeur d'origine rétablie par `UPDATE`.
 4. `bash scripts/parcours/lancer.sh` passe **toujours** — la phase ne touche pas
-   à la facturation, aucun montant ne doit bouger.
-5. Plus aucun fichier `.html` servi ni aucun `assets/` mort à la racine.
-6. Le `README.md` décrit le projet tel qu'il est.
+   à la facturation, aucun montant ne doit bouger. ✔ 74 contrôles, 0 échec.
+5. Plus aucun fichier `.html` servi ni aucun `assets/` mort à la racine. ✔
+6. Le `README.md` décrit le projet tel qu'il est. ✔
+7. **Une base injoignable ne produit pas d'erreur 500.** ✔ les quatre pages
+   publiques répondent 200 en mode dégradé, en moins de 3,2 secondes même quand
+   la base ne répond pas du tout.
 
 ---
 
@@ -178,10 +203,11 @@ vient désormais de la base, **le build appelle la base**.
 n'est pas joignable au moment du build — c'est-à-dire précisément dans les
 situations où l'on redéploie en urgence.
 
-**À arbitrer (DO-2.3).** Garder la liste des slugs en code (elle change une fois
-tous les dix ans) et ne lire en base que les scalaires, ou accepter la
-dépendance de build et la documenter. La première option conserve un build
-autonome ; la seconde évite une liste de plus à tenir.
+**Levé.** `generateStaticParams` et `dynamicParams` ont été retirés : les pages
+passent en rendu à la demande (`dynamic = "force-dynamic"`) et le cache de 60 s
+tient le rôle de l'ISR. La liste des slugs reste en code, où elle sert aussi au
+mode dégradé. Contrôle de non-régression : `npm run build` **doit** réussir
+tunnel fermé — c'est ce qui prouve qu'aucun déploiement ne dépend de la base.
 
 ### R-3 · Supprimer un fichier encore référencé
 
@@ -199,9 +225,15 @@ fiche gîte et le tunnel, et **regarder** l'en-tête et le pied de page.
 dans le schéma. Une page qui suppose leur présence affichera `null €` ou
 plantera au rendu.
 
-**La parade.** Décider explicitement du comportement quand la valeur manque —
-masquer la ligne, ou afficher une valeur de repli — et le tester en mettant la
-colonne à `NULL` sur la base de test.
+**Levé (DO-2.4).** Le chiffre absent est **masqué**, jamais remplacé par une
+formule. Masquer un prix est une omission ; écrire « tarif sur demande » est une
+promesse commerciale, qui doit venir des propriétaires.
+
+Vérifié en mettant `tarif_semaine_base` à `NULL` sur `gites_test` : la fiche
+répond 200, la grille tarifaire **entière** et tous les « Dès » du gîte
+disparaissent (une grille amputée de sa basse saison ferait passer la moyenne
+saison pour le prix plancher), le reste de la fiche est intact, et le journal
+écrit une ligne `VALEUR ABSENTE EN BASE` par rafraîchissement du cache.
 
 ### R-5 · Confondre le contenu de la base de test et celui de la base réelle
 
@@ -209,5 +241,18 @@ colonne à `NULL` sur la base de test.
 et conclure que « le site affiche bien les données de la base » ne prouve rien
 sur la production.
 
-**La parade.** Le critère 3 se démontre sur la base **réelle** (ou sur une copie
-fidèle), pas sur `gites_test`.
+**La parade retenue, différente de celle envisagée d'abord.** Écrire sur la base
+réelle pour démontrer le critère 3 a été **refusé** (DO-2.6) : le mécanisme est
+identique sur `gites_test`, la base réelle n'apporte qu'un risque et un
+précédent, et la restauration serait passée par `db:seed`, qui écrase les
+valeurs du back-office.
+
+À la place, le risque est traité **techniquement** : la clé du cache de
+`lib/gites-publics.ts` contient la base visée. Un cache rempli en développement
+sur `gites_test` ne peut donc pas être resservi sous la base réelle. Sans cela,
+la confusion serait silencieuse : mêmes pages, mêmes URL, chiffres faux.
+
+Garde-fou complémentaire de session : ne basculer sur le tunnel que
+`DATABASE_URL_TEST`, en laissant `DATABASE_URL` sur l'adresse publique fermée.
+Une commande lancée sans `DB_CIBLE=test` échoue alors au lieu d'atteindre la
+base réelle (voir `docs/04-architecture.md` § 9).

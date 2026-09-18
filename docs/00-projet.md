@@ -54,10 +54,10 @@ factures — pas les constantes du code, pas les textes du site.
 **Les trois gîtes ont un spa** (`a_spa` vaut `true` pour les trois). Seule La
 Maison Vieille a en plus un **sauna**.
 
-**La caution de L'Armu est de 400 €, pas 500 €.** Le site affiche aujourd'hui
-« Caution 500 € » sur les trois fiches, en dur dans le code
-(`app/gites/[slug]/page.tsx`). C'est exactement ce que la Phase 2 corrige en
-branchant les fiches sur la base.
+**La caution de L'Armu est de 400 €, pas 500 €.** Les fiches gîtes affichent
+désormais la caution **lue en base** (Phase 2) : 400 € pour L'Armu, 500 € pour
+les deux autres. Le tunnel de réservation, lui, porte encore « 500 € » en dur :
+c'est la Phase 3 qui le branche (voir `docs/phases/phase-3.md`).
 
 Descriptions éditoriales (surfaces, nombre de chambres, récits, notes et
 nombre d'avis) : elles vivent dans `lib/data/gites.ts` et `lib/data/stories.ts`,
@@ -158,10 +158,14 @@ un tarif sans toucher au code.*
 Le projet est né du besoin de remplacer une chaîne d'outils dispersés par une
 seule application. Deux traces subsistent dans le dépôt et seront traitées :
 
-- **L'ancien site statique** (fichiers `.html` à la racine, `assets/`) : il a
-  été refait en Next.js et n'est plus servi. Supprimé en Phase 2.
+- **L'ancien site statique** (fichiers `.html` à la racine, `assets/`) : refait
+  en Next.js, il n'était plus servi. **Supprimé en Phase 2** (commit `e341c01`).
+  Attention : le site **en ligne** sur gitesdesamoyas.fr est encore l'ancien
+  site, avec ses propres adresses — leur redirection est une tâche de la
+  Phase 7.
 - **L'ancien back-office statique** (`admin/`) : jamais connecté à quoi que ce
-  soit. Archivé en Phase 2, reconstruit en Phase 5.
+  soit. **Supprimé en Phase 2** dans le même commit, reconstruit en Phase 5, où
+  ses maquettes servent de référence d'intention.
 
 **Beds24** (logiciel de gestion de locations saisonnières, capable de
 synchroniser les calendriers de plusieurs plateformes en temps réel) a été

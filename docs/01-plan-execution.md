@@ -13,8 +13,8 @@
 |---|---|---|---|
 | 0 | Fondation données | **Close** — 14 septembre 2026 | — |
 | 1 | Fusion du module contrat + modèle monétaire | **Close** — 16 septembre 2026 | — |
-| A | Référentiel du projet dans le dépôt | **En cours** | ce document |
-| 2 | Assainissement et connexion du site | À ouvrir | `docs/phases/phase-2.md` |
+| A | Référentiel du projet dans le dépôt | **Close** — 17 septembre 2026 | ce document |
+| 2 | Assainissement et connexion du site | **Close** — 18 septembre 2026 | `docs/phases/phase-2.md` |
 | 3 | Moteur de réservation | À ouvrir | `docs/phases/phase-3.md` |
 | 4 | Cycle de paiement complet | À ouvrir | `docs/phases/phase-4.md` |
 | 5 | Back-office Patricia et Nicolas | À ouvrir | `docs/phases/phase-5.md` |
@@ -80,7 +80,7 @@ frontière ; ligne « Options » sur les documents ; logo lu sur le disque ;
 instantané de facture auto-décrit ; garde d'émission acompte + solde = total ;
 scripts de non-régression (`scripts/parcours/`) versionnés.
 
-### Phase A — Référentiel du projet (en cours)
+### Phase A — Référentiel du projet (close le 17 septembre 2026)
 
 Création de `CLAUDE.md` et de `docs/00` à `docs/06`, plus une fiche par phase
 restante. Aucune ligne de code applicatif. Objet : rendre le dépôt

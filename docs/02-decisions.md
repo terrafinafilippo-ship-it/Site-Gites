@@ -358,6 +358,121 @@ client en direct.
 
 ---
 
+## D-13 · Pages publiques en rendu à la demande, avec dégradation au lieu d'une erreur
+
+**Date :** 17 septembre 2026 (Phase 2).
+
+**Décision.** Les chiffres des gîtes (capacité, tarifs, forfait ménage, caution,
+taux de taxe de séjour) sont lus en base par `lib/gites-publics.ts`. Les pages
+qui les affichent — accueil, `/gites`, `/gites/[slug]`, `/contact` — sont en
+**rendu à la demande**, avec un **cache de 60 secondes** portant l'étiquette
+`gites`. Trois propriétés sont volontaires et ne doivent pas être « simplifiées » :
+
+1. **Une base injoignable n'est pas une erreur 500.** Les chiffres
+   disparaissent, la page reste : récit, photos, coordonnées, bouton de
+   réservation. Une fiche sans prix est une page qui vend encore ; une erreur 500
+   dit au visiteur que l'entreprise ne fonctionne pas.
+2. **Les deux pannes se journalisent séparément.** `VALEUR ABSENTE EN BASE` est
+   une donnée à saisir, `BASE INJOIGNABLE` est une panne à traiter. L'affichage
+   est le même, la réaction est opposée : confondues dans les journaux, une
+   panne passerait pour un oubli de saisie pendant des jours.
+3. **La clé du cache contient la base visée, et la lecture abandonne après 3
+   secondes.** Sans la clé, un cache rempli sur `gites_test` resservirait des
+   prix de test sous la base réelle, sans aucun signal. Sans le délai, une base
+   muette ferait attendre chaque visiteur les 10 secondes du pool
+   (`db/index.ts`).
+
+**Pourquoi pas l'ISR**, envisagé dans la fiche de phase : `generateStaticParams`
+faisait lire la base **pendant `next build`**. Un déploiement aurait alors
+échoué exactement quand la base est indisponible, c'est-à-dire au pire moment.
+Le build doit rester autonome ; c'est un critère de non-régression.
+
+**Si on revient dessus.** Rétablir une erreur au lieu de la dégradation, c'est
+faire dépendre la visibilité commerciale du site de la disponibilité de la base.
+Retirer la cible de la clé de cache, c'est risquer d'afficher des prix de test
+en production. Rendre le cache plus long, c'est allonger d'autant le délai entre
+une correction de prix par les propriétaires et ce que voit le client.
+
+**Le tunnel de réservation, lui, ne dégrade pas** : afficher un gîte sans prix
+est acceptable, laisser réserver sans prix ne l'est pas. Voir
+`docs/phases/phase-3.md`.
+
+---
+
+## D-14 · Les slugs des gîtes sont ceux de la base
+
+**Date :** 17 septembre 2026 (Phase 2).
+
+**Décision.** L'identifiant public d'un gîte est la colonne `gites.slug` :
+`laphine`, `armu`, `maison-vieille`. Le code utilisait `larmu` et
+`maisonvieille` ; il s'aligne. Deux redirections **301** couvrent les anciennes
+adresses (`next.config.ts`).
+
+**Pourquoi la base gagne.** Le slug est la clé de la ligne, déjà référencée par
+`db/seed.ts`, `db/verify.ts` et `scripts/parcours/reference.ts`. Le renommer en
+SQL aurait demandé une migration et cassé ces trois références, pour un simple
+confort d'écriture. Et une table de correspondance code ↔ base aurait créé un
+endroit de plus où se tromper.
+
+**Ce que ça ne coûte pas.** Le site Next n'a **jamais été déployé** :
+`/gites/larmu` n'a jamais existé publiquement. Les redirections ne servent qu'un
+lien resté dans un mail, un favori ou une capture d'écran.
+
+**Attention en Phase 3.** `app/reserver/page.tsx` remplace en silence un
+`?gite=` inconnu par LaPhine. Un lien périmé ne produirait donc pas une erreur,
+mais une réservation sur le mauvais gîte.
+
+**Si on revient dessus.** Changer un slug après la mise en ligne casse les liens
+partagés et le référencement acquis ; il faudra alors une redirection de plus,
+et non un renommage.
+
+---
+
+## D-15 · `tarif_semaine_base` est le tarif de BASSE SAISON
+
+**Date :** 17 septembre 2026 (Phase 2).
+
+**Décision.** La colonne `gites.tarif_semaine_base` désigne le tarif d'une
+semaine en **basse saison** — le prix plancher, celui qu'annoncent les
+« Dès … » du site. Ce n'est **pas** un tarif de référence dont les autres
+saisons se déduiraient. La cellule « Basse » de la grille vient donc de la base ;
+les trois autres saisons restent en code jusqu'à la Phase 5.
+
+**Pourquoi il a fallu trancher.** La fiche gîte affichait le même prix depuis
+deux sources : « Dès 450 € » lu en base et « Basse saison 450 € » figé en code.
+Les valeurs coïncidaient, mais une coïncidence n'est pas une définition : à la
+première modification, la même page aurait montré deux prix différents. Un
+visiteur n'en conclut pas que la grille est périmée, il en conclut qu'on lui
+cache quelque chose.
+
+**Sur quoi repose la lecture retenue.** Le code ne permettait pas de trancher :
+aucune définition écrite, aucun lecteur de la colonne, aucune formule reliant
+les saisons entre elles (ni coefficient, ni écart constant). Trois indices
+convergent vers la basse saison : la colonne a été créée trois mois après la
+grille, ses valeurs recopient le « À partir de » du site — qui est par
+construction la ligne basse —, et sa jumelle `tarif_weekend` n'a aucun
+équivalent saisonnier (le couple suit un modèle semaine / week-end, pas un
+modèle de saisons). La décision est réversible en quelques minutes, et la
+colonne disparaîtra en Phase 5.
+
+**Conséquence de conception.** Le « Dès … » n'est pas lu directement : c'est le
+**minimum de la grille affichée**, calculé par une seule fonction
+(`plancherDuGite`). La page est ainsi cohérente **par construction** — elle ne
+peut pas annoncer un plancher supérieur à une cellule de sa propre grille — au
+même titre que `solde = total − acompte` en Phase 1. Si la basse saison cessait
+d'être ce minimum, l'affichage resterait juste et le journal écrirait
+`INCOHÉRENCE GRILLE`.
+
+**Reste à demander aux propriétaires** (inscrit dans `docs/phases/phase-5.md`) :
+pensent-ils leurs prix comme « un plancher en basse saison » ou comme « une base
+majorée par saison » ? La réponse détermine le modèle de saisons, pas cette
+cellule.
+
+**Si on revient dessus.** Redéfinir la colonne sans reprendre les écrans qui la
+lisent, c'est réintroduire exactement la divergence que cette décision supprime.
+
+---
+
 ## Décisions ouvertes
 
 Elles ne sont **pas tranchées** et ne doivent pas l'être dans le code.

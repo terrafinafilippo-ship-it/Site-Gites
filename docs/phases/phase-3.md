@@ -63,3 +63,55 @@ séparation des rôles PostgreSQL (lecture seule pour le vitrine) était à déc
 2. Deux tentatives simultanées sur le même créneau : la seconde est refusée, et
    le verrou de la première se libère seul si son paiement n'aboutit pas.
 3. `bash scripts/parcours/lancer.sh` passe toujours : aucun montant n'a bougé.
+
+---
+
+## Hérité de la Phase 2 — à traiter dans cette phase
+
+### 1. Le tunnel ne doit JAMAIS dégrader en silence
+
+La Phase 2 a décidé qu'une base injoignable **masque les chiffres** des pages
+publiques au lieu de produire une erreur 500 (D-13). **Cette règle s'arrête à la
+porte du tunnel.**
+
+> Afficher un gîte sans prix est acceptable ; laisser réserver sans prix ne
+> l'est pas.
+
+Concrètement : si les tarifs, le forfait ménage, la caution ou le taux de taxe
+de séjour ne sont pas lisibles en base, le tunnel **refuse d'engager** le client
+et le dit — il ne poursuit pas avec une valeur de repli, une valeur par défaut ou
+un montant partiel. Une réservation prise sur un prix faux se répare par un
+avoir et une conversation pénible ; une page qui dit « réservation
+momentanément indisponible, appelez-nous » ne coûte qu'un appel.
+
+### 2. Un `?gite=` inconnu réserve LaPhine en silence
+
+`app/reserver/page.tsx` : un slug absent ou périmé retombe sur `GITES.laphine`
+sans rien signaler. Le client croit réserver L'Armu et engage LaPhine. Il faut
+une **erreur explicite** (404, ou retour à la liste des gîtes), pas un repli.
+
+Le risque est réel depuis la Phase 2 : les slugs ont changé (`larmu` →
+`armu`, D-14). Les redirections 301 couvrent `/gites/larmu`, **pas**
+`/reserver?gite=larmu`.
+
+### 3. Les chiffres du tunnel sont encore écrits en dur
+
+`app/reserver/ReserverFunnel.tsx` porte des valeurs de démonstration qui ne
+viennent pas de la base — et qui, depuis la Phase 2, **contredisent visiblement
+les fiches gîtes** :
+
+| Endroit | Valeur en dur | Réalité en base |
+|---|---|---|
+| `ReserverFunnel.tsx` (3 occurrences) | « Caution Swikly 500 € » | L'Armu : **400 €** |
+| constante `BOOKING` | ménage 80 €, taxe 5,5 %, acompte 30 % | à lire en base / dans `lib/constantes.ts` |
+| liens du récapitulatif | « L'Armu — couple, 2 pers. », « La Maison Vieille — 4 pers. + sauna » | `capacite_max` |
+
+Aujourd'hui, la fiche de L'Armu affiche 400 € de caution et le tunnel 500 € : la
+contradiction est visible par le même visiteur, sur deux pages qui se suivent.
+Le site n'étant pas déployé, personne ne la voit encore — mais elle doit être
+levée **avant** la mise en ligne, donc dans cette phase.
+
+Le récapitulatif affiche par ailleurs `gite.profil` (« Couple ») là où il
+affichait « Couple — 2 personnes » : la capacité viendra de la base, comme sur
+les fiches.
+

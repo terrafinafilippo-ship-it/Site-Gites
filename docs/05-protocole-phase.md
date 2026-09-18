@@ -52,9 +52,10 @@ précède** (`docs/phases/phase-N.md`). Raison : l'étape 1 fait ouvrir
 `06`. Sans ce renvoi, la session qui démarre la phase ne voit pas le point. Le
 renvoi nomme le point et son numéro ; le contenu reste dans `06`.
 
-Deux écarts à cette règle sont déjà ouverts dans le code et documentés : E-7
-(identité recopiée dans les PDF) et la caution affichée en dur sur le site
-(Phase 2).
+Deux écarts à cette règle sont ouverts dans le code et documentés : E-7
+(identité recopiée dans les PDF) et les montants encore en dur dans le tunnel de
+réservation — dont « Caution Swikly 500 € », qui contredit la fiche de L'Armu
+depuis que celle-ci lit la base (Phase 2). Le second se lève en Phase 3.
 
 ### Règle 2 — La règle de garde
 

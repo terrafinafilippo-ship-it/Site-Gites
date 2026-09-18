@@ -4,13 +4,13 @@
 > **seul** domicile de cette liste : elle ne doit être recopiée nulle part
 > ailleurs (voir `docs/05-protocole-phase.md`, règle 1).
 
-Neuf points à traiter **avant qu'un vrai client signe un vrai contrat**. Aucun
+Dix points à traiter **avant qu'un vrai client signe un vrai contrat**. Aucun
 n'empêche le logiciel de fonctionner : ils empêchent qu'il fonctionne
 **correctement le jour où il compte**.
 
 ## Qui peut lever un point
 
-Trois des neuf points **ne se résolvent pas dans le dépôt**. Sans cette
+Quatre des dix points **ne se résolvent pas dans le dépôt**. Sans cette
 précision, une session future les lira comme des tâches techniques et cherchera
 la réponse au mauvais endroit — dans le code, où elle n'est pas.
 
@@ -35,6 +35,7 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | 7 | Médiateur de la consommation : lequel, et adhésion en cours | **Les propriétaires** | Phase 6 |
 | 8 | Écrire les règles sauna à l'article 12 du contrat | Développement | Phase 6 |
 | 9 | Sauvegarder le volume des PDF, et tester une restauration | **Phase de déploiement** | Au déploiement — **avant la Phase 3** |
+| 10 | Taxe de séjour : régime, taux et assiette exacts | **Les propriétaires + la commune** | Phase 3 |
 
 ---
 
@@ -111,8 +112,8 @@ le journal de Phase 1 parlait de « trois pages du site », il y en a **cinq** :
 | `docs/contrat-template.md` | Document de rédaction |
 | `docs/facture-template.md` | Document de rédaction |
 
-Les fichiers `.html` de la racine et `admin/` en contiennent aussi : ils sont
-supprimés ou archivés en **Phase 2**, ne pas les traiter deux fois.
+Les fichiers `.html` de la racine et `admin/` en contenaient aussi : ils ont été
+**supprimés en Phase 2** (commit `e341c01`), il n'y a donc plus rien à y faire.
 
 ---
 
@@ -303,6 +304,41 @@ base ne la reproduirait pas. Ces pièces doivent être conservées **10 ans**
 **Le contrôle.** Générer un PDF de test, attendre une sauvegarde, restaurer
 l'archive ailleurs que sur le volume en service, et vérifier que le fichier
 restauré a la même empreinte SHA-256 que l'original.
+
+---
+
+## 10. Taxe de séjour : régime, taux et assiette exacts
+
+**Qui peut lever :** les propriétaires **et** la commune de Savas (ou son
+intercommunalité) · **Phase 3**
+
+**Pourquoi c'est bloquant.** Cet argent n'est pas le nôtre : il est collecté
+pour le compte d'une collectivité. **Sous-collecté**, la différence reste due et
+c'est la SARL qui paie. **Sur-collecté**, on facture au client une taxe qui
+n'est pas due. La formule appliquée aujourd'hui (5,5 % du séjour **et** du
+forfait ménage, sans notion d'occupants) peut produire l'un ou l'autre selon le
+séjour.
+
+**Deux questions à poser, et à faire écrire.**
+
+1. **Les gîtes sont-ils classés « meublé de tourisme » par arrêté ?** Attention :
+   le label Gîtes de France et ses épis **ne sont pas** un classement — les épis
+   sont une marque privée, le classement est une procédure administrative en
+   étoiles. La réponse change entièrement la méthode : tarif **fixe** par
+   personne et par nuit si classé, **pourcentage** du prix de la nuitée sinon.
+2. **Quel régime, quel taux et quel plafond la collectivité a-t-elle votés pour
+   Savas**, taxes additionnelles comprises ?
+
+**Source officielle :** <https://taxesejour.impots.gouv.fr> (délibérations et
+tarifs en vigueur, commune par commune).
+
+**Le contrôle.** Recalculer à la main la taxe d'un séjour de référence — celui du
+parcours, 2 adultes et 1 enfant sur 7 nuits — selon la règle obtenue, et la
+comparer au montant que produit le tunnel. Les deux doivent être égaux au
+centime.
+
+La règle complète, l'implémentation actuelle et l'écart sont détaillés dans
+`docs/03-conformite.md` § 7 bis.
 
 ---
 

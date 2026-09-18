@@ -29,7 +29,21 @@ mettre en ligne.
    (`directe`, `airbnb`, `booking`, `gdf`).
 3. **Recette complète** : rejouer tous les parcours, sur toutes les phases.
 4. **DNS** et **mise en production**.
-5. Vérification finale de `docs/06-avant-premier-client.md` : **les neuf points
+
+   **Rediriger les adresses de l'ancien site.** Le site en ligne sur
+   gitesdesamoyas.fr est l'**ancien site statique**, avec ses propres adresses.
+   Le remplacer sans rien faire transforme chacune d'elles en 404 : liens
+   partagés, favoris, résultats de recherche, et le référencement acquis depuis
+   2018 avec.
+
+   La liste se relève **sur le site réel** — plan du site, Search Console,
+   journaux du serveur — et **pas** sur les fichiers `.html` supprimés en Phase 2
+   (commit `e341c01`) : personne ne sait de quoi le site en ligne est fait
+   aujourd'hui. Chaque adresse relevée reçoit une redirection **301** vers son
+   équivalent (`next.config.ts`, où deux redirections existent déjà, voir D-14).
+
+   Contrôle : après bascule, aucune adresse de la liste ne doit répondre 404.
+5. Vérification finale de `docs/06-avant-premier-client.md` : **les dix points
    doivent être levés.**
 
 ---

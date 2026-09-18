@@ -22,11 +22,27 @@ déploiement** : tout fichier écrit ailleurs que sur le volume monté disparaî
 C'est pourquoi `lib/storage.ts` porte un avertissement en tête et pourquoi
 `STORAGE_PATH` doit viser le volume, jamais un dossier quelconque.
 
+**DEUX CONTENEURS POSTGRESQL TOURNENT SUR CE SERVEUR. UN SEUL EST LE NÔTRE.**
+
+| Conteneur | Image | Ce que c'est |
+|---|---|---|
+| `5sn5xve5enj5lcze6buvwuc4` | `postgres:17-alpine` | **La base du projet.** C'est celle-ci, et elle seule, qu'on migre, qu'on seed et qu'on interroge. |
+| `coolify-db` | `postgres:15-alpine` | **La base interne de Coolify** : configuration du serveur, secrets de déploiement. **Ne jamais y toucher.** Elle n'a aucun rapport avec le projet. |
+
+Une session qui cherche « le conteneur PostgreSQL » en trouvera donc deux. Se
+tromper de cible, c'est écrire dans la configuration de l'hébergeur — pas dans
+les données des gîtes.
+
+**Accès administrateur.** L'utilisateur SSH **n'appartient pas au groupe
+`docker`**, et c'est délibéré : en faire partie équivaut à un accès root
+permanent. Toute commande `docker` passe donc par `sudo`. Ne pas proposer de
+changer ce réglage.
+
 **Réseau.** Le port PostgreSQL public est **refermé** (voir
 `docs/02-decisions.md`, D-10). `DATABASE_URL` vise l'hôte **interne** du réseau
 Coolify. `?sslmode=require` est inutilisable : le serveur tourne avec
 `ssl = off`. Un accès depuis un poste de développement passe par un **tunnel
-SSH**.
+SSH** — la procédure complète est au § 9.
 
 **Variables d'environnement** — les noms, jamais les valeurs. Le fichier de
 référence est `.env.example`.
@@ -63,10 +79,11 @@ components/
 lib/
   centimes.ts   Les DEUX fonctions de frontière du modèle monétaire
   montants.ts   Le SEUL calcul de montants
-  format.ts     Le SEUL formatage calcul -> affichage (fmtEuro)
+  format.ts     Le SEUL formatage calcul -> affichage (fmtEuro, fmtPrix, fmtTaux)
   constantes.ts Identité légale et valeurs par défaut
   storage.ts    Stockage des PDF et signature des URL
   reservations.ts  Chargement réservation + gîte joint, avec conversion en centimes
+  gites-publics.ts Chiffres des gîtes pour les pages publiques (cache, dégradation)
   auth.ts       Vérification du secret service-à-service
   data/         Contenu éditorial du site, en code (gîtes, récits, tarifs, légal)
 db/
@@ -79,9 +96,11 @@ docs/           Le référentiel (ce dossier)
 public/         Servi tel quel par Next.js — dont public/logo.png
 ```
 
-**Legs à supprimer en Phase 2** : les fichiers `.html` à la racine, le dossier
-`assets/` (dupliqué dans `public/assets/`, et dont `tokens.css` + `site.css` ont
-déjà été fusionnés dans `app/globals.css`), et le dossier `admin/`.
+**Legs supprimés en Phase 2** (commit `e341c01`) : les fichiers `.html` de la
+racine, le dossier `assets/` (dupliqué dans `public/assets/`, et dont
+`tokens.css` + `site.css` avaient déjà été fusionnés dans `app/globals.css`), et
+le dossier `admin/`. Les maquettes du back-office se récupèrent dans ce commit :
+`git show e341c01^:admin/tarifs.html`.
 
 ---
 
@@ -211,6 +230,14 @@ ne sont ni publics ni réservés à un compte : d'où le lien signé.
 Edge ; et une émission de document est un **effet de bord** qui ne doit jamais
 être mis en cache.
 
+**Les pages publiques qui affichent des chiffres sont, elles aussi, en rendu à
+la demande** : `/`, `/gites`, `/gites/[slug]` et `/contact` portent
+`dynamic = 'force-dynamic'`. Ce n'est pas pour éviter le cache — le cache est
+dans `lib/gites-publics.ts`, 60 secondes — mais pour que **`next build` ne lise
+jamais la base** : un déploiement ne doit pas échouer parce que la base est
+momentanément indisponible (D-13). Contrôle : `npm run build` doit réussir sans
+aucune base joignable.
+
 **Ce que garantit la transaction unique.** Dans `POST /api/contrats`, le numéro,
 la ligne `documents`, le PDF et la recopie du numéro sur la réservation sont
 dans la **même** transaction. Un échec entre deux écritures ne peut donc pas
@@ -306,3 +333,71 @@ d'erreur**, pas seulement le code.
 ## 9. Outillage
 
 **Fins de ligne : LF partout**, imposé par `.gitattributes` (explicitement pour `*.sh`, qu'un CRLF casse sous Git Bash avec `$'\r': command not found`), indépendamment du réglage `core.autocrlf` de chaque poste.
+
+### Procédure de session : atteindre la base depuis un poste
+
+Le port PostgreSQL public est fermé (D-10). Toute session qui doit lire ou
+écrire en base monte un **tunnel SSH**. Cette procédure se refait à chaque
+phase ; elle n'est pas un détail de confort, ses deux dernières étapes évitent
+des pannes qui se diagnostiquent mal.
+
+**1. Ouvrir le tunnel**, en tâche de fond :
+
+```bash
+ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 \
+    -L 127.0.0.1:5433:<ip du conteneur>:5432 <utilisateur>@<ip du VPS>
+```
+
+`ExitOnForwardFailure` fait échouer la commande tout de suite si le port local
+est déjà pris, au lieu d'ouvrir une session qui ne redirige rien.
+
+**2. Diriger l'application vers le tunnel.** Deux façons, la seconde est
+préférable :
+
+- modifier `.env.local` (non suivi par git) pour pointer l'hôte et le port sur
+  `127.0.0.1:5433` — **relever l'empreinte du fichier avant** (`sha256sum
+  .env.local`) ;
+- ou passer la variable **en ligne de commande** pour la durée de la commande :
+  rien n'est modifié, donc rien n'est à restaurer.
+
+Dans les deux cas : **ne basculer que `DATABASE_URL_TEST`**, en laissant
+`DATABASE_URL` sur l'adresse publique fermée. Une commande lancée sans
+`DB_CIBLE=test` échoue alors au lieu d'atteindre la base réelle. C'est une
+garde technique, et non une discipline à tenir de tête.
+
+**3. Travailler.** Les essais se font sur `gites_test`, jamais sur la base
+réelle — y compris les démonstrations (voir D-11 et la fiche de la Phase 2). Une
+valeur modifiée pour un test se restaure par un `UPDATE` vers la valeur relevée
+avant, **jamais** par `npm run db:seed`, qui écrase les valeurs saisies au
+back-office.
+
+**4. Refermer, et vérifier qu'on a refermé.**
+
+- Remettre `.env.local` à l'identique si l'étape 2 l'a modifié, et **comparer
+  l'empreinte** à celle relevée : c'est une preuve de restauration qui n'affiche
+  aucun secret. Un `.env.local` laissé sur `127.0.0.1:5433` échoue en silence à
+  la session suivante, sans rapport apparent avec la cause.
+- Fermer le tunnel et **contrôler** que le port 5433 n'écoute plus. Sous
+  Windows, arrêter la tâche ne suffit pas : `ssh.exe` survit et garde le port.
+
+```powershell
+$c = Get-NetTCPConnection -LocalPort 5433 -State Listen -ErrorAction SilentlyContinue
+if ($c) { Stop-Process -Id $c.OwningProcess -Force }
+```
+
+**L'adresse du conteneur change à chaque redémarrage.** Si les connexions
+cessent de passer alors que le tunnel tourne, c'est la première hypothèse à
+tester — avant toute autre :
+
+```bash
+ssh <utilisateur>@<ip du VPS> \
+  "sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' <conteneur du projet>"
+```
+
+Puis rouvrir le tunnel avec la nouvelle adresse. Le conteneur du projet est
+celui du § 1 : **jamais `coolify-db`**.
+
+**Une adresse IP versée dans l'historique git est permanente.** Elle ne
+disparaît pas si le dépôt devient public plus tard, ni si on la retire dans un
+commit ultérieur. D'où les marques de remplacement ci-dessus : les valeurs
+réelles vivent dans le gestionnaire de mots de passe des propriétaires.

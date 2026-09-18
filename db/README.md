@@ -209,8 +209,11 @@ volume persistant du VPS et doivent être sauvegardés à part.
      ```bash
      gunzip -c sauvegarde.sql.gz | psql "$DATABASE_URL"
      ```
-   Les commandes se lancent depuis une machine qui a `pg_restore` / `psql`
-   (le conteneur PostgreSQL de Coolify en dispose) et qui atteint la base.
+   Les commandes se lancent depuis une machine qui a `pg_restore` / `psql` et
+   qui atteint la base — **le conteneur PostgreSQL du projet** en dispose.
+   Attention : deux conteneurs PostgreSQL tournent sur ce serveur, et
+   `coolify-db` n'est **pas** le nôtre. Voir `docs/04-architecture.md` § 1 pour
+   les distinguer, et § 9 pour l'accès par tunnel.
 4. **Remettre le schéma à niveau** : `npm run db:migrate` applique les
    migrations publiées après la date de la sauvegarde, s'il y en a.
 5. **Contrôler** : `npm run db:verify`, puis vérifier à la main que le dernier

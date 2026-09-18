@@ -216,8 +216,8 @@ journal de Phase 1 :
 Les deux pages légales **ne figuraient pas** dans la liste de la Phase 1 : le
 journal parlait de « trois pages du site ». Il y en a cinq.
 
-Les fichiers `.html` à la racine et `admin/` en contiennent aussi, mais ils sont
-supprimés ou archivés en Phase 2 : ne pas les traiter deux fois.
+Les fichiers `.html` de la racine et `admin/` en contenaient aussi : ils ont été
+**supprimés en Phase 2** (commit `e341c01`), il n'y a donc plus rien à y faire.
 
 **Les deux issues sont acceptables ; l'état actuel ne l'est pas.** Soit Swikly
 est mis en service (Phase 4), soit toute mention en est retirée et le mécanisme
@@ -288,6 +288,79 @@ volets** : qui est le bailleur, comment les revenus sont déclarés, l'exonérat
 tient-elle.
 
 **Qui peut lever :** le comptable.
+
+---
+
+## 7 bis. Taxe de séjour — articles L.2333-26 et suivants du CGCT
+
+**Point BLOQUANT avant le premier client** (voir
+`docs/06-avant-premier-client.md`). Cet argent **n'est pas le nôtre** : il est
+collecté pour le compte d'une collectivité. Sous-collecté, la différence reste
+due et c'est la SARL qui paie. Sur-collecté, on facture au client une taxe qui
+n'est pas due. La formule appliquée aujourd'hui peut produire l'un ou l'autre
+selon le séjour.
+
+**La règle — meublé NON CLASSÉ.** Le montant se calcule par personne et par
+nuit :
+
+1. taux voté par la collectivité, entre **1 % et 5 %**, appliqué au prix
+   **hors taxes de la nuitée DIVISÉ PAR LE NOMBRE D'OCCUPANTS** ;
+2. multiplié par le nombre d'**occupants assujettis** et par le nombre de nuits ;
+3. augmenté des **taxes additionnelles** (départementale, et le cas échéant
+   régionale) ;
+4. **plafonné** au tarif le plus élevé voté par la collectivité.
+
+**Les mineurs sont exonérés** (art. L.2333-31 du CGCT). Le mécanisme est
+contre-intuitif et mérite d'être écrit en toutes lettres : **on divise par le
+nombre TOTAL d'occupants, mineurs compris, mais on ne facture qu'aux majeurs.**
+Le séjour de référence du parcours de test comporte 2 adultes et 1 enfant.
+
+**Les frais annexes facturés à part** (forfait ménage, linge) sont **exclus de
+l'assiette** dès lors qu'ils sont identifiables et détachables — doctrine DGFiP.
+Appliquer le taux au forfait ménage est une **surfacturation**.
+
+**Meublé CLASSÉ : méthode entièrement différente** — un **tarif fixe** par
+personne et par nuit, voté par la collectivité selon la catégorie. Attention au
+piège : **le label Gîtes de France et ses épis ne sont PAS un classement.** Les
+épis sont une marque privée ; le classement « meublé de tourisme » est une
+procédure administrative, en étoiles, par arrêté. Si les gîtes sont classés, le
+taux de 5,5 % stocké en base ne veut rien dire.
+
+**La taxe n'est pas soumise à la TVA** et doit figurer **distinctement** sur la
+facture.
+
+**Un registre est obligatoire** : date, nombre de personnes, nuitées, montant
+collecté, exonérations.
+
+**Où c'est implémenté aujourd'hui.**
+
+| Endroit | Ce qui s'y trouve |
+|---|---|
+| `gites.taux_taxe_sejour` | **5,50** pour les trois gîtes (numeric(5,2), un taux en pourcentage). |
+| Fiches gîtes | Affichent ce taux, lu en base depuis la Phase 2 (« Taxe de séjour — 5,5 % TTC »). |
+| `app/reserver/ReserverFunnel.tsx` | Écran de démonstration : `taxRate: 0.055` appliqué à **hébergement + forfait ménage**, sans notion d'occupants, de mineurs ni de plafond. |
+| `lib/montants.ts` | **Ne recalcule rien** : la taxe est une valeur **fournie** par la réservation (`reservations.taxe_sejour`) et reprise telle quelle sur le contrat et les factures. |
+
+**L'écart, nommé.** Le taux de 5,5 % correspond à la forme « 5 % + 10 % de taxe
+additionnelle départementale » du régime **non classé**, mais :
+
+- il est appliqué à une **assiette trop large** (le forfait ménage y est inclus) ;
+- il ignore la **division par le nombre d'occupants**, l'**exonération des
+  mineurs** et le **plafond** ;
+- et surtout, **on ne sait pas si les gîtes sont classés**, ce qui déciderait
+  d'une méthode entièrement différente.
+
+Comme `lib/montants.ts` reprend la valeur fournie sans la recalculer, l'erreur
+naît au moment de la réservation et se propage telle quelle jusqu'à la facture.
+
+**Où cela se corrige.** Le calcul vit dans le tunnel : c'est une **décision
+ouverte nommée de la Phase 3** (« méthode de calcul de la taxe de séjour »),
+à trancher à son cadrage. La Phase 2 n'a **rien modifié** au calcul : elle a
+documenté.
+
+**Qui peut lever :** les propriétaires (le classement) **et la commune de Savas
+ou son intercommunalité** (régime, taux, plafond votés). Source officielle :
+<https://taxesejour.impots.gouv.fr>.
 
 ---
 
