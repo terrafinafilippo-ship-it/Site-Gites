@@ -706,7 +706,7 @@ export default function ReserverFunnel({ gite }: { gite: GiteData }) {
                   </svg>
                   <strong>L&apos;Armu — couple, 2 pers.</strong>
                   <p>Disponible 11 → 18 juillet · jacuzzi véranda · 690 € TTC</p>
-                  <Link href="/reserver?gite=larmu" className="btn btn-secondary" style={{ marginTop: 12, width: "100%" }}>
+                  <Link href="/reserver?gite=armu" className="btn btn-secondary" style={{ marginTop: 12, width: "100%" }}>
                     Choisir L&apos;Armu
                   </Link>
                 </div>
@@ -716,7 +716,7 @@ export default function ReserverFunnel({ gite }: { gite: GiteData }) {
                   </svg>
                   <strong>La Maison Vieille — 4 pers. + sauna</strong>
                   <p>Disponible 11 → 18 juillet · spa et sauna · 960 € TTC</p>
-                  <Link href="/reserver?gite=maisonvieille" className="btn btn-secondary" style={{ marginTop: 12, width: "100%" }}>
+                  <Link href="/reserver?gite=maison-vieille" className="btn btn-secondary" style={{ marginTop: 12, width: "100%" }}>
                     Choisir La Maison Vieille
                   </Link>
                 </div>

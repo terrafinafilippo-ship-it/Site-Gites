@@ -24,14 +24,14 @@ const ROWS: RowContent[] = [
     lead: "L'écrin familial — un spa encastré sous la véranda chauffée, deux chambres calmes, et le garage qui vous épargne les averses.",
   },
   {
-    gite: GITES.larmu,
+    gite: GITES.armu,
     placeholder: "L'Armu — jacuzzi véranda, cheminée",
     caps: ["2 personnes", "1 chambre mansardée", "45 m²", "Jacuzzi · cheminée"],
     lead: "Un refuge pour deux — chambre mansardée à hauteur de toits, jacuzzi sous la véranda, cheminée d'ambiance pour les soirs frais.",
     reverse: true,
   },
   {
-    gite: GITES.maisonvieille,
+    gite: GITES["maison-vieille"],
     placeholder: "La Maison Vieille — pierre ancienne, sauna",
     caps: ["4 personnes", "2 chambres", "85 m²", "Spa + sauna privatifs"],
     lead: "La plus ancienne du hameau — pierre apparente, volumes nobles, et la seule à conjuguer spa et sauna privatifs.",

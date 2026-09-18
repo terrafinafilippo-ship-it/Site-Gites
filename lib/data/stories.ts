@@ -21,7 +21,7 @@ export const STORIES: Record<GiteId, GiteStory> = {
     spaChips: ["Spa encastré 4 places", "Véranda chauffée", "Climatisation l'été", "Accès illimité"],
     h2: "Un gîte qui sait se faire oublier.",
   },
-  larmu: {
+  armu: {
     intro: "L'Armu, c'est l'intime — une chambre mansardée qui regarde les toits, un jacuzzi sous la véranda, et un feu qui crépite quand il faut.",
     body:  "Tout est pensé pour deux : la table à manger juste assez grande, le canapé qui s'étire, la baignoire qui prend son temps. La cheminée d'ambiance n'est pas un décor — elle chauffe vraiment.",
     foot:  "Pour un anniversaire de mariage, une parenthèse à deux, ou simplement un week-end qui ressemble à autre chose.",
@@ -30,7 +30,7 @@ export const STORIES: Record<GiteId, GiteStory> = {
     spaChips: ["Jacuzzi privatif 2 places", "Cheminée d'ambiance", "Véranda chauffée", "Accès illimité"],
     h2: "Un refuge pour deux, à hauteur de toits.",
   },
-  maisonvieille: {
+  "maison-vieille": {
     intro: "La Maison Vieille est la plus ancienne du hameau, et la seule à conjuguer spa et sauna privatifs. La pierre est apparente, les poutres anciennes, le confort très moderne.",
     body:  "Deux chambres, des volumes nobles, et un protocole bien-être sur place : spa, sauna, douche fraîche, puis le canapé. Tous les jours si vous voulez.",
     foot:  "Idéale pour une famille ou pour se regrouper jusqu'à dix avec les autres gîtes du hameau.",

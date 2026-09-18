@@ -245,8 +245,8 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
               <ul>
                 <li>{Check}Spa encastré 4 places</li>
                 <li>{Check}Véranda chauffée &amp; climatisée</li>
-                {slug === "maisonvieille" && <li>{Check}Sauna privatif</li>}
-                {slug === "larmu" && <li>{Check}Cheminée d&apos;ambiance</li>}
+                {slug === "maison-vieille" && <li>{Check}Sauna privatif</li>}
+                {slug === "armu" && <li>{Check}Cheminée d&apos;ambiance</li>}
                 <li>{Check}Linge &amp; draps fournis</li>
               </ul>
             </div>
@@ -273,7 +273,7 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
             <div className={styles.equipCat}>
               <div className={styles.equipCatLabel}>Extérieur</div>
               <ul>
-                {slug !== "larmu" && <li>{Check}Garage privatif</li>}
+                {slug !== "armu" && <li>{Check}Garage privatif</li>}
                 <li>{Check}Terrasse ombragée</li>
                 <li>{Check}Salon de jardin</li>
                 <li>{Check}Barbecue</li>

@@ -93,8 +93,8 @@ export default function ContactForm() {
             <select name="gite" defaultValue="">
               <option value="">— Tous les gîtes —</option>
               <option value="laphine">LaPhine (4 pers.)</option>
-              <option value="larmu">L&apos;Armu (2 pers.)</option>
-              <option value="maisonvieille">La Maison Vieille (4 pers. + sauna)</option>
+              <option value="armu">L&apos;Armu (2 pers.)</option>
+              <option value="maison-vieille">La Maison Vieille (4 pers. + sauna)</option>
               <option value="multi">Plusieurs gîtes / séjour groupé</option>
             </select>
           </div>

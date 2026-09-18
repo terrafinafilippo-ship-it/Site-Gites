@@ -99,13 +99,13 @@ export default function HomePage() {
               description="Spa encastré en véranda chauffée, garage privatif, deux chambres pour la tribu."
             />
             <GiteCard
-              gite={GITES.larmu}
+              gite={GITES.armu}
               bedroomsLabel="1 chambre mansardée"
               placeholder="L'Armu — jacuzzi véranda, cheminée"
               description="Jacuzzi sous la véranda, cheminée d'ambiance, chambre mansardée — l'intime pour deux."
             />
             <GiteCard
-              gite={GITES.maisonvieille}
+              gite={GITES["maison-vieille"]}
               bedroomsLabel="2 chambres"
               placeholder="La Maison Vieille — spa et sauna, pierre ancienne"
               description={

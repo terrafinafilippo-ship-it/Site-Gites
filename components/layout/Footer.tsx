@@ -24,8 +24,8 @@ export default function Footer() {
             <h5>Nos gîtes</h5>
             <ul>
               <li><Link href="/gites/laphine">LaPhine — Famille</Link></li>
-              <li><Link href="/gites/larmu">L&apos;Armu — Couple</Link></li>
-              <li><Link href="/gites/maisonvieille">La Maison Vieille — Famille + sauna</Link></li>
+              <li><Link href="/gites/armu">L&apos;Armu — Couple</Link></li>
+              <li><Link href="/gites/maison-vieille">La Maison Vieille — Famille + sauna</Link></li>
               <li><Link href="/gites">Voir les trois gîtes</Link></li>
             </ul>
           </div>

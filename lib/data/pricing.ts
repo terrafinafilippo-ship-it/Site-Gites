@@ -14,13 +14,13 @@ export const PRICES_BY_GITE: Record<GiteId, PriceRow[]> = {
     { season: "Haute",   week: 920,  period: "Juin · Juillet · Août · Sept." },
     { season: "Fêtes",   week: 1050, period: "Vacances scolaires · 24 déc. → 2 janv." },
   ],
-  larmu: [
+  armu: [
     { season: "Basse",   week: 450, period: "Janv. · Fév. · Nov." },
     { season: "Moyenne", week: 560, period: "Mars · Avril · Mai · Oct." },
     { season: "Haute",   week: 690, period: "Juin · Juillet · Août · Sept." },
     { season: "Fêtes",   week: 820, period: "Vacances scolaires · 24 déc. → 2 janv." },
   ],
-  maisonvieille: [
+  "maison-vieille": [
     { season: "Basse",   week: 690,  period: "Janv. · Fév. · Nov." },
     { season: "Moyenne", week: 820,  period: "Mars · Avril · Mai · Oct." },
     { season: "Haute",   week: 960,  period: "Juin · Juillet · Août · Sept." },
