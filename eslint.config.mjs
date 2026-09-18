@@ -11,9 +11,6 @@ const config = [
       ".next/**",
       "node_modules/**",
       "next-env.d.ts",
-      // Site statique d'origine (HTML/JS hérités, hors application Next).
-      "assets/**",
-      "admin/**",
       // Stockage local des PDF (développement).
       ".data/**",
       // Sorties des parcours de non-régression (scripts/parcours).
