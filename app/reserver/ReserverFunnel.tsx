@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import ImageSlot from "@/components/ui/ImageSlot";
 import type { GiteData } from "@/lib/data/gites";
+import { fmtPrix } from "@/lib/format";
 import styles from "./page.module.css";
 
 export type FunnelState =
@@ -124,7 +125,15 @@ function Field({ label, required, name, type = "text", error }: {
   );
 }
 
-export default function ReserverFunnel({ gite }: { gite: GiteData }) {
+export default function ReserverFunnel({
+  gite,
+  cautionCentimes,
+}: {
+  gite: GiteData;
+  /** Caution du gîte lue en base, en centimes. `null` si la base ne répond pas. */
+  cautionCentimes: number | null;
+}) {
+  const montantCaution = cautionCentimes === null ? null : fmtPrix(cautionCentimes);
   const [state, setState] = useState<FunnelState>("step1");
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
@@ -194,7 +203,7 @@ export default function ReserverFunnel({ gite }: { gite: GiteData }) {
         {fmt(c.deposit)} aujourd&apos;hui
       </div>
       <div className={styles.recapCaution}>
-        Caution Swikly 500 € · empreinte J-7 · non débitée sauf dégât. Solde de {fmt(c.balance)} prélevé J-30.
+        Caution{montantCaution ? ` de ${montantCaution}` : ""} : préautorisation sur votre carte la veille du départ, sans débit sauf dégât constaté. Solde de {fmt(c.balance)} prélevé J-30.
       </div>
     </aside>
   );
@@ -466,8 +475,9 @@ export default function ReserverFunnel({ gite }: { gite: GiteData }) {
                     <em>{fmt(c.deposit)}</em>
                   </div>
                   <p style={{ fontSize: 12, color: "var(--color-gray-medium)", marginTop: 14, lineHeight: 1.5 }}>
-                    Caution Swikly de 500 € : empreinte bancaire prélevée J-7 et libérée 7 jours après
-                    votre départ. <strong>Non débitée</strong> sauf dégât constaté.
+                    Caution{montantCaution ? ` de ${montantCaution}` : ""} : préautorisation sur votre
+                    carte bancaire la veille de votre départ, levée au plus tard 3 jours après.{" "}
+                    <strong>Non débitée</strong> sauf dégât constaté.
                   </p>
                 </div>
 
@@ -535,7 +545,7 @@ export default function ReserverFunnel({ gite }: { gite: GiteData }) {
                       <strong>
                         J&apos;accepte les <Link href="/legal/cgv">conditions générales de vente</Link>
                       </strong>
-                      , le barème d&apos;annulation et la politique de caution Swikly.{" "}
+                      , le barème d&apos;annulation et les conditions du dépôt de garantie.{" "}
                       <span className={styles.req}>*</span>
                     </span>
                   </label>
@@ -612,25 +622,28 @@ export default function ReserverFunnel({ gite }: { gite: GiteData }) {
                 <div className={styles.stepCard}>
                   <div className={styles.stepCardNum}>2</div>
                   <div>
-                    <h4>Empreinte caution Swikly</h4>
-                    <p>500 € pré-autorisés, non débités. Libérés 7 jours après votre départ sauf dégât.</p>
-                    <div className={styles.stepCardWhen}>J − 7</div>
-                  </div>
-                </div>
-                <div className={styles.stepCard}>
-                  <div className={styles.stepCardNum}>3</div>
-                  <div>
                     <h4>Solde du séjour</h4>
                     <p>Prélèvement automatique du solde sur la carte utilisée aujourd&apos;hui — 635,11 € restants.</p>
                     <div className={styles.stepCardWhen}>J − 30</div>
                   </div>
                 </div>
                 <div className={styles.stepCard}>
-                  <div className={styles.stepCardNum}>4</div>
+                  <div className={styles.stepCardNum}>3</div>
                   <div>
                     <h4>Coordonnées d&apos;arrivée</h4>
                     <p>Adresse précise, code de la boîte à clés, numéros directs, infos pratiques — tout en un email.</p>
                     <div className={styles.stepCardWhen}>J − 3</div>
+                  </div>
+                </div>
+                <div className={styles.stepCard}>
+                  <div className={styles.stepCardNum}>4</div>
+                  <div>
+                    <h4>Caution</h4>
+                    <p>
+                      Préautorisation{montantCaution ? ` de ${montantCaution}` : ""} sur votre carte, sans débit.
+                      Levée au plus tard 3 jours après votre départ, sauf dégât constaté.
+                    </p>
+                    <div className={styles.stepCardWhen}>Veille du départ</div>
                   </div>
                 </div>
               </div>

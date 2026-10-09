@@ -473,6 +473,102 @@ lisent, c'est réintroduire exactement la divergence que cette décision supprim
 
 ---
 
+## D-16 · Caution par préautorisation Stripe en deux temps, sans prestataire tiers
+
+**Date :** 9 octobre 2026 (cadrage de la Phase 3). Le mécanisme se **développe
+en Phase 4** ; seuls le contrat, les pages et le référentiel ont été alignés à
+cette date.
+
+**Décision.** Le dépôt de garantie ne passe par aucun prestataire spécialisé. Il
+est géré directement avec Stripe, sur la carte que le client a utilisée pour
+l'acompte :
+
+1. **À la réservation**, la carte est enregistrée pendant le paiement de
+   l'acompte (`setup_future_usage: 'off_session'` sur le PaymentIntent de
+   l'acompte, rattaché à un Customer Stripe). C'est **un seul** enregistrement,
+   qui sert à la caution et, si le client l'a choisi, au solde. Le client n'a
+   aucune étape en plus ; son 3D Secure vaut accord.
+2. **La veille du départ, vers 18 h** (heure de Paris), une tâche planifiée crée
+   une préautorisation du montant de la caution : PaymentIntent avec
+   `capture_method: 'manual'`, `off_session: true`, `confirm: true`, métadonnée
+   `type: caution`. Aucun débit, les fonds sont bloqués. Le client reçoit le
+   même jour un courriel l'en informant.
+3. **Après l'état des lieux de sortie**, les propriétaires choisissent :
+   « Libérer » (`paymentIntents.cancel`, le client ne paie rien) ou « Retenir »
+   (`paymentIntents.capture` avec `amount_to_capture`, le reste étant libéré
+   automatiquement — **une seule capture possible**). Le moyen de paiement est
+   ensuite détaché (`paymentMethods.detach`) et le client reçoit un courriel
+   récapitulatif.
+
+**Paramètres arrêtés** (le texte opposable au client est celui de l'article 6
+du contrat, `docs/contrat-template.md`) :
+
+| Paramètre | Valeur | Raison |
+|---|---|---|
+| Mainlevée | Au plus tard **3 jours** après le départ | Sept jours de fonds bloqués sont une mauvaise expérience pour le client. Le départ est toujours fait en présence des propriétaires et le ménage a lieu au plus tard le lendemain : un dégât est vu avant. |
+| Sans décision au bout de 3 jours | Le site **libère tout seul**, après une alerte la veille | Le délai contractuel doit tenir même en cas d'oubli. Un oubli vaut donc libération. |
+| Débit après la mainlevée | **Aucun** | « Libérer » est définitif. Débiter un client à qui l'on a écrit que tout allait bien serait contestable, et le cas ne s'est jamais présenté. |
+| Suppression des données de carte | Dès la mainlevée ou l'encaissement, au plus tard **7 jours** après le départ | Rien ne justifie de les garder plus longtemps. |
+| Justificatifs d'une retenue | Remis au client, **sans délai contractuel** | Traité à la main, au cas par cas. |
+| Règlement du solde | **Au choix du client** à la réservation : prélèvement automatique à J-30, ou paiement par lui-même via un lien | La carte reste enregistrée dans les deux cas, pour la caution. |
+
+**Ces durées sont compatibles avec la validité d'une préautorisation.** Pour une
+transaction initiée par le marchand, Stripe annonce 5 jours pour Visa (fenêtre
+exacte : 4 jours 18 h) et 7 jours pour Mastercard. Une préautorisation créée la
+veille du départ à 18 h tient donc jusqu'au troisième jour après le départ, vers
+midi, pour une Visa. La date réelle se lit sur la charge
+(`latest_charge.payment_method_details.card.capture_before`) et se stocke : on
+ne la recalcule pas.
+
+**Pourquoi.** Un prestataire spécialisé coûte à chaque séjour, y compris quand
+rien n'est cassé — ce qui est le cas de presque tous les séjours. Stripe est
+déjà nécessaire pour l'acompte et le solde : la caution n'ajoute ni prestataire,
+ni compte, ni sous-traitant de données supplémentaire.
+
+**Alternatives écartées.**
+
+| Alternative | Raison du rejet |
+|---|---|
+| Swikly | 1,99 % + 0,25 € HT par caution émise, soit environ 10 € par séjour même sans dégât |
+| Tyllt | 0,25 % + 0,25 € HT par caution, mais pas d'API publique, pièce d'identité exigée, encaissement soumis à validation du client |
+| Wannapay | Abonnement de 249 à 399 € HT par an, et préautorisation de 7 jours qui impose la formule Business pour les longs séjours |
+| Mandat SEPA | Le client peut se faire rembourser sans condition pendant 8 semaines, contestation définitive : aucune garantie réelle |
+| Préautorisation seule dès l'arrivée | Limitée à 7 jours, non viable pour des séjours de 2 semaines |
+
+Swikly figurait dans le contrat, sur cinq pages du site et dans le référentiel
+sans avoir jamais été intégré (ancien écart E-4). Toutes ces mentions ont été
+retirées le 9 octobre 2026.
+
+**Cas d'échec à traiter en Phase 4.**
+
+- **Préautorisation refusée** (fonds insuffisants, carte bloquée) : alerte
+  immédiate aux propriétaires, et lien envoyé au client vers une page « valider
+  ma caution » pour donner une autre carte. Le client est encore sur place.
+  Repli : chèque ou espèces avant le départ (article 6.2 du contrat).
+- **`authentication_required`** : même page, sur laquelle le client confirme son
+  3D Secure.
+- **Aucune décision à l'approche de l'échéance** : alerte aux propriétaires la
+  veille, puis libération automatique.
+
+**Ce que cette décision ne règle pas.**
+
+- Deux confirmations écrites du support Stripe, **préalables à tout
+  développement** — voir `docs/phases/phase-4.md`.
+- La relecture de l'article 6 par un juriste — point 3 de
+  `docs/06-avant-premier-client.md`.
+- Hors code : ce que couvre l'assurance des propriétaires pour un dégât
+  dépassant le montant de la caution. À vérifier auprès de l'assureur.
+
+**Si on revient dessus.** Le mécanisme est décrit au client à trois niveaux qui
+doivent rester d'accord : l'article 6 du contrat (avec 5.1, 14.2, 14.4, 14.5 et
+le récapitulatif), les pages publiques (fiche gîte, tunnel, suivi, CGV, cookies)
+et les courriels. En changer un seul, c'est annoncer un dispositif qui n'est pas
+celui qu'on applique — pratique commerciale trompeuse (art. L.121-2 C. conso.).
+Allonger le délai de mainlevée au-delà de la validité de la préautorisation
+rendrait par ailleurs la retenue impossible pour une carte Visa.
+
+---
+
 ## Décisions ouvertes
 
 Elles ne sont **pas tranchées** et ne doivent pas l'être dans le code.

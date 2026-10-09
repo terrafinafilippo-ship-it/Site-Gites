@@ -10,7 +10,8 @@ n'empêche le logiciel de fonctionner : ils empêchent qu'il fonctionne
 
 ## Qui peut lever un point
 
-Quatre des dix points **ne se résolvent pas dans le dépôt**. Sans cette
+Cinq des dix points **ne se résolvent pas, ou pas entièrement, dans le dépôt**
+(3, 6, 7, 9 et 10). Sans cette
 précision, une session future les lira comme des tâches techniques et cherchera
 la réponse au mauvais endroit — dans le code, où elle n'est pas.
 
@@ -28,13 +29,13 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 |---|---|---|---|
 | 1 | Nommer les options sur les documents | Développement | Phase 5 |
 | 2 | Rendre l'adresse IP du signataire non falsifiable | Développement | Au déploiement |
-| 3 | Swikly : en service, ou retiré de **toutes** ses mentions | **Arbitrage**, puis développement | Phase 4 |
+| 3 | Caution Stripe : confirmée par Stripe, relue par un juriste, développée et testée | **Les propriétaires** (Stripe, juriste), puis développement | Phase 4 |
 | 4 | Passer la base en configuration de production | Développement | Phase 4 |
 | 5 | Vérifier le logo sur un PDF généré **après** déploiement | Développement | Au déploiement |
 | 6 | Qui est le bailleur juridique des trois gîtes | **Le comptable** | Phase 6 |
 | 7 | Médiateur de la consommation : lequel, et adhésion en cours | **Les propriétaires** | Phase 6 |
 | 8 | Écrire les règles sauna à l'article 12 du contrat | Développement | Phase 6 |
-| 9 | Sauvegarder le volume des PDF, et tester une restauration | **Phase de déploiement** | Au déploiement — échéance **à arbitrer à l'ouverture de la Phase 3** |
+| 9 | Sauvegarder le volume des PDF, et tester une restauration | **Phase de déploiement** | Au déploiement effectif — échéance tranchée le 24 septembre 2026 |
 | 10 | Taxe de séjour : régime, taux et assiette exacts | **Les propriétaires + la commune** | Phase 3 |
 
 ---
@@ -77,43 +78,57 @@ l'adresse **réelle**, pas celle de l'en-tête.
 
 ---
 
-## 3. Swikly : en service, ou retiré de toutes ses mentions
+## 3. Caution Stripe : confirmée, relue, développée et testée
 
-**Qui peut lever :** **arbitrage** (les deux issues sont acceptables), puis
-développement · **Phase 4**
+**Qui peut lever :** **les propriétaires** pour les deux premières conditions,
+puis développement · **Phase 4**
 
-**La raison.** Le contrat engage la SARL DE LA VOUTE sur un dépôt de garantie
-constitué par empreinte bancaire chez **Swikly**, avec une clause en encadré
-affirmant que l'empreinte ne constitue pas un encaissement, et un délai de
-mainlevée de 7 jours. Le site l'annonce au client. **Aucune intégration Swikly
-n'existe dans le code.** Signer ce contrat sans le service, c'est promettre par
-écrit un mécanisme qui n'existe pas — pratique commerciale trompeuse
-(art. L.121-2 C. conso.).
+**La raison.** Le contrat (article 6) et cinq pages du site décrivent une
+caution par **préautorisation Stripe** sur la carte de l'acompte, faite la
+veille du départ et levée au plus tard 3 jours après (`docs/02-decisions.md`,
+D-16). **Ce mécanisme n'est pas développé.** Signer un contrat avant qu'il le
+soit, c'est promettre par écrit un dispositif qui n'existe pas — pratique
+commerciale trompeuse (art. L.121-2 C. conso.).
 
-**L'action.** Deux issues, l'une ou l'autre :
+L'arbitrage prévu ici a été rendu le 9 octobre 2026 : le prestataire spécialisé
+annoncé jusque-là est écarté et toutes ses mentions ont été retirées. Le point
+ne se ferme pas pour autant : il change d'objet.
 
-- **Mettre Swikly en service** (Phase 4, cycle de paiement) ; ou
-- **retirer toute mention de Swikly** et décrire le mécanisme de caution
-  réellement appliqué.
+**L'action.** Quatre conditions, **toutes** nécessaires :
 
-**La liste exhaustive des emplacements**, plus longue que celle tenue jusqu'ici —
-le journal de Phase 1 parlait de « trois pages du site », il y en a **cinq** :
+1. **Stripe confirme par écrit** qu'une préautorisation à capture manuelle,
+   hors session, sur carte enregistrée, est autorisée pour une caution de
+   location saisonnière.
+2. **Stripe confirme par écrit** qu'une préautorisation annulée est gratuite.
+3. **Un juriste relit** l'article 6 du contrat, avec les articles 5.1 (b), 14.2,
+   14.4 et 14.5 modifiés en même temps (`docs/contrat-template.md`).
+4. **Le mécanisme est développé et testé** en mode test, avec les trois cartes
+   de `docs/phases/phase-4.md`.
 
-| Emplacement | Nature |
-|---|---|
-| `components/pdf/ContratPDF.tsx` art. **6.2, 6.3, 6.5** | Clause contractuelle |
-| `components/pdf/ContratPDF.tsx` ligne « Caution (Swikly) » du **récapitulatif** | Récapitulatif |
-| `components/pdf/ContratPDF.tsx` art. **14.4** | Destinataire RGPD |
-| `app/gites/[slug]/page.tsx` | Page publique |
-| `app/reserver/ReserverFunnel.tsx` (**4 endroits**) | Page publique |
-| `app/suivi/[ref]/page.tsx` | Page publique |
-| **`lib/data/legal.ts` — CGV** (`/legal/cgv`) | **Page publique** |
-| **`lib/data/legal.ts` — cookies** (`/legal/cookies`) | **Page publique** |
-| `docs/contrat-template.md` | Document de rédaction |
-| `docs/facture-template.md` | Document de rédaction |
+Les conditions 1 et 2 sont un **préalable au développement** : si Stripe refuse
+le montage, le contrat et le site sont à reprendre avant d'écrire du code.
 
-Les fichiers `.html` de la racine et `admin/` en contenaient aussi : ils ont été
-**supprimés en Phase 2** (commit `e341c01`), il n'y a donc plus rien à y faire.
+**Conditions 1 et 2 : réponses obtenues le 9 octobre 2026**, par le chat du
+support Stripe (un agent, pas l'assistant automatique). Réponses rapportées par
+le propriétaire :
+
+- le blocage d'un paiement avec encaissement ultérieur « ne présente aucune
+  restriction quant aux types d'e-commerçants concernés » ; avec une carte déjà
+  enregistrée, le paiement peut être créé plusieurs semaines plus tard, et
+  « peut être approuvé ou refusé selon l'émetteur de la carte » ;
+- « aucun frais n'est facturé en cas d'annulation d'un paiement non encaissé » ;
+- validité habituelle de l'autorisation : 7 jours à compter du lancement.
+
+**Reste à faire :** conserver la trace écrite. La transcription devait être
+envoyée par courriel à la clôture du chat ; à la date de cette note, sa
+réception n'est pas confirmée. À défaut, captures d'écran de l'historique.
+
+**Le contrôle.** Une réservation de test menée jusqu'au départ : la caution est
+bloquée la veille, libérée d'un clic, et la carte n'est plus attachée au client
+Stripe ensuite. Puis la même avec une retenue partielle.
+
+**Où le mécanisme est décrit** — à modifier ensemble s'il change : la liste est
+tenue dans `docs/03-conformite.md`, § 5, écart E-4.
 
 ---
 
@@ -274,20 +289,15 @@ apparaît ; générer un contrat pour L'Armu et vérifier qu'elle n'apparaît pa
 
 ## 9. Sauvegarder le volume des PDF, et tester une restauration
 
-**Qui peut lever :** **phase de déploiement** · **échéance à arbitrer à
-l'ouverture de la Phase 3**
+**Qui peut lever :** **déploiement effectif**
 
-> **À traiter avant la Phase 3, pas avant le go-live.** Le premier contrat réel
-> peut apparaître dès qu'un paiement fonctionne. Attendre la mise en ligne
-> officielle, c'est laisser des PDF signés sans sauvegarde.
->
-> **Mais ce point dépend du déploiement, qui n'a pas eu lieu** : le volume des
-> PDF n'existe pas encore, il n'y a donc ni sauvegarde à configurer ni
-> restauration à tester. Le prérequis ne peut pas être levé tel quel. Deux
-> issues — déployer d'abord, ou décaler l'échéance au déploiement effectif — sont
-> à trancher **à l'ouverture de la Phase 3**, et le choix retenu s'inscrit ici
-> avec sa date. Il ne doit pas se lever par oubli. Voir
-> `docs/phases/phase-3.md`.
+> **Décision prise à l'ouverture de la Phase 3 (24 septembre 2026) :** échéance
+> décalée au déploiement effectif, plutôt que déployer avant d'ouvrir la phase.
+> La Phase 3 va donc produire des PDF (contrats de test, puis de vrais contrats
+> si un client signe avant le déploiement en production) **sans sauvegarde de
+> volume**. Sans conséquence tant qu'aucun client réel ne signe — **intenable
+> dès qu'il y en a un**. Ce point doit être rouvert et levé avant, ou au moment
+> du déploiement — pas après. Voir `docs/phases/phase-3.md`.
 
 **Le fait (vérifié le 17 septembre 2026).** La sauvegarde quotidienne de Coolify
 vers Cloudflare R2 couvre **la base PostgreSQL, pas les fichiers**. Aucune

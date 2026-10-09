@@ -291,9 +291,9 @@ Mentions :
 
 Cette mention écrite explicite est **importante juridiquement** : elle confirme la nature de faveur commerciale et exclut toute requalification ultérieure du régime acompte en régime arrhes.
 
-### Facture pour débit sur caution Swikly
+### Facture pour débit sur le dépôt de garantie
 
-Lorsque le Bailleur procède au débit de tout ou partie de la caution Swikly (article 6.4), il émet une facture distincte :
+Lorsque le Bailleur encaisse tout ou partie du dépôt de garantie (article 6.4 du contrat), il émet une facture distincte :
 
 ```
 N° FAC-{{annee}}-{{seq}}

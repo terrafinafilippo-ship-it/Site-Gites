@@ -61,9 +61,13 @@ référencement en place.
 Le paiement (Phases 3 et 4), le back-office (Phase 5), la synchronisation des
 calendriers (Phase 7).
 
-**Les mentions Swikly** relèvent de la Phase 4 : ne pas les traiter ici, sauf si
-l'arbitrage a déjà été rendu et que les pages légales en portent encore
-(`lib/data/legal.ts`, CGV et cookies).
+**Le mécanisme de caution** est arrêté (décision D-16) et sa phrase a déjà été
+corrigée dans les CGV et la politique cookies le 9 octobre 2026. Il reste, au
+point 7 ci-dessus, à **aligner l'ensemble des CGV et des mentions RGPD sur
+l'article 6 et l'article 14 du contrat** : délai de mainlevée, conservation des
+données de carte par Stripe, solde au choix du client, envoi des courriels par
+Brevo. La politique de confidentialité annonce aujourd'hui une conservation de
+5 ans et ne dit rien de la carte.
 
 ---
 

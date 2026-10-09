@@ -54,8 +54,9 @@ renvoi nomme le point et son numéro ; le contenu reste dans `06`.
 
 Deux écarts à cette règle sont ouverts dans le code et documentés : E-7
 (identité recopiée dans les PDF) et les montants encore en dur dans le tunnel de
-réservation — dont « Caution Swikly 500 € », qui contredit la fiche de L'Armu
-depuis que celle-ci lit la base (Phase 2). Le second se lève en Phase 3.
+réservation (ménage, taxe, acompte). Le second se lève en Phase 3 ; la caution,
+qui en faisait partie et contredisait la fiche de L'Armu, est lue en base
+depuis le 9 octobre 2026.
 
 ### Règle 2 — La règle de garde
 
@@ -85,7 +86,7 @@ pratiquent et ce qu'ils acceptent de promettre.
 **Pourquoi c'est une règle et pas une préférence.** Une allégation inexacte sur
 les caractéristiques ou les conditions de vente est une **pratique commerciale
 trompeuse** (art. L.121-2 C. conso.), indépendamment de l'intention. Le projet en
-porte déjà deux exemples : le dossier Swikly (E-4) et « la semaine, tout
+porte déjà deux exemples : le mécanisme de caution (E-4) et « la semaine, tout
 compris » (E-8), alors que ménage, taxe de séjour et caution s'ajoutent au prix
 annoncé. Une formule écrite en trois secondes se corrige un an plus tard, après
 signature d'un client.
@@ -207,4 +208,4 @@ dans l'autre.
 | Un montant en flottant qui perd un centime | Phase 1, session B | `npm run verify:centimes` |
 | Un repli silencieux par conception (logo absent) | Phase 1, session B | Contrôle visuel des PDF après déploiement |
 | Une information recopiée à deux endroits qui divergent | Phase A (3 cas) | Règle 1 |
-| Un document qui annonce un mécanisme inexistant | Phase 1 (signature « avancée »), en cours (Swikly, sauna) | Décrire exactement ce qui existe |
+| Un document qui annonce un mécanisme inexistant | Phase 1 (signature « avancée »), en cours (caution, sauna) | Décrire exactement ce qui existe |

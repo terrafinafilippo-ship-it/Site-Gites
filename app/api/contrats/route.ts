@@ -27,7 +27,9 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const DOCUMENT_TYPE = 'contrat_location';
-const TEMPLATE_VERSION = 'v1';
+// v2 (octobre 2026) : dépôt de garantie par préautorisation Stripe (art. 6),
+// solde au choix du Locataire (art. 5.1), destinataires RGPD (art. 14).
+const TEMPLATE_VERSION = 'v2';
 // Le lien de signature reste valable 30 jours.
 const TOKEN_TTL_JOURS = 30;
 

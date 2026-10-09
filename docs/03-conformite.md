@@ -10,14 +10,14 @@ Un document qui affirme une conformité qui n'existe pas est pire qu'un document
 absent, parce qu'on s'y fie. Les écarts ci-dessous sont donc écrits en toutes
 lettres.
 
-**Synthèse des écarts ouverts au 16 septembre 2026 :**
+**Synthèse des écarts ouverts au 9 octobre 2026 :**
 
 | # | Écart | Gravité | Phase | Qui peut lever |
 |---|---|---|---|---|
 | E-1 | Identité du bailleur incohérente entre le site et les documents ; SIRET factice publié | Bloquant | 6 | Le comptable |
 | E-2 | Deux médiateurs annoncés ; adhésion non prouvée | Bloquant | 6 | Les propriétaires |
 | E-3 | Aucune règle sauna dans le contrat, alors que le consentement en fait accepter | Bloquant | 6 | Développement |
-| E-4 | Swikly engagé par contrat sans intégration existante | Bloquant | 4 | Arbitrage + développement |
+| E-4 | Caution par préautorisation Stripe décrite au contrat et sur le site, pas encore développée | Bloquant | 4 | Stripe (deux confirmations) + juriste + développement |
 | E-5 | Options facturées sous un intitulé générique | Bloquant | 5 | Développement |
 | E-6 | Adresse IP du signataire falsifiable | Bloquant | Déploiement | Développement |
 | E-7 | Identité légale recopiée en dur dans les PDF, hors de `lib/constantes.ts` | Faible | 6 | Développement |
@@ -153,23 +153,44 @@ durées de conservation et de ses droits.
 (`components/pdf/ContratPDF.tsx`, 14.1 à 14.6) :
 - **14.1** responsable : SARL DE LA VOUTE, contact `nicolas.terrafina@wanadoo.fr` ;
 - **14.2** données, y compris les **données de signature** (identifiant
-  technique, horodatage, IP, empreinte SHA-256) ;
+  technique, horodatage, IP, empreinte SHA-256) — et la précision que les
+  **données de carte** ne sont pas conservées par le Bailleur mais **par
+  Stripe**, dans les conditions de l'article 6 ;
 - **14.3** bases légales : exécution du contrat (art. 6.1.b), obligation légale
   comptable (6.1.c), intérêt légitime (6.1.f), consentement pour la prospection
   (6.1.a) ;
-- **14.4** destinataires : hébergeur (OVH SAS, France), **Swikly**, prestataire
-  de paiement, expert-comptable, autorités sur réquisition — avec la précision
-  que **la signature est recueillie sans prestataire tiers** ;
+- **14.4** destinataires : hébergeur (OVH SAS, France), **prestataire de
+  paiement (Stripe)** pour l'acompte, le solde et le dépôt de garantie,
+  **prestataire d'envoi de courriels (Brevo)**, expert-comptable, autorités sur
+  réquisition — avec la précision que **la signature est recueillie sans
+  prestataire tiers** ;
 - **14.5** durées : contrat et pièces comptables 10 ans · registre des occupants
-  1 an · prospection 3 ans · signature 10 ans ;
+  1 an · prospection 3 ans · signature 10 ans · **données de carte : jusqu'à la
+  mainlevée ou l'encaissement du dépôt de garantie, au plus tard 7 jours après
+  le départ** ;
 - **14.6** droits et réclamation auprès de la CNIL.
 
 **Comment on vérifie.** Lecture de l'article 12/14 sur un PDF réellement produit
 (le contrôle automatique ne lit pas la pertinence juridique d'un texte).
 
-**Écart.** Voir E-4 : l'article 14.4 déclare Swikly comme destinataire de
-données, alors qu'aucune intégration n'existe. Une déclaration de destinataire
-inexacte est un défaut d'information, dans un sens comme dans l'autre.
+**Écart.** Voir E-4 : l'article 14 nomme Stripe et Brevo comme destinataires et
+annonce une durée de conservation de la carte, alors qu'aucun des deux n'est
+encore branché (Phases 3 et 4). La déclaration est **exacte pour le système
+cible**, pas pour le code d'aujourd'hui : aucun contrat réel ne doit être signé
+avant que les deux le soient. Une déclaration de destinataire inexacte est un
+défaut d'information, dans un sens comme dans l'autre.
+
+**Engagement à tenir par le code (Phase 4).** La suppression de la carte au plus
+tard 7 jours après le départ est une promesse faite au client : elle doit être
+**exécutée par une tâche**, pas laissée à un geste des propriétaires. Stripe est
+établi dans l'Union européenne mais appartient à un groupe américain ; la
+dernière phrase de 14.4 (« aucune donnée n'est transférée hors UE sans
+encadrement juridique approprié ») est à faire confirmer par le juriste en même
+temps que l'article 6.
+
+**Pages publiques en retard sur le contrat.** La politique de confidentialité
+(`lib/data/legal.ts`) annonce une conservation de 5 ans et ne dit rien de la
+carte ni de Brevo : à aligner en Phase 6.
 
 **Point de vigilance.** L'immutabilité de la table `signatures` entre en tension
 avec le **droit à l'effacement**. Un effacement légitime exige de désactiver
@@ -191,38 +212,37 @@ mécanisme qui n'existe pas**. Le précédent est connu : en Phase 1, les docume
 annonçaient une signature électronique « avancée » alors qu'elle était simple.
 Corrigé en décrivant exactement ce qui existe.
 
-**Écart E-4 (bloquant, Phase 4) — le dossier Swikly.** Le contrat engage la SARL
-DE LA VOUTE sur un dépôt de garantie constitué par **empreinte bancaire
-pré-autorisée chez Swikly**, avec une clause en encadré affirmant que
-l'empreinte **ne constitue pas un encaissement**, et un délai de mainlevée de
-7 jours. Le site l'annonce au client sur trois pages. **Aucune intégration
-Swikly n'existe dans le code** : aucun appel, aucune clé, aucun webhook. Signer
-ce contrat sans le service, c'est promettre par écrit un mécanisme qui n'existe
-pas.
+**Écart E-4 (bloquant, Phase 4) — la caution.** Jusqu'au 9 octobre 2026, le
+contrat et cinq pages du site annonçaient un dépôt de garantie par empreinte
+bancaire chez un prestataire spécialisé qui n'a jamais été intégré. Ce
+prestataire est écarté (`docs/02-decisions.md`, D-16) et **toutes ses mentions
+ont été retirées**.
 
-Emplacements à traiter **ensemble** — la liste est plus longue que celle du
-journal de Phase 1 :
+Le contrat et le site décrivent désormais le mécanisme retenu : une
+**préautorisation Stripe** sur la carte de l'acompte, faite la veille du départ,
+levée au plus tard 3 jours après, sans débit sauf dégât constaté. **L'écart
+change de nature mais ne se ferme pas** : ce mécanisme n'est pas développé
+(Phase 4). Signer un contrat aujourd'hui, ce serait encore promettre par écrit
+un dispositif qui n'existe pas. Il se ferme quand les quatre conditions du
+point 3 de `docs/06-avant-premier-client.md` sont réunies.
+
+Emplacements qui décrivent le mécanisme, à modifier **ensemble** s'il change :
 
 | Emplacement | Nature |
 |---|---|
-| `components/pdf/ContratPDF.tsx` art. 6.2, 6.3, 6.5 | Clause contractuelle |
-| `components/pdf/ContratPDF.tsx` ligne « Caution (Swikly) » du récapitulatif | Récapitulatif |
-| `components/pdf/ContratPDF.tsx` art. 14.4 | Destinataire RGPD |
+| `components/pdf/ContratPDF.tsx` art. 5.1, 6.2 à 6.5 | Clause contractuelle |
+| `components/pdf/ContratPDF.tsx` ligne « Caution » du récapitulatif | Récapitulatif |
+| `components/pdf/ContratPDF.tsx` art. 14.2, 14.4, 14.5 | Information RGPD |
 | `app/gites/[slug]/page.tsx` | Page publique |
 | `app/reserver/ReserverFunnel.tsx` (4 endroits) | Page publique |
 | `app/suivi/[ref]/page.tsx` | Page publique |
-| **`lib/data/legal.ts` — CGV et politique cookies** | **Pages publiques `/legal/cgv` et `/legal/cookies`** |
+| `lib/data/legal.ts` — CGV et politique cookies | Pages publiques `/legal/cgv` et `/legal/cookies` |
 | `docs/contrat-template.md`, `docs/facture-template.md` | Documents de rédaction |
 
-Les deux pages légales **ne figuraient pas** dans la liste de la Phase 1 : le
-journal parlait de « trois pages du site ». Il y en a cinq.
-
-Les fichiers `.html` de la racine et `admin/` en contenaient aussi : ils ont été
-**supprimés en Phase 2** (commit `e341c01`), il n'y a donc plus rien à y faire.
-
-**Les deux issues sont acceptables ; l'état actuel ne l'est pas.** Soit Swikly
-est mis en service (Phase 4), soit toute mention en est retirée et le mécanisme
-réellement appliqué est décrit.
+Toute modification du texte du contrat s'accompagne d'un changement de
+`TEMPLATE_VERSION` (`app/api/contrats/route.ts`), enregistrée sur chaque contrat
+émis : c'est elle qui dit quel client a signé quel texte. Version en cours :
+`v2`.
 
 **Écart E-1 (bloquant, Phase 6) — identité du professionnel.** Voir § 9.
 
@@ -230,8 +250,8 @@ réellement appliqué est décrit.
 bloc tarifs de la fiche gîte (`app/gites/[slug]/page.tsx`) annonce un prix
 « tout compris ». Or le séjour comporte en plus un **forfait ménage obligatoire
 de 80 €**, une **taxe de séjour** et une **caution**. L'allégation porte donc sur
-une condition de vente, comme le dossier Swikly, en moins grave : ici le
-mécanisme existe, c'est sa description qui promet trop.
+une condition de vente, comme l'écart E-4, en moins grave : ici le mécanisme
+existe, c'est sa description qui promet trop.
 
 La formule vient du site d'origine : elle n'a pas été inventée par une session et
 n'est pas corrigée d'autorité (règle 3 de `docs/05-protocole-phase.md`). Deux

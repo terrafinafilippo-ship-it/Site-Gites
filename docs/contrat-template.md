@@ -154,7 +154,9 @@ Le règlement du prix total défini à l'article 4 est échelonné comme suit :
 | Échéance | Montant | Date limite | Modalité |
 |---|---|---|---|
 | **(a) Acompte** — {{taux_acompte}} % du total | {{montant_acompte}} € | À la signature du contrat | Paiement en ligne par carte bancaire |
-| **(b) Solde** — {{taux_solde}} % du total | {{montant_solde}} € | Au plus tard {{delai_solde}} jours avant l'arrivée, soit le {{date_butoir_solde}} | Paiement en ligne par carte bancaire |
+| **(b) Solde** — {{taux_solde}} % du total | {{montant_solde}} € | Au plus tard {{delai_solde}} jours avant l'arrivée, soit le {{date_butoir_solde}} | Au choix du Locataire |
+
+Le solde est réglé, au choix du Locataire exprimé lors de la réservation : par prélèvement automatique sur la carte bancaire enregistrée, à la date limite ; ou par paiement en ligne par carte bancaire à son initiative, au plus tard à cette date.
 
 ### 5.2 — Nature juridique de l'acompte
 
@@ -178,23 +180,33 @@ Dans cette hypothèse :
 
 ## Article 6 — Dépôt de garantie (caution)
 
+> **À FAIRE RELIRE PAR UN JURISTE AVANT LE PREMIER CLIENT.** Rédaction
+> d'octobre 2026 : dépôt de garantie par préautorisation sur la carte
+> enregistrée, sans prestataire tiers (voir `docs/02-decisions.md`, D-16).
+> Les articles 5.1 (b), 14.2, 14.4 et 14.5 ont été modifiés dans le même
+> changement et relèvent de la même relecture.
+
 ### 6.1 — Montant et finalité
 
 Le Locataire constitue auprès du Bailleur un dépôt de garantie d'un montant de **{{caution_montant}} euros**, destiné à couvrir les éventuels dommages causés au gîte, à son mobilier, à ses équipements ou à ses dépendances pendant la durée du séjour.
 
 ### 6.2 — Modalité de constitution
 
-La constitution de ce dépôt s'opère par **empreinte bancaire pré-autorisée** auprès du prestataire spécialisé **Swikly**. Les conditions générales d'utilisation de Swikly sont portées à la connaissance du Locataire lors de la mise en place de l'empreinte et acceptées par lui dans ce cadre.
+Lors du paiement de l'acompte, le Locataire autorise le Bailleur à conserver, via son prestataire de paiement Stripe, les données de la carte bancaire utilisée, aux fins du dépôt de garantie défini au présent article et, s'il a opté pour le prélèvement automatique, du règlement du solde (article 5.1).
 
-### 6.3 — Nature de l'empreinte bancaire
+La veille de la date de départ prévue, une **préautorisation** d'un montant égal au dépôt de garantie est effectuée automatiquement sur cette carte. Le Locataire en est informé par écrit le jour même.
 
-> **L'empreinte bancaire constituée via Swikly NE CONSTITUE PAS UN ENCAISSEMENT.** Aucune somme n'est prélevée sur le compte du Locataire au moment de sa mise en place.
+Si la préautorisation ne peut être réalisée, le Locataire s'engage à constituer le dépôt de garantie par un autre moyen avant son départ.
 
-Le Bailleur dispose uniquement de la faculté de procéder au prélèvement, en tout ou partie, dans les conditions limitativement définies au 6.4 ci-après.
+### 6.3 — Nature de la préautorisation
+
+> **LA PRÉAUTORISATION NE CONSTITUE PAS UN ENCAISSEMENT.** Aucune somme n'est débitée du compte du Locataire au moment de sa mise en place.
+
+Le Bailleur dispose uniquement de la faculté de l'encaisser, en tout ou partie, dans les conditions limitativement définies au 6.4 ci-après.
 
 ### 6.4 — Conditions et modalités de débit
 
-Le Bailleur ne peut procéder au débit de tout ou partie du dépôt de garantie que dans les cas suivants, dûment constatés à l'état des lieux de sortie ou dans les heures suivant le départ du Locataire :
+Le Bailleur ne peut encaisser tout ou partie du dépôt de garantie que dans les cas suivants, dûment constatés à l'état des lieux de sortie ou, au plus tard, dans les **trois (3) jours** suivant le départ du Locataire :
 
 1. **Dégradations matérielles** du gîte, du mobilier ou des équipements ;
 2. **Manquements aux obligations d'entretien** définies à l'article 11 ;
@@ -202,11 +214,13 @@ Le Bailleur ne peut procéder au débit de tout ou partie du dépôt de garantie
 4. **Frais de remise en état exceptionnels** (nettoyage non standard, traitement post-tabac, dépollution suite à présence d'animal non déclaré, etc.) ;
 5. **Dépassement non autorisé** de la capacité d'accueil constaté pendant le séjour.
 
-Le montant prélevé correspond strictement au coût réel de la remise en état, justifié par devis ou facture remis au Locataire dans un délai maximal de **trente (30) jours** suivant son départ.
+Le montant encaissé correspond strictement au coût réel de la remise en état, justifié par l'état des lieux, des photographies, un devis ou une facture. Le Locataire est informé par écrit du montant retenu et de ses justificatifs.
 
-### 6.5 — Mainlevée
+### 6.5 — Mainlevée et suppression des données de carte
 
-À défaut de constat de dommage à l'état des lieux de sortie, ou à l'issue de l'évaluation du préjudice le cas échéant, le Bailleur procède à la mainlevée de l'empreinte bancaire dans un délai maximal de **sept (7) jours** suivant le départ du Locataire.
+À défaut de dommage constaté, ou à l'issue de l'évaluation du préjudice le cas échéant, le Bailleur procède à la mainlevée de la préautorisation dans un délai maximal de **trois (3) jours** suivant le départ du Locataire.
+
+Les données de carte sont supprimées dès la mainlevée ou l'encaissement du dépôt de garantie, et au plus tard **sept (7) jours** après le départ.
 
 ---
 
@@ -222,7 +236,7 @@ Le montant prélevé correspond strictement au coût réel de la remise en état
 | `nb_adultes`, `nb_enfants`, `nb_bebes`, `liste_occupants_majeurs` | Composition du foyer | Formulaire |
 | `prix_location`, `forfait_menage`, `taux_taxe_sejour`, `montant_taxe_sejour`, `sous_total`, `total_ttc` | Calculs tarifaires | Computés depuis tarifs |
 | `taux_acompte`, `montant_acompte`, `taux_solde`, `montant_solde`, `delai_solde`, `date_butoir_solde`, `date_versement_acompte` | Échéancier paiement | Paramètres + computés |
-| `caution_montant` | Montant caution Swikly | Table `gite` |
+| `caution_montant` | Montant du dépôt de garantie | Table `gite` |
 
 ---
 
@@ -416,7 +430,7 @@ Sont collectées dans le cadre du présent contrat :
 - **Identité** : civilité, nom, prénom ;
 - **Coordonnées** : adresse postale, téléphone, courriel ;
 - **Données de réservation** : dates, gîte loué, composition du foyer, identité des occupants majeurs ;
-- **Données financières** : montants versés, dates et modalités de paiement (les données de carte bancaire ne sont pas conservées par le Bailleur ; elles transitent par le prestataire de paiement habilité) ;
+- **Données financières** : montants versés, dates et modalités de paiement (les données de carte bancaire ne sont pas conservées par le Bailleur ; elles sont traitées et conservées par le prestataire de paiement Stripe, dans les conditions de l'article 6) ;
 - **Données de signature électronique** : identifiant technique de la signature, horodatage, adresse IP du signataire, empreinte SHA-256 du document signé.
 
 ### 14.3 — Finalités et bases légales
@@ -435,7 +449,7 @@ Sont collectées dans le cadre du présent contrat :
 Les données peuvent être communiquées :
 
 - aux **collaborateurs habilités** du Bailleur ;
-- aux **prestataires sous-traitants** strictement nécessaires : hébergeur du site et de la base de données (OVH SAS, données hébergées en France), Swikly (dépôt de garantie), prestataire de paiement, expert-comptable. La signature électronique est recueillie directement par le Bailleur, sans prestataire tiers ;
+- aux **prestataires sous-traitants** strictement nécessaires : hébergeur du site et de la base de données (OVH SAS, données hébergées en France), prestataire de paiement (Stripe, pour l'acompte, le solde et le dépôt de garantie), prestataire d'envoi de courriels (Brevo), expert-comptable. La signature électronique est recueillie directement par le Bailleur, sans prestataire tiers ;
 - aux **autorités administratives ou judiciaires** sur réquisition légale.
 
 Aucune donnée n'est transférée hors de l'Union européenne sans encadrement juridique approprié (clauses contractuelles types ou décision d'adéquation).
@@ -448,6 +462,7 @@ Aucune donnée n'est transférée hors de l'Union européenne sans encadrement j
 | Identité des occupants (registre de présence) | 1 an après la fin du séjour |
 | Données de prospection commerciale | 3 ans à compter du dernier contact actif |
 | Données de signature électronique (preuve probatoire) | Durée légale de prescription (10 ans) |
+| Données de carte bancaire (conservées par Stripe) | Jusqu'à la mainlevée ou l'encaissement du dépôt de garantie, au plus tard 7 jours après le départ |
 
 ### 14.6 — Droits du Locataire
 

@@ -133,7 +133,7 @@ export default async function SuiviPage({ params }: { params: Promise<Params> })
                   <rect x="5" y="11" width="14" height="10" rx="1" /><path d="M9 11V7a3 3 0 0 1 6 0v4" />
                 </svg>
               </div>
-              <h4>Caution Swikly</h4>
+              <h4>Caution</h4>
               <span className={`${styles.statusCardState} ${styles.upcoming}`}>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <circle cx="12" cy="12" r="10" />
@@ -141,10 +141,10 @@ export default async function SuiviPage({ params }: { params: Promise<Params> })
                 À venir
               </span>
               <p>
-                Empreinte bancaire de 500 €, non débitée sauf dégât constaté. Libérée 7 jours après
-                votre départ.
+                Préautorisation sur votre carte, sans débit. Levée au plus tard 3 jours après votre
+                départ, sauf dégât constaté.
               </p>
-              <div className={styles.statusCardWhen}>J − 7 · 4 juillet 2026</div>
+              <div className={styles.statusCardWhen}>Veille du départ · 17 juillet 2026</div>
             </div>
           </div>
 

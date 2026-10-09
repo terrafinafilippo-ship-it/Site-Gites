@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { GITES, isGiteId } from "@/lib/data/gites";
+import { chiffresDuGite, lireChiffresPublics } from "@/lib/gites-publics";
 import ReserverFunnel from "./ReserverFunnel";
 
 export const metadata: Metadata = {
@@ -13,5 +14,9 @@ export default async function ReserverPage({
 }) {
   const { gite } = await searchParams;
   const selected = gite && isGiteId(gite) ? GITES[gite] : GITES.laphine;
-  return <ReserverFunnel gite={selected} />;
+  // Montant de la caution lu en base (gites.caution), jamais en dur. `null` si
+  // la base ne répond pas : le tunnel décrit alors le mécanisme sans chiffre.
+  const publics = await lireChiffresPublics();
+  const cautionCentimes = chiffresDuGite(publics, selected.id)?.caution ?? null;
+  return <ReserverFunnel gite={selected} cautionCentimes={cautionCentimes} />;
 }

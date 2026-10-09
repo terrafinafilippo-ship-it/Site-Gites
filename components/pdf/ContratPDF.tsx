@@ -620,7 +620,7 @@ export function ContratPDF({
                 </Text>
               </View>
               <View style={styles.recapRow}>
-                <Text style={styles.recapK}>Caution (Swikly)</Text>
+                <Text style={styles.recapK}>Caution</Text>
                 <Text style={styles.recapV}>{fmtEuro(data.cautionMontant)}</Text>
               </View>
             </View>
@@ -1142,9 +1142,17 @@ export function ContratPDF({
               <Text style={[styles.tblTd, { flex: 2 }]}>
                 {data.dateButoirSolde}
               </Text>
-              <Text style={[styles.tblTd, { flex: 1.5 }]}>CB en ligne</Text>
+              <Text style={[styles.tblTd, { flex: 1.5 }]}>
+                Au choix du Locataire
+              </Text>
             </View>
           </View>
+          <Text style={styles.p}>
+            Le solde est réglé, au choix du Locataire exprimé lors de la
+            réservation : par prélèvement automatique sur la carte bancaire
+            enregistrée, à la date limite ; ou par paiement en ligne par carte
+            bancaire à son initiative, au plus tard à cette date.
+          </Text>
 
           <Text style={styles.artH3}>
             <Text style={styles.artH3Num}>5.2 </Text>Nature juridique de
@@ -1210,29 +1218,32 @@ export function ContratPDF({
             <Text style={styles.artH3Num}>6.2 </Text>Modalité de constitution
           </Text>
           <Text style={styles.p}>
-            La constitution s&apos;opère par{' '}
-            <Text style={styles.pBold}>
-              empreinte bancaire pré-autorisée
-            </Text>{' '}
-            auprès du prestataire spécialisé{' '}
-            <Text style={styles.pBold}>Swikly</Text>. Les CGU Swikly sont
-            portées à la connaissance du Locataire lors de la mise en place de
-            l&apos;empreinte et acceptées par lui dans ce cadre.
+            Lors du paiement de l&apos;acompte, le Locataire autorise le
+            Bailleur à conserver, via son prestataire de paiement Stripe, les
+            données de la carte bancaire utilisée, aux fins du dépôt de
+            garantie défini au présent article et, s&apos;il a opté pour le
+            prélèvement automatique, du règlement du solde (article 5.1). La
+            veille de la date de départ prévue, une{' '}
+            <Text style={styles.pBold}>préautorisation</Text> d&apos;un montant
+            égal au dépôt de garantie est effectuée automatiquement sur cette
+            carte. Le Locataire en est informé par écrit le jour même. Si la
+            préautorisation ne peut être réalisée, le Locataire s&apos;engage
+            à constituer le dépôt de garantie par un autre moyen avant son
+            départ.
           </Text>
           <Text style={styles.artH3}>
-            <Text style={styles.artH3Num}>6.3 </Text>Nature de l&apos;empreinte
-            bancaire
+            <Text style={styles.artH3Num}>6.3 </Text>Nature de la
+            préautorisation
           </Text>
           <View style={styles.callout}>
             <Text style={styles.calloutText}>
               <Text style={styles.pBold}>
-                L&apos;empreinte bancaire constituée via Swikly NE CONSTITUE
-                PAS UN ENCAISSEMENT.
+                LA PRÉAUTORISATION NE CONSTITUE PAS UN ENCAISSEMENT.
               </Text>{' '}
-              Aucune somme n&apos;est prélevée sur le compte du Locataire au
-              moment de sa mise en place. Le Bailleur dispose uniquement de la
-              faculté de procéder au prélèvement dans les conditions
-              limitativement définies au 6.4.
+              Aucune somme n&apos;est débitée du compte du Locataire au moment
+              de sa mise en place. Le Bailleur dispose uniquement de la
+              faculté de l&apos;encaisser, en tout ou partie, dans les
+              conditions limitativement définies au 6.4.
             </Text>
           </View>
           <Text style={styles.artH3}>
@@ -1240,9 +1251,11 @@ export function ContratPDF({
             de débit
           </Text>
           <Text style={styles.p}>
-            Le Bailleur ne peut procéder au débit de tout ou partie du dépôt
+            Le Bailleur ne peut encaisser tout ou partie du dépôt de garantie
             que dans les cas suivants, dûment constatés à l&apos;EDL de sortie
-            ou dans les heures suivant le départ :
+            ou, au plus tard, dans les{' '}
+            <Text style={styles.pBold}>3 jours</Text> suivant le départ du
+            Locataire :
           </Text>
           <View style={styles.list}>
             <View style={styles.listItem}>
@@ -1282,20 +1295,23 @@ export function ContratPDF({
             </View>
           </View>
           <Text style={styles.p}>
-            Le montant prélevé correspond strictement au coût réel de la
-            remise en état, justifié par devis ou facture remis au Locataire
-            dans un délai maximal de{' '}
-            <Text style={styles.pBold}>30 jours</Text> suivant son départ.
+            Le montant encaissé correspond strictement au coût réel de la
+            remise en état, justifié par l&apos;état des lieux, des
+            photographies, un devis ou une facture. Le Locataire est informé
+            par écrit du montant retenu et de ses justificatifs.
           </Text>
           <Text style={styles.artH3}>
-            <Text style={styles.artH3Num}>6.5 </Text>Mainlevée
+            <Text style={styles.artH3Num}>6.5 </Text>Mainlevée et suppression
+            des données de carte
           </Text>
           <Text style={styles.p}>
-            À défaut de constat de dommage, ou à l&apos;issue de
+            À défaut de dommage constaté, ou à l&apos;issue de
             l&apos;évaluation du préjudice, le Bailleur procède à la mainlevée
-            de l&apos;empreinte dans un délai maximal de{' '}
-            <Text style={styles.pBold}>7 jours</Text> suivant le départ du
-            Locataire.
+            de la préautorisation dans un délai maximal de{' '}
+            <Text style={styles.pBold}>3 jours</Text> suivant le départ du
+            Locataire. Les données de carte sont supprimées dès la mainlevée
+            ou l&apos;encaissement du dépôt de garantie, et au plus tard{' '}
+            <Text style={styles.pBold}>7 jours</Text> après le départ.
           </Text>
         </View>
 
@@ -1648,9 +1664,11 @@ export function ContratPDF({
             Identité (civilité, nom, prénom) ; coordonnées (adresse postale,
             téléphone, courriel) ; données de réservation (dates, gîte,
             composition du foyer, identité des occupants majeurs) ; données
-            financières (montants versés, dates et modalités — les données CB
-            ne sont pas conservées par le Bailleur, elles transitent par le
-            prestataire de paiement habilité) ; données de signature
+            financières (montants versés, dates et modalités — les données de
+            carte bancaire ne sont pas conservées par le Bailleur ; elles
+            sont traitées et conservées par le prestataire de paiement
+            Stripe, dans les conditions de l&apos;article 6) ; données de
+            signature
             électronique (identifiant technique de la signature, horodatage,
             adresse IP du signataire, empreinte SHA-256 du document signé).
           </Text>
@@ -1665,8 +1683,10 @@ export function ContratPDF({
             <Text style={styles.pBold}>14.4 Destinataires —</Text>{' '}
             collaborateurs habilités du Bailleur ; sous-traitants strictement
             nécessaires : hébergeur du site et de la base de données (OVH SAS,
-            données hébergées en France), Swikly (dépôt de garantie),
-            prestataire de paiement, expert-comptable ; autorités sur
+            données hébergées en France), prestataire de paiement (Stripe,
+            pour l&apos;acompte, le solde et le dépôt de garantie),
+            prestataire d&apos;envoi de courriels (Brevo), expert-comptable ;
+            autorités sur
             réquisition légale. La signature électronique est recueillie
             directement par le Bailleur, sans prestataire tiers. Aucune
             donnée n&apos;est transférée hors UE sans encadrement juridique
@@ -1677,7 +1697,9 @@ export function ContratPDF({
             contrat, facture et pièces comptables : 10 ans · identité des
             occupants (registre) : 1 an après fin séjour · prospection
             commerciale : 3 ans depuis dernier contact · signature
-            électronique : durée de prescription légale (10 ans).
+            électronique : durée de prescription légale (10 ans) · données de
+            carte bancaire : jusqu&apos;à la mainlevée ou l&apos;encaissement
+            du dépôt de garantie, au plus tard 7 jours après le départ.
           </Text>
           <Text style={styles.p}>
             <Text style={styles.pBold}>14.6 Droits du Locataire —</Text> accès,

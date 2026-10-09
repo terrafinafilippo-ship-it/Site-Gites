@@ -406,7 +406,7 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
               <ul>
                 {chiffres && (
                   <>
-                    <li><span>Caution Swikly</span><strong>{fmtPrix(chiffres.caution)}</strong></li>
+                    <li><span>Caution</span><strong>{fmtPrix(chiffres.caution)}</strong></li>
                     <li><span>Forfait ménage</span><strong>{fmtPrix(chiffres.forfaitMenage)}</strong></li>
                     {chiffres.tauxTaxeSejour !== null && (
                       <li><span>Taxe de séjour</span><strong>{fmtTaux(chiffres.tauxTaxeSejour)} TTC</strong></li>
@@ -420,7 +420,7 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
                 <li><span>Chauffage</span><strong>Compris</strong></li>
               </ul>
               <div className={styles.conditionsNote}>
-                La caution Swikly est une empreinte bancaire, non débitée sauf dégât constaté à votre départ.
+                La caution est une préautorisation sur votre carte bancaire, faite la veille de votre départ. Aucune somme n&apos;est débitée, sauf dégât constaté à l&apos;état des lieux de sortie.
               </div>
             </aside>
           </div>

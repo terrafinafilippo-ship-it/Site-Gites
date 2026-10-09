@@ -1,7 +1,7 @@
 // Table `paiements` — VERSION PROVISOIRE (Phase 0).
 //
 // Aucun code ne l'exerce encore. Elle enregistre chaque mouvement d'argent
-// lié à une réservation : acompte, solde, empreinte de caution. Les colonnes
+// lié à une réservation : acompte, solde, préautorisation de caution. Les colonnes
 // et les statuts seront affinés en Phase 3 avec l'intégration du prestataire
 // de paiement.
 import { sql } from "drizzle-orm";
@@ -30,7 +30,7 @@ export const paiements = pgTable(
     montant: numeric({ precision: 10, scale: 2, mode: "string" }).notNull(),
     // Statut côté prestataire (valeurs à figer en Phase 3).
     statut: text().notNull(),
-    // Prestataire (ex. stripe, swikly).
+    // Prestataire (ex. stripe).
     prestataire: text(),
     // Identifiant du paiement chez le prestataire.
     reference_externe: text(),

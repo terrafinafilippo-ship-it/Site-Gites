@@ -49,7 +49,7 @@ export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
       </section>
       <section><div class="legal__num">02 — Réservation &amp; paiement</div><h2>Réservation et règlement</h2>
         <p>Toute réservation devient ferme après réception de l'acompte de 30 % du séjour et signature électronique du contrat (sous 48 heures). Le solde du séjour est prélevé automatiquement à J-30 sur la même carte bancaire.</p>
-        <p>Une empreinte bancaire de 500 € (caution Swikly) est réalisée à J-7. Elle n'est pas débitée sauf en cas de dégât constaté à l'inventaire de départ, et est libérée 7 jours après la fin du séjour.</p>
+        <p>Un dépôt de garantie, dont le montant figure sur la fiche de chaque gîte et au contrat, est constitué par préautorisation sur la carte bancaire utilisée pour l'acompte, la veille du départ. Aucune somme n'est débitée, sauf dégât constaté à l'état des lieux de sortie.</p>
       </section>
       <section><div class="legal__num">03 — Annulation</div><h2>Conditions d'annulation</h2>
         <p>Toute annulation doit être notifiée par écrit (email ou courrier). Les remboursements suivent le barème ci-dessous :</p>
@@ -109,7 +109,7 @@ export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
         <p>Si vous acceptez, nous utilisons Matomo (auto-hébergé, sans transfert hors UE) pour mesurer l'audience de manière anonymisée. Aucune donnée n'est partagée avec des tiers.</p>
       </section>
       <section><div class="legal__num">04 — Cookies tiers</div><h2>Nous n'en utilisons pas</h2>
-        <p>Pas de réseau social embarqué, pas de retargeting, pas de Google Analytics. Les seules connexions tierces concernent Stripe (au moment du paiement uniquement) et Swikly (caution).</p>
+        <p>Pas de réseau social embarqué, pas de retargeting, pas de Google Analytics. Les seules connexions tierces concernent Stripe (paiement et dépôt de garantie).</p>
       </section>
     `,
   },

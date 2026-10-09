@@ -5,27 +5,17 @@
 > (`docs/05-protocole-phase.md`, étape 2). Ce qui suit est le cadre.
 
 **Dépendances :** Phase 2 close. Bloque la Phase 4.
-**Prérequis à lever avant l'ouverture :** `docs/06-avant-premier-client.md`, point 9 (sauvegarde du volume des PDF) — **à arbitrer au cadrage, voir ci-dessous**.
+**Prérequis à lever avant l'ouverture :** `docs/06-avant-premier-client.md`, point 9 (sauvegarde du volume des PDF) — **tranché le 24 septembre 2026, voir ci-dessous**.
 **Volume estimé :** 2 à 3 sessions.
 
-> **À TRANCHER À L'OUVERTURE, AVANT TOUTE AUTRE CHOSE — le point 9.**
->
-> Il est écrit « prérequis avant l'ouverture », mais il **dépend du
-> déploiement**, qui n'a pas eu lieu : le volume persistant des PDF n'existe pas
-> encore, donc il n'y a rien à sauvegarder ni à restaurer. Le prérequis ne peut
-> pas être levé tel quel.
->
-> Deux issues, et **une seule est à écarter** : le laisser se lever par oubli.
->
-> 1. **Déployer d'abord**, configurer la sauvegarde du volume, tester une
->    restauration, puis ouvrir la Phase 3.
-> 2. **Déplacer l'échéance** au déploiement effectif, en assumant que la Phase 3
->    produit d'ici là des PDF non sauvegardés — ce qui est sans conséquence tant
->    qu'aucun client réel ne signe, et intenable dès qu'il y en a un.
->
-> Quel que soit le choix, il se consigne dans `docs/06-avant-premier-client.md`,
-> point 9, avec sa date. Ce qui est en jeu : un contrat signé est une **preuve**,
-> et une preuve sans sauvegarde disparaît avec le premier incident de volume.
+> **Point 9 tranché à l'ouverture (24 septembre 2026) : échéance décalée au
+> déploiement effectif.** La Phase 3 va produire des PDF sans sauvegarde de
+> volume tant que le déploiement n'a pas eu lieu — sans conséquence tant
+> qu'aucun client réel ne signe, intenable dès qu'il y en a un. Le point reste
+> ouvert dans `docs/06-avant-premier-client.md`, point 9, à lever impérativement
+> avant ou au moment du déploiement, pas après. Ce qui est en jeu : un contrat
+> signé est une **preuve**, et une preuve sans sauvegarde disparaît avec le
+> premier incident de volume.
 
 ---
 
@@ -51,7 +41,8 @@ documents, courriel.
    Il empêche deux clients de payer le même créneau simultanément, et se libère
    seul si le paiement n'aboutit pas.
 3. **Stripe réel** pour l'acompte de 30 %, **avec enregistrement de la carte** :
-   la Phase 4 en dépend pour prélever le solde hors session.
+   la Phase 4 en dépend pour la caution et, si le client l'a choisi, pour le
+   solde. Détail dans la section « Carte enregistrée, solde au choix » plus bas.
 4. **Création de la ligne `reservations`** au bon statut, avec sa référence
    publique.
 5. **Courriel de confirmation** portant le **lien de signature** du contrat.
@@ -66,8 +57,9 @@ séparation des rôles PostgreSQL (lecture seule pour le vitrine) était à déc
 
 ## Périmètre EXCLU
 
-- **Le solde et la caution** : prélèvement à J-30, empreinte à J-7, factures
-  automatiques, tâches planifiées. C'est la Phase 4.
+- **Le solde et la caution** : règlement du solde à J-30, préautorisation de
+  caution la veille du départ, factures automatiques, tâches planifiées. C'est
+  la Phase 4.
 - **Tout back-office** (Phase 5) et **la synchronisation des calendriers avec
   les plateformes** (Phase 7).
 - **Le libellé des options** (Phase 5) et **l'habillage de la page de signature**
@@ -121,16 +113,59 @@ les fiches gîtes** :
 
 | Endroit | Valeur en dur | Réalité en base |
 |---|---|---|
-| `ReserverFunnel.tsx` (3 occurrences) | « Caution Swikly 500 € » | L'Armu : **400 €** |
 | constante `BOOKING` | ménage 80 €, taxe 5,5 %, acompte 30 % | à lire en base / dans `lib/constantes.ts` |
 | liens du récapitulatif | « L'Armu — couple, 2 pers. », « La Maison Vieille — 4 pers. + sauna » | `capacite_max` |
 
-Aujourd'hui, la fiche de L'Armu affiche 400 € de caution et le tunnel 500 € : la
-contradiction est visible par le même visiteur, sur deux pages qui se suivent.
-Le site n'étant pas déployé, personne ne la voit encore — mais elle doit être
-levée **avant** la mise en ligne, donc dans cette phase.
+**La caution n'est plus dans cette liste** : depuis le 9 octobre 2026, le tunnel
+reçoit le montant lu en base (`app/reserver/page.tsx` → `cautionCentimes`) et
+n'écrit plus « 500 € ». Si la base ne répond pas, il décrit le mécanisme sans
+chiffre — ce qui reste à remplacer par un **refus d'engager** (point 1
+ci-dessus) quand le tunnel sera réellement branché. La page de suivi, elle,
+affiche encore un séjour fictif : sa phrase de caution ne porte plus de montant,
+et affichera celui de la réservation quand la page sera construite.
 
 Le récapitulatif affiche par ailleurs `gite.profil` (« Couple ») là où il
 affichait « Couple — 2 personnes » : la capacité viendra de la base, comme sur
 les fiches.
 
+
+---
+
+## Carte enregistrée, solde au choix — ce que la caution impose à cette phase
+
+Décision **D-16** (`docs/02-decisions.md`) : la caution est une préautorisation
+Stripe faite la veille du départ sur la carte de l'acompte. Le mécanisme se
+développe en Phase 4, mais **quatre choses doivent exister dès l'acompte**,
+sinon la Phase 4 n'a pas de carte sur laquelle agir.
+
+1. **Un Customer Stripe par réservation**, et le PaymentIntent de l'acompte créé
+   avec `setup_future_usage: 'off_session'`. C'est **un seul** enregistrement de
+   carte, pour la caution et pour le solde : ne pas en créer deux.
+2. **Le stockage des deux identifiants Stripe** : `stripe_customer_id` et
+   `stripe_payment_method_id` (jamais un numéro de carte). Ils demandent une
+   **nouvelle migration** dans cette phase. Leur emplacement — colonnes de
+   `reservations` ou table `paiements`, qui prend sa forme définitive ici — se
+   tranche au moment de l'écrire.
+3. **Le choix du mode de règlement du solde**, exprimé par le client dans le
+   tunnel : prélèvement automatique à J-30, ou paiement par lui-même via un
+   lien. Le contrat le prévoit (article 5.1). Ce choix se **stocke** sur la
+   réservation : la Phase 4 le lit pour savoir quoi faire à J-30.
+4. **Une phrase d'information sous le formulaire de carte**, qui dit au client
+   que sa carte est conservée, pour quoi et jusqu'à quand. **Son texte vient
+   des propriétaires**, pas d'une session (règle 3 du protocole) : c'est lui qui
+   vaut accord pour les opérations hors session.
+
+### Phrases du site devenues inexactes avec le solde au choix
+
+Elles affirment toutes que le solde est **prélevé automatiquement**, ce qui
+n'est plus vrai pour un client qui choisit de payer lui-même. À réécrire quand
+l'écran de choix existera :
+
+| Endroit | Phrase |
+|---|---|
+| `ReserverFunnel.tsx`, récapitulatif latéral | « Solde de … prélevé J-30 » |
+| `ReserverFunnel.tsx`, étape 3 | « Le solde sera prélevé J-30 sur la même carte. » |
+| `ReserverFunnel.tsx`, étape 4 | « le solde J-30 sera prélevé sur la même carte » |
+| `ReserverFunnel.tsx`, écran de succès | « Prélèvement automatique du solde sur la carte utilisée aujourd'hui » |
+| `app/suivi/[ref]/page.tsx` | « prélevés automatiquement sur la même carte » |
+| `lib/data/legal.ts`, CGV § 02 | « Le solde du séjour est prélevé automatiquement à J-30 » — Phase 6 |

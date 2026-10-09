@@ -321,6 +321,89 @@ n'a pas été réécrite d'autorité : elle devient l'écart **E-8** de
 
 ---
 
+## Cadrage de la Phase 3 — décision caution (9 octobre 2026)
+
+Ce n'est pas une clôture de phase : la Phase 3 est ouverte, pas close. Cette
+entrée consigne une décision prise pendant son cadrage, qui a modifié le contrat
+et cinq pages du site.
+
+### Ce qui a été fait
+
+- **Décision D-16** (`docs/02-decisions.md`) : la caution est une
+  préautorisation Stripe faite la veille du départ sur la carte de l'acompte,
+  sans prestataire tiers. Le mécanisme, ses paramètres et les cinq alternatives
+  écartées y sont consignés. **Rien du mécanisme n'est développé** : il
+  appartient à la Phase 4.
+- **Contrat** (`components/pdf/ContratPDF.tsx` et `docs/contrat-template.md`),
+  en un seul changement : articles 6.2 à 6.5 réécrits, article 5.1 (solde au
+  choix du Locataire), articles 14.2, 14.4 et 14.5, ligne « Caution » du
+  récapitulatif. La numérotation 6.1 à 6.5 est **conservée** : les renvois des
+  articles 10 et 11 restent justes sans y toucher.
+- **`TEMPLATE_VERSION` passe à `v2`** (`app/api/contrats/route.ts`).
+- **Pages publiques** : fiche gîte, tunnel (4 endroits), suivi, CGV, cookies.
+  Le tunnel reçoit désormais la caution **lue en base** ; la page de suivi,
+  encore fictive, ne porte plus de montant.
+- **Référentiel** : écart E-4 reformulé, point 3 de la liste de contrôle
+  remplacé, fiches des Phases 3, 4, 5 et 6 complétées.
+- Dans l'écran de succès du tunnel, la caution passe de la 2ᵉ à la 4ᵉ étape :
+  elle est maintenant la dernière dans le temps.
+
+### Ce qui a été vérifié
+
+- `npm run lint`, `npx tsc --noEmit`, `npm run build` : passent.
+- `npm run verify:centimes` : passe.
+- **Nombre de pages du contrat.** L'article 6 s'allonge, et le parcours exige
+  10 pages. Le contrat a été rendu hors serveur, ancien et nouveau texte, sur
+  les deux réservations de référence, signé et non signé : **10 pages dans les
+  huit cas**. Les pages 4 et 5 ont été relues à l'œil.
+- Le contrôle `montant(texte, "Caution")` de `controler-pdf.py` retrouve 400,00
+  et 500,00 sur le nouveau texte : il n'a pas été modifié.
+- Les cinq pages publiques répondent 200 et affichent les nouvelles phrases,
+  **base injoignable** : c'est donc la variante sans montant du tunnel qui a
+  été vue.
+- Recherche du nom de l'ancien prestataire dans le dépôt : il ne reste que
+  D-16, qui le documente comme alternative écartée, et trois lignes
+  d'historique laissées intactes (ce journal, section Phase 2, et
+  `docs/phases/phase-2.md`).
+
+### Ce qui n'a PAS été vérifié
+
+- **`bash scripts/parcours/lancer.sh` n'a pas été rejoué** : il exige le tunnel
+  vers la base de test, qui n'était pas ouvert. La règle absolue n° 7 n'est donc
+  pas satisfaite pour ce changement, et il ne doit pas être considéré comme
+  clos tant que le parcours n'a pas tourné. Aucun montant n'a été touché et
+  `reference.ts` est inchangé ; le risque porte sur le rendu du contrat, couvert
+  à part ci-dessus.
+- **La variante avec montant du tunnel** (« Caution de 400 € ») n'a pas été
+  vue, faute de base joignable.
+
+**Complément du même jour, avant commit.** Tunnel ouvert, serveur sur 3001 en
+`DB_CIBLE=test` : `bash scripts/parcours/lancer.sh` rejoué **en entier**, ses
+8 étapes passent, 0 échec. Les deux contrats (`v2`) font 10 pages, caution
+imprimée 400,00 € et 500,00 €, montants de `reference.ts` inchangés. Page 1 et
+page de l'article 6 ouvertes en image : pas de débordement. La règle n° 7 est
+satisfaite pour ce changement. La variante avec montant du tunnel de
+réservation reste non vue.
+
+### Points reportés
+
+- **Le texte de l'article 6 n'a été relu par aucun juriste.** Point 3 de
+  `docs/06-avant-premier-client.md`.
+- **Deux confirmations écrites de Stripe** sont un préalable à la Phase 4
+  (réponses obtenues par chat le jour même : voir le point 3 de
+  `docs/06-avant-premier-client.md`).
+- **Le choix du mode de règlement du solde** est écrit au contrat mais n'existe
+  dans aucun écran : Phase 3 pour le choix, Phase 4 pour les deux circuits. Les
+  phrases du site qui annoncent encore un prélèvement automatique sont listées
+  dans `docs/phases/phase-3.md`.
+- **L'article 14 nomme Stripe et Brevo**, qui ne sont branchés ni l'un ni
+  l'autre : exact pour le système cible, pas pour le code d'aujourd'hui.
+- **`CAUTION_DEFAUT`** reste un repli silencieux à 500 € : à trancher en
+  Phase 4.
+- Hors code : ce que couvre l'assurance des propriétaires au-delà de la caution.
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

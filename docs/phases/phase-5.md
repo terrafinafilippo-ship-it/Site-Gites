@@ -49,6 +49,18 @@ Une application Next.js protégée par **authentification** :
    `docs/06-avant-premier-client.md`. Ajouter le libellé en base **et**
    l'afficher dans les trois composants PDF et sur la page de signature — la
    moitié du travail ne lève pas le point.
+8. **Cautions à décider** (décision D-16, mécanisme construit en Phase 4) : la
+   liste des cautions bloquées, avec pour chacune l'échéance de libération
+   automatique, et deux boutons :
+   - **« Libérer »** — définitif : la carte est supprimée, plus aucun débit
+     n'est possible. L'écran doit le dire avant le clic ;
+   - **« Retenir »** — saisie du montant (au plus celui de la caution, une
+     seule retenue possible) et dépôt des pièces justificatives (état des
+     lieux, photographies, devis ou facture), qui partent au client avec le
+     courriel récapitulatif.
+
+   Ce point **dépend de la Phase 4** : sans elle, il n'y a rien à décider. Le
+   reste de la phase reste parallélisable.
 
 ---
 
