@@ -6,7 +6,11 @@
 
 **Dépendances :** Phase 2 close. Bloque la Phase 4.
 **Prérequis à lever avant l'ouverture :** `docs/06-avant-premier-client.md`, point 9 (sauvegarde du volume des PDF) — **tranché le 24 septembre 2026, voir ci-dessous**.
-**Volume estimé :** 2 à 3 sessions.
+**Volume estimé :** 2 à 3 sessions au départ ; **5 à 6** depuis le cadrage
+d'octobre 2026, qui a fait entrer les saisons, la taxe de séjour et trois
+moyens de caution dans la phase. Découpage en cinq lots plus bas.
+**État :** cadrage clos le 14 octobre 2026 ; **lot 1 (prix) livré et commité
+le même jour**. Lots 2 à 5 à faire.
 
 > **Point 9 tranché à l'ouverture (24 septembre 2026) : échéance décalée au
 > déploiement effectif.** La Phase 3 va produire des PDF sans sauvegarde de
@@ -32,6 +36,120 @@ documents, courriel.
 
 ---
 
+## Décisions arrêtées au cadrage (9 au 14 octobre 2026)
+
+Prises une par une avec le gérant. Celles qui sont structurantes ont leur
+entrée, avec le pourquoi, dans `docs/02-decisions.md` (renvoi entre
+parenthèses) ; les autres n'existent qu'ici jusqu'à leur mise en œuvre.
+
+**Prix et saisons — livrés au lot 1 (D-17).** Le modèle de saisons est fait
+dans cette phase, et non en Phase 5 : le tunnel ne peut pas chiffrer un séjour
+sans lui. Tarifs nommés librement, prix d'une nuit par gîte, périodes datées
+commençant le samedi, barème de coefficients par rang de nuit (au-delà de sa
+dernière case : la moyenne des cases), règles d'arrivée, de départ et de durée
+générales avec exceptions par tarif et par période. Tout est réglable ; aucune
+valeur commerciale n'est écrite dans le code. Le contenu réel (tarifs, dates,
+coefficients) sera saisi par les propriétaires au back-office, **une fois le
+site en activité** : aucun calendrier réel n'a été préparé.
+
+**Taxe de séjour — calcul livré au lot 1 (D-18).** Gîtes **non classés**
+(réponse du 11 octobre 2026) : tarif proportionnel de Savas, vérifié sur la
+délibération et le guide officiel (`docs/03-conformite.md` § 7 bis).
+
+**Occupants.** Trois catégories dans le tunnel : adultes (18 ans et plus),
+enfants (moins de 18 ans), bébés (validé le 14 octobre 2026). **Ouvert :** les
+bébés comptent-ils dans la capacité du gîte ?
+
+**Horaires.** Arrivée 18 h, départ 9 h (valeurs du contrat, validées le
+14 octobre 2026) : le tunnel, qui annonce 16 h et 10 h, s'aligne. Ce sont des
+valeurs de départ, réglables : un autre horaire s'arrange avec les
+propriétaires, sans être promis.
+
+**Accueil et départ en personne. Il n'y a pas de boîte à clés.** Les trois
+mentions du prototype (« code de la boîte à clés ») sont à retirer : tableau
+« Phrases du site devenues inexactes » plus bas.
+
+**Page de suivi.** Accès par un **lien secret envoyé par courriel** (code long,
+impossible à deviner). La référence courte (« SAM-… ») ne sert qu'à se parler ;
+elle n'ouvre rien. Un client qui a perdu son courriel redemande son lien en
+saisissant son adresse. Durée de validité du lien réglable.
+
+**Blocage des dates pendant le paiement.** Les dates sont bloquées **à
+l'arrivée sur l'écran de paiement**, pas au choix des dates. Durée réglable,
+**20 minutes** au départ, avec un compte à rebours affiché. Paiement arrivé
+après la fin du blocage :
+- dates encore libres → réservation confirmée normalement ;
+- dates prises entre-temps → **remboursement intégral automatique**, courriel
+  au client, alerte aux propriétaires, et proposition des autres gîtes libres
+  sur toutes ses dates et de capacité suffisante, au prix recalculé et avec un
+  nouveau paiement (jamais une réservation d'office).
+
+**Règlement du solde.** Le client choisit entre prélèvement automatique et
+paiement par lien ; **rien n'est pré-coché**, le bouton de paiement reste
+grisé tant qu'il n'a pas choisi (13 octobre 2026). Sans carte enregistrée
+(caution par chèque ou virement), seul le paiement par lien est proposé.
+
+**Réservation à moins de 30 jours de l'arrivée : paiement intégral immédiat**
+(D-20). Seuil réglable, égal au délai du solde.
+
+**Caution : carte, chèque ou virement, au choix du client** (D-19, qui
+complète D-16). Paramètres : chèque gardé, jamais encaissé ; virement reçu au
+plus tard **3 jours avant l'arrivée** (réglable), sinon alerte et lien de
+carte ; restitution au plus tard **3 jours après le départ** pour les trois
+moyens ; client arrivé sans rien → courriel avec un lien pour donner sa carte,
+envoyé depuis le back-office.
+
+**Texte d'accord pour l'enregistrement de la carte**, sous le formulaire de
+paiement, pour le client qui choisit la caution par carte. **Validé par le
+gérant le 14 octobre 2026, à faire relire par un juriste** (point 3 de
+`docs/06-avant-premier-client.md`). Il sera enregistré mot pour mot avec chaque
+réservation, versions datées. Les crochets sont remplacés par les valeurs de la
+réservation :
+
+> En validant ce paiement, j'accepte que la carte utilisée soit conservée par
+> Stripe, prestataire de paiement de la SARL DE LA VOUTE, pour les opérations
+> suivantes :
+> – une préautorisation de [montant de la caution] au titre du dépôt de
+> garantie, effectuée la veille de mon départ. Elle n'est pas débitée, sauf
+> dégât constaté, et elle est levée au plus tard 3 jours après mon départ ;
+> – [si le client l'a choisi] le prélèvement du solde de [montant], le [date].
+> Les données de ma carte sont supprimées au plus tard 7 jours après mon départ.
+
+Tant que ce texte n'est pas en base, le tunnel refuse de s'ouvrir hors de la
+base de test.
+
+**Courriels aux propriétaires.** Trois types : réservation confirmée (acompte
+ou total payé), contrat signé, problème à traiter (paiement tardif remboursé,
+courriel client non parti). Chacun activable séparément, avec sa liste de
+destinataires réglable. Aucun courriel pour une réservation abandonnée. Un
+courriel qui ne part pas n'annule rien : il est retenté et l'échec est
+enregistré.
+
+**Mise en ligne.** Le site ne sera pas mis en ligne tant que tout n'est pas
+fonctionnel et terminé (13 octobre 2026), back-office compris.
+
+---
+
+## Découpage en cinq lots
+
+| Lot | Contenu | État |
+|---|---|---|
+| **1. Prix** | Tables de tarification et de taxe, calcul du prix d'un séjour et de la taxe, fiches gîtes lues en base, contrôles | **Livré le 14 octobre 2026** — voir `docs/journal-phases.md` |
+| **2. Calendrier et réservation** | Disponibilités réelles, blocage de 20 minutes, refus si un prix manque, erreur sur un gîte inconnu, tunnel branché sur les vrais chiffres (âges, horaires, prix, taxe) | À faire |
+| **3. Paiement** | Stripe en mode test : acompte ou total, carte conservée seulement si choisie, choix de la caution et du solde, paiement tardif, autres gîtes proposés | À faire |
+| **4. Courriels et suivi** | Brevo, contrat généré, lien de signature, page de suivi à lien secret, courriels aux propriétaires | À faire |
+| **5. Contrat et pages** | Articles 5.1 et 6 du contrat, pages qui décrivent la caution, horaires, boîte à clés retirée, documentation | À faire |
+
+**Points ouverts pour le lot 2**, hors code :
+- les bébés comptent-ils dans la capacité du gîte (question au gérant) ;
+- les bébés comptent-ils parmi les **occupants** de la taxe de séjour, et le
+  forfait ménage entre-t-il dans le prix retenu — deux questions au service
+  taxe de séjour d'Ardèche Grand Air (`docs/06-avant-premier-client.md`,
+  point 10). Le calcul est prêt pour les deux réponses : les occupants sont un
+  paramètre, le ménage un réglage.
+
+---
+
 ## Périmètre inclus
 
 1. **Vérification de disponibilité en base** (table `disponibilites`, une ligne
@@ -48,6 +166,10 @@ documents, courriel.
 5. **Courriel de confirmation** portant le **lien de signature** du contrat.
 6. **Page de suivi réelle** — `app/suivi/[ref]/page.tsx` affiche aujourd'hui un
    séjour entièrement fictif, avec une référence de démonstration figée.
+7. **Ajouté au cadrage : la tarification (saisons, barème, règles) et le calcul
+   de la taxe de séjour**, prévus jusque-là en Phase 5 pour la première et non
+   prévus pour le second. Livrés au lot 1 ; le back-office qui les modifie
+   reste en Phase 5.
 
 Cette phase est aussi celle où les tables provisoires `paiements`,
 `disponibilites` et `audit_logs` prennent leur forme définitive, et où la
@@ -169,3 +291,22 @@ l'écran de choix existera :
 | `ReserverFunnel.tsx`, écran de succès | « Prélèvement automatique du solde sur la carte utilisée aujourd'hui » |
 | `app/suivi/[ref]/page.tsx` | « prélevés automatiquement sur la même carte » |
 | `lib/data/legal.ts`, CGV § 02 | « Le solde du séjour est prélevé automatiquement à J-30 » — Phase 6 |
+
+### Phrases du site qui décrivent ce qui n'existe pas (cadrage du 13 octobre 2026)
+
+Il n'y a **pas de boîte à clés** : l'accueil et le départ se font en personne.
+Les horaires de référence sont **18 h et 9 h** (contrat), pas 16 h et 10 h.
+
+| Endroit | Phrase |
+|---|---|
+| `app/suivi/[ref]/ArrivalInfo.tsx` | « Le code de la boîte à clés… vous seront communiqués dès la signature », et un faux code affiché |
+| `app/reserver/ReserverFunnel.tsx`, écran de succès | « Adresse précise, code de la boîte à clés, numéros directs… » |
+| `app/reserver/ReserverFunnel.tsx`, étape 1 | « À partir de 16h », « Avant 10h » |
+| `app/suivi/[ref]/ArrivalInfo.tsx` | « entre 16h et 19h », « avant 10h » |
+
+D'autres formules du prototype engagent le vendeur sans avoir été validées
+(« réponse sous 24 h », « modifiable jusqu'à J-31 », « contrat eIDAS »,
+« télécharger le récap PDF », « avis vérifié Gîtes de France », « souvent ça
+passe au second essai ») : leur liste exhaustive sera soumise aux
+propriétaires au lot 5. Ce qui n'est pas confirmé est retiré, pas reformulé
+(règle 3 du protocole).

@@ -404,6 +404,112 @@ réservation reste non vue.
 
 ---
 
+## Phase 3 — fin du cadrage et lot 1 « prix » (10 au 14 octobre 2026)
+
+La phase reste ouverte : c'est le premier des cinq lots
+(`docs/phases/phase-3.md`). Commité le 14 octobre 2026 : `44e22de` (calcul,
+tables, contrôles), `f99322b` (pages), puis la documentation.
+
+### Ce qui a été décidé
+
+Toutes les décisions du cadrage sont consignées dans
+`docs/phases/phase-3.md` (section « Décisions arrêtées au cadrage ») ; les
+structurantes ont leur entrée : **D-17** (tarification), **D-18** (taxe de
+séjour), **D-19** (caution par carte, chèque ou virement, complète D-16),
+**D-20** (paiement intégral à moins de 30 jours). **D-15 est remplacée.**
+
+### Ce qui a été fait
+
+- **Sept tables** (`tarifs`, `tarifs_prix`, `periodes`, `baremes`,
+  `baremes_coefficients`, `reglages`, `taxes_sejour`) et **deux migrations** :
+  `0002_tarification` (générée) et `0003_tarification_contraintes` (écrite à la
+  main : interdiction du chevauchement des périodes, ligne unique de
+  `reglages` avec la règle générale « libre » et les périodes au samedi, sans
+  barème général).
+- **Calcul du prix d'un séjour** (`lib/tarification.ts`) et **de la taxe de
+  séjour** (`lib/taxe-sejour.ts`), purs ; lecture en base (`lib/tarifs.ts`) ;
+  lecture exacte des taux et coefficients et division arrondie
+  (`lib/decimaux.ts`) ; dates civiles en UTC (`lib/dates-civiles.ts`).
+- **Fiches gîtes, liste, accueil** : la grille vient des tables (une ligne par
+  tarif : nuit, semaine, dates), le « À partir de » est le minimum de la grille,
+  la taxe affiche la règle en vigueur. **`lib/data/pricing.ts` est supprimé** :
+  plus aucun prix n'est écrit dans le code des pages. Une troisième panne est
+  journalisée à part : « TARIFICATION ILLISIBLE ».
+- **Contrôles** : `npm run verify:tarification` (102 cas), 27 contrôles de plus
+  dans `db:verify`, et une étape de plus dans `lancer.sh` (9 au lieu de 8).
+- **Base de test** : la remise à zéro charge une tarification d'essai, marquée
+  « (essai) » (`scripts/parcours/tarifs-fictifs.ts`), avec la taxe réelle de
+  Savas.
+- Documentation : décisions, conformité § 7 bis, architecture, avant premier
+  client (points 3 et 10 complétés, point 11 créé), fiches des phases 3, 4 et 5,
+  contexte métier, README de `db/` et du parcours, `CLAUDE.md`.
+
+### Ce qui a été vérifié
+
+- `npm run lint`, `npx tsc --noEmit`, `npm run build` : passent.
+- `npm run verify:tarification` : **102 cas, 0 échec**, dont les deux exemples
+  officiels de la taxe (15,75 € et 9,68 €) au centime.
+- **Sur une base PostgreSQL jetable créée sur le poste** (16.13, détruite
+  ensuite ; voir « pas vérifié ») : les **4 migrations** s'appliquent sur une
+  base vierge ; `db:verify` : **101 contrôles, 0 échec** ; la lecture en base
+  redonne les montants du calcul (5 séjours et une taxe, script jetable
+  supprimé) ; les fiches répondent 200 et affichent la grille d'essai
+  (L'Armu : 75 € la nuit, 450 € la semaine en basse saison, « À partir de
+  450 € », règle de taxe complète) ; table `reglages` renommée pour simuler une
+  tarification illisible → page 200, grille et taxe masquées, capacité et
+  caution conservées, journal « TARIFICATION ILLISIBLE ».
+- **`bash scripts/parcours/lancer.sh`** contre cette base jetable, serveur sur
+  3001 : **9 étapes sur 9 passent** — conversion 51 cas ; prix et taxe 102 cas ;
+  remise à zéro ; parcours L'Armu 0 échec ; parcours LaPhine 0 échec ; URL
+  signées 0 échec ; contrôles en base 81, 0 échec ; contrôles PDF 92 OK ;
+  `db:verify` 101, 0 échec. Les montants de `reference.ts` sont inchangés et
+  retrouvés.
+
+### Ce qui n'a PAS été vérifié
+
+- **Les migrations 0002 et 0003 ne sont appliquées ni sur `gites_test` ni sur la
+  base réelle.** Le tunnel SSH n'était pas ouvert, et l'hôte de la
+  configuration SSH du poste ne correspond pas à celui des chaînes de connexion :
+  la session n'a pas deviné le serveur. La règle n° 7 est donc satisfaite sur
+  une base jetable de même schéma, **pas sur `gites_test`**. À rejouer tunnel
+  ouvert : `DB_CIBLE=test npm run db:migrate`, puis `lancer.sh`.
+- PostgreSQL **17** : la base jetable était en 16. Rien d'utilisé n'en dépend
+  (intervalles de dates, tableaux, contraintes d'exclusion natives).
+- **La mise en page** de la nouvelle grille (4 colonnes, plusieurs plages par
+  tarif, réglage mobile) : seul le contenu HTML a été lu, aucune capture.
+- Sur la base réelle, **après migration, les fiches masqueront leurs prix**
+  tant que rien n'est saisi (point 11) : voulu, mais à savoir avant de migrer.
+
+### Écarts avec le plan annoncé
+
+- Le plan citait l'exemple « 860 € » parmi les contrôles : il appartenait au
+  premier modèle (prix à la semaine), abandonné au profit du prix à la nuit ;
+  les contrôles portent sur les exemples du modèle retenu (372,50 €, 94,29 €…).
+- La taxe de l'exemple « 2 adultes + 1 enfant, 780 € » vaut **28,70 €**, non
+  28,60 € comme annoncé au cadrage : le guide officiel arrondit à chaque étape.
+- **Ajouts de la session**, cohérents avec les réponses du gérant et
+  **confirmés par lui après la livraison** (14 octobre 2026) : les règles et le
+  barème peuvent aussi être portés par une **période** (« ça dépend des
+  périodes et même des années ») ; un **jour de départ** autorisé s'ajoute au
+  jour d'arrivée (sans lui, « samedi → samedi » ne s'exprime pas) ; et la règle
+  des séjours à cheval sur plusieurs périodes (D-17).
+- L'âge en dessous duquel on ne paie pas la taxe avait été annoncé comme
+  réglable : ce n'est **pas** un réglage, c'est la loi (les mineurs, art.
+  L.2333-31 du CGCT).
+- Le bandeau de réservation des fiches ne mentionne plus le taux de taxe : la
+  taxe n'est plus un taux unique, la règle complète est dans les conditions.
+
+### Points reportés
+
+- Lot 2 : bébés dans la capacité ; occupants et ménage de la taxe (service taxe
+  de séjour) ; âges et horaires du tunnel.
+- Les PDF impriment encore « Taxe de séjour (5,5 %) » à partir de la
+  réservation : lot 5.
+- Retrait des colonnes `gites.tarif_semaine_base`, `tarif_weekend`,
+  `taux_taxe_sejour` : migration à écrire quand plus rien ne les lit.
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

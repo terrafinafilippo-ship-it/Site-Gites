@@ -430,6 +430,12 @@ et non un renommage.
 
 ## D-15 · `tarif_semaine_base` est le tarif de BASSE SAISON
 
+> **Remplacée le 14 octobre 2026 par D-17.** Plus aucune page ne lit
+> `tarif_semaine_base` : la grille et le « À partir de » viennent des tables de
+> tarification. La colonne reste en base, avec `tarif_weekend` et
+> `gites.taux_taxe_sejour`, jusqu'à ce que plus rien ne la lise (contrôles de
+> la base, seed) ; elle sera alors retirée par une migration.
+
 **Date :** 17 septembre 2026 (Phase 2).
 
 **Décision.** La colonne `gites.tarif_semaine_base` désigne le tarif d'une
@@ -474,6 +480,11 @@ lisent, c'est réintroduire exactement la divergence que cette décision supprim
 ---
 
 ## D-16 · Caution par préautorisation Stripe en deux temps, sans prestataire tiers
+
+> **Complétée le 13 octobre 2026 par D-19** : la préautorisation sur carte
+> devient l'un des trois moyens de caution, au choix du client, avec le chèque
+> et le virement. Tout ce qui suit reste vrai pour le client qui choisit la
+> carte.
 
 **Date :** 9 octobre 2026 (cadrage de la Phase 3). Le mécanisme se **développe
 en Phase 4** ; seuls le contrat, les pages et le référentiel ont été alignés à
@@ -566,6 +577,191 @@ et les courriels. En changer un seul, c'est annoncer un dispositif qui n'est pas
 celui qu'on applique — pratique commerciale trompeuse (art. L.121-2 C. conso.).
 Allonger le délai de mainlevée au-delà de la validité de la préautorisation
 rendrait par ailleurs la retenue impossible pour une carte Visa.
+
+---
+
+## D-17 · Tarification : tarifs nommés, prix à la nuit, barème par rang de nuit
+
+**Date :** 10 au 14 octobre 2026 (cadrage de la Phase 3, lot 1). Remplace
+D-15.
+
+**Décision.** Le prix de location d'un séjour se calcule à partir de quatre
+notions, toutes en base et toutes modifiables sans développeur :
+
+1. **Un tarif** (`tarifs`) porte un nom libre — « Basse saison », « Été » — et
+   le **prix d'une nuit** pour chaque gîte (`tarifs_prix`).
+2. **Des périodes datées** (`periodes`) associent un tarif au calendrier. Elles
+   commencent le samedi (réglage), **ne se chevauchent jamais** (contrainte
+   d'exclusion en base) et valent pour les trois gîtes. Une nuit sans période
+   n'est pas réservable.
+3. **Un barème** (`baremes`, `baremes_coefficients`) donne un coefficient par
+   **rang de nuit** dans le séjour : 1re nuit, 2e nuit… Au-delà de sa dernière
+   case, chaque nuit vaut la **moyenne des cases** : le prix moyen par nuit cesse
+   de baisser et deux semaines coûtent exactement deux fois une semaine. La
+   longueur du barème est libre : la dégressivité s'arrête où on le décide.
+4. **Des règles** — minimum de nuits, jours d'arrivée, jours de départ — et le
+   barème se résolvent dans l'ordre **période → tarif → réglage général**
+   (`reglages`, une seule ligne). Une année calme, l'été redevient libre en
+   réglant sa période, sans créer de second tarif.
+
+Prix d'une nuit = prix de la nuit **dans sa propre période** × coefficient de
+son rang. Le total est calculé en fractions exactes et **arrondi une seule
+fois** ; les montants par nuit et par ligne sont obtenus par arrondi cumulé, de
+sorte qu'ils s'additionnent exactement au total.
+
+Le calcul vit dans `lib/tarification.ts` (pur, vérifié par
+`npm run verify:tarification`), la lecture dans `lib/tarifs.ts`. Les fiches
+gîtes et, au lot 2, le tunnel appellent **le même code** : la page ne peut pas
+annoncer un prix que le tunnel calculerait autrement. `lib/montants.ts` reste le
+seul calcul des montants d'une réservation **déjà faite** (acompte, solde,
+documents) ; il ne recalcule ni le prix ni la taxe, qu'il reçoit.
+
+**Pourquoi.** Chaque élément répond à une réponse du gérant :
+
+- **Les saisons dès la Phase 3** : le tunnel ne peut pas chiffrer un séjour
+  sans elles, et des prix en dur auraient obligé à écrire deux fois les dates
+  et la priorité des saisons (code, puis base en Phase 5).
+- **Le prix à la nuit avec un coefficient par rang** est la façon dont les
+  propriétaires pensent leurs prix (« une base d'une nuit, dégressive jusqu'à
+  une semaine »). Un séjour à cheval sur deux saisons ne pose alors aucune
+  question : chaque nuit garde le prix de sa saison.
+- **La moyenne au-delà du barème**, proposée par le gérant : une dégressivité
+  prolongée finit à zéro ; la moyenne la stabilise. Conséquence assumée : la
+  nuit qui suit la dernière case coûte plus que celle qui la précède (0,857
+  contre 0,70 avec le barème d'exemple) — « ça a une justification ».
+- **Le tarif séparé des dates** : le prix n'est saisi qu'une fois, même si le
+  tarif revient quatre fois dans l'année. Un prix recopié sur chaque période
+  finit par diverger (règle 1 du protocole).
+- **Les périodes datées année par année** : les règles et les prix « dépendent
+  des périodes et même des années ».
+
+**Proposés par la session, confirmés par le gérant le 14 octobre 2026.**
+Trois points n'avaient pas été demandés tels quels :
+- une **période** peut porter ses propres règles et son propre barème (« ça
+  dépend des périodes et même des années ») ;
+- un **jour de départ** autorisé s'ajoute au jour d'arrivée : sans lui,
+  « samedi → samedi » ne s'exprime pas ;
+- pour un séjour à cheval sur plusieurs périodes, le jour d'arrivée obéit à la
+  période de la première nuit, le jour de départ à celle de la dernière nuit,
+  et le minimum de nuits est le plus exigeant des périodes traversées. C'est la
+  lecture la plus protectrice : elle empêche d'entamer une semaine d'été
+  « samedi → samedi » par un séjour arrivé un jeudi.
+
+La colonne « la semaine » de la grille publique applique le barème du tarif,
+pas celui qu'une période porterait en propre.
+
+**Ce qui pourrait mal tourner.** Une période oubliée rend des dates
+invendables sans bruit côté client (le tunnel dit « pas de tarif ») ; seul le
+journal le signale. Le back-office (Phase 5) devra montrer les trous du
+calendrier tarifaire.
+
+**Ce qui rendrait l'inverse préférable.** Si les propriétaires revenaient à un
+prix unique à la semaine sans courts séjours, un tableau « semaine par
+saison » suffirait — mais le modèle actuel le représente déjà (barème plat,
+séjours samedi → samedi de 7 nuits minimum).
+
+**Si on revient dessus.** Revenir à des prix en code, c'est rendre chaque
+changement de prix dépendant d'un développeur. Supprimer la contrainte
+d'exclusion, c'est rendre le prix d'une nuit dépendant de l'ordre de lecture
+des lignes. Arrondir nuit par nuit au lieu du total, c'est des lignes qui ne
+s'additionnent plus au centime.
+
+---
+
+## D-18 · Taxe de séjour : réglages datés par gîte, arrondi à chaque étape
+
+**Date :** 11 au 14 octobre 2026 (cadrage de la Phase 3, lot 1).
+
+**Décision.** La taxe de séjour se **calcule**, par `lib/taxe-sejour.ts`, selon
+la règle officielle vérifiée le 14 octobre 2026 (texte, sources et exemples :
+`docs/03-conformite.md` § 7 bis). Ses paramètres sont des **réglages datés,
+par gîte** (`taxes_sejour`) : mode (proportionnel pour un gîte non classé, fixe
+pour un gîte classé), taux, plafond, tarif fixe, taxe additionnelle, et un
+drapeau « le ménage entre dans le calcul ». Une nouvelle délibération s'ajoute
+par une ligne datée, sans toucher au code. **Chaque étape est arrondie au
+centime**, comme l'exige le guide officiel. Une nuit sans réglage applicable
+est un **refus**, jamais une taxe nulle.
+
+**Pourquoi.** L'ancienne formule (5,5 % du séjour et du ménage) n'était aucune
+des deux règles légales : elle surfacturait environ 19 € sur un séjour type.
+L'arrondi à chaque étape n'est pas un détail : arrondir seulement à la fin
+donne 15,59 € au lieu de 15,75 € sur l'exemple officiel n° 1. Les réglages sont
+par gîte parce qu'un gîte peut être classé sans que les autres le soient, et
+datés parce que les tarifs se votent chaque année pour le 1er janvier suivant.
+
+**Ce qui reste ouvert** (point 10 de `docs/06-avant-premier-client.md`) : le
+forfait ménage entre-t-il dans le prix retenu, et les bébés comptent-ils parmi
+les occupants ? Le calcul accepte les deux réponses ; elles se demandent au
+service taxe de séjour d'Ardèche Grand Air.
+
+**Si on revient dessus.** Un taux unique appliqué au total, c'est collecter une
+taxe qui n'est pas due ou laisser la société payer la différence. Un arrondi
+unique final, c'est un écart de quelques centimes par séjour avec le calcul de
+la collectivité, sur un argent qui n'est pas le nôtre.
+
+---
+
+## D-19 · Caution : carte, chèque ou virement, au choix du client
+
+**Date :** 13 octobre 2026 (cadrage de la Phase 3). Complète D-16. Mise en
+œuvre : choix enregistré au lot 3 de la Phase 3, circuits en Phase 4, suivi
+manuel au back-office en Phase 5.
+
+**Décision.** À la réservation, le client choisit le moyen de sa caution :
+
+| Moyen | Fonctionnement |
+|---|---|
+| **Carte** | Préautorisation la veille du départ, décrite par D-16. La carte de l'acompte est enregistrée. |
+| **Chèque** | Remis à l'arrivée, **gardé, jamais encaissé**, rendu au plus tard 3 jours après le départ. |
+| **Virement** | Reçu au plus tard **3 jours avant l'arrivée** (réglable), restitué par un virement au plus tard 3 jours après le départ. |
+
+Les espèces ne sont pas proposées. Un client qui choisit le chèque ou le
+virement n'a **pas de carte enregistrée** : son solde se règle forcément par
+lien. Un client qui arrive sans sa caution reçoit, envoyé depuis le
+back-office, un lien pour donner sa carte ; la caution repasse alors par la
+carte.
+
+**Pourquoi.** L'accueil et le départ se font toujours en personne, ce qui rend
+le chèque praticable ; certains clients refusent qu'une carte soit conservée.
+Le délai unique de 3 jours garde le contrat simple et laisse voir un dégât
+après le ménage.
+
+**Ce qui pourrait mal tourner.** Un samedi soir, un client arrive sans chèque
+ni virement reçu, et sans carte enregistrée. Parade : le lien de carte, et
+l'article 6 du contrat qui doit dire ce qui se passe ensuite.
+
+**Ce que cette décision ne règle pas.** La rédaction de l'article 6 du contrat
+(trois moyens, client arrivé sans caution) et sa relecture par un juriste ;
+l'enregistrement comptable d'une caution reçue par virement, qui arrive
+réellement sur le compte de la société (question au comptable) ; la collecte
+de l'IBAN du client pour la restitution.
+
+**Si on revient dessus.** Les trois moyens seront décrits dans le contrat et
+sur les pages publiques : en retirer un sans les reprendre, c'est annoncer un
+dispositif qu'on n'applique pas (art. L.121-2 C. conso.).
+
+---
+
+## D-20 · Réservation à moins de 30 jours de l'arrivée : paiement intégral
+
+**Date :** 13 octobre 2026 (cadrage de la Phase 3). Mise en œuvre au lot 3.
+
+**Décision.** Quand la date limite du solde (30 jours avant l'arrivée, réglage
+du délai de solde) est déjà passée au moment de réserver, le client paie **le
+total** tout de suite. Il n'y a ni acompte, ni solde, ni choix du mode de
+règlement du solde.
+
+**Pourquoi.** Le contrat (article 5.1) fixe le solde à J-30 et ne prévoit pas
+le cas où cette date est dépassée. Payer le total évite un séjour imminent dont
+le solde n'arriverait pas.
+
+**Ce que cette décision ne règle pas.** L'article 5.1 doit prévoir ce cas, et
+le juriste le relire. Le comptable doit dire quelle facture on émet pour un
+paiement intégral à la réservation (Phase 4, factures automatiques).
+
+**Si on revient dessus.** Accepter un acompte avec un solde « sous 48 heures »
+crée une relance et un risque d'impayé à quelques jours de l'arrivée ; refuser
+la réservation en ligne fait perdre les séjours de dernière minute.
 
 ---
 

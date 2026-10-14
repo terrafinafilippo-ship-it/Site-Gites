@@ -32,6 +32,18 @@ Le mécanisme de caution, ses paramètres et les alternatives écartées sont da
 `docs/02-decisions.md`, **D-16** : cette fiche n'en recopie rien, elle liste ce
 qu'il y a à construire.
 
+> **Décisions du cadrage de la Phase 3 qui touchent cette phase** (13 octobre
+> 2026) :
+> - **D-19** : la caution est au choix du client — carte (D-16), chèque ou
+>   virement. Un client sans carte enregistrée règle son solde par lien ; le
+>   circuit du virement (réception attendue 3 jours avant l'arrivée,
+>   restitution par virement sous 3 jours) et la page « valider ma caution »
+>   pour le client arrivé sans caution relèvent de cette phase.
+> - **D-20** : une réservation faite à moins de 30 jours de l'arrivée est payée
+>   en totalité. Il n'y a alors pas de solde : la tâche de J-30 doit l'ignorer,
+>   et **le comptable doit dire quelle facture on émet** pour un paiement
+>   intégral.
+
 ---
 
 ## Périmètre inclus

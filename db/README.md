@@ -13,6 +13,8 @@ main dans un outil graphique.
 | `schema/` | Le schéma en TypeScript (Drizzle). Un fichier par table. C'est la source de vérité. |
 | `migrations/` | Les fichiers SQL générés à partir du schéma, numérotés et appliqués dans l'ordre. `meta/` est le journal de Drizzle : ne pas le modifier à la main. |
 | `migrations/0001_fonctions_triggers.sql` | Migration écrite à la main : fonctions de numérotation et triggers, que Drizzle ne sait pas décrire. |
+| `migrations/0002_tarification.sql` | Les sept tables de tarification et de taxe de séjour (Phase 3, D-17 et D-18). Générée. |
+| `migrations/0003_tarification_contraintes.sql` | Écrite à la main : interdiction du chevauchement de deux périodes, et création de la ligne unique de `reglages`. |
 | `index.ts` | Le client de base de données partagé par le site (pool de 10 connexions maximum). |
 | `seed.ts` | Insère ou remet à jour les trois gîtes. |
 | `verify.ts` | Auto-vérification complète, sans rien laisser en base. |
@@ -53,6 +55,24 @@ commitée.
   créées uniquement par la fonction `creer_facture` (voir plus bas).
 - **compteurs_documents** : le compteur de numérotation, une ligne par série
   (`FAC`, `CTR`) et par année.
+
+**Tarification** (Phase 3, lot 1 — le détail et le pourquoi sont dans
+`docs/04-architecture.md` § 3 et `docs/02-decisions.md`, D-17 et D-18)
+
+- **tarifs**, **tarifs_prix** : les tarifs nommés librement et le prix d'une
+  nuit de chacun, par gîte.
+- **periodes** : les plages de dates de chaque tarif. Deux périodes ne peuvent
+  pas se chevaucher (contrainte posée par la migration 0003).
+- **baremes**, **baremes_coefficients** : la dégressivité, un coefficient par
+  rang de nuit.
+- **reglages** : une seule ligne, créée par la migration 0003 — règle générale
+  de réservation, barème général, jour de début des périodes.
+- **taxes_sejour** : les réglages de taxe de séjour, par gîte et datés.
+
+Ces tables sont **vides en base réelle** tant que les propriétaires n'ont rien
+saisi : les fiches masquent alors leurs prix. Sur la base de test, la remise à
+zéro du parcours (`scripts/parcours/reinitialiser.ts`) charge une tarification
+d'essai, marquée « (essai) ». **`npm run db:seed` ne touche pas à ces tables.**
 
 **Tables provisoires** (structure minimale, affinée en Phase 3)
 
@@ -148,7 +168,9 @@ npm run db:verify
 ```
 
 Contrôle les tables et colonnes, le seed, les fonctions de numérotation, les
-triggers, les index uniques et le stockage des PDF. Toutes les écritures de test
+triggers, les index uniques, les contraintes de tarification (chevauchement de
+périodes, ligne unique des réglages, valeurs refusées) et le stockage des PDF.
+Toutes les écritures de test
 se font dans une transaction annulée : **aucun numéro n'est consommé, aucune
 ligne ne reste**. Le code de sortie vaut 1 si un contrôle échoue.
 

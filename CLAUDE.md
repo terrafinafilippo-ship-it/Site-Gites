@@ -25,6 +25,7 @@ npm run db:migrate       # applique les migrations en attente
 npm run db:seed          # insère ou remet à jour les trois gîtes
 npm run db:verify        # auto-vérification de la base (tout est annulé par ROLLBACK)
 npm run verify:centimes  # aller-retour centimes <-> texte numeric (51 cas)
+npm run verify:tarification  # prix des séjours et taxe de séjour (102 cas, sans base)
 
 bash scripts/parcours/lancer.sh   # non-régression complète (contrat, signature, factures)
 ```

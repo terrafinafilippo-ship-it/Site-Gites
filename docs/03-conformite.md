@@ -334,15 +334,30 @@ due et c'est la SARL qui paie. Sur-collecté, on facture au client une taxe qui
 n'est pas due. La formule appliquée aujourd'hui peut produire l'un ou l'autre
 selon le séjour.
 
-**La règle — meublé NON CLASSÉ.** Le montant se calcule par personne et par
-nuit :
+**Les gîtes ne sont PAS classés** (réponse du gérant, 11 octobre 2026) : c'est
+la règle des meublés non classés qui s'applique.
 
-1. taux voté par la collectivité, entre **1 % et 5 %**, appliqué au prix
-   **hors taxes de la nuitée DIVISÉ PAR LE NOMBRE D'OCCUPANTS** ;
-2. multiplié par le nombre d'**occupants assujettis** et par le nombre de nuits ;
-3. augmenté des **taxes additionnelles** (départementale, et le cas échéant
-   régionale) ;
-4. **plafonné** au tarif le plus élevé voté par la collectivité.
+**La règle de Savas — vérifiée le 14 octobre 2026 sur deux sources
+officielles.** Savas fait partie des 29 communes d'**Annonay Rhône Agglo**, qui
+vote la taxe : délibération **n° CC_2025_119** du 26 juin 2025, applicable au
+1er janvier 2026
+(<https://ardechegrandair.taxesejour.fr/portail/document/27229521/download>),
+et guide de facturation d'**Ardèche Grand Air**, édition janvier 2026
+(<https://ardechegrandair.taxesejour.fr/portail/284441/download>). Calcul
+**par personne et par nuit**, dans cet ordre :
+
+1. prix par nuit = prix HT de la location ÷ nombre de nuits ;
+2. prix de la nuitée = prix par nuit ÷ nombre d'**occupants** ;
+3. tarif = prix de la nuitée × **5 %** ;
+4. **plafond** : le tarif ne dépasse pas **4,40 €** (« le tarif le plus élevé
+   adopté par la collectivité », celui des palaces) ;
+5. **taxe additionnelle départementale de 10 %** du tarif, qui s'ajoute ;
+6. taxe = (tarif + additionnelle) × nombre de nuits × nombre d'**assujettis**.
+
+**« Lors de chaque calcul, procédez à l'arrondi au centième »** (guide) :
+chaque étape est arrondie au centime. Les deux exemples du guide — 15,75 € et
+9,68 € — sont rejoués au centime par `npm run verify:tarification`. Arrondir
+seulement à la fin donnerait 15,59 € au lieu de 15,75 €.
 
 **Les mineurs sont exonérés** (art. L.2333-31 du CGCT). Le mécanisme est
 contre-intuitif et mérite d'être écrit en toutes lettres : **on divise par le
@@ -351,14 +366,23 @@ Le séjour de référence du parcours de test comporte 2 adultes et 1 enfant.
 
 **Les frais annexes facturés à part** (forfait ménage, linge) sont **exclus de
 l'assiette** dès lors qu'ils sont identifiables et détachables — doctrine DGFiP.
-Appliquer le taux au forfait ménage est une **surfacturation**.
+Appliquer le taux au forfait ménage est une **surfacturation**. La délibération
+de Savas ne parle que du « prix de la prestation d'hébergement hors taxes » sans
+citer le ménage : **à confirmer** auprès du service taxe de séjour. En
+attendant, le ménage est exclu par défaut, et c'est un réglage
+(`taxes_sejour.menage_dans_assiette`), pas une ligne de code.
+
+**Les bébés.** Le guide compte comme occupants toutes les personnes hébergées.
+Qu'un bébé en fasse partie n'est écrit nulle part : **à confirmer** avec la
+même question. Le calcul reçoit le nombre d'occupants en paramètre et suit la
+réponse sans modification.
 
 **Meublé CLASSÉ : méthode entièrement différente** — un **tarif fixe** par
 personne et par nuit, voté par la collectivité selon la catégorie. Attention au
 piège : **le label Gîtes de France et ses épis ne sont PAS un classement.** Les
 épis sont une marque privée ; le classement « meublé de tourisme » est une
-procédure administrative, en étoiles, par arrêté. Si les gîtes sont classés, le
-taux de 5,5 % stocké en base ne veut rien dire.
+procédure administrative, en étoiles, par arrêté. Le mode « fixe » existe dans
+les réglages, par gîte, pour le jour où l'un d'eux serait classé.
 
 **La taxe n'est pas soumise à la TVA** et doit figurer **distinctement** sur la
 facture.
@@ -366,35 +390,29 @@ facture.
 **Un registre est obligatoire** : date, nombre de personnes, nuitées, montant
 collecté, exonérations.
 
-**Où c'est implémenté aujourd'hui.**
+**Où c'est implémenté (14 octobre 2026, Phase 3 lot 1 — décision D-18).**
 
 | Endroit | Ce qui s'y trouve |
 |---|---|
-| `gites.taux_taxe_sejour` | **5,50** pour les trois gîtes (numeric(5,2), un taux en pourcentage). |
-| Fiches gîtes | Affichent ce taux, lu en base depuis la Phase 2 (« Taxe de séjour — 5,5 % TTC »). |
-| `app/reserver/ReserverFunnel.tsx` | Écran de démonstration : `taxRate: 0.055` appliqué à **hébergement + forfait ménage**, sans notion d'occupants, de mineurs ni de plafond. |
+| `taxes_sejour` | Les réglages, **par gîte et datés** : mode (proportionnel / fixe), taux, plafond, tarif fixe, taxe additionnelle, ménage dans l'assiette, source. **Vide en base réelle** : à saisir (point 11 de `docs/06-avant-premier-client.md`). Les valeurs de Savas ci-dessus sont chargées dans la base de test. |
+| `lib/taxe-sejour.ts` | Le calcul, étape par étape, arrondi à chaque étape. Une nuit sans réglage est un refus, jamais une taxe nulle. |
+| Fiches gîtes | Affichent la règle en vigueur, lue en base : « 5 % du prix de la nuitée par personne, plafonné à 4,40 €, majoré de 10 % ». |
+| `app/reserver/ReserverFunnel.tsx` | **Encore l'écran de démonstration** : `taxRate: 0.055` sur hébergement + ménage. Branché sur `lib/taxe-sejour.ts` au **lot 2**. |
 | `lib/montants.ts` | **Ne recalcule rien** : la taxe est une valeur **fournie** par la réservation (`reservations.taxe_sejour`) et reprise telle quelle sur le contrat et les factures. |
+| `gites.taux_taxe_sejour` et `reservations.taux_taxe_sejour` | **5,50**, l'ancienne forme. Plus lue par les pages. Les PDF impriment encore « Taxe de séjour (5,5 %) » à partir de la réservation : libellé à reprendre au lot 5. |
 
-**L'écart, nommé.** Le taux de 5,5 % correspond à la forme « 5 % + 10 % de taxe
-additionnelle départementale » du régime **non classé**, mais :
+**L'écart restant.** Le calcul juste existe ; le tunnel ne l'appelle pas encore
+(lot 2). Jusque-là, aucune réservation réelle n'est possible : le tunnel est
+une démonstration, et le site ne sera pas mis en ligne avant la fin des lots.
 
-- il est appliqué à une **assiette trop large** (le forfait ménage y est inclus) ;
-- il ignore la **division par le nombre d'occupants**, l'**exonération des
-  mineurs** et le **plafond** ;
-- et surtout, **on ne sait pas si les gîtes sont classés**, ce qui déciderait
-  d'une méthode entièrement différente.
+**Exemple.** 780 € de location pour 7 nuits, 2 adultes et 1 enfant : 111,43 €
+par nuit, 37,14 € par occupant, 1,86 € de taxe, 0,19 € de taxe additionnelle,
+soit 2,05 € × 7 nuits × 2 adultes = **28,70 €**. L'ancienne formule (5,5 % de
+la location et du ménage) donnait 47,30 €.
 
-Comme `lib/montants.ts` reprend la valeur fournie sans la recalculer, l'erreur
-naît au moment de la réservation et se propage telle quelle jusqu'à la facture.
-
-**Où cela se corrige.** Le calcul vit dans le tunnel : c'est une **décision
-ouverte nommée de la Phase 3** (« méthode de calcul de la taxe de séjour »),
-à trancher à son cadrage. La Phase 2 n'a **rien modifié** au calcul : elle a
-documenté.
-
-**Qui peut lever :** les propriétaires (le classement) **et la commune de Savas
-ou son intercommunalité** (régime, taux, plafond votés). Source officielle :
-<https://taxesejour.impots.gouv.fr>.
+**Qui peut lever ce qui reste :** le service taxe de séjour d'Ardèche Grand Air
+(ménage, bébés, tarifs 2027 : 04 75 33 24 51, ardechegrandair@taxesejour.fr) et
+les propriétaires (saisie des réglages).
 
 ---
 

@@ -78,14 +78,19 @@ components/
   ui/           Composants réutilisables
 lib/
   centimes.ts   Les DEUX fonctions de frontière du modèle monétaire
-  montants.ts   Le SEUL calcul de montants
-  format.ts     Le SEUL formatage calcul -> affichage (fmtEuro, fmtPrix, fmtTaux)
+  montants.ts   Le SEUL calcul des montants d'une réservation faite (acompte, solde, documents)
+  tarification.ts  Le SEUL calcul du prix de location d'un séjour (pur, D-17)
+  taxe-sejour.ts   Le SEUL calcul de la taxe de séjour (pur, D-18)
+  tarifs.ts     Lecture en base de la tarification et des réglages de taxe
+  decimaux.ts   Taux et coefficients lus exactement ; division arrondie
+  dates-civiles.ts Arithmétique des dates « aaaa-mm-jj », en UTC
+  format.ts     Le SEUL formatage calcul -> affichage (fmtEuro, fmtPrix, fmtTaux…)
   constantes.ts Identité légale et valeurs par défaut
   storage.ts    Stockage des PDF et signature des URL
   reservations.ts  Chargement réservation + gîte joint, avec conversion en centimes
   gites-publics.ts Chiffres des gîtes pour les pages publiques (cache, dégradation)
   auth.ts       Vérification du secret service-à-service
-  data/         Contenu éditorial du site, en code (gîtes, récits, tarifs, légal)
+  data/         Contenu éditorial du site, en code (gîtes, récits, légal) — plus aucun prix
 db/
   schema/       Le schéma Drizzle : un fichier par table. SOURCE DE VÉRITÉ.
   migrations/   Les SQL générés, numérotés. meta/ est le journal de Drizzle.
@@ -104,7 +109,7 @@ le dossier `admin/`. Les maquettes du back-office se récupèrent dans ce commit
 
 ---
 
-## 3. Modèle de données — les dix tables
+## 3. Modèle de données — les dix-sept tables
 
 **Cœur métier — six tables exercées par le code**
 
@@ -125,6 +130,24 @@ le dossier `admin/`. Les maquettes du back-office se récupèrent dans ce commit
 | `disponibilites` | Le calendrier : une ligne par gîte et par nuit, avec son état (`libre`, `reserve`, `bloque`, **`verrou`**) et son origine (`directe`, `airbnb`, `booking`, `gdf`). `verrou_expire_at` porte le verrou temporaire du tunnel de paiement. | Phase 3, puis 7 |
 | `avis` | Les avis clients affichés sur le site. | Phase 6 |
 | `audit_logs` | Le journal des actions sensibles. Aucun trigger ne l'alimente. | Phase 3 |
+
+**Tarification — sept tables (Phase 3, lot 1 ; décisions D-17 et D-18)**
+
+| Table | Rôle | Garanties structurelles |
+|---|---|---|
+| `tarifs` | Un tarif nommé librement (« Basse saison »), avec ses règles et son barème propres, ou NULL pour « comme le réglage général ». | `nom` unique · jours ISO 1 à 7, liste non vide |
+| `tarifs_prix` | Le prix d'**une nuit** d'un tarif, pour un gîte. Pas de ligne = pas de prix : le calcul refuse. | Clé `(tarif_id, gite_id)` · prix > 0 |
+| `periodes` | Les plages de dates d'un tarif : première nuit incluse, jour de fin **exclu**. Règles et barème propres possibles. | **Contrainte d'exclusion `periodes_sans_chevauchement`** (migration 0003) : une nuit relève d'au plus un tarif · fin > début · un tarif utilisé ne se supprime pas |
+| `baremes` | Les barèmes de dégressivité. | `nom` unique |
+| `baremes_coefficients` | Une case de barème par **rang** de nuit (1 = première). Une ligne par rang plutôt qu'un tableau : le pilote pg lit un tableau de numeric en flottants. | Clé `(bareme_id, rang)` · rang ≥ 1 · coefficient > 0 · rangs consécutifs contrôlés à la lecture |
+| `reglages` | **Une seule ligne** (id = 1), créée par la migration 0003 : règle générale (nuits minimum, jours d'arrivée et de départ), barème général, jour de début attendu des périodes. Les lots suivants y ajoutent leurs réglages. | `id = 1` imposé · son absence est une panne, jamais comblée par des valeurs par défaut |
+| `taxes_sejour` | Les réglages de taxe de séjour, **par gîte et datés** : mode, taux, plafond, tarif fixe, taxe additionnelle, ménage dans l'assiette, source. | Clé `(gite_id, date_debut)` · paramètres requis selon le mode |
+
+En base réelle, ces tables sont **vides** jusqu'à la saisie par les
+propriétaires (point 11 de `docs/06-avant-premier-client.md`) ; la ligne
+`reglages` existe dès la migration. Les colonnes `gites.tarif_semaine_base`,
+`gites.tarif_weekend` et `gites.taux_taxe_sejour` ne sont plus lues par aucune
+page (D-15 remplacée par D-17) ; elles seront retirées par une migration.
 
 **Conventions de typage, décidées en Phase 0 et à respecter :**
 
@@ -163,6 +186,8 @@ tronquer en silence.
 | Sens | Fichier | Occasion |
 |---|---|---|
 | base → mémoire | `lib/reservations.ts` | Lecture d'une réservation et de son gîte |
+| base → mémoire | `lib/gites-publics.ts` | Forfait ménage et caution des fiches |
+| base → mémoire | `lib/tarifs.ts` | Prix d'une nuit, plafond et tarif fixe de taxe ; taux et coefficients par `entierDepuisDecimal` (`lib/decimaux.ts`) |
 | base → mémoire | `app/api/factures/route.ts` | Relecture du montant de la facture d'acompte |
 | base → mémoire | `db/verify.ts` | Contrôle de `creer_facture` |
 | mémoire → base | `app/api/factures/route.ts` | `p_montant_ttc` passé à `creer_facture` |
@@ -178,8 +203,16 @@ des nombres décimaux. Le seul arrondi du modèle est
 `Math.round(totalTtc * (TAUX_ACOMPTE / 100))` dans `lib/montants.ts` : le
 `/ 100` y porte sur le **taux**, jamais sur un montant.
 
-**`lib/montants.ts` est le seul fichier qui calcule.** Il ne construit **aucun**
-numéro de document.
+**Un calcul, un seul fichier.** `lib/montants.ts` calcule les montants d'une
+réservation **faite** (sous-total, total, acompte, solde) et ne construit
+**aucun** numéro de document. Depuis la Phase 3, deux calculs s'y ajoutent,
+chacun dans son propre fichier et nulle part ailleurs : le prix de location
+d'un séjour à réserver (`lib/tarification.ts`) et sa taxe de séjour
+(`lib/taxe-sejour.ts`). Les deux sont **purs** et calculent en entiers exacts :
+le prix en fractions BigInt arrondies une seule fois, la taxe arrondie à chaque
+étape comme l'exige le guide officiel. Leurs coefficients et taux sont des
+entiers à échelle fixe (dix-millièmes, centièmes de pour cent), lus par
+découpage de chaîne.
 
 ---
 
@@ -297,7 +330,8 @@ complet produit les bons montants sur les bons documents**.
 | Niveau | Commande | Ce qu'il prouve |
 |---|---|---|
 | Conversion | `npm run verify:centimes` | L'aller-retour centimes ↔ texte numeric sur 51 cas, dont les valeurs limites |
-| Base | `npm run db:verify` | Tables, colonnes, seed, fonctions de numérotation, triggers, index uniques, stockage. **Tout est annulé par ROLLBACK** : aucun numéro consommé |
+| Prix et taxe | `npm run verify:tarification` | 102 cas calculés à la main : dégressivité, séjours à cheval sur deux saisons, règles, refus, grille publique, et les deux exemples du guide officiel de la taxe de séjour au centime. Sans base |
+| Base | `npm run db:verify` | Tables, colonnes, seed, fonctions de numérotation, triggers, index uniques, contraintes de tarification, stockage. **Tout est annulé par ROLLBACK** : aucun numéro consommé |
 | Bout en bout | `bash scripts/parcours/lancer.sh` | Le parcours complet : contrat, signature, factures, idempotence, refus attendus, accès aux PDF, contrôles en base **et** sur les PDF produits |
 
 **Les deux réservations de test** (`scripts/parcours/reference.ts`) sont

@@ -18,6 +18,7 @@ signature ne se supprime pas. Ne jamais lancer ces scripts sur la base réelle.
 | Étape | Contrôle |
 |---|---|
 | Conversion | Aller-retour centimes ↔ texte numeric sur les valeurs limites (`npm run verify:centimes`) |
+| Prix et taxe | Prix de location d'un séjour et taxe de séjour, 102 cas calculés à la main dont les deux exemples officiels (`npm run verify:tarification`) |
 | Contrat | Émission, numéro `CTR-AAAA-NNN`, PDF, recopie du numéro sur la réservation |
 | Signature | Page publique, preuve enregistrée, PDF signé, statut `signe` |
 | Factures | Acompte puis solde, numéros `FAC-AAAA-NNN` continus, montants exacts |
@@ -62,6 +63,7 @@ les numéros de documents attendus par les contrôles supposent une numérotatio
 repartant de 001) :
 
 ```bash
+npm run verify:tarification
 DB_CIBLE=test npx tsx scripts/parcours/reinitialiser.ts
 bash scripts/parcours/parcours.sh TEST-2026-ARMU-001
 bash scripts/parcours/parcours.sh TEST-2026-LAPHINE-002 --cas-b
@@ -117,7 +119,8 @@ mise en page.
 | Fichier | Rôle |
 |---|---|
 | `reference.ts` | Les deux réservations et **les montants attendus**. Point de vérité. |
-| `reinitialiser.ts` | Vide la base de test, remet les compteurs à zéro, purge le stockage, recrée les deux réservations. |
+| `reinitialiser.ts` | Vide la base de test, remet les compteurs à zéro, purge le stockage, recrée les deux réservations, charge la tarification d'essai. |
+| `tarifs-fictifs.ts` | La tarification d'essai de la base de test : 5 tarifs « (essai) », 16 périodes d'octobre 2026 à fin 2027, un barème, et la taxe de séjour **réelle** de Savas. Aucun prix réel. |
 | `parcours.sh` | Parcours HTTP complet d'une réservation, avec les refus attendus. |
 | `urls-signees.sh` | Accès aux PDF : une URL valide, quatre refus. |
 | `controler.ts` | Contrôles en base (la ligne en base est le document légal). |

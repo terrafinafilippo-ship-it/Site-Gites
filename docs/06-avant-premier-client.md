@@ -4,14 +4,14 @@
 > **seul** domicile de cette liste : elle ne doit être recopiée nulle part
 > ailleurs (voir `docs/05-protocole-phase.md`, règle 1).
 
-Dix points à traiter **avant qu'un vrai client signe un vrai contrat**. Aucun
+Onze points à traiter **avant qu'un vrai client signe un vrai contrat**. Aucun
 n'empêche le logiciel de fonctionner : ils empêchent qu'il fonctionne
 **correctement le jour où il compte**.
 
 ## Qui peut lever un point
 
-Cinq des dix points **ne se résolvent pas, ou pas entièrement, dans le dépôt**
-(3, 6, 7, 9 et 10). Sans cette
+Six des onze points **ne se résolvent pas, ou pas entièrement, dans le dépôt**
+(3, 6, 7, 9, 10 et 11). Sans cette
 précision, une session future les lira comme des tâches techniques et cherchera
 la réponse au mauvais endroit — dans le code, où elle n'est pas.
 
@@ -29,14 +29,15 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 |---|---|---|---|
 | 1 | Nommer les options sur les documents | Développement | Phase 5 |
 | 2 | Rendre l'adresse IP du signataire non falsifiable | Développement | Au déploiement |
-| 3 | Caution Stripe : confirmée par Stripe, relue par un juriste, développée et testée | **Les propriétaires** (Stripe, juriste), puis développement | Phase 4 |
+| 3 | Caution (carte, chèque, virement) et paiement : confirmés par Stripe, contrat et texte d'accord relus par un juriste, développés et testés | **Les propriétaires** (Stripe, juriste), puis développement | Phases 3 et 4 |
 | 4 | Passer la base en configuration de production | Développement | Phase 4 |
 | 5 | Vérifier le logo sur un PDF généré **après** déploiement | Développement | Au déploiement |
 | 6 | Qui est le bailleur juridique des trois gîtes | **Le comptable** | Phase 6 |
 | 7 | Médiateur de la consommation : lequel, et adhésion en cours | **Les propriétaires** | Phase 6 |
 | 8 | Écrire les règles sauna à l'article 12 du contrat | Développement | Phase 6 |
 | 9 | Sauvegarder le volume des PDF, et tester une restauration | **Phase de déploiement** | Au déploiement effectif — échéance tranchée le 24 septembre 2026 |
-| 10 | Taxe de séjour : régime, taux et assiette exacts | **Les propriétaires + la commune** | Phase 3 |
+| 10 | Taxe de séjour : régime et taux **vérifiés** ; restent l'assiette (ménage), les bébés et les tarifs 2027 | **Le service taxe de séjour** (Ardèche Grand Air) | Phase 3 |
+| 11 | Saisir les vrais tarifs, périodes, barème et réglages de taxe | **Les propriétaires**, au back-office | Avant l'ouverture (Phase 5) |
 
 ---
 
@@ -122,6 +123,17 @@ le propriétaire :
 **Reste à faire :** conserver la trace écrite. La transcription devait être
 envoyée par courriel à la clôture du chat ; à la date de cette note, sa
 réception n'est pas confirmée. À défaut, captures d'écran de l'historique.
+
+**Ajouts du cadrage de la Phase 3 (13 et 14 octobre 2026)**, à faire relire
+dans le même envoi au juriste :
+
+- la caution devient **au choix du client : carte, chèque ou virement**
+  (D-19) — l'article 6 est à réécrire en conséquence, y compris le cas du
+  client arrivé sans caution ;
+- une réservation faite **à moins de 30 jours** de l'arrivée se paie en totalité
+  (D-20) — l'article 5.1 ne prévoit pas ce cas ;
+- le **texte d'accord pour l'enregistrement de la carte**, validé par le gérant
+  le 14 octobre 2026 : son texte est dans `docs/phases/phase-3.md`.
 
 **Le contrôle.** Une réservation de test menée jusqu'au départ : la caution est
 bloquée la veille, libérée d'un clic, et la carte n'est plus attachée au client
@@ -330,6 +342,22 @@ restauré a la même empreinte SHA-256 que l'original.
 **Qui peut lever :** les propriétaires **et** la commune de Savas (ou son
 intercommunalité) · **Phase 3**
 
+> **Avancement au 14 octobre 2026.** Les deux questions ci-dessous ont leur
+> réponse : les gîtes **ne sont pas classés** (gérant, 11 octobre), et la règle
+> de Savas — 5 %, plafond 4,40 €, + 10 % départementale, arrondi à chaque
+> étape — est **vérifiée sur la délibération et le guide officiels**
+> (`docs/03-conformite.md` § 7 bis). Le calcul existe et rejoue les exemples
+> officiels au centime (D-18).
+>
+> **Restent trois questions, à poser au service taxe de séjour d'Ardèche Grand
+> Air** (04 75 33 24 51, ardechegrandair@taxesejour.fr) :
+> 1. le **forfait ménage** facturé à part entre-t-il dans le prix retenu ?
+> 2. un **bébé** compte-t-il parmi les occupants qui divisent le prix ?
+> 3. quels **tarifs pour 2027** (délibération votée avant le 1er juillet 2026) ?
+>
+> Le calcul suit les réponses sans modification : le ménage est un réglage,
+> les occupants un paramètre, les tarifs une ligne datée.
+
 **Pourquoi c'est bloquant.** Cet argent n'est pas le nôtre : il est collecté
 pour le compte d'une collectivité. **Sous-collecté**, la différence reste due et
 c'est la SARL qui paie. **Sur-collecté**, on facture au client une taxe qui
@@ -357,6 +385,27 @@ centime.
 
 La règle complète, l'implémentation actuelle et l'écart sont détaillés dans
 `docs/03-conformite.md` § 7 bis.
+
+---
+
+## 11. Saisir les vrais tarifs, périodes, barème et réglages de taxe
+
+**Qui peut lever :** **les propriétaires**, au back-office · **avant
+l'ouverture** (l'écran de saisie est en Phase 5)
+
+**La raison.** Depuis la Phase 3 (D-17), les prix ne sont plus écrits dans le
+code : ils vivent dans les tables de tarification, **vides en base réelle**.
+Tant qu'elles le restent, les fiches gîtes masquent leurs prix et le tunnel
+refuse de chiffrer un séjour — par conception, il n'invente jamais un prix. La
+base de test, elle, porte une tarification d'essai marquée « (essai) ».
+
+**L'action.** Saisir, pour chaque gîte : les tarifs et leur prix à la nuit, les
+périodes de l'année (sans trou), le barème général, les règles d'arrivée et de
+durée s'il y en a, et les réglages de taxe de séjour (point 10).
+
+**Le contrôle.** Chaque fiche gîte affiche sa grille ; le journal du serveur ne
+contient ni « VALEUR ABSENTE EN BASE », ni « TARIF ÉCARTÉ », ni « PÉRIODE NON
+CALÉE », ni « BARÈME » ; un séjour de test se chiffre dans le tunnel.
 
 ---
 

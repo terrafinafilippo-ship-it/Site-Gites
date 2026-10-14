@@ -13,7 +13,9 @@ aucun terme n'y est supposé connu.
 
 Les Gîtes de Samoyas louent **trois gîtes** dans le hameau de Samoyas, sur la
 commune de **Savas** (Ardèche, département 07), à des vacanciers, à la semaine
-ou au week-end.
+ou pour quelques nuits. L'accueil et le départ se font **toujours en
+personne** : il n'y a pas de boîte à clés (précisé au cadrage de la Phase 3,
+13 octobre 2026).
 
 L'exploitation est portée par une société, la **SARL DE LA VOUTE**. C'est elle
 qui encaisse, facture et signe les contrats. « Les Gîtes de Samoyas » est une
@@ -45,11 +47,13 @@ factures — pas les constantes du code, pas les textes du site.
 | Capacité maximale | 4 personnes | 2 personnes | 4 personnes |
 | Caution | 500,00 € | **400,00 €** | 500,00 € |
 | Forfait ménage | 80,00 € | 80,00 € | 80,00 € |
-| Taux de taxe de séjour | 5,5 % | 5,5 % | 5,5 % |
-| Tarif semaine de base | 670,00 € | 450,00 € | 690,00 € |
-| Tarif week-end | 300,00 € | 200,00 € | 320,00 € |
 | Équipement spécifique | — | — | Sauna privatif |
 | Spa | oui | oui | oui |
+
+La table `gites` porte encore trois anciennes colonnes de prix — tarif semaine
+de base (670 / 450 / 690 €), tarif week-end (300 / 200 / 320 €) et taux de
+taxe de séjour (5,5 %) — que **plus aucune page ne lit** depuis la Phase 3.
+Les prix vivent désormais dans les tables de tarification (paragraphe suivant).
 
 **Les trois gîtes ont un spa** (`a_spa` vaut `true` pour les trois). Seule La
 Maison Vieille a en plus un **sauna**.
@@ -65,11 +69,21 @@ en code, **sans source en base**. Les notes (5,0 · 16 avis, etc.) n'ont aucune
 origine vérifiable dans le dépôt — **À COMPLÉTER** : d'où viennent-elles, et
 peut-on les afficher en l'état ?
 
-**Grille tarifaire saisonnière.** Le site affiche quatre saisons par gîte
-(basse, moyenne, haute, fêtes) dans `lib/data/pricing.ts`. La base ne connaît
-que deux tarifs par gîte (`tarif_semaine_base`, `tarif_weekend`) : **il n'existe
-aucun modèle de saisons en base**. C'est un manque à traiter en Phase 5
-(back-office tarifs), pas un oubli de la Phase 0.
+**Comment les prix sont pensés** (cadrage de la Phase 3, octobre 2026 ;
+décision D-17). Les propriétaires raisonnent en **prix d'une nuit**, dégressif
+avec la durée du séjour : la 1re et la 2e nuit au plein prix, puis un
+coefficient par nuit (0,9, 0,85…) jusqu'à la dernière case du barème, au-delà
+de laquelle chaque nuit vaut la moyenne. Le prix d'une nuit dépend de la
+**saison**, découpée en périodes datées qui commencent le samedi et changent
+d'une année sur l'autre. Les séjours sont **libres** (n'importe quel jour,
+aucune durée minimum) sauf exception décidée période par période, par exemple
+un été « samedi → samedi » une année d'affluence. Tout se règle au back-office
+(Phase 5) ; rien n'est écrit dans le code, et **aucun tarif réel n'est encore
+saisi** (point 11 de `docs/06-avant-premier-client.md`).
+
+**Les gîtes ne sont pas classés « meublé de tourisme »** (le label Gîtes de
+France n'est pas un classement) : la taxe de séjour suit le régime
+proportionnel de Savas (`docs/03-conformite.md` § 7 bis).
 
 ---
 

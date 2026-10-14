@@ -29,18 +29,24 @@ Une application Next.js protégée par **authentification** :
 
 1. **Réservations** — liste, fiche, modification.
 2. **Calendrier** des trois gîtes, avec blocage manuel de nuits.
-3. **Tarifs**, y compris le **modèle de saisons qui n'existe pas encore en
-   base** : la table `gites` ne porte que `tarif_semaine_base` et
-   `tarif_weekend`, alors que le site affiche quatre saisons
-   (`lib/data/pricing.ts`). Ce modèle est à créer ici, et il **absorbe**
-   `tarif_semaine_base`, définie en Phase 2 comme le tarif de basse saison
-   (D-15). Aujourd'hui, seule cette cellule vient de la base ; les trois autres
-   saisons sont encore en code.
+3. **Tarifs.** Le modèle **existe depuis la Phase 3** (lot 1, décision D-17) :
+   tarifs nommés et prix d'une nuit par gîte, périodes datées, barème de
+   coefficients par rang de nuit, règles générales et exceptions par tarif et
+   par période, réglages de taxe de séjour datés par gîte (D-18). La question
+   « plancher ou base à coefficients » a reçu sa réponse au cadrage : un prix à
+   la nuit, dégressif par barème. Reste à construire **les écrans** :
+   - les tarifs et leur prix par gîte ;
+   - le calendrier des périodes, qui doit **montrer les trous** (une nuit sans
+     période n'est pas réservable) et refuser une période qui ne commence pas
+     le jour attendu (`reglages.periodes_jour_debut`, samedi) ;
+   - le barème général, et ceux propres à un tarif ou à une période ;
+   - la règle générale et ses exceptions ;
+   - les réglages de taxe de séjour, chaque délibération étant une nouvelle
+     ligne datée.
 
-   **Question à poser aux propriétaires au cadrage :** pensent-ils leurs prix
-   comme **un plancher en basse saison**, majoré ensuite, ou comme **une base de
-   référence** à laquelle s'appliquent des coefficients ? La réponse détermine la
-   forme du modèle. Elle ne remet pas en cause la cellule branchée en Phase 2.
+   Tout enregistrement appelle `revalidateTag('gites')`. **La saisie des vrais
+   tarifs est un point bloquant avant l'ouverture : point 11 de
+   `docs/06-avant-premier-client.md`.**
 4. **Fiches des gîtes** — les scalaires métier (voir l'architecture hybride de
    la fiche Phase 2).
 5. **Documents** — retrouver et renvoyer contrats et factures.
@@ -61,6 +67,16 @@ Une application Next.js protégée par **authentification** :
 
    Ce point **dépend de la Phase 4** : sans elle, il n'y a rien à décider. Le
    reste de la phase reste parallélisable.
+9. **Cautions par chèque ou virement** (décision D-19) : pour chaque
+   réservation concernée, noter la caution reçue puis rendue ; une alerte quand
+   un virement n'est pas arrivé 3 jours avant l'arrivée ; et un bouton
+   **« Envoyer le lien de caution »** pour le client arrivé sans caution, qui
+   donne alors sa carte sur la page « valider ma caution » de la Phase 4.
+10. **Réglages des lots de la Phase 3** : durée du blocage des dates pendant le
+    paiement, durée de validité du lien de suivi, coordonnées bancaires
+    affichées pour le virement de caution, courriels aux propriétaires (types
+    activés, destinataires), texte d'accord pour l'enregistrement de la carte
+    (versions datées).
 
 ---
 
@@ -93,7 +109,8 @@ avec les plateformes (Phase 7), tout ce qui touche au paiement (Phases 3 et 4).
 Une valeur modifiée en back-office sera **écrasée** au prochain seed si elle
 n'est pas reportée dans le fichier. À traiter explicitement dans cette phase :
 c'est un piège silencieux, et il vise précisément le geste que la phase rend
-possible.
+possible. Les tables de tarification, elles, ne sont **pas** touchées par le
+seed.
 
 ---
 
