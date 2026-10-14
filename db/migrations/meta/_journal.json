@@ -15,6 +15,20 @@
       "when": 1789400770001,
       "tag": "0001_fonctions_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791950681826,
+      "tag": "0002_tarification",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791950689505,
+      "tag": "0003_tarification_contraintes",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,5 @@
-// Remise à zéro de la base de TEST et création des deux réservations de référence.
+// Remise à zéro de la base de TEST, création des deux réservations de référence
+// et chargement de la tarification d'essai (tarifs-fictifs.ts).
 //
 // REFUSE de s'exécuter si DB_CIBLE ne vaut pas "test" : ce script vide des
 // tables et remet les compteurs de numérotation légale à zéro. Sur la base
@@ -13,6 +14,7 @@ import { Pool } from "pg";
 
 import { numericDepuisCentimes } from "../../lib/centimes";
 import { REFERENCE_ARMU, REFERENCE_LAPHINE, RESERVATIONS_REFERENCE } from "./reference";
+import { chargerTarifsFictifs } from "./tarifs-fictifs";
 
 // Toutes les tables qui référencent `reservations`, sinon TRUNCATE est refusé.
 const TABLES_A_VIDER = [
@@ -102,6 +104,11 @@ async function main(): Promise<void> {
       `État : ${etat.r} réservation(s), ${etat.d} document(s), ${etat.f} facture(s), ${etat.s} signature(s).`,
     );
     console.log(`Références de test : ${REFERENCE_ARMU}, ${REFERENCE_LAPHINE}`);
+
+    // Tarification d'essai : les fiches gîtes et, au lot 2, le tunnel de
+    // réservation en ont besoin. Les deux réservations ci-dessus n'en dépendent
+    // pas : leurs montants sont ceux de reference.ts, saisis tels quels.
+    await chargerTarifsFictifs(pool);
   } finally {
     await pool.end();
   }

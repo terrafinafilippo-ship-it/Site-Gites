@@ -36,6 +36,7 @@ etape() { # <libellé> <commande...>
 }
 
 etape "Conversion des montants (aller-retour centimes)" npm run -s verify:centimes
+etape "Prix des séjours et taxe de séjour (calcul)" npm run -s verify:tarification
 etape "Remise à zéro de la base de test" env DB_CIBLE=test npx tsx scripts/parcours/reinitialiser.ts
 etape "Parcours L'Armu (avec options)" bash scripts/parcours/parcours.sh TEST-2026-ARMU-001
 etape "Parcours LaPhine (sans option, garde du cas B)" bash scripts/parcours/parcours.sh TEST-2026-LAPHINE-002 --cas-b

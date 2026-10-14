@@ -10,3 +10,11 @@ export * from "./paiements";
 export * from "./disponibilites";
 export * from "./avis";
 export * from "./audit-logs";
+// Tarification (Phase 3, lot 1 — décisions D-17 et D-18).
+export * from "./baremes";
+export * from "./baremes-coefficients";
+export * from "./tarifs";
+export * from "./tarifs-prix";
+export * from "./periodes";
+export * from "./reglages";
+export * from "./taxes-sejour";

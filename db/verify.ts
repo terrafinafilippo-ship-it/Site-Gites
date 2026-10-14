@@ -97,6 +97,23 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
   ],
   avis: ["id", "gite_id", "source", "note", "commentaire", "auteur", "date_sejour", "publie", "created_at"],
   audit_logs: ["id", "table_cible", "ligne_id", "action", "acteur", "details", "created_at"],
+  // Tarification (Phase 3, lot 1 — D-17 et D-18).
+  baremes: ["id", "nom", "created_at"],
+  baremes_coefficients: ["bareme_id", "rang", "coefficient"],
+  tarifs: ["id", "nom", "nuits_minimum", "jours_arrivee", "jours_depart", "bareme_id", "created_at"],
+  tarifs_prix: ["tarif_id", "gite_id", "prix_nuit"],
+  periodes: [
+    "id", "tarif_id", "date_debut", "date_fin", "nuits_minimum", "jours_arrivee", "jours_depart",
+    "bareme_id", "created_at",
+  ],
+  reglages: [
+    "id", "nuits_minimum", "jours_arrivee", "jours_depart", "bareme_general_id",
+    "periodes_jour_debut", "updated_at",
+  ],
+  taxes_sejour: [
+    "id", "gite_id", "date_debut", "mode", "taux", "plafond", "tarif_fixe", "taxe_additionnelle",
+    "menage_dans_assiette", "source", "created_at",
+  ],
 };
 
 // Quelques types sensibles (le module de contrat en dépend).
@@ -109,6 +126,11 @@ const TYPES_ATTENDUS: Array<[table: string, colonne: string, udt: string]> = [
   ["factures", "date_emission", "date"],
   ["factures", "donnees", "jsonb"],
   ["factures", "montant_ttc", "numeric"],
+  ["periodes", "date_debut", "date"],
+  ["periodes", "jours_arrivee", "_int4"],
+  ["baremes_coefficients", "coefficient", "numeric"],
+  ["tarifs_prix", "prix_nuit", "numeric"],
+  ["taxes_sejour", "taux", "numeric"],
 ];
 
 async function verifierSchema(client: PoolClient): Promise<void> {
@@ -182,6 +204,21 @@ async function verifierSchema(client: PoolClient): Promise<void> {
   ]) {
     noter("1", idx.includes(nom), `index unique ${nom} présent`);
   }
+
+  const exclusion = await client.query<{ contype: string }>(
+    `select contype from pg_constraint where conname = 'periodes_sans_chevauchement'`,
+  );
+  noter("1", exclusion.rows[0]?.contype === "x", "contrainte d'exclusion periodes_sans_chevauchement présente");
+
+  const lignesReglages = await client.query<{ id: number; nuits_minimum: number; jours_arrivee: number[] }>(
+    `select id, nuits_minimum, jours_arrivee from reglages`,
+  );
+  noter(
+    "1",
+    lignesReglages.rows.length === 1 && lignesReglages.rows[0].id === 1,
+    "reglages : une seule ligne, id = 1 (créée par la migration 0003)",
+    `${lignesReglages.rows.length} ligne(s)`,
+  );
 }
 
 // ─── 2. Seed des gîtes ───────────────────────────────────────────────────────
@@ -403,6 +440,95 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
       [docId],
     );
     noter("6", codePg(tokenDouble.erreur) === "23505", "token réutilisé refusé (index unique partiel)", codePg(tokenDouble.erreur));
+
+    // ── 6b. Tarification : contraintes ──────────────────────────────────────
+    titre("6b. Tarification : contraintes de la base");
+    const bareme = await client.query<{ id: string }>(
+      `insert into baremes (nom) values ($1) returning id`,
+      [`VERIFY-bareme-${randomBytes(3).toString("hex")}`],
+    );
+    const baremeId = bareme.rows[0].id;
+    const coefNul = await attendreErreur(
+      client, "sp_coef_nul",
+      `insert into baremes_coefficients (bareme_id, rang, coefficient) values ($1, 1, 0)`, [baremeId],
+    );
+    noter("6b", codePg(coefNul.erreur) === "23514", "coefficient nul refusé", codePg(coefNul.erreur));
+    const rangNul = await attendreErreur(
+      client, "sp_rang_nul",
+      `insert into baremes_coefficients (bareme_id, rang, coefficient) values ($1, 0, 1)`, [baremeId],
+    );
+    noter("6b", codePg(rangNul.erreur) === "23514", "rang 0 refusé (le premier rang est 1)", codePg(rangNul.erreur));
+
+    const tarif = await client.query<{ id: string }>(
+      `insert into tarifs (nom) values ($1) returning id`,
+      [`VERIFY-tarif-${randomBytes(3).toString("hex")}`],
+    );
+    const tarifId = tarif.rows[0].id;
+    const jourHuit = await attendreErreur(
+      client, "sp_jour_8",
+      `update tarifs set jours_arrivee = '{6,8}' where id = $1`, [tarifId],
+    );
+    noter("6b", codePg(jourHuit.erreur) === "23514", "jour d'arrivée 8 refusé (jours ISO 1 à 7)", codePg(jourHuit.erreur));
+    const joursVides = await attendreErreur(
+      client, "sp_jours_vides",
+      `update tarifs set jours_depart = '{}' where id = $1`, [tarifId],
+    );
+    noter("6b", codePg(joursVides.erreur) === "23514", "liste de jours vide refusée", codePg(joursVides.erreur));
+
+    if (giteId) {
+      const prixNul = await attendreErreur(
+        client, "sp_prix_nul",
+        `insert into tarifs_prix (tarif_id, gite_id, prix_nuit) values ($1, $2, 0)`, [tarifId, giteId],
+      );
+      noter("6b", codePg(prixNul.erreur) === "23514", "prix de nuit nul refusé", codePg(prixNul.erreur));
+    }
+
+    // Dates en 2099 : aucune période réelle n'y existe.
+    await client.query(
+      `insert into periodes (tarif_id, date_debut, date_fin) values ($1, '2099-01-03', '2099-01-10')`,
+      [tarifId],
+    );
+    const chevauche = await attendreErreur(
+      client, "sp_chevauche",
+      `insert into periodes (tarif_id, date_debut, date_fin) values ($1, '2099-01-08', '2099-01-15')`, [tarifId],
+    );
+    noter("6b", codePg(chevauche.erreur) === "23P01", "période qui chevauche une autre refusée (exclusion)", codePg(chevauche.erreur));
+    const contigue = await attendreErreur(
+      client, "sp_contigue",
+      `insert into periodes (tarif_id, date_debut, date_fin) values ($1, '2099-01-10', '2099-01-17')`, [tarifId],
+    );
+    noter("6b", contigue.erreur === null, "période contiguë acceptée (la fin de l'une est le début de l'autre)", contigue.erreur ? messageErreur(contigue.erreur) : undefined);
+    const inversee = await attendreErreur(
+      client, "sp_inversee",
+      `insert into periodes (tarif_id, date_debut, date_fin) values ($1, '2099-02-10', '2099-02-10')`, [tarifId],
+    );
+    noter("6b", codePg(inversee.erreur) === "23514", "période sans nuit (fin = début) refusée", codePg(inversee.erreur));
+    const tarifUtilise = await attendreErreur(
+      client, "sp_tarif_utilise",
+      `delete from tarifs where id = $1`, [tarifId],
+    );
+    noter("6b", codePg(tarifUtilise.erreur) === "23503", "tarif utilisé par une période : suppression refusée", codePg(tarifUtilise.erreur));
+
+    const secondeLigne = await attendreErreur(
+      client, "sp_reglages_2",
+      `insert into reglages (id) values (2)`, [],
+    );
+    noter("6b", codePg(secondeLigne.erreur) === "23514", "reglages : seconde ligne refusée", codePg(secondeLigne.erreur));
+
+    if (giteId) {
+      const sansTaux = await attendreErreur(
+        client, "sp_taxe_sans_taux",
+        `insert into taxes_sejour (gite_id, date_debut, mode, plafond) values ($1, '2099-01-01', 'proportionnel', 4.40)`,
+        [giteId],
+      );
+      noter("6b", codePg(sansTaux.erreur) === "23514", "taxe proportionnelle sans taux refusée", codePg(sansTaux.erreur));
+      const modeInconnu = await attendreErreur(
+        client, "sp_taxe_mode",
+        `insert into taxes_sejour (gite_id, date_debut, mode, tarif_fixe) values ($1, '2099-01-01', 'forfait', 1)`,
+        [giteId],
+      );
+      noter("6b", codePg(modeInconnu.erreur) === "23514", "mode de taxe inconnu refusé", codePg(modeInconnu.erreur));
+    }
   } finally {
     await client.query("ROLLBACK");
   }
@@ -419,6 +545,12 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
   );
   const r = restes.rows[0];
   noter("R", r.resas === 0 && r.docs === 0, "aucune ligne de test restante", `réservations ${r.resas}, documents ${r.docs}, factures ${r.facs}, signatures ${r.sigs}`);
+  const restesTarifs = await client.query<{ n: number }>(
+    `select ((select count(*) from tarifs where nom like 'VERIFY-%')
+           + (select count(*) from baremes where nom like 'VERIFY-%')
+           + (select count(*) from periodes where date_debut >= '2099-01-01'))::int as n`,
+  );
+  noter("R", restesTarifs.rows[0].n === 0, "aucun tarif, barème ni période de test restant", `${restesTarifs.rows[0].n} ligne(s)`);
 }
 
 // ─── 7. Stockage ─────────────────────────────────────────────────────────────
