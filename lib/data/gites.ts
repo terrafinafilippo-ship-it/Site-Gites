@@ -13,10 +13,11 @@ export type GiteId = "laphine" | "armu" | "maison-vieille";
 // d'afficher la fiche quand la base ne répond pas. lib/gites-publics.ts
 // journalise une INCOHÉRENCE si les valeurs divergent.
 //
-// Plus ici : la CAPACITÉ (gites.capacite_max) et le PRIX (gites.tarif_semaine_base).
-// Ils étaient recopiés en dur — `sleeps` et `price` — et affichaient donc des
-// chiffres que les propriétaires ne pouvaient pas corriger. Ils se lisent
-// désormais par lib/gites-publics.ts (voir docs/02-decisions.md, D-13).
+// Plus ici : la CAPACITÉ (gites.capacite_max) et les PRIX (tables de
+// tarification, décision D-17). Ils étaient recopiés en dur — `sleeps` et
+// `price`, puis la grille de lib/data/pricing.ts, supprimée en Phase 3 — et
+// affichaient donc des chiffres que les propriétaires ne pouvaient pas
+// corriger. Ils se lisent par lib/gites-publics.ts (docs/02-decisions.md, D-13).
 //
 // `profil` remplace `target` : « Famille — 4 personnes » mélangeait un fait
 // commercial (le profil visé, qui est du rédactionnel) et un fait de la base

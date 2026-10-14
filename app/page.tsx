@@ -2,7 +2,6 @@ import Link from "next/link";
 import ImageSlot from "@/components/ui/ImageSlot";
 import GiteCard from "@/components/ui/GiteCard";
 import { GITES, GITE_IDS } from "@/lib/data/gites";
-import { plancherDuGite } from "@/lib/data/pricing";
 import { fmtPrix } from "@/lib/format";
 import { capaciteTotale, chiffresDuGite, lireChiffresPublics } from "@/lib/gites-publics";
 import styles from "./page.module.css";
@@ -26,10 +25,9 @@ export default async function HomePage() {
   // les cartes, donc le hero ne peut pas annoncer un prix qu'aucune carte ne
   // montre. Masquée si un seul gîte manque — une fourchette sur deux gîtes est
   // fausse, pas incomplète.
-  const planchers = GITE_IDS.map((slug) => {
-    const chiffres = chiffresDuGite(publics, slug);
-    return chiffres ? plancherDuGite(slug, chiffres.tarifSemaineBase) : null;
-  }).filter((p): p is number => p !== null);
+  const planchers = GITE_IDS.map(
+    (slug) => chiffresDuGite(publics, slug)?.plancherSemaine ?? null,
+  ).filter((p): p is number => p !== null);
   const fourchette =
     planchers.length === GITE_IDS.length
       ? { mini: Math.min(...planchers), maxi: Math.max(...planchers) }

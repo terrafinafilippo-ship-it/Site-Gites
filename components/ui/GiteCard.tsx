@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { GiteData } from "@/lib/data/gites";
-import { plancherDuGite } from "@/lib/data/pricing";
 import { fmtPrix } from "@/lib/format";
 import type { ChiffresGite } from "@/lib/gites-publics";
 import ImageSlot from "./ImageSlot";
@@ -30,7 +29,7 @@ export default function GiteCard({
 }: GiteCardProps) {
   const rating = String(gite.rating.toFixed(1)).replace(".", ",");
   const capacite = chiffres?.capaciteMax ?? null;
-  const plancher = chiffres ? plancherDuGite(gite.id, chiffres.tarifSemaineBase) : null;
+  const plancher = chiffres?.plancherSemaine ?? null;
   return (
     <article className={styles.card}>
       <div className={styles.media}>

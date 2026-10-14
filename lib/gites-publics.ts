@@ -25,13 +25,24 @@
 // Le cache tient 60 secondes (revalidate) et porte l'étiquette "gites" : la
 // Phase 5 appellera revalidateTag('gites') à l'enregistrement du back-office
 // pour rendre la modification visible immédiatement.
+//
+// LA GRILLE TARIFAIRE vient des tables de tarification (D-17, lib/tarifs.ts) :
+// une ligne par tarif ayant une période à venir, avec le prix d'une nuit et
+// celui d'une semaine calculé par le même code que le tunnel
+// (lib/tarification.ts). Une troisième panne s'ajoute donc aux deux premières,
+// journalisée à part : « TARIFICATION ILLISIBLE » (tables absentes, réglages
+// manquants). Les fiches gardent alors capacité, ménage et caution, et ne
+// masquent que les prix.
 import { unstable_cache } from "next/cache";
 
 import { getDb } from "@/db";
 import { gites } from "@/db/schema";
 import { centimesDepuisNumeric } from "@/lib/centimes";
 import { GITES, isGiteId, type GiteId } from "@/lib/data/gites";
-import { plancherDuGite } from "@/lib/data/pricing";
+import { aujourdhuiParis } from "@/lib/dates-civiles";
+import { chargerTarification, type TarificationLue } from "@/lib/tarifs";
+import { construireGrille, plancherSemaine, type LigneGrille } from "@/lib/tarification";
+import { reglageEnVigueur, type ReglageTaxe } from "@/lib/taxe-sejour";
 
 /** Délai maximal d'une lecture publique, en millisecondes.
  *
@@ -44,12 +55,14 @@ const DELAI_MAX_MS = 3_000;
 /** Chiffres d'un gîte tels qu'ils vivent en base. Montants en CENTIMES entiers. */
 export interface ChiffresGite {
   capaciteMax: number;
-  /** Tarif semaine de BASSE SAISON, en centimes. `null` = non renseigné en base. */
-  tarifSemaineBase: number | null;
   forfaitMenage: number;
   caution: number;
-  /** Taux en pourcentage (5.5 = 5,5 %), pas un montant. `null` = non renseigné. */
-  tauxTaxeSejour: number | null;
+  /** Grille tarifaire à venir, une ligne par tarif. `null` = rien d'exploitable : grille masquée. */
+  grille: LigneGrille[] | null;
+  /** « À partir de … la semaine » : minimum des prix de semaine de la grille. `null` si masquée. */
+  plancherSemaine: number | null;
+  /** Réglage de taxe de séjour en vigueur aujourd'hui. `null` = non renseigné. */
+  taxe: ReglageTaxe | null;
 }
 
 export interface ChiffresPublics {
@@ -65,6 +78,23 @@ function cibleBase(): string {
   return process.env.DB_CIBLE === "test" ? "test" : "reelle";
 }
 
+/** Tarification de toutes les fiches, ou `null` si elle est illisible (panne journalisée). */
+async function lireTarification(): Promise<TarificationLue | null> {
+  try {
+    const lue = await chargerTarification(getDb());
+    for (const anomalie of lue.anomalies) {
+      console.warn(`[gites-publics] ${anomalie}`);
+    }
+    return lue;
+  } catch (erreur) {
+    console.error(
+      "[gites-publics] TARIFICATION ILLISIBLE : grilles tarifaires masquées.",
+      erreur instanceof Error ? erreur.message : erreur,
+    );
+    return null;
+  }
+}
+
 async function chargerDepuisBase(): Promise<Partial<Record<GiteId, ChiffresGite>>> {
   const lignes = await getDb()
     .select({
@@ -74,10 +104,11 @@ async function chargerDepuisBase(): Promise<Partial<Record<GiteId, ChiffresGite>
       capacite_max: gites.capacite_max,
       forfait_menage: gites.forfait_menage,
       caution: gites.caution,
-      tarif_semaine_base: gites.tarif_semaine_base,
-      taux_taxe_sejour: gites.taux_taxe_sejour,
     })
     .from(gites);
+
+  const tarification = await lireTarification();
+  const aujourdhui = aujourdhuiParis();
 
   const parGite: Partial<Record<GiteId, ChiffresGite>> = {};
 
@@ -97,32 +128,42 @@ async function chargerDepuisBase(): Promise<Partial<Record<GiteId, ChiffresGite>
         `[gites-publics] INCOHÉRENCE code/base sur "${ligne.slug}" : base = ${ligne.nom} / ${ligne.ref_gdf}, code = ${attendu.name} / ${attendu.code}.`,
       );
     }
-    if (ligne.tarif_semaine_base === null) {
-      console.warn(
-        `[gites-publics] VALEUR ABSENTE EN BASE : gites.tarif_semaine_base pour "${ligne.slug}" — grille tarifaire masquée.`,
+    // Grille et taxe : seulement si la tarification a pu être lue. Sinon, la
+    // panne a déjà été journalisée (TARIFICATION ILLISIBLE) et les prix sont
+    // masqués sans autre message.
+    let grille: LigneGrille[] | null = null;
+    let taxe: ReglageTaxe | null = null;
+    if (tarification) {
+      const { lignes: lignesGrille, anomalies } = construireGrille(
+        tarification.tarification,
+        ligne.slug,
+        aujourdhui,
       );
-    }
-    if (ligne.taux_taxe_sejour === null) {
-      console.warn(
-        `[gites-publics] VALEUR ABSENTE EN BASE : gites.taux_taxe_sejour pour "${ligne.slug}" — taux masqué.`,
-      );
-    }
-    // Le « Dès … » est le minimum de la grille : si la basse saison lue en base
-    // n'est PAS ce minimum, la page reste cohérente mais la donnée est suspecte
-    // (saisie dans la mauvaise cellule, ou saisons du code périmées).
-    const tarifBase = centimesDepuisNumeric(ligne.tarif_semaine_base);
-    if (tarifBase !== null && plancherDuGite(ligne.slug, tarifBase) !== tarifBase) {
-      console.warn(
-        `[gites-publics] INCOHÉRENCE GRILLE sur "${ligne.slug}" : tarif_semaine_base (${tarifBase} c) n'est pas le minimum de la grille affichée.`,
-      );
+      for (const anomalie of anomalies) {
+        console.warn(`[gites-publics] TARIF ÉCARTÉ de la grille de "${ligne.slug}" : ${anomalie}.`);
+      }
+      if (lignesGrille.length === 0) {
+        console.warn(
+          `[gites-publics] VALEUR ABSENTE EN BASE : aucun tarif à venir pour "${ligne.slug}" — grille tarifaire masquée.`,
+        );
+      } else {
+        grille = lignesGrille;
+      }
+      taxe = reglageEnVigueur(tarification.taxes[ligne.slug] ?? [], aujourdhui);
+      if (taxe === null) {
+        console.warn(
+          `[gites-publics] VALEUR ABSENTE EN BASE : aucun réglage de taxe de séjour en vigueur pour "${ligne.slug}" — taxe masquée.`,
+        );
+      }
     }
 
     parGite[ligne.slug] = {
       capaciteMax: ligne.capacite_max,
-      tarifSemaineBase: tarifBase,
       forfaitMenage: centimesDepuisNumeric(ligne.forfait_menage),
       caution: centimesDepuisNumeric(ligne.caution),
-      tauxTaxeSejour: ligne.taux_taxe_sejour,
+      grille,
+      plancherSemaine: grille ? plancherSemaine(grille) : null,
+      taxe,
     };
   }
 

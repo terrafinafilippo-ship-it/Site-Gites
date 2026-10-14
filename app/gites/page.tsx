@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import ImageSlot from "@/components/ui/ImageSlot";
 import { GITES, GITE_IDS, type GiteData } from "@/lib/data/gites";
-import { plancherDuGite } from "@/lib/data/pricing";
 import { fmtPrix } from "@/lib/format";
 import {
   capaciteTotale,
@@ -60,7 +59,7 @@ function GiteRow({
   chiffres,
 }: RowContent & { chiffres: ChiffresGite | null }) {
   const rating = gite.rating.toFixed(1).replace(".", ",");
-  const plancher = chiffres ? plancherDuGite(gite.id, chiffres.tarifSemaineBase) : null;
+  const plancher = chiffres?.plancherSemaine ?? null;
   const toutesCaps =
     chiffres !== null ? [`${chiffres.capaciteMax} personnes`, ...caps] : caps;
   return (

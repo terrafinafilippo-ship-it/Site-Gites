@@ -12,9 +12,8 @@ import {
   type GiteId,
 } from "@/lib/data/gites";
 import { STORIES } from "@/lib/data/stories";
-import { construireGrille, plancherDuGite } from "@/lib/data/pricing";
 import { DELAI_SOLDE_DEFAUT, TAUX_ACOMPTE } from "@/lib/constantes";
-import { fmtPrix, fmtTaux } from "@/lib/format";
+import { fmtPlage, fmtPrix, fmtTaux, fmtTaxeSejour } from "@/lib/format";
 import { chiffresDuGite, lireChiffresPublics } from "@/lib/gites-publics";
 import styles from "./page.module.css";
 
@@ -109,8 +108,10 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
   const publics = await lireChiffresPublics();
   const chiffres = chiffresDuGite(publics, slug);
   const capacite = chiffres?.capaciteMax ?? null;
-  const grille = chiffres ? construireGrille(slug, chiffres.tarifSemaineBase) : null;
-  const plancher = chiffres ? plancherDuGite(slug, chiffres.tarifSemaineBase) : null;
+  // Grille et plancher viennent des tables de tarification (D-17) : le prix de
+  // la semaine y est calculé par le même code que le tunnel de réservation.
+  const grille = chiffres?.grille ?? null;
+  const plancher = chiffres?.plancherSemaine ?? null;
 
   const dayClass = (cls: DayClass) =>
     `${styles.calDay}${cls ? ` ${styles[cls]}` : ""}`;
@@ -389,13 +390,20 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
               {grille && (
                 <div className={styles.priceTable}>
                   <div className={`${styles.priceRow} ${styles.hd}`}>
-                    <span>Saison</span><span>Semaine</span><span>Période</span>
+                    <span>Saison</span><span>La nuit</span><span>La semaine</span><span>Dates</span>
                   </div>
                   {grille.map((ligne) => (
-                    <div className={styles.priceRow} key={ligne.saison}>
-                      <strong>{ligne.saison}</strong>
-                      <span>{fmtPrix(ligne.semaineCentimes)} / semaine</span>
-                      <span className={styles.period}>{ligne.periode}</span>
+                    <div className={styles.priceRow} key={ligne.tarifId}>
+                      <strong>{ligne.tarifNom}</strong>
+                      <span>{fmtPrix(ligne.prixNuit)}</span>
+                      <span>{fmtPrix(ligne.prixSemaine)}</span>
+                      <span className={styles.period}>
+                        {ligne.plages.map((plage) => (
+                          <span className={styles.plage} key={plage.debut}>
+                            {fmtPlage(plage.debut, plage.fin)}
+                          </span>
+                        ))}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -408,8 +416,8 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
                   <>
                     <li><span>Caution</span><strong>{fmtPrix(chiffres.caution)}</strong></li>
                     <li><span>Forfait ménage</span><strong>{fmtPrix(chiffres.forfaitMenage)}</strong></li>
-                    {chiffres.tauxTaxeSejour !== null && (
-                      <li><span>Taxe de séjour</span><strong>{fmtTaux(chiffres.tauxTaxeSejour)} TTC</strong></li>
+                    {chiffres.taxe !== null && (
+                      <li><span>Taxe de séjour</span><strong>{fmtTaxeSejour(chiffres.taxe)}</strong></li>
                     )}
                   </>
                 )}
@@ -435,9 +443,7 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
           <div className={styles.crosssellGrid}>
             {others.map((g) => {
               const chiffresAutre = chiffresDuGite(publics, g.id);
-              const plancherAutre = chiffresAutre
-                ? plancherDuGite(g.id, chiffresAutre.tarifSemaineBase)
-                : null;
+              const plancherAutre = chiffresAutre?.plancherSemaine ?? null;
               return (
               <Link className={styles.crosssellCard} href={`/gites/${g.id}`} key={g.id}>
                 <div className={styles.crosssellCardMedia}>
@@ -476,11 +482,10 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
               {gite.name}
               {plancher !== null && ` · à partir de ${fmtPrix(plancher)}/sem.`}
             </strong>
-            <span>
-              Spa privatif · linge fourni
-              {chiffres?.tauxTaxeSejour != null &&
-                ` · taxe de séjour ${fmtTaux(chiffres.tauxTaxeSejour)} visible au paiement`}
-            </span>
+            {/* La mention du taux de taxe de séjour a disparu de ce bandeau : la
+                taxe n'est plus un taux unique (5 %, plafond, + 10 %, par
+                personne) et sa règle complète est dans les conditions. */}
+            <span>Spa privatif · linge fourni</span>
           </div>
           <Link className="btn btn-primary" href={reserveHref}>
             Réserver ce gîte

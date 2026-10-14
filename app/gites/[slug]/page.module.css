@@ -409,7 +409,8 @@
 }
 .priceRow {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 1fr;
+  grid-template-columns: 1.3fr 0.8fr 0.9fr 1.6fr;
+  gap: 12px;
   align-items: center;
   padding: 16px 20px;
   border-bottom: 1px solid #ebe7d8;
@@ -430,6 +431,13 @@
   color: var(--color-charcoal);
 }
 .priceRow .period { color: var(--color-gray-medium); font-size: 13px; }
+/* Une période par ligne : un tarif peut revenir plusieurs fois dans l'année. */
+.priceRow .plage { display: block; white-space: nowrap; }
+@media (max-width: 520px) {
+  .priceRow { grid-template-columns: 1fr 1fr; }
+  .priceRow.hd span:nth-child(4) { display: none; }
+  .priceRow .period { grid-column: 1 / -1; }
+}
 .conditions {
   background: #fff;
   border: 1px solid #e3dfd1;
