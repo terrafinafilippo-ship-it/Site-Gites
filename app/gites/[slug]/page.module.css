@@ -330,6 +330,10 @@
 .legendFree { background: #fff; border: 1px solid #cdc9bb; }
 .legendBusy { background: var(--tw-green-dark); }
 .legendPast { background: #e8e4d4; }
+.legendClosed {
+  background: repeating-linear-gradient(45deg, #fff 0 3px, #e8e4d4 3px 5px);
+  border: 1px solid #cdc9bb;
+}
 .legendChangeover {
   background: linear-gradient(135deg, #fff 50%, var(--tw-green-dark) 50%);
   border: 1px solid #cdc9bb;
@@ -378,6 +382,10 @@
 .calDay.changeover {
   background: linear-gradient(135deg, #fff 50%, var(--tw-green-dark) 50%);
   color: var(--color-charcoal);
+}
+.calDay.closed {
+  background: repeating-linear-gradient(45deg, #fff 0 4px, #f1eee4 4px 6px);
+  color: #a39e8d;
 }
 .calDay.empty { background: transparent; border-color: transparent; }
 

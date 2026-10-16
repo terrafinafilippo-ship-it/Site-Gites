@@ -3,18 +3,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ImageSlot from "@/components/ui/ImageSlot";
 import Badge from "@/components/ui/Badge";
-import {
-  BUSY_SETS,
-  CALENDAR_ANCHOR,
-  GITES,
-  GITE_IDS,
-  isGiteId,
-  type GiteId,
-} from "@/lib/data/gites";
+import { GITES, GITE_IDS, isGiteId } from "@/lib/data/gites";
 import { STORIES } from "@/lib/data/stories";
 import { DELAI_SOLDE_DEFAUT, TAUX_ACOMPTE } from "@/lib/constantes";
+import { jourSemaineIso } from "@/lib/dates-civiles";
 import { fmtPlage, fmtPrix, fmtTaux, fmtTaxeSejour } from "@/lib/format";
-import { chiffresDuGite, lireChiffresPublics } from "@/lib/gites-publics";
+import {
+  chiffresDuGite,
+  lireChiffresPublics,
+  type EtatCalendrier,
+  type JourCalendrier,
+} from "@/lib/gites-publics";
 import styles from "./page.module.css";
 
 interface Params {
@@ -49,45 +48,43 @@ const ArrowRight = (
   </svg>
 );
 
-/* ===== Calendrier — 3 mois à partir du mois suivant la date ancrée ===== */
+/* ===== Calendrier — mois lus en base (lib/gites-publics.ts) ===== */
 const MONTH_NAMES = [
   "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
   "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
 ];
 const DAY_NAMES = ["L", "M", "M", "J", "V", "S", "D"];
 
-type DayClass = "" | "past" | "busy" | "changeover";
+const CLASSE_ETAT: Record<EtatCalendrier, "" | "past" | "busy" | "changeover" | "closed"> = {
+  passe: "past",
+  libre: "",
+  occupe: "busy",
+  changement: "changeover",
+  ferme: "closed",
+};
 
 interface CalMonth {
   title: string;
+  /** Décalage du premier jour (lundi = 0). */
   firstDow: number;
-  days: { day: number; cls: DayClass }[];
+  days: { day: number; cls: (typeof CLASSE_ETAT)[EtatCalendrier] }[];
 }
 
-function buildMonths(id: GiteId): CalMonth[] {
-  const today = new Date(CALENDAR_ANCHOR.year, CALENDAR_ANCHOR.month, CALENDAR_ANCHOR.day);
-  const busy = BUSY_SETS[id].map(([monthIdx, start, end]) => ({ monthIdx, start, end }));
-
-  return Array.from({ length: 3 }, (_, i) => {
-    const m = new Date(today.getFullYear(), today.getMonth() + i + 1, 1);
-    const daysInMonth = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
-    // Décalage du premier jour (lundi = 0)
-    const firstDow = (new Date(m.getFullYear(), m.getMonth(), 1).getDay() + 6) % 7;
-    const days = Array.from({ length: daysInMonth }, (_, d0) => {
-      const day = d0 + 1;
-      const dt = new Date(m.getFullYear(), m.getMonth(), day);
-      let cls: DayClass = "";
-      if (dt < today) cls = "past";
-      for (const b of busy) {
-        if (b.monthIdx === i) {
-          if (day === b.start || day === b.end) cls = "changeover";
-          else if (day > b.start && day < b.end) cls = "busy";
-        }
-      }
-      return { day, cls };
-    });
-    return { title: `${MONTH_NAMES[m.getMonth()]} ${m.getFullYear()}`, firstDow, days };
-  });
+/** Regroupe les jours par mois. Dates civiles « aaaa-mm-jj » : aucun fuseau en jeu. */
+function buildMonths(jours: readonly JourCalendrier[]): CalMonth[] {
+  const mois: CalMonth[] = [];
+  for (const { date, etat } of jours) {
+    const jour = Number(date.slice(8, 10));
+    if (jour === 1 || mois.length === 0) {
+      mois.push({
+        title: `${MONTH_NAMES[Number(date.slice(5, 7)) - 1]} ${date.slice(0, 4)}`,
+        firstDow: jourSemaineIso(date) - 1,
+        days: [],
+      });
+    }
+    mois[mois.length - 1].days.push({ day: jour, cls: CLASSE_ETAT[etat] });
+  }
+  return mois;
 }
 
 export default async function GitePage({ params }: { params: Promise<Params> }) {
@@ -97,7 +94,6 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
   const gite = GITES[slug];
   const story = STORIES[slug];
   const others = GITE_IDS.filter((g) => g !== slug).map((g) => GITES[g]);
-  const months = buildMonths(slug);
   const rating = gite.rating.toFixed(1).replace(".", ",");
   const reserveHref = `/reserver?gite=${slug}`;
 
@@ -112,8 +108,10 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
   // la semaine y est calculé par le même code que le tunnel de réservation.
   const grille = chiffres?.grille ?? null;
   const plancher = chiffres?.plancherSemaine ?? null;
+  // Calendrier réel (table disponibilites) ; masqué s'il est illisible.
+  const months = chiffres?.calendrier ? buildMonths(chiffres.calendrier) : null;
 
-  const dayClass = (cls: DayClass) =>
+  const dayClass = (cls: CalMonth["days"][number]["cls"]) =>
     `${styles.calDay}${cls ? ` ${styles[cls]}` : ""}`;
 
   return (
@@ -327,7 +325,8 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
         </div>
       </section>
 
-      {/* Calendar */}
+      {/* Calendar — réel, masqué entièrement s'il est illisible (D-13). */}
+      {months && (
       <section className={styles.calendar}>
         <div className="wrap">
           <div className={styles.calendarHead}>
@@ -341,6 +340,7 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
               <span><i className={styles.legendFree} />Libre</span>
               <span><i className={styles.legendBusy} />Occupé</span>
               <span><i className={styles.legendChangeover} />Changement de séjour</span>
+              <span><i className={styles.legendClosed} />Non réservable en ligne</span>
               <span><i className={styles.legendPast} />Passé</span>
             </div>
           </div>
@@ -364,6 +364,7 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
           </div>
         </div>
       </section>
+      )}
 
       {/* Pricing + conditions */}
       <section className={styles.pricing}>

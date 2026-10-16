@@ -33,16 +33,32 @@
 // journalisée à part : « TARIFICATION ILLISIBLE » (tables absentes, réglages
 // manquants). Les fiches gardent alors capacité, ménage et caution, et ne
 // masquent que les prix.
+//
+// LE CALENDRIER des fiches (trois mois à partir du mois en cours) vient de la
+// table `disponibilites` (lib/disponibilites.ts) et des périodes tarifaires :
+// une nuit sans tarif est « non réservable en ligne ». Il disparaît si l'une
+// des deux lectures échoue (« CALENDRIER ILLISIBLE ») : un calendrier tout
+// blanc annoncerait libres des nuits qu'on ne sait pas lire.
 import { unstable_cache } from "next/cache";
 
 import { getDb } from "@/db";
 import { gites } from "@/db/schema";
 import { centimesDepuisNumeric } from "@/lib/centimes";
 import { GITES, isGiteId, type GiteId } from "@/lib/data/gites";
-import { aujourdhuiParis } from "@/lib/dates-civiles";
+import { ajouterJours, aujourdhuiParis, nombreDeNuits, premierJourDuMois } from "@/lib/dates-civiles";
+import { lireNuitsPrises } from "@/lib/disponibilites";
 import { chargerTarification, type TarificationLue } from "@/lib/tarifs";
-import { construireGrille, plancherSemaine, type LigneGrille } from "@/lib/tarification";
+import {
+  construireGrille,
+  plancherSemaine,
+  resoudrePeriodes,
+  type LigneGrille,
+  type PeriodeResolue,
+} from "@/lib/tarification";
 import { reglageEnVigueur, type ReglageTaxe } from "@/lib/taxe-sejour";
+
+/** Mois affichés par le calendrier d'une fiche, mois en cours compris. */
+const MOIS_CALENDRIER = 3;
 
 /** Délai maximal d'une lecture publique, en millisecondes.
  *
@@ -63,6 +79,74 @@ export interface ChiffresGite {
   plancherSemaine: number | null;
   /** Réglage de taxe de séjour en vigueur aujourd'hui. `null` = non renseigné. */
   taxe: ReglageTaxe | null;
+  /** Calendrier des mois affichés ; `null` = illisible, calendrier masqué. */
+  calendrier: JourCalendrier[] | null;
+}
+
+/**
+ * État d'un jour du calendrier public. « changement » : la nuit de la veille
+ * ou celle du jour est prise, pas les deux (jour d'arrivée ou de départ d'un
+ * séjour). « ferme » : nuit sans tarif, non réservable en ligne.
+ */
+export type EtatCalendrier = "passe" | "libre" | "occupe" | "changement" | "ferme";
+
+export interface JourCalendrier {
+  date: string;
+  etat: EtatCalendrier;
+}
+
+function construireCalendrier(
+  periodes: readonly PeriodeResolue[],
+  prises: ReadonlySet<string>,
+  aujourdhui: string,
+  du: string,
+  au: string,
+): JourCalendrier[] {
+  const jours: JourCalendrier[] = [];
+  for (let i = 0; i < nombreDeNuits(du, au); i += 1) {
+    const date = ajouterJours(du, i);
+    const prise = prises.has(date);
+    const veillePrise = prises.has(ajouterJours(date, -1));
+    const periode = periodes.find((p) => p.debut <= date && date < p.fin);
+    const ferme = !periode || periode.prixNuit === null || periode.bareme === null;
+    const etat: EtatCalendrier =
+      date < aujourdhui ? "passe"
+      : prise && veillePrise ? "occupe"
+      : prise || veillePrise ? "changement"
+      : ferme ? "ferme"
+      : "libre";
+    jours.push({ date, etat });
+  }
+  return jours;
+}
+
+/** Calendrier d'un gîte, ou `null` (panne journalisée) si les nuits sont illisibles. */
+async function lireCalendrier(
+  giteId: string,
+  slug: GiteId,
+  tarification: TarificationLue | null,
+  aujourdhui: string,
+): Promise<JourCalendrier[] | null> {
+  if (!tarification) return null; // TARIFICATION ILLISIBLE, déjà journalisée.
+  const du = premierJourDuMois(aujourdhui);
+  const au = premierJourDuMois(aujourdhui, MOIS_CALENDRIER);
+  try {
+    // La veille du premier jour est lue aussi : elle décide si ce jour est un changement.
+    const prises = await lireNuitsPrises(getDb(), giteId, ajouterJours(du, -1), au);
+    return construireCalendrier(
+      resoudrePeriodes(tarification.tarification, slug),
+      new Set(prises),
+      aujourdhui,
+      du,
+      au,
+    );
+  } catch (erreur) {
+    console.error(
+      `[gites-publics] CALENDRIER ILLISIBLE pour "${slug}" : calendrier masqué.`,
+      erreur instanceof Error ? erreur.message : erreur,
+    );
+    return null;
+  }
 }
 
 export interface ChiffresPublics {
@@ -98,6 +182,7 @@ async function lireTarification(): Promise<TarificationLue | null> {
 async function chargerDepuisBase(): Promise<Partial<Record<GiteId, ChiffresGite>>> {
   const lignes = await getDb()
     .select({
+      id: gites.id,
       slug: gites.slug,
       nom: gites.nom,
       ref_gdf: gites.ref_gdf,
@@ -164,6 +249,7 @@ async function chargerDepuisBase(): Promise<Partial<Record<GiteId, ChiffresGite>
       grille,
       plancherSemaine: grille ? plancherSemaine(grille) : null,
       taxe,
+      calendrier: await lireCalendrier(ligne.id, ligne.slug, tarification, aujourdhui),
     };
   }
 
