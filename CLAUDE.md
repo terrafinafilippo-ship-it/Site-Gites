@@ -25,7 +25,8 @@ npm run db:migrate       # applique les migrations en attente
 npm run db:seed          # insère ou remet à jour les trois gîtes
 npm run db:verify        # auto-vérification de la base (tout est annulé par ROLLBACK)
 npm run verify:centimes  # aller-retour centimes <-> texte numeric (51 cas)
-npm run verify:tarification  # prix des séjours et taxe de séjour (102 cas, sans base)
+npm run verify:tarification  # prix, taxe de séjour, devis du tunnel (137 cas, sans base)
+DB_CIBLE=test npm run verify:blocage  # blocage des dates : deux clients simultanés (base de test)
 
 bash scripts/parcours/lancer.sh   # non-régression complète (contrat, signature, factures)
 ```

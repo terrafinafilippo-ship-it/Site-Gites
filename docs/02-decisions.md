@@ -763,6 +763,62 @@ paiement intégral à la réservation (Phase 4, factures automatiques).
 crée une relance et un risque d'impayé à quelques jours de l'arrivée ; refuser
 la réservation en ligne fait perdre les séjours de dernière minute.
 
+**Mise en œuvre (lot 2, 15 octobre 2026).** Le devis du tunnel (`lib/devis.ts`)
+annonce le total à régler dès que la date limite du solde est **atteinte**, jour
+limite compris : un client qui réserve le 10 décembre pour le 9 janvier paie
+tout, plutôt qu'un acompte le matin et un solde le soir. Le seuil reste le
+délai du solde (`DELAI_SOLDE_DEFAUT`), qui deviendra un réglage au lot 3.
+
+---
+
+## D-21 · Blocage des dates pendant le paiement : une ligne par nuit, sans tâche de nettoyage
+
+**Date :** 15 octobre 2026 (Phase 3, lot 2). Durée et moment du blocage : cadrage
+du 13 octobre 2026.
+
+**Décision.** À l'arrivée sur l'écran de paiement, le serveur recalcule le
+devis, enregistre la réservation « en attente de paiement » et **bloque chacune
+de ses nuits** (table `disponibilites`, statut `verrou`, échéance
+`verrou_expire_at`), dans une seule transaction (`lib/tunnel.ts`).
+
+- **La double vente est impossible par construction.** Le blocage est UNE
+  requête « insérer, ou reprendre un verrou expiré », appuyée sur l'index
+  unique (gîte, nuit) (`lib/disponibilites.ts`). Deux clients au même instant :
+  PostgreSQL fait attendre le second, puis lui refuse la nuit.
+- **Un verrou expiré n'est effacé par aucune tâche** : il est ignoré à la
+  lecture et repris par le client suivant.
+- **Revenir en arrière lève le blocage**, et la tentative est supprimée avec
+  les coordonnées du client : rien n'a été payé ni émis.
+- **Une nuit sans ligne est libre.** L'état « libre » stocké est supprimé
+  (migration 0004) : deux façons de dire « libre » obligeaient chaque lecteur à
+  penser aux deux.
+
+**Pourquoi.** Une ligne par nuit est la forme que la Phase 7 (calendriers des
+plateformes, nuit par nuit) et le back-office (fermer une nuit isolée)
+utiliseront aussi ; une seule table répond à « cette nuit est-elle prise ? ».
+
+**Ce qui pourrait mal tourner.**
+- Un client paie (lot 3) après l'échéance, quand un autre a repris ses nuits :
+  c'est le cas prévu au cadrage (remboursement intégral automatique). Le retour
+  de paiement devra donc vérifier que les nuits sont **toujours au nom de sa
+  réservation**, pas seulement que le paiement a abouti.
+- Les tentatives abandonnées sans retour en arrière (page fermée) gardent leurs
+  coordonnées : durée de conservation à fixer, effacement en Phase 4
+  (`docs/06-avant-premier-client.md`, point 12).
+- La limite anti-abus (5 blocages par adresse en 10 minutes) lit l'adresse
+  écrite par le proxy. Si le proxy cessait de l'écrire, tous les clients
+  partageraient une adresse et la limite deviendrait globale : à vérifier au
+  déploiement (`docs/04-architecture.md`).
+
+**Ce qui rendrait l'inverse préférable.** Une tâche de nettoyage, s'il fallait
+agir à l'expiration (prévenir quelqu'un) — exclu au cadrage : « aucun courriel
+pour une réservation abandonnée ». Un blocage par plage de dates (contrainte
+d'exclusion, comme les périodes tarifaires), si les nuits ne devaient jamais
+être lues une par une — ce que la Phase 7 contredit.
+
+**Si on revient dessus.** Vérifier la disponibilité puis écrire, en deux
+requêtes, laisse passer deux clients simultanés : c'est la double vente.
+
 ---
 
 ## Décisions ouvertes

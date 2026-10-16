@@ -28,7 +28,9 @@ git show e341c01^:admin/tarifs.html
 Une application Next.js protégée par **authentification** :
 
 1. **Réservations** — liste, fiche, modification.
-2. **Calendrier** des trois gîtes, avec blocage manuel de nuits.
+2. **Calendrier** des trois gîtes, avec blocage manuel de nuits. La table
+   existe depuis la Phase 3 (lot 2, D-21) : fermer une nuit, c'est écrire une
+   ligne `bloque` dans `disponibilites` ; une nuit sans ligne est libre.
 3. **Tarifs.** Le modèle **existe depuis la Phase 3** (lot 1, décision D-17) :
    tarifs nommés et prix d'une nuit par gîte, périodes datées, barème de
    coefficients par rang de nuit, règles générales et exceptions par tarif et
@@ -73,7 +75,10 @@ Une application Next.js protégée par **authentification** :
    **« Envoyer le lien de caution »** pour le client arrivé sans caution, qui
    donne alors sa carte sur la page « valider ma caution » de la Phase 4.
 10. **Réglages des lots de la Phase 3** : durée du blocage des dates pendant le
-    paiement, durée de validité du lien de suivi, coordonnées bancaires
+    paiement, délai minimum avant l'arrivée, horaires d'arrivée et de départ,
+    bébés (âge, nombre hors capacité, lits) — ces cinq-là existent en base
+    depuis le lot 2 (`reglages`, migration 0004) — durée de validité du lien de
+    suivi, coordonnées bancaires
     affichées pour le virement de caution, courriels aux propriétaires (types
     activés, destinataires), texte d'accord pour l'enregistrement de la carte
     (versions datées).

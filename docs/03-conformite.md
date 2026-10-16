@@ -188,6 +188,17 @@ dernière phrase de 14.4 (« aucune donnée n'est transférée hors UE sans
 encadrement juridique approprié ») est à faire confirmer par le juriste en même
 temps que l'article 6.
 
+**Minimisation dans le tunnel (Phase 3, lot 2).** Le formulaire ne recueille
+que ce que le contrat imprime : identité, adresse, courriel, téléphone, et le
+nom de chaque adulte (« occupants majeurs déclarés »). **La civilité est
+facultative** (réponse du 15 octobre 2026) : en exiger une pour vendre n'est
+pas nécessaire (CJUE, 9 janvier 2025, aff. C-394/23, Mousse, à propos de la
+SNCF) ; sans elle, le contrat imprime le nom seul (`lib/coordonnees.ts`). Ces
+données entrent en base à l'arrivée sur l'écran de paiement : une tentative
+abandonnée par un retour en arrière est **supprimée sur-le-champ** ; une
+tentative laissée à l'abandon (page fermée) attend une durée de conservation
+et un effacement automatique — point 12 de `docs/06-avant-premier-client.md`.
+
 **Pages publiques en retard sur le contrat.** La politique de confidentialité
 (`lib/data/legal.ts`) annonce une conservation de 5 ans et ne dit rien de la
 carte ni de Brevo : à aligner en Phase 6.
@@ -374,8 +385,9 @@ attendant, le ménage est exclu par défaut, et c'est un réglage
 
 **Les bébés.** Le guide compte comme occupants toutes les personnes hébergées.
 Qu'un bébé en fasse partie n'est écrit nulle part : **à confirmer** avec la
-même question. Le calcul reçoit le nombre d'occupants en paramètre et suit la
-réponse sans modification.
+même question. En attendant, il est compté (lecture littérale du guide), et
+c'est un réglage (`taxes_sejour.bebes_parmi_occupants`, Phase 3 lot 2), pas
+une ligne de code. Un bébé ne paie jamais : il est mineur.
 
 **Meublé CLASSÉ : méthode entièrement différente** — un **tarif fixe** par
 personne et par nuit, voté par la collectivité selon la catégorie. Attention au
@@ -394,16 +406,16 @@ collecté, exonérations.
 
 | Endroit | Ce qui s'y trouve |
 |---|---|
-| `taxes_sejour` | Les réglages, **par gîte et datés** : mode (proportionnel / fixe), taux, plafond, tarif fixe, taxe additionnelle, ménage dans l'assiette, source. **Vide en base réelle** : à saisir (point 11 de `docs/06-avant-premier-client.md`). Les valeurs de Savas ci-dessus sont chargées dans la base de test. |
+| `taxes_sejour` | Les réglages, **par gîte et datés** : mode (proportionnel / fixe), taux, plafond, tarif fixe, taxe additionnelle, ménage dans l'assiette, bébés parmi les occupants, source. **Vide en base réelle** : à saisir (point 11 de `docs/06-avant-premier-client.md`). Les valeurs de Savas ci-dessus sont chargées dans la base de test. |
 | `lib/taxe-sejour.ts` | Le calcul, étape par étape, arrondi à chaque étape. Une nuit sans réglage est un refus, jamais une taxe nulle. |
 | Fiches gîtes | Affichent la règle en vigueur, lue en base : « 5 % du prix de la nuitée par personne, plafonné à 4,40 €, majoré de 10 % ». |
-| `app/reserver/ReserverFunnel.tsx` | **Encore l'écran de démonstration** : `taxRate: 0.055` sur hébergement + ménage. Branché sur `lib/taxe-sejour.ts` au **lot 2**. |
+| Tunnel de réservation | Branché au **lot 2** (15 octobre 2026) : le devis (`lib/devis.ts`) appelle `lib/taxe-sejour.ts` ; la taxe et le détail de chaque étape sont figés avec la réservation (`reservations.taxe_sejour`, `reservations.detail_calcul`). Ce détail sert aussi au **registre**. |
 | `lib/montants.ts` | **Ne recalcule rien** : la taxe est une valeur **fournie** par la réservation (`reservations.taxe_sejour`) et reprise telle quelle sur le contrat et les factures. |
-| `gites.taux_taxe_sejour` et `reservations.taux_taxe_sejour` | **5,50**, l'ancienne forme. Plus lue par les pages. Les PDF impriment encore « Taxe de séjour (5,5 %) » à partir de la réservation : libellé à reprendre au lot 5. |
+| `gites.taux_taxe_sejour` et `reservations.taux_taxe_sejour` | **5,50**, l'ancienne forme. Plus lue par les pages ; laissée **vide** sur les réservations du tunnel. Les PDF impriment encore « Taxe de séjour (… %) » à partir de la réservation : libellé à reprendre **au lot 4**, avant que le contrat ne soit généré depuis le tunnel. |
 
-**L'écart restant.** Le calcul juste existe ; le tunnel ne l'appelle pas encore
-(lot 2). Jusque-là, aucune réservation réelle n'est possible : le tunnel est
-une démonstration, et le site ne sera pas mis en ligne avant la fin des lots.
+**L'écart restant.** Le libellé des PDF (lot 4) et les trois questions au
+service taxe de séjour (point 10 de `docs/06-avant-premier-client.md`). Le site
+ne sera pas mis en ligne avant la fin des lots.
 
 **Exemple.** 780 € de location pour 7 nuits, 2 adultes et 1 enfant : 111,43 €
 par nuit, 37,14 € par occupant, 1,86 € de taxe, 0,19 € de taxe additionnelle,

@@ -510,6 +510,120 @@ séjour), **D-19** (caution par carte, chèque ou virement, complète D-16),
 
 ---
 
+## Phase 3 — lot 2 « calendrier et réservation » (15 octobre 2026)
+
+La phase reste ouverte : lots 3 à 5 à faire (`docs/phases/phase-3.md`).
+
+### Ce qui a été décidé
+
+Avec le gérant, le 15 octobre 2026 :
+- le **premier bébé** de moins de 2 ans ne compte pas dans la capacité ; un
+  second prend une place ; un seul lit bébé ;
+- une arrivée se réserve **au plus tard la veille** ;
+- les **horaires** valent pour les trois gîtes ;
+- la **civilité est facultative** (CJUE, 9 janvier 2025, C-394/23).
+
+Par la session : **D-21** (blocage des dates, une ligne par nuit, verrou expiré
+repris sans tâche de nettoyage) ; et pour D-20, le paiement intégral commence
+au jour limite du solde inclus.
+
+### Ce qui a été fait
+
+- **Migration 0004** : les réglages du tunnel dans `reglages` (durée du
+  blocage, délai, horaires, bébés) ; forme définitive de `disponibilites` (trois
+  états, l'état « libre » stocké supprimé, contraintes sur le verrou) ;
+  `reservations.detail_calcul` (le devis figé) ;
+  `taxes_sejour.bebes_parmi_occupants` (la question des bébés dans la taxe
+  devient un réglage, comme le ménage).
+- **Devis** (`lib/devis.ts`) et **coordonnées** (`lib/coordonnees.ts`) :
+  modules purs, exécutés par le navigateur pour l'affichage et par le serveur
+  pour l'engagement. L'acompte vient du calcul des documents
+  (`montantsDesPostes`, extrait de `lib/montants.ts` sans changer aucun
+  montant).
+- **Côté serveur** : `lib/disponibilites.ts` (blocage en une requête sur
+  l'index unique), `lib/tunnel.ts` (charger ou refuser, enregistrer, proposer
+  les autres gîtes, abandonner), `POST /api/reservations` et
+  `DELETE /api/reservations/{id}`.
+- **Tunnel** : calendrier réel, voyageurs selon la capacité, prix dès le choix
+  des dates, coordonnées dont le nom de chaque adulte, récapitulatif, écran de
+  paiement avec compte à rebours (bouton « Payer » inactif jusqu'au lot 3),
+  écran « dates prises » avec les autres gîtes libres. `/reserver` sans gîte :
+  écran de choix ; gîte inconnu : 404 ; base illisible : « momentanément
+  indisponible ».
+- **Fiches gîtes** : le calendrier affiche les vraies nuits prises et les nuits
+  sans tarif ; les dates inventées (`BUSY_SETS`) sont supprimées.
+- **Contrôles** : 35 cas de plus dans `verify:tarification` (137) ;
+  `scripts/verifier-blocage.ts` (39 cas, dont deux clients simultanés et les
+  codes de réponse du serveur) ; 14 contrôles de plus dans `db:verify` (115) ;
+  une étape de plus dans `lancer.sh` (10).
+
+### Ce qui a été vérifié
+
+- `npm run lint`, `npx tsc --noEmit`, `npm run build` : passent. Le tunnel pèse
+  16 ko dans le navigateur et n'embarque aucun code serveur.
+- **Sur une base PostgreSQL 16 jetable** créée sur le poste (tunnel SSH fermé),
+  puis détruite : les **5 migrations** s'appliquent sur une base vierge.
+- **`bash scripts/parcours/lancer.sh` : 10 étapes sur 10 passent** — conversion
+  51 cas ; prix, taxe et devis 137 cas ; remise à zéro ; blocage et tunnel
+  39 cas ; parcours L'Armu 0 échec ; parcours LaPhine 0 échec ; URL signées
+  0 échec ; contrôles en base 81, 0 échec ; contrôles PDF 92 OK, 0 échec ;
+  `db:verify` 115, 0 échec. Montants de `reference.ts` inchangés.
+- **Deux clients simultanés** : un seul blocage réussit, en base comme par le
+  serveur (un 201, un 409 « dates prises » avec les deux autres gîtes).
+- **Écrans** parcourus par un navigateur sans fenêtre, de l'étape 1 à l'écran
+  de paiement (blocage réel, compte à rebours), puis retour : tentative
+  supprimée, nuits libérées. Captures à 1 280 px et à 390 px : aucun débordement
+  mesuré sur téléphone.
+- **Panne simulée** (table `reglages` renommée) : tunnel « momentanément
+  indisponible », enregistrement en 503 ; fiche en 200, calendrier et grille
+  masqués, caution et ménage affichés, retour à la normale après la panne.
+
+### Ce qui n'a PAS été vérifié
+
+- **`gites_test` et la base réelle n'ont reçu ni 0002, ni 0003, ni 0004** (tunnel
+  fermé). La règle n° 7 est satisfaite sur une base jetable de même schéma, pas
+  sur `gites_test`.
+- PostgreSQL 17.
+- La **limite anti-abus derrière Traefik** : elle suppose que le proxy écrit
+  `X-Forwarded-For` (`docs/04-architecture.md` § 6). À contrôler au déploiement.
+- Dans le navigateur : l'écran « dates prises » (vérifié par le serveur
+  seulement), le bouton « Bloquer à nouveau » après expiration, et la levée du
+  blocage par « Quitter la réservation ».
+
+### Écarts avec le plan annoncé
+
+- **Fichiers ajoutés** : `lib/coordonnees.ts` (le même contrôle des coordonnées
+  pour le navigateur et le serveur) et `app/reserver/EnteteTunnel.tsx` (l'en-tête
+  partagé par le tunnel, le choix du gîte et la page d'indisponibilité).
+- **`DELETE /api/reservations/{id}`** au lieu de `…/{id}/blocage` : l'abandon
+  supprime la tentative entière, pas seulement son blocage.
+- **`db/schema/gites.ts` n'a pas changé** : les réglages de bébés sont généraux
+  (« un bébé par réservation »), pas par gîte.
+- **Bébés et taxe** : prévu comme un paramètre du calcul, devenu un réglage daté
+  de `taxes_sejour`, sur le modèle du ménage.
+- **Écran de succès retiré** : il affichait une fausse référence et des formules
+  non validées ; il se reconstruit au lot 3 avec le paiement.
+- **Phrases du solde** réécrites de façon descriptive dans le tunnel (« à régler
+  au plus tard le … ») au lieu de « prélevé J-30 », qui n'est plus vrai pour
+  tous les clients.
+- **Corrigé en cours de route** : la limite anti-abus comptait aussi les
+  demandes mal formées et s'appliquait aux appels locaux — le parcours l'a
+  révélé par un 429 ; `isGiteId("toString")` répondait vrai (`in` remonte au
+  prototype de l'objet) — corrigé par `hasOwnProperty`.
+
+### Points reportés
+
+- **Lot 3** : paiement Stripe ; écran de succès ; taux d'acompte et délai du
+  solde en réglages, figés sur la réservation ; le retour de paiement devra
+  vérifier que les nuits sont toujours au nom de la réservation (D-21) ; un
+  abandon devra aussi annuler le paiement préparé chez Stripe.
+- **Lot 4** : libellé de la taxe dans les PDF (`taux_taxe_sejour` est vide sur
+  les réservations du tunnel).
+- **Phase 4** : effacement des tentatives abandonnées (point 12 de
+  `docs/06-avant-premier-client.md`).
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

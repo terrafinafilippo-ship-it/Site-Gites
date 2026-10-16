@@ -18,7 +18,8 @@ signature ne se supprime pas. Ne jamais lancer ces scripts sur la base réelle.
 | Étape | Contrôle |
 |---|---|
 | Conversion | Aller-retour centimes ↔ texte numeric sur les valeurs limites (`npm run verify:centimes`) |
-| Prix et taxe | Prix de location d'un séjour et taxe de séjour, 102 cas calculés à la main dont les deux exemples officiels (`npm run verify:tarification`) |
+| Prix, taxe et devis | Prix de location d'un séjour, taxe de séjour, devis du tunnel et contrôle des coordonnées : 137 cas calculés à la main, dont les deux exemples officiels (`npm run verify:tarification`) |
+| Blocage des dates | Deux clients qui bloquent les mêmes nuits au même instant : un seul gagne ; blocage expiré repris ; tentative, seconde tentative refusée avec les autres gîtes, abandon ; puis par le serveur : codes de réponse, deux POST simultanés, limite anti-abus (`scripts/verifier-blocage.ts --http`) |
 | Contrat | Émission, numéro `CTR-AAAA-NNN`, PDF, recopie du numéro sur la réservation |
 | Signature | Page publique, preuve enregistrée, PDF signé, statut `signe` |
 | Factures | Acompte puis solde, numéros `FAC-AAAA-NNN` continus, montants exacts |
@@ -65,6 +66,7 @@ repartant de 001) :
 ```bash
 npm run verify:tarification
 DB_CIBLE=test npx tsx scripts/parcours/reinitialiser.ts
+DB_CIBLE=test npx tsx scripts/verifier-blocage.ts --http
 bash scripts/parcours/parcours.sh TEST-2026-ARMU-001
 bash scripts/parcours/parcours.sh TEST-2026-LAPHINE-002 --cas-b
 bash scripts/parcours/urls-signees.sh
@@ -77,7 +79,7 @@ DB_CIBLE=test npm run db:verify
 
 | Variable | Défaut | Rôle |
 |---|---|---|
-| `DB_CIBLE` | (vide) | **Doit valoir `test`.** `reinitialiser.ts` et `prix-location.ts` refusent de s'exécuter sinon. |
+| `DB_CIBLE` | (vide) | **Doit valoir `test`.** `reinitialiser.ts`, `prix-location.ts` et `scripts/verifier-blocage.ts` refusent de s'exécuter sinon. |
 | `PARCOURS_BASE_URL` | `http://localhost:3001` | Origine du serveur à interroger. |
 | `STORAGE_PATH` | `./.data/documents-test` | Dossier des PDF, purgé par la remise à zéro. Doit être **le même** que celui du serveur. |
 | `PARCOURS_SORTIE` | `.parcours` | Dossier des réponses HTTP et des PNG de contrôle. Ignoré par git. |
@@ -127,4 +129,5 @@ mise en page.
 | `controler-pdf.py` | Contrôles sur les PDF produits, et PNG de contrôle visuel. |
 | `id-reservation.ts` | Résout une référence en identifiant, pour les scripts shell. |
 | `prix-location.ts` | Modifie ou rétablit le prix d'une réservation (garde du cas B). |
-| `lancer.sh` | Enchaîne tout. |
+| `lancer.sh` | Enchaîne tout (dix étapes). |
+| `../verifier-blocage.ts` | Le blocage des dates et le tunnel, sur la base de test ; `--http` ajoute les contrôles par le serveur. Hors de ce dossier : il se lance aussi seul (`npm run verify:blocage`). |

@@ -15,6 +15,7 @@ main dans un outil graphique.
 | `migrations/0001_fonctions_triggers.sql` | Migration écrite à la main : fonctions de numérotation et triggers, que Drizzle ne sait pas décrire. |
 | `migrations/0002_tarification.sql` | Les sept tables de tarification et de taxe de séjour (Phase 3, D-17 et D-18). Générée. |
 | `migrations/0003_tarification_contraintes.sql` | Écrite à la main : interdiction du chevauchement de deux périodes, et création de la ligne unique de `reglages`. |
+| `migrations/0004_tunnel.sql` | Phase 3, lot 2 : réglages du tunnel dans `reglages`, forme définitive de `disponibilites` (les lignes « libre » sont effacées : une nuit sans ligne est libre), `reservations.detail_calcul`, `taxes_sejour.bebes_parmi_occupants`. Générée, plus un effacement écrit à la main. |
 | `index.ts` | Le client de base de données partagé par le site (pool de 10 connexions maximum). |
 | `seed.ts` | Insère ou remet à jour les trois gîtes. |
 | `verify.ts` | Auto-vérification complète, sans rien laisser en base. |
@@ -66,8 +67,18 @@ commitée.
 - **baremes**, **baremes_coefficients** : la dégressivité, un coefficient par
   rang de nuit.
 - **reglages** : une seule ligne, créée par la migration 0003 — règle générale
-  de réservation, barème général, jour de début des périodes.
+  de réservation, barème général, jour de début des périodes ; depuis la
+  migration 0004, les réglages du tunnel (durée du blocage, délai avant
+  l'arrivée, horaires, bébés).
 - **taxes_sejour** : les réglages de taxe de séjour, par gîte et datés.
+
+**Calendrier** (forme définitive en Phase 3, lot 2 — décision D-21)
+
+- **disponibilites** : les **nuits prises**, une ligne par gîte et par nuit :
+  `verrou` (blocage pendant le paiement, avec échéance), `reserve`, `bloque`.
+  Une nuit sans ligne est libre ; un verrou expiré aussi. L'index unique
+  `(gite_id, date)` interdit la double vente. Origine `directe`, `airbnb`,
+  `booking`, `gdf` (synchronisation en Phase 7).
 
 Ces tables sont **vides en base réelle** tant que les propriétaires n'ont rien
 saisi : les fiches masquent alors leurs prix. Sur la base de test, la remise à
@@ -78,9 +89,6 @@ d'essai, marquée « (essai) ». **`npm run db:seed` ne touche pas à ces tables
 
 - **paiements** : chaque mouvement d'argent (acompte, solde, caution) avec sa
   référence chez le prestataire.
-- **disponibilites** : le calendrier, une ligne par gîte et par nuit, avec son
-  état (`libre`, `reserve`, `bloque`, `verrou`) et son origine (`directe`,
-  `airbnb`, `booking`, `gdf`).
 - **avis** : les avis clients affichés sur le site.
 - **audit_logs** : le journal des actions sensibles.
 

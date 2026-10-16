@@ -4,14 +4,14 @@
 > **seul** domicile de cette liste : elle ne doit être recopiée nulle part
 > ailleurs (voir `docs/05-protocole-phase.md`, règle 1).
 
-Onze points à traiter **avant qu'un vrai client signe un vrai contrat**. Aucun
+Douze points à traiter **avant qu'un vrai client signe un vrai contrat**. Aucun
 n'empêche le logiciel de fonctionner : ils empêchent qu'il fonctionne
 **correctement le jour où il compte**.
 
 ## Qui peut lever un point
 
-Six des onze points **ne se résolvent pas, ou pas entièrement, dans le dépôt**
-(3, 6, 7, 9, 10 et 11). Sans cette
+Sept des douze points **ne se résolvent pas, ou pas entièrement, dans le dépôt**
+(3, 6, 7, 9, 10, 11 et 12). Sans cette
 précision, une session future les lira comme des tâches techniques et cherchera
 la réponse au mauvais endroit — dans le code, où elle n'est pas.
 
@@ -38,6 +38,7 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | 9 | Sauvegarder le volume des PDF, et tester une restauration | **Phase de déploiement** | Au déploiement effectif — échéance tranchée le 24 septembre 2026 |
 | 10 | Taxe de séjour : régime et taux **vérifiés** ; restent l'assiette (ménage), les bébés et les tarifs 2027 | **Le service taxe de séjour** (Ardèche Grand Air) | Phase 3 |
 | 11 | Saisir les vrais tarifs, périodes, barème et réglages de taxe | **Les propriétaires**, au back-office | Avant l'ouverture (Phase 5) |
+| 12 | Durée de conservation des tentatives de réservation abandonnées | **Les propriétaires** (juriste), puis développement | Phase 4 |
 
 ---
 
@@ -355,8 +356,8 @@ intercommunalité) · **Phase 3**
 > 2. un **bébé** compte-t-il parmi les occupants qui divisent le prix ?
 > 3. quels **tarifs pour 2027** (délibération votée avant le 1er juillet 2026) ?
 >
-> Le calcul suit les réponses sans modification : le ménage est un réglage,
-> les occupants un paramètre, les tarifs une ligne datée.
+> Le calcul suit les réponses sans modification : le ménage et les bébés sont
+> deux réglages, les tarifs une ligne datée.
 
 **Pourquoi c'est bloquant.** Cet argent n'est pas le nôtre : il est collecté
 pour le compte d'une collectivité. **Sous-collecté**, la différence reste due et
@@ -406,6 +407,30 @@ durée s'il y en a, et les réglages de taxe de séjour (point 10).
 **Le contrôle.** Chaque fiche gîte affiche sa grille ; le journal du serveur ne
 contient ni « VALEUR ABSENTE EN BASE », ni « TARIF ÉCARTÉ », ni « PÉRIODE NON
 CALÉE », ni « BARÈME » ; un séjour de test se chiffre dans le tunnel.
+
+---
+
+## 12. Durée de conservation des tentatives de réservation abandonnées
+
+**Qui peut lever :** **les propriétaires**, avec leur juriste (la durée), puis
+développement · **Phase 4**
+(l'effacement automatique, avec les tâches planifiées)
+
+**La raison.** Depuis le lot 2 de la Phase 3 (D-21), le tunnel enregistre la
+réservation, avec le nom, l'adresse, le courriel et le téléphone du client, **à
+l'arrivée sur l'écran de paiement**. Un client qui revient en arrière voit sa
+tentative supprimée sur-le-champ. Mais un client qui ferme la page laisse une
+réservation « en attente de paiement » dont le blocage expire, et ses
+coordonnées restent en base alors qu'il n'a rien acheté. Le RGPD impose une
+durée de conservation limitée et justifiée (art. 5.1.e) ; aucune n'est fixée.
+
+**L'action.** Faire fixer la durée par le juriste (quelques jours suffisent
+pour traiter un paiement tardif, lot 3), puis effacer automatiquement les
+tentatives expirées au-delà (Phase 4), et l'écrire dans la politique de
+confidentialité (Phase 6).
+
+**Le contrôle.** Une tentative expirée plus ancienne que la durée fixée
+n'existe plus en base ; la politique de confidentialité annonce la même durée.
 
 ---
 

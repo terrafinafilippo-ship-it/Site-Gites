@@ -95,7 +95,10 @@ qu'il y a à construire.
 ### Le reste
 
 10. **Tâches planifiées** : le mécanisme qui déclenche J-30, la veille du départ
-    et le troisième jour après, sans qu'un humain y pense.
+    et le troisième jour après, sans qu'un humain y pense. Il porte aussi
+    l'**effacement des tentatives de réservation abandonnées** (« en attente de
+    paiement », blocage expiré depuis plus que la durée fixée par le juriste) :
+    point 12 de `docs/06-avant-premier-client.md`, décision D-21.
 11. **Passage de la base en configuration de production** — point 4 de
     `docs/06-avant-premier-client.md`, avec sa liste.
 

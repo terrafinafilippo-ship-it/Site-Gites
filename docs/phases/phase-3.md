@@ -10,7 +10,8 @@
 d'octobre 2026, qui a fait entrer les saisons, la taxe de séjour et trois
 moyens de caution dans la phase. Découpage en cinq lots plus bas.
 **État :** cadrage clos le 14 octobre 2026 ; **lot 1 (prix) livré et commité
-le même jour**. Lots 2 à 5 à faire.
+le même jour** ; **lot 2 (calendrier et réservation) livré le 15 octobre
+2026**. Lots 3 à 5 à faire.
 
 > **Point 9 tranché à l'ouverture (24 septembre 2026) : échéance décalée au
 > déploiement effectif.** La Phase 3 va produire des PDF sans sauvegarde de
@@ -56,14 +57,28 @@ site en activité** : aucun calendrier réel n'a été préparé.
 (réponse du 11 octobre 2026) : tarif proportionnel de Savas, vérifié sur la
 délibération et le guide officiel (`docs/03-conformite.md` § 7 bis).
 
-**Occupants.** Trois catégories dans le tunnel : adultes (18 ans et plus),
-enfants (moins de 18 ans), bébés (validé le 14 octobre 2026). **Ouvert :** les
-bébés comptent-ils dans la capacité du gîte ?
+**Occupants — livré au lot 2.** Trois catégories dans le tunnel : adultes
+(18 ans et plus), enfants, bébés (validé le 14 octobre 2026). **Le premier bébé
+de moins de 2 ans ne compte pas dans la capacité du gîte ; un second bébé
+prend une place, et un seul lit bébé est fourni** (15 octobre 2026). Exemple :
+LaPhine (4 places) accepte 4 personnes et 1 bébé, ou 3 personnes et 2 bébés,
+pas 4 personnes et 2 bébés. Trois réglages généraux : l'âge (2 ans), le nombre
+de bébés hors capacité (1), le nombre de lits bébé (1). Au-delà des lits, le
+tunnel prévient sans refuser.
 
-**Horaires.** Arrivée 18 h, départ 9 h (valeurs du contrat, validées le
-14 octobre 2026) : le tunnel, qui annonce 16 h et 10 h, s'aligne. Ce sont des
-valeurs de départ, réglables : un autre horaire s'arrange avec les
-propriétaires, sans être promis.
+**Horaires — livrés au lot 2.** Arrivée 18 h, départ 9 h, arrivée au plus tard
+20 h (valeurs du contrat, validées le 14 octobre 2026), **communes aux trois
+gîtes** (15 octobre 2026). Réglables ; recopiées sur chaque réservation. Un
+autre horaire s'arrange avec les propriétaires, sans être promis.
+
+**Délai avant l'arrivée — livré au lot 2.** Une arrivée se réserve **au plus
+tard la veille** : pour la nuit du vendredi 16 octobre, jusqu'au jeudi 15 à
+23 h 59 (15 octobre 2026). Réglable en jours ; 0 rouvre le jour même.
+
+**Civilité facultative — livrée au lot 2** (15 octobre 2026). Exiger « M. » ou
+« Mme » n'est pas nécessaire à la vente (CJUE, 9 janvier 2025, aff. C-394/23,
+Mousse) : le client peut la laisser vide, et le contrat imprime alors son nom
+seul. À confirmer par le juriste avec le reste du contrat.
 
 **Accueil et départ en personne. Il n'y a pas de boîte à clés.** Les trois
 mentions du prototype (« code de la boîte à clés ») sont à retirer : tableau
@@ -74,10 +89,11 @@ impossible à deviner). La référence courte (« SAM-… ») ne sert qu'à se p
 elle n'ouvre rien. Un client qui a perdu son courriel redemande son lien en
 saisissant son adresse. Durée de validité du lien réglable.
 
-**Blocage des dates pendant le paiement.** Les dates sont bloquées **à
-l'arrivée sur l'écran de paiement**, pas au choix des dates. Durée réglable,
-**20 minutes** au départ, avec un compte à rebours affiché. Paiement arrivé
-après la fin du blocage :
+**Blocage des dates pendant le paiement — livré au lot 2 (D-21).** Les dates
+sont bloquées **à l'arrivée sur l'écran de paiement**, pas au choix des dates.
+Durée réglable, **20 minutes** au départ, avec un compte à rebours affiché. Le
+client qui revient en arrière lève le blocage, et sa tentative est supprimée
+avec ses coordonnées. Paiement arrivé après la fin du blocage (lot 3) :
 - dates encore libres → réservation confirmée normalement ;
 - dates prises entre-temps → **remboursement intégral automatique**, courriel
   au client, alerte aux propriétaires, et proposition des autres gîtes libres
@@ -135,18 +151,28 @@ fonctionnel et terminé (13 octobre 2026), back-office compris.
 | Lot | Contenu | État |
 |---|---|---|
 | **1. Prix** | Tables de tarification et de taxe, calcul du prix d'un séjour et de la taxe, fiches gîtes lues en base, contrôles | **Livré le 14 octobre 2026** — voir `docs/journal-phases.md` |
-| **2. Calendrier et réservation** | Disponibilités réelles, blocage de 20 minutes, refus si un prix manque, erreur sur un gîte inconnu, tunnel branché sur les vrais chiffres (âges, horaires, prix, taxe) | À faire |
+| **2. Calendrier et réservation** | Disponibilités réelles, blocage de 20 minutes, refus si un prix manque, erreur sur un gîte inconnu, tunnel branché sur les vrais chiffres (âges, horaires, prix, taxe) | **Livré le 15 octobre 2026** — voir `docs/journal-phases.md` |
 | **3. Paiement** | Stripe en mode test : acompte ou total, carte conservée seulement si choisie, choix de la caution et du solde, paiement tardif, autres gîtes proposés | À faire |
-| **4. Courriels et suivi** | Brevo, contrat généré, lien de signature, page de suivi à lien secret, courriels aux propriétaires | À faire |
+| **4. Courriels et suivi** | Brevo, contrat généré, lien de signature, page de suivi à lien secret, courriels aux propriétaires ; **libellé de la taxe dans les PDF** (une réservation du tunnel n'a plus de taux unique : `taux_taxe_sejour` est vide, et les PDF impriment encore « (… %) ») | À faire |
 | **5. Contrat et pages** | Articles 5.1 et 6 du contrat, pages qui décrivent la caution, horaires, boîte à clés retirée, documentation | À faire |
 
-**Points ouverts pour le lot 2**, hors code :
-- les bébés comptent-ils dans la capacité du gîte (question au gérant) ;
+**Points ouverts après le lot 2**, hors code :
 - les bébés comptent-ils parmi les **occupants** de la taxe de séjour, et le
   forfait ménage entre-t-il dans le prix retenu — deux questions au service
   taxe de séjour d'Ardèche Grand Air (`docs/06-avant-premier-client.md`,
-  point 10). Le calcul est prêt pour les deux réponses : les occupants sont un
-  paramètre, le ménage un réglage.
+  point 10). Le calcul suit les deux réponses sans modification : ce sont deux
+  réglages datés de `taxes_sejour` (bébés comptés et ménage exclu par défaut).
+- combien de temps garder les coordonnées d'une tentative **abandonnée sans
+  retour en arrière** (blocage expiré, page fermée) : question au juriste,
+  effacement automatique en Phase 4 (`docs/06-avant-premier-client.md`,
+  point 12).
+
+**À reprendre au lot 3.** L'écran de succès du prototype a été retiré au lot 2 :
+il affichait une fausse référence et trois formules non validées (« contrat
+eIDAS », « télécharger le récap PDF », boîte à clés). Il se reconstruit avec le
+paiement, à partir des seules phrases confirmées. Les écrans « paiement
+refusé » et « authentification échouée » sont conservés tels quels, inaccessibles
+jusque-là.
 
 ---
 
@@ -201,7 +227,11 @@ séparation des rôles PostgreSQL (lecture seule pour le vitrine) était à déc
 
 ## Hérité de la Phase 2 — à traiter dans cette phase
 
-### 1. Le tunnel ne doit JAMAIS dégrader en silence
+### 1. Le tunnel ne doit JAMAIS dégrader en silence — traité au lot 2
+
+`lib/tunnel.ts` lève au lieu de compléter ; la page affiche « La réservation en
+ligne est momentanément indisponible » et l'enregistrement répond 503.
+Vérifié en rendant la table `reglages` illisible.
 
 La Phase 2 a décidé qu'une base injoignable **masque les chiffres** des pages
 publiques au lieu de produire une erreur 500 (D-13). **Cette règle s'arrête à la
@@ -217,7 +247,10 @@ un montant partiel. Une réservation prise sur un prix faux se répare par un
 avoir et une conversation pénible ; une page qui dit « réservation
 momentanément indisponible, appelez-nous » ne coûte qu'un appel.
 
-### 2. Un `?gite=` inconnu réserve LaPhine en silence
+### 2. Un `?gite=` inconnu réserve LaPhine en silence — traité au lot 2
+
+`/reserver` sans gîte affiche un écran de choix ; un gîte inconnu (dont
+l'ancien `larmu`) répond 404.
 
 `app/reserver/page.tsx` : un slug absent ou périmé retombe sur `GITES.laphine`
 sans rien signaler. Le client croit réserver L'Armu et engage LaPhine. Il faut
@@ -227,7 +260,13 @@ Le risque est réel depuis la Phase 2 : les slugs ont changé (`larmu` →
 `armu`, D-14). Les redirections 301 couvrent `/gites/larmu`, **pas**
 `/reserver?gite=larmu`.
 
-### 3. Les chiffres du tunnel sont encore écrits en dur
+### 3. Les chiffres du tunnel sont encore écrits en dur — traité au lot 2
+
+La constante `BOOKING` et les fausses propositions ont disparu : prix, ménage,
+taxe, caution et capacité viennent de la base, l'acompte du calcul des
+documents (`lib/montants.ts`). Restent écrits dans le code jusqu'au lot 3 : le
+taux d'acompte (30 %) et le délai du solde (30 jours), qui changent aussi les
+contrats et les factures.
 
 `app/reserver/ReserverFunnel.tsx` porte des valeurs de démonstration qui ne
 viennent pas de la base — et qui, depuis la Phase 2, **contredisent visiblement
@@ -285,10 +324,10 @@ l'écran de choix existera :
 
 | Endroit | Phrase |
 |---|---|
-| `ReserverFunnel.tsx`, récapitulatif latéral | « Solde de … prélevé J-30 » |
-| `ReserverFunnel.tsx`, étape 3 | « Le solde sera prélevé J-30 sur la même carte. » |
-| `ReserverFunnel.tsx`, étape 4 | « le solde J-30 sera prélevé sur la même carte » |
-| `ReserverFunnel.tsx`, écran de succès | « Prélèvement automatique du solde sur la carte utilisée aujourd'hui » |
+| `ReserverFunnel.tsx`, récapitulatif latéral | ~~« Solde de … prélevé J-30 »~~ → « Solde de … à régler au plus tard le … » (lot 2) |
+| `ReserverFunnel.tsx`, étape 3 | ~~« Le solde sera prélevé J-30 sur la même carte. »~~ → idem (lot 2) |
+| `ReserverFunnel.tsx`, étape 4 | ~~« le solde J-30 sera prélevé sur la même carte »~~ → retirée (lot 2) |
+| `ReserverFunnel.tsx`, écran de succès | ~~« Prélèvement automatique du solde… »~~ → écran retiré, à reconstruire au lot 3 |
 | `app/suivi/[ref]/page.tsx` | « prélevés automatiquement sur la même carte » |
 | `lib/data/legal.ts`, CGV § 02 | « Le solde du séjour est prélevé automatiquement à J-30 » — Phase 6 |
 
@@ -300,8 +339,8 @@ Les horaires de référence sont **18 h et 9 h** (contrat), pas 16 h et 10 h.
 | Endroit | Phrase |
 |---|---|
 | `app/suivi/[ref]/ArrivalInfo.tsx` | « Le code de la boîte à clés… vous seront communiqués dès la signature », et un faux code affiché |
-| `app/reserver/ReserverFunnel.tsx`, écran de succès | « Adresse précise, code de la boîte à clés, numéros directs… » |
-| `app/reserver/ReserverFunnel.tsx`, étape 1 | « À partir de 16h », « Avant 10h » |
+| `app/reserver/ReserverFunnel.tsx`, écran de succès | ~~« Adresse précise, code de la boîte à clés… »~~ → écran retiré (lot 2) |
+| `app/reserver/ReserverFunnel.tsx`, étape 1 | ~~« À partir de 16h », « Avant 10h »~~ → horaires lus en base (lot 2) |
 | `app/suivi/[ref]/ArrivalInfo.tsx` | « entre 16h et 19h », « avant 10h » |
 
 D'autres formules du prototype engagent le vendeur sans avoir été validées
