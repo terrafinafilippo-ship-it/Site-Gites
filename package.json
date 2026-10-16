@@ -12,7 +12,8 @@
     "db:seed": "tsx db/seed.ts",
     "db:verify": "tsx db/verify.ts",
     "verify:centimes": "tsx scripts/verifier-centimes.ts",
-    "verify:tarification": "tsx scripts/verifier-tarification.ts"
+    "verify:tarification": "tsx scripts/verifier-tarification.ts",
+    "verify:blocage": "tsx scripts/verifier-blocage.ts"
   },
   "dependencies": {
     "@next/env": "^15.5.19",
