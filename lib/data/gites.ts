@@ -18,6 +18,8 @@ export type GiteId = "laphine" | "armu" | "maison-vieille";
 // `price`, puis la grille de lib/data/pricing.ts, supprimée en Phase 3 — et
 // affichaient donc des chiffres que les propriétaires ne pouvaient pas
 // corriger. Ils se lisent par lib/gites-publics.ts (docs/02-decisions.md, D-13).
+// Le CALENDRIER non plus : ses dates occupées inventées (BUSY_SETS) ont laissé
+// la place à la table `disponibilites` en Phase 3.
 //
 // `profil` remplace `target` : « Famille — 4 personnes » mélangeait un fait
 // commercial (le profil visé, qui est du rédactionnel) et un fait de la base
@@ -86,16 +88,5 @@ export const GITES: Record<GiteId, GiteData> = {
 export const GITE_IDS = Object.keys(GITES) as GiteId[];
 
 export function isGiteId(id: string): id is GiteId {
-  return id in GITES;
+  return Object.prototype.hasOwnProperty.call(GITES, id);
 }
-
-/** Plages occupées du calendrier de la fiche gîte —
- *  [offset mois (0-2), jour début, jour fin], déterministes par gîte. */
-export const BUSY_SETS: Record<GiteId, [number, number, number][]> = {
-  laphine:          [[1, 5, 12],  [1, 19, 26], [2, 8, 15]],
-  armu:             [[0, 7, 14],  [1, 1, 8],   [2, 15, 22]],
-  "maison-vieille": [[0, 22, 29], [2, 5, 12],  [2, 19, 26]],
-};
-
-/** Date "aujourd'hui" ancrée pour un rendu calendrier prévisible (cf. gite.html). */
-export const CALENDAR_ANCHOR = { year: 2026, month: 4, day: 19 };

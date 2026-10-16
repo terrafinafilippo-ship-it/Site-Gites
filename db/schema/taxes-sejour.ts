@@ -51,6 +51,11 @@ export const taxes_sejour = pgTable(
     // Le forfait ménage entre-t-il dans le prix retenu pour le calcul ? À
     // confirmer auprès du service taxe de séjour (docs/06, point 10).
     menage_dans_assiette: boolean().notNull().default(false),
+    // Un bébé compte-t-il parmi les occupants qui DIVISENT le prix (étape 2) ?
+    // Le guide compte « toutes les personnes hébergées » : vrai par défaut, à
+    // confirmer par la même question (docs/06, point 10). Un bébé ne paie
+    // jamais : il est mineur.
+    bebes_parmi_occupants: boolean().notNull().default(true),
     // Référence de la délibération : « Annonay Rhône Agglo, CC_2025_119 ».
     source: text(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),

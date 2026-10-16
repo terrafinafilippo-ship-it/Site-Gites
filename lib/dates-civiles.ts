@@ -41,6 +41,12 @@ export function nombreDeNuits(arrivee: string, depart: string): number {
   return (jourUtc(depart) - jourUtc(arrivee)) / MS_PAR_JOUR;
 }
 
+/** Premier jour du mois de `iso`, décalé de `decalageMois` mois (« 2026-10-15 », 3 → « 2027-01-01 »). */
+export function premierJourDuMois(iso: string, decalageMois = 0): string {
+  const d = new Date(jourUtc(iso));
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + decalageMois, 1)).toISOString().slice(0, 10);
+}
+
 /** Date civile du jour à Paris, au format aaaa-mm-jj. */
 export function aujourdhuiParis(maintenant: Date = new Date()): string {
   return new Intl.DateTimeFormat("sv-SE", {

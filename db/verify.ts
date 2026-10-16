@@ -71,6 +71,7 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     "date_arrivee", "date_depart", "heure_arrivee", "heure_depart", "heure_limite_arrivee",
     "nb_adultes", "nb_enfants", "nb_bebes", "occupants_majeurs",
     "prix_location", "forfait_menage", "options", "taxe_sejour", "taux_taxe_sejour",
+    "detail_calcul",
     "mode_paiement", "reference_transaction", "date_paiement_acompte",
     "created_at", "updated_at",
   ],
@@ -108,11 +109,15 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
   ],
   reglages: [
     "id", "nuits_minimum", "jours_arrivee", "jours_depart", "bareme_general_id",
-    "periodes_jour_debut", "updated_at",
+    "periodes_jour_debut",
+    // Tunnel (Phase 3, lot 2, migration 0004).
+    "duree_blocage_minutes", "delai_reservation_jours", "heure_arrivee", "heure_depart",
+    "heure_limite_arrivee", "bebe_age_limite", "bebes_hors_capacite", "lits_bebe",
+    "updated_at",
   ],
   taxes_sejour: [
     "id", "gite_id", "date_debut", "mode", "taux", "plafond", "tarif_fixe", "taxe_additionnelle",
-    "menage_dans_assiette", "source", "created_at",
+    "menage_dans_assiette", "bebes_parmi_occupants", "source", "created_at",
   ],
 };
 
@@ -131,6 +136,9 @@ const TYPES_ATTENDUS: Array<[table: string, colonne: string, udt: string]> = [
   ["baremes_coefficients", "coefficient", "numeric"],
   ["tarifs_prix", "prix_nuit", "numeric"],
   ["taxes_sejour", "taux", "numeric"],
+  ["reservations", "detail_calcul", "jsonb"],
+  ["reglages", "heure_arrivee", "time"],
+  ["disponibilites", "verrou_expire_at", "timestamptz"],
 ];
 
 async function verifierSchema(client: PoolClient): Promise<void> {
@@ -204,6 +212,7 @@ async function verifierSchema(client: PoolClient): Promise<void> {
   ]) {
     noter("1", idx.includes(nom), `index unique ${nom} présent`);
   }
+  noter("1", idx.includes("disponibilites_reservation_id_idx"), "index disponibilites_reservation_id_idx présent");
 
   const exclusion = await client.query<{ contype: string }>(
     `select contype from pg_constraint where conname = 'periodes_sans_chevauchement'`,
@@ -219,6 +228,12 @@ async function verifierSchema(client: PoolClient): Promise<void> {
     "reglages : une seule ligne, id = 1 (créée par la migration 0003)",
     `${lignesReglages.rows.length} ligne(s)`,
   );
+
+  // Aucune ligne « libre » ne survit à la migration 0004 : une nuit sans ligne est libre.
+  const libres = await client.query<{ n: number }>(
+    `select count(*)::int as n from disponibilites where statut not in ('verrou', 'reserve', 'bloque')`,
+  );
+  noter("1", libres.rows[0].n === 0, "disponibilites : aucune ligne hors des trois états", `${libres.rows[0].n} ligne(s)`);
 }
 
 // ─── 2. Seed des gîtes ───────────────────────────────────────────────────────
@@ -529,6 +544,59 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
       );
       noter("6b", codePg(modeInconnu.erreur) === "23514", "mode de taxe inconnu refusé", codePg(modeInconnu.erreur));
     }
+
+    // ── 6c. Tunnel : réglages et calendrier ─────────────────────────────────
+    titre("6c. Tunnel : réglages et calendrier");
+    const blocageNul = await attendreErreur(
+      client, "sp_blocage_nul", `update reglages set duree_blocage_minutes = 0 where id = 1`, [],
+    );
+    noter("6c", codePg(blocageNul.erreur) === "23514", "durée de blocage nulle refusée", codePg(blocageNul.erreur));
+    const heures = await attendreErreur(
+      client, "sp_heures", `update reglages set heure_limite_arrivee = '17:00' where id = 1`, [],
+    );
+    noter("6c", codePg(heures.erreur) === "23514", "heure limite d'arrivée avant l'heure d'arrivée refusée", codePg(heures.erreur));
+    const bebes = await attendreErreur(
+      client, "sp_bebes", `update reglages set bebes_hors_capacite = -1 where id = 1`, [],
+    );
+    noter("6c", codePg(bebes.erreur) === "23514", "nombre de bébés hors capacité négatif refusé", codePg(bebes.erreur));
+
+    if (giteId) {
+      // Dates en 2099 : aucune nuit réelle n'y est prise.
+      const libre = await attendreErreur(
+        client, "sp_libre",
+        `insert into disponibilites (gite_id, date, statut) values ($1, '2099-05-01', 'libre')`, [giteId],
+      );
+      noter("6c", codePg(libre.erreur) === "23514", "état « libre » refusé (une nuit sans ligne est libre)", codePg(libre.erreur));
+      const sansEcheance = await attendreErreur(
+        client, "sp_verrou_sans_echeance",
+        `insert into disponibilites (gite_id, date, statut, reservation_id) values ($1, '2099-05-01', 'verrou', $2)`,
+        [giteId, resaId],
+      );
+      noter("6c", codePg(sansEcheance.erreur) === "23514", "verrou sans échéance refusé", codePg(sansEcheance.erreur));
+      const sansReservation = await attendreErreur(
+        client, "sp_verrou_sans_resa",
+        `insert into disponibilites (gite_id, date, statut, verrou_expire_at) values ($1, '2099-05-01', 'verrou', now())`,
+        [giteId],
+      );
+      noter("6c", codePg(sansReservation.erreur) === "23514", "verrou sans réservation refusé", codePg(sansReservation.erreur));
+      const venduSansResa = await attendreErreur(
+        client, "sp_reserve_sans_resa",
+        `insert into disponibilites (gite_id, date, statut) values ($1, '2099-05-01', 'reserve')`, [giteId],
+      );
+      noter("6c", codePg(venduSansResa.erreur) === "23514", "nuit vendue en direct sans réservation refusée", codePg(venduSansResa.erreur));
+      const fermee = await attendreErreur(
+        client, "sp_bloque",
+        `insert into disponibilites (gite_id, date, statut) values ($1, '2099-05-02', 'bloque')`, [giteId],
+      );
+      noter("6c", fermee.erreur === null, "nuit fermée par les propriétaires acceptée sans réservation", fermee.erreur ? messageErreur(fermee.erreur) : undefined);
+      const doublon = await attendreErreur(
+        client, "sp_nuit_double",
+        `insert into disponibilites (gite_id, date, statut, reservation_id, verrou_expire_at)
+         values ($1, '2099-05-02', 'verrou', $2, now() + interval '20 minutes')`,
+        [giteId, resaId],
+      );
+      noter("6c", codePg(doublon.erreur) === "23505", "seconde ligne pour la même nuit refusée (index unique)", codePg(doublon.erreur));
+    }
   } finally {
     await client.query("ROLLBACK");
   }
@@ -548,9 +616,10 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
   const restesTarifs = await client.query<{ n: number }>(
     `select ((select count(*) from tarifs where nom like 'VERIFY-%')
            + (select count(*) from baremes where nom like 'VERIFY-%')
-           + (select count(*) from periodes where date_debut >= '2099-01-01'))::int as n`,
+           + (select count(*) from periodes where date_debut >= '2099-01-01')
+           + (select count(*) from disponibilites where date >= '2099-01-01'))::int as n`,
   );
-  noter("R", restesTarifs.rows[0].n === 0, "aucun tarif, barème ni période de test restant", `${restesTarifs.rows[0].n} ligne(s)`);
+  noter("R", restesTarifs.rows[0].n === 0, "aucun tarif, barème, période ni nuit de test restant", `${restesTarifs.rows[0].n} ligne(s)`);
 }
 
 // ─── 7. Stockage ─────────────────────────────────────────────────────────────

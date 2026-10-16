@@ -168,6 +168,7 @@ export async function chargerTarification(executeur: Executeur = getDb()): Promi
       tarifFixe: centimesDepuisNumeric(taxe.tarif_fixe),
       taxeAdditionnelle: entierDepuisDecimal(taxe.taxe_additionnelle, DECIMALES_TAUX),
       menageDansAssiette: taxe.menage_dans_assiette,
+      bebesParmiOccupants: taxe.bebes_parmi_occupants,
       source: taxe.source,
     });
   }

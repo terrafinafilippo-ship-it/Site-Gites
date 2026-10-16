@@ -16,6 +16,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   numeric,
   pgTable,
   text,
@@ -87,6 +88,13 @@ export const reservations = pgTable(
     // Taux en pourcentage (5.50 = 5,5 %) : un taux n'est pas de l'argent, il
     // reste un nombre décimal.
     taux_taxe_sejour: numeric({ precision: 5, scale: 2, mode: "number" }),
+
+    // Comment le prix et la taxe ont été obtenus, figé à l'enregistrement par
+    // le tunnel (lib/devis.ts, type DetailCalcul) : prix de chaque nuit et
+    // coefficient appliqué, réglage de taxe et ses étapes. Les montants
+    // ci-dessus font foi ; ce détail les explique (récapitulatif, déclaration
+    // de la taxe de séjour, litige). NULL pour une réservation saisie à la main.
+    detail_calcul: jsonb().$type<Record<string, unknown>>(),
 
     // Paiement de l'acompte (données du prestataire)
     mode_paiement: text(),

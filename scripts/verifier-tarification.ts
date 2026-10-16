@@ -1,5 +1,7 @@
-// Contrôle du calcul des prix de séjour (lib/tarification.ts) et de la taxe de
-// séjour (lib/taxe-sejour.ts), cas par cas, montants attendus calculés à la main.
+// Contrôle du calcul des prix de séjour (lib/tarification.ts), de la taxe de
+// séjour (lib/taxe-sejour.ts), du devis du tunnel (lib/devis.ts) et du contrôle
+// des coordonnées (lib/coordonnees.ts), cas par cas, montants attendus
+// calculés à la main.
 //
 // Lancer : npm run verify:tarification
 // Code de sortie 1 si un cas échoue. Aucune base de données requise : les
@@ -22,6 +24,19 @@ import {
   type TarifDonnees,
 } from '../lib/tarification';
 import { calculerTaxeSejour, reglageEnVigueur, type ReglageTaxe } from '../lib/taxe-sejour';
+import { occupantsMajeurs, validerCoordonnees } from '../lib/coordonnees';
+import {
+  datesPossibles,
+  detailCalcul,
+  devisSejour,
+  joursDuCalendrier,
+  preparerDevis,
+  type DonneesDevis,
+  type GiteTunnel,
+  type ReglagesTunnel,
+  type ResultatDevis,
+} from '../lib/devis';
+import { montantsDesPostes } from '../lib/montants';
 
 let nbCas = 0;
 let echecs = 0;
@@ -317,6 +332,7 @@ const SAVAS_2026: ReglageTaxe = {
   tarifFixe: null,
   taxeAdditionnelle: 1000,
   menageDansAssiette: false,
+  bebesParmiOccupants: true,
   source: 'Annonay Rhône Agglo, délibération CC_2025_119',
 };
 
@@ -390,6 +406,215 @@ function taxe(
   noter(r.ok && r.taxe.total === 0, 'deux mineurs, aucun assujetti : taxe nulle', r.ok ? r.taxe.total : r.refus);
   const invalide = taxe(40000, '2027-05-01', '2027-05-03', 2, 3);
   noter(!invalide.ok && invalide.refus.motif === 'OCCUPANTS_INVALIDES', '3 assujettis pour 2 occupants → refus', invalide.ok ? invalide.taxe.total : invalide.refus);
+}
+
+{
+  // Bébé parmi les occupants (réglage) : 780 €, 2 adultes + 1 bébé, 7 nuits.
+  // Avec : 111,43 → 37,14 → 1,86 → 0,19 → 2,05 € ; sans : 55,71 → 2,79 → 0,28 → 3,07 €.
+  const avec = calculerTaxeSejour({
+    arrivee: '2027-05-01', depart: '2027-05-08', prixHebergement: 78000, forfaitMenage: 0,
+    nbOccupants: 3, nbAssujettis: 2, nbBebes: 1, reglages: [SAVAS_2026],
+  });
+  noter(avec.ok && avec.taxe.total === 2870, 'bébé compté parmi les occupants : 28,70 €', avec.ok ? avec.taxe.total : avec.refus);
+  const sans = calculerTaxeSejour({
+    arrivee: '2027-05-01', depart: '2027-05-08', prixHebergement: 78000, forfaitMenage: 0,
+    nbOccupants: 3, nbAssujettis: 2, nbBebes: 1, reglages: [{ ...SAVAS_2026, bebesParmiOccupants: false }],
+  });
+  noter(sans.ok && sans.taxe.total === 4298, 'bébé hors des occupants : 3,07 € × 7 × 2 = 42,98 €', sans.ok ? sans.taxe.total : sans.refus);
+  const queBebes = calculerTaxeSejour({
+    arrivee: '2027-05-01', depart: '2027-05-08', prixHebergement: 78000, forfaitMenage: 0,
+    nbOccupants: 1, nbAssujettis: 0, nbBebes: 1, reglages: [SAVAS_2026],
+  });
+  noter(!queBebes.ok && queBebes.refus.motif === 'OCCUPANTS_INVALIDES', 'un bébé seul → refus', queBebes.ok ? queBebes.taxe.total : queBebes.refus);
+}
+
+// ─── 8. Devis du tunnel (lib/devis.ts) ───────────────────────────────────────
+
+console.log('--- devis du tunnel : prix + ménage + taxe, acompte ou paiement intégral');
+
+const REGLAGES_TUNNEL: ReglagesTunnel = {
+  dureeBlocageMinutes: 20,
+  delaiReservationJours: 1,
+  heureArrivee: '18:00',
+  heureDepart: '09:00',
+  heureLimiteArrivee: '20:00',
+  bebeAgeLimite: 2,
+  bebesHorsCapacite: 1,
+  litsBebe: 1,
+};
+const ARMU: GiteTunnel = { slug: 'armu', nom: "L'Armu", capaciteMax: 2, forfaitMenage: 8000, caution: 40000 };
+const LAPHINE: GiteTunnel = { slug: 'laphine', nom: 'LaPhine', capaciteMax: 4, forfaitMenage: 8000, caution: 50000 };
+// Basse saison de janvier à mars 2027 ; été samedi → samedi, 7 nuits, sans prix pour LaPhine.
+const DONNEES_DEVIS = donnees(
+  [
+    tarif('Basse', { armu: 7500, laphine: 11200 }),
+    tarif('Été', { armu: 13700 }, { regles: { nuitsMinimum: 7, joursArrivee: [6], joursDepart: [6] } }),
+  ],
+  [periode('Basse', '2027-01-02', '2027-03-06'), periode('Été', '2027-07-03', '2027-08-28')],
+);
+
+function contexte(gite: GiteTunnel, extra: Partial<DonneesDevis> = {}) {
+  return preparerDevis({
+    tarification: DONNEES_DEVIS,
+    taxes: [SAVAS_2026],
+    gite,
+    reglages: REGLAGES_TUNNEL,
+    nuitsPrises: [],
+    aujourdhui: '2026-10-15',
+    ...extra,
+  });
+}
+
+function refusDevisAttendu(r: ResultatDevis, motif: string, libelle: string): void {
+  noter(!r.ok && r.refus.motif === motif, `${libelle} → refus ${motif}`, r.ok ? r.devis.montants : r.refus);
+}
+
+const SEMAINE = { arrivee: '2027-01-09', depart: '2027-01-16' };
+{
+  // L'Armu, 2 adultes, 7 nuits à 75 € : 450 € ; taxe 6 429 → 3 215 → 1,61 → 0,16 → 1,77 € × 14 = 24,78 €.
+  const r = devisSejour(contexte(ARMU), { ...SEMAINE, adultes: 2, enfants: 0, bebes: 0 });
+  const d = r.ok ? r.devis : undefined;
+  noter(
+    d?.prix.total === 45000 && d.montants.forfaitMenage === 8000 && d.taxe.total === 2478 && d.montants.totalTtc === 55478,
+    "L'Armu, une semaine de janvier : 450 € + 80 € + 24,78 € = 554,78 €",
+    d?.montants ?? (r.ok ? null : r.refus),
+  );
+  noter(
+    d?.montants.acompte === 16643 && d.montants.solde === 38835 && d.aRegler === 16643 && !d.paiementIntegral,
+    'acompte 30 % = 166,43 €, solde 388,35 € (le calcul des documents)',
+    d && { acompte: d.montants.acompte, solde: d.montants.solde, aRegler: d.aRegler },
+  );
+  noter(d?.dateLimiteSolde === '2026-12-10' && d.caution === 40000, 'solde dû le 10 décembre 2026 ; caution 400 €', d && [d.dateLimiteSolde, d.caution]);
+  const detail = d ? detailCalcul(d, REGLAGES_TUNNEL) : {};
+  noter(detail.formatVersion === 1 && detail.unite === 'centimes', 'détail figé avec la réservation : format 1, en centimes', detail.formatVersion);
+}
+{
+  const avecBebe = devisSejour(contexte(ARMU), { ...SEMAINE, adultes: 2, enfants: 0, bebes: 1 });
+  noter(avecBebe.ok && avecBebe.devis.taxe.total === 1652, "L'Armu, 2 adultes + 1 bébé : accepté (bébé hors capacité), taxe divisée par 3 = 16,52 €", avecBebe.ok ? avecBebe.devis.taxe.total : avecBebe.refus);
+  refusDevisAttendu(devisSejour(contexte(ARMU), { ...SEMAINE, adultes: 2, enfants: 0, bebes: 2 }), 'CAPACITE_DEPASSEE', "L'Armu, 2 adultes + 2 bébés (le second prend une place)");
+  refusDevisAttendu(devisSejour(contexte(ARMU), { ...SEMAINE, adultes: 2, enfants: 1, bebes: 0 }), 'CAPACITE_DEPASSEE', "L'Armu, 2 adultes + 1 enfant");
+  refusDevisAttendu(devisSejour(contexte(ARMU), { ...SEMAINE, adultes: 0, enfants: 1, bebes: 0 }), 'SANS_ADULTE', 'aucun adulte');
+  const deuxBebes = devisSejour(contexte(LAPHINE), { ...SEMAINE, adultes: 3, enfants: 0, bebes: 2 });
+  noter(deuxBebes.ok && deuxBebes.devis.litsBebeInsuffisants, 'LaPhine, 3 adultes + 2 bébés : accepté, « un seul lit bébé » signalé', deuxBebes.ok ? deuxBebes.devis.litsBebeInsuffisants : deuxBebes.refus);
+  refusDevisAttendu(devisSejour(contexte(LAPHINE), { ...SEMAINE, adultes: 4, enfants: 0, bebes: 2 }), 'CAPACITE_DEPASSEE', 'LaPhine, 4 adultes + 2 bébés');
+  const plein = devisSejour(contexte(LAPHINE), { ...SEMAINE, adultes: 4, enfants: 0, bebes: 1 });
+  noter(plein.ok && !plein.devis.litsBebeInsuffisants, 'LaPhine, 4 adultes + 1 bébé : accepté', plein.ok ? plein.devis.occupants : plein.refus);
+}
+{
+  // Délai d'un jour : réservable jusqu'à la veille (réponse du 15 octobre 2026).
+  const veille = devisSejour(contexte(ARMU, { aujourdhui: '2027-01-08' }), { ...SEMAINE, adultes: 2, enfants: 0, bebes: 0 });
+  noter(veille.ok, 'arrivée le 9 janvier réservée le 8 : acceptée', veille.ok ? null : veille.refus);
+  const jourMeme = devisSejour(contexte(ARMU, { aujourdhui: '2027-01-09' }), { ...SEMAINE, adultes: 2, enfants: 0, bebes: 0 });
+  noter(
+    !jourMeme.ok && jourMeme.refus.motif === 'ARRIVEE_TROP_PROCHE' && jourMeme.refus.message === 'Une arrivée se réserve au plus tard la veille.',
+    'arrivée le jour même → refus « au plus tard la veille »',
+    jourMeme.ok ? null : jourMeme.refus,
+  );
+  const passee = devisSejour(contexte(ARMU, { aujourdhui: '2027-01-12' }), { ...SEMAINE, adultes: 2, enfants: 0, bebes: 0 });
+  noter(!passee.ok && passee.refus.message === "La date d'arrivée est passée.", 'arrivée passée → « La date d\'arrivée est passée. »', passee.ok ? null : passee.refus);
+  const sansDelai = devisSejour(
+    contexte(ARMU, { aujourdhui: '2027-01-09', reglages: { ...REGLAGES_TUNNEL, delaiReservationJours: 0 } }),
+    { ...SEMAINE, adultes: 2, enfants: 0, bebes: 0 },
+  );
+  noter(sansDelai.ok, 'délai réglé à 0 : arrivée le jour même acceptée', sansDelai.ok ? null : sansDelai.refus);
+}
+{
+  // D-20 : date limite du solde (arrivée − 30 jours) atteinte → le total aujourd'hui.
+  const limite = devisSejour(contexte(ARMU, { aujourdhui: '2026-12-10' }), { ...SEMAINE, adultes: 2, enfants: 0, bebes: 0 });
+  noter(
+    limite.ok && limite.devis.paiementIntegral && limite.devis.aRegler === 55478 && limite.devis.dateLimiteSolde === null,
+    'réservé le 10 décembre (jour limite du solde) : paiement intégral de 554,78 €',
+    limite.ok ? limite.devis.aRegler : limite.refus,
+  );
+  const avant = devisSejour(contexte(ARMU, { aujourdhui: '2026-12-09' }), { ...SEMAINE, adultes: 2, enfants: 0, bebes: 0 });
+  noter(avant.ok && !avant.devis.paiementIntegral && avant.devis.aRegler === 16643, 'réservé le 9 décembre : acompte seulement', avant.ok ? avant.devis.aRegler : avant.refus);
+}
+{
+  const prise = contexte(ARMU, { nuitsPrises: ['2027-01-12'] });
+  const r = devisSejour(prise, { ...SEMAINE, adultes: 2, enfants: 0, bebes: 0 });
+  noter(
+    !r.ok && r.refus.motif === 'NUITS_PRISES' && r.refus.message === 'La nuit du 12 janvier 2027 est déjà prise.',
+    'nuit du 12 janvier prise → refus qui la nomme',
+    r.ok ? null : r.refus,
+  );
+  noter(devisSejour(prise, { arrivee: '2027-01-09', depart: '2027-01-12', adultes: 2, enfants: 0, bebes: 0 }).ok, 'départ le 12 (nuit du 12 non comprise) : accepté');
+  const ete = devisSejour(contexte(ARMU), { arrivee: '2027-07-08', depart: '2027-07-15', adultes: 2, enfants: 0, bebes: 0 });
+  noter(
+    !ete.ok && ete.refus.message === 'En « Été », les arrivées se font le samedi.' && !ete.refus.donneeManquante,
+    'été, arrivée un jeudi → « En « Été », les arrivées se font le samedi. »',
+    ete.ok ? null : ete.refus,
+  );
+  const sansPrix = devisSejour(contexte(LAPHINE), { arrivee: '2027-07-03', depart: '2027-07-10', adultes: 2, enfants: 0, bebes: 0 });
+  noter(!sansPrix.ok && sansPrix.refus.motif === 'NUIT_SANS_PRIX' && sansPrix.refus.donneeManquante, 'LaPhine sans prix d\'été → refus, signalé comme donnée manquante', sansPrix.ok ? null : sansPrix.refus);
+  const sansTaxe = devisSejour(contexte(ARMU, { taxes: [] }), { ...SEMAINE, adultes: 2, enfants: 0, bebes: 0 });
+  noter(!sansTaxe.ok && sansTaxe.refus.motif === 'TAXE_NON_DEFINIE' && sansTaxe.refus.donneeManquante, 'aucun réglage de taxe → refus, jamais une taxe nulle', sansTaxe.ok ? null : sansTaxe.refus);
+}
+{
+  // Calendrier : délai, nuit prise, fin de période.
+  const ctx = contexte(ARMU, { aujourdhui: '2027-01-08', nuitsPrises: ['2027-01-12'] });
+  const jours = joursDuCalendrier(ctx, '2027-01-07', 6);
+  const etat = (date: string) => jours.find((j) => j.date === date);
+  noter(etat('2027-01-08')?.arriveePossible === false && etat('2027-01-09')?.arriveePossible === true, 'calendrier : arrivée possible dès le lendemain', jours);
+  noter(etat('2027-01-12')?.prise === true && etat('2027-01-12')?.arriveePossible === false, 'calendrier : nuit prise, pas d\'arrivée', etat('2027-01-12'));
+  const finPeriode = joursDuCalendrier(ctx, '2027-03-05', 2);
+  noter(finPeriode[0].sansTarif === false && finPeriode[1].sansTarif === true, 'calendrier : le 6 mars, fin de la période, est sans tarif', finPeriode);
+  const ete = contexte(ARMU);
+  noter(
+    datesPossibles(ete, '2027-07-03', '2027-07-10') && !datesPossibles(ete, '2027-07-03', '2027-07-09'),
+    'été : départ possible le samedi 10, pas le vendredi 9',
+  );
+}
+{
+  // Le devis et les documents partagent le calcul : réservation de référence L'Armu.
+  const m = montantsDesPostes({ prixLocation: 45730, forfaitMenage: 8000, options: 2550, taxeSejour: 1386 });
+  noter(m.totalTtc === 57666 && m.acompte === 17300 && m.solde === 40366, 'montantsDesPostes = montants de référence (576,66 / 173,00 / 403,66)', m);
+}
+
+// ─── 9. Coordonnées du client (lib/coordonnees.ts) ────────────────────────────
+
+console.log('--- coordonnées du client');
+const CLIENT = {
+  locataire: { civilite: 'Mme', prenom: ' Camille ', nom: 'Durand' },
+  email: 'Camille.Durand@Example.invalid',
+  telephone: '06 12 34 56 78',
+  adresse: '12  rue des Lilas',
+  codePostal: '69003',
+  ville: 'Lyon',
+  pays: 'France',
+  colocataire: null,
+  autresAdultes: [],
+};
+{
+  const r = validerCoordonnees(CLIENT, 1);
+  noter(
+    r.ok && r.coordonnees.locataire.prenom === 'Camille' && r.coordonnees.adresse === '12 rue des Lilas' &&
+      r.coordonnees.email === 'camille.durand@example.invalid' && occupantsMajeurs(r.coordonnees) === 'Camille DURAND',
+    'un adulte : espaces nettoyés, e-mail en minuscules, occupants « Camille DURAND »',
+    r,
+  );
+  const sansCivilite = validerCoordonnees({ ...CLIENT, locataire: { ...CLIENT.locataire, civilite: 'Dr' } }, 1);
+  noter(sansCivilite.ok && sansCivilite.coordonnees.locataire.civilite === '', 'civilité facultative : une valeur inconnue est ignorée', sansCivilite);
+  const trois = validerCoordonnees(
+    {
+      ...CLIENT,
+      colocataire: { civilite: '', prenom: 'Julien', nom: 'Durand' },
+      autresAdultes: [{ prenom: 'Léa', nom: 'Martin' }],
+    },
+    3,
+  );
+  noter(
+    trois.ok && occupantsMajeurs(trois.coordonnees) === 'Camille DURAND, Julien DURAND, Léa MARTIN',
+    'trois adultes dont un second locataire : les trois au contrat',
+    trois.ok ? occupantsMajeurs(trois.coordonnees) : trois.erreurs,
+  );
+  const incomplet = validerCoordonnees({ ...CLIENT, email: 'pas-une-adresse' }, 3);
+  noter(
+    !incomplet.ok && !!incomplet.erreurs.email && !!incomplet.erreurs['autresAdultes.0.prenom'] && !!incomplet.erreurs['autresAdultes.1.nom'],
+    'e-mail invalide et deux adultes sans nom : trois erreurs nommées',
+    incomplet.ok ? null : incomplet.erreurs,
+  );
+  const colocSeul = validerCoordonnees({ ...CLIENT, colocataire: { civilite: '', prenom: 'Julien', nom: 'Durand' } }, 1);
+  noter(!colocSeul.ok && !!colocSeul.erreurs.colocataire, 'second locataire avec un seul adulte → refus', colocSeul.ok ? null : colocSeul.erreurs);
 }
 
 console.log(echecs === 0 ? `\n${nbCas} cas, tous passent.` : `\n${nbCas} cas, ${echecs} en échec.`);

@@ -22,11 +22,14 @@
 //
 // Les mineurs ne paient pas (art. L.2333-31 du CGCT) mais COMPTENT parmi les
 // occupants à l'étape 2 : on divise par tous, on ne facture qu'aux assujettis.
+// Pour les bébés, le guide ne dit rien : c'est un réglage
+// (`bebesParmiOccupants`), vrai par défaut, à confirmer (docs/06, point 10).
 //
-// Taux, plafond, taxe additionnelle, mode et assiette (ménage compris ou non)
-// sont des RÉGLAGES datés et propres à chaque gîte (table taxes_sejour) : une
-// nouvelle délibération s'applique aux nuits à partir de sa date, sans toucher
-// au code. Une nuit sans réglage applicable est un REFUS, jamais une taxe nulle.
+// Taux, plafond, taxe additionnelle, mode, assiette (ménage compris ou non) et
+// bébés parmi les occupants sont des RÉGLAGES datés et propres à chaque gîte
+// (table taxes_sejour) : une nouvelle délibération s'applique aux nuits à partir
+// de sa date, sans toucher au code. Une nuit sans réglage applicable est un
+// REFUS, jamais une taxe nulle.
 //
 // MONTANTS EN CENTIMES ENTIERS. Taux en centièmes de pour cent (5,00 % → 500).
 
@@ -52,6 +55,8 @@ export interface ReglageTaxe {
   taxeAdditionnelle: number;
   /** Le forfait ménage entre-t-il dans le prix de la location retenu pour le calcul ? */
   menageDansAssiette: boolean;
+  /** Les bébés comptent-ils parmi les occupants qui divisent le prix (étape 2) ? */
+  bebesParmiOccupants: boolean;
   /** Référence de la délibération, pour le registre. */
   source: string | null;
 }
@@ -63,10 +68,12 @@ export interface EntreeTaxe {
   prixHebergement: number;
   /** Forfait ménage, en centimes : n'entre dans le calcul que si le réglage le dit. */
   forfaitMenage: number;
-  /** Toutes les personnes hébergées, mineurs compris. */
+  /** Toutes les personnes hébergées, mineurs et bébés compris. */
   nbOccupants: number;
   /** Personnes non exonérées (les majeurs). */
   nbAssujettis: number;
+  /** Bébés parmi les occupants (0 si absent) : retirés de la division si le réglage le dit. */
+  nbBebes?: number;
   /** Réglages du gîte, dans n'importe quel ordre. */
   reglages: readonly ReglageTaxe[];
 }
@@ -122,6 +129,7 @@ function reglageDeLaNuit(tries: readonly ReglageTaxe[], date: string): ReglageTa
 
 export function calculerTaxeSejour(entree: EntreeTaxe): ResultatTaxe {
   const { arrivee, depart, prixHebergement, forfaitMenage, nbOccupants, nbAssujettis } = entree;
+  const nbBebes = entree.nbBebes ?? 0;
 
   let nbNuits: number;
   try {
@@ -136,12 +144,16 @@ export function calculerTaxeSejour(entree: EntreeTaxe): ResultatTaxe {
     throw new Error("calculerTaxeSejour : montants attendus en centimes entiers positifs");
   }
   if (!Number.isSafeInteger(nbOccupants) || nbOccupants < 1 ||
-      !Number.isSafeInteger(nbAssujettis) || nbAssujettis < 0 || nbAssujettis > nbOccupants) {
+      !Number.isSafeInteger(nbAssujettis) || nbAssujettis < 0 ||
+      !Number.isSafeInteger(nbBebes) || nbBebes < 0 ||
+      nbAssujettis + nbBebes > nbOccupants || nbBebes === nbOccupants) {
     return {
       ok: false,
       refus: {
         motif: "OCCUPANTS_INVALIDES",
-        message: `occupants ${nbOccupants}, assujettis ${nbAssujettis} : il faut au moins un occupant, et pas plus d'assujettis que d'occupants`,
+        message:
+          `occupants ${nbOccupants}, assujettis ${nbAssujettis}, bébés ${nbBebes} : il faut au moins un ` +
+          `occupant qui ne soit pas un bébé, et les assujettis (majeurs) ne sont jamais des bébés`,
       },
     };
   }
@@ -169,7 +181,8 @@ export function calculerTaxeSejour(entree: EntreeTaxe): ResultatTaxe {
     // Étapes 1 et 2 : sur le séjour ENTIER (prix HT ÷ nuits ÷ occupants).
     const assiette = prixHebergement + (reglage.menageDansAssiette ? forfaitMenage : 0);
     const prixParNuit = diviserArrondiEntier(assiette, nbNuits);
-    const prixNuitee = diviserArrondiEntier(prixParNuit, nbOccupants);
+    const occupants = reglage.bebesParmiOccupants ? nbOccupants : nbOccupants - nbBebes;
+    const prixNuitee = diviserArrondiEntier(prixParNuit, occupants);
 
     // Étapes 3 et 4.
     let tarif: number;

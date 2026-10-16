@@ -69,22 +69,46 @@ export function calculerMontants(resa: Reservation): Montants {
   const gite = resa.gites ?? undefined;
 
   // Entrées en centimes entiers (frontière franchie dans lib/reservations.ts).
-  const prixLocation = resa.prix_location ?? 0;
-  const forfaitMenage =
-    resa.forfait_menage ?? gite?.forfait_menage ?? FORFAIT_MENAGE_DEFAUT;
-  const options = resa.options ?? 0;
-  const taxeSejour = resa.taxe_sejour ?? 0;
+  return montantsDesPostes({
+    prixLocation: resa.prix_location ?? 0,
+    forfaitMenage: resa.forfait_menage ?? gite?.forfait_menage ?? FORFAIT_MENAGE_DEFAUT,
+    options: resa.options ?? 0,
+    taxeSejour: resa.taxe_sejour ?? 0,
+  });
+}
 
+/** Les quatre postes d'un séjour, en CENTIMES ENTIERS. */
+export interface PostesSejour {
+  prixLocation: number;
+  forfaitMenage: number;
+  options: number;
+  taxeSejour: number;
+}
+
+/**
+ * Montants à partir des postes : le cœur de calculerMontants, appelé aussi par
+ * le devis du tunnel (lib/devis.ts). Le client voit donc, avant de payer,
+ * l'acompte exact que porteront sa facture et son contrat.
+ */
+export function montantsDesPostes(p: PostesSejour): Montants {
   // Additions d'entiers : exactes, aucun arrondi.
-  const base = prixLocation + forfaitMenage + options;
-  const totalTtc = base + taxeSejour;
+  const base = p.prixLocation + p.forfaitMenage + p.options;
+  const totalTtc = base + p.taxeSejour;
   // SEUL arrondi du modèle : conversion du TAUX d'acompte en montant. Le `/ 100`
   // porte sur le taux (30 % → 0,3), pas sur un montant ; Math.round ramène le
   // résultat à un entier de centimes.
   const acompte = Math.round(totalTtc * (TAUX_ACOMPTE / 100));
   const solde = totalTtc - acompte;
 
-  return { base, acompte, solde, taxeSejour, totalTtc, forfaitMenage, options };
+  return {
+    base,
+    acompte,
+    solde,
+    taxeSejour: p.taxeSejour,
+    totalTtc,
+    forfaitMenage: p.forfaitMenage,
+    options: p.options,
+  };
 }
 
 // ─── Contexte de génération (fourni par la route après creer_facture) ─────────
