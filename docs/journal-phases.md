@@ -624,6 +624,102 @@ au jour limite du solde inclus.
 
 ---
 
+## Phase 3 — entre les lots 2 et 3 : le site en deux langues (16 octobre 2026)
+
+Demandé par le gérant : « fais en sorte que le choix des langues change
+vraiment la langue ». La phase reste ouverte (lots 3 à 5).
+
+### Ce qui a été décidé
+
+Avec le gérant, le 16 octobre 2026 :
+- l'**italien** est retiré du site : sélecteur, puis (le 18 octobre) les
+  phrases qui disaient que les propriétaires parlent italien ;
+- **tout le site en anglais sauf le juridique** (option B) : les pages
+  juridiques affichent le texte français avec « Available in French only » ;
+  contrat, factures, signature et suivi restent en français ;
+- **une adresse par langue** (option A) : `/en/…`, le français sans préfixe.
+
+Par la session : **D-22** (anglais britannique ; mots français gardés dans les
+adresses ; textes côte à côte dans le code ; le site ne bascule jamais seul ;
+changer de langue dans le tunnel lève d'abord le blocage des dates).
+
+### Ce qui a été fait
+
+- **Aiguillage** : `middleware.ts` ; toutes les pages déplacées sous
+  `app/[lang]/` (adresses françaises inchangées) ; `/fr/…` redirigé en 301 ;
+  toute autre adresse donne la page introuvable dans sa langue.
+- **`lib/i18n/`** : langues, liens dans la bonne langue, balises hreflang.
+- **Sélecteur FR / EN** (`components/layout/ChoixLangue.tsx`) : de vrais liens
+  vers la même page dans l'autre langue, paramètres et ancre conservés ; dans
+  l'en-tête du site, le menu du téléphone et l'en-tête du tunnel.
+- **Textes** : chaque page, l'en-tête, le pied de page, la bannière cookies, les
+  données des gîtes, des récits et des activités, en français et en anglais.
+- **Affichage** (`lib/format.ts`) : montants « €1,234.56 », dates « 12 January
+  2027 », heures « 18:00 ». Aucun calcul ne connaît la langue.
+- **Messages** : refus du devis (`lib/devis.ts`), erreurs de coordonnées
+  (`lib/coordonnees.ts`) et réponses de `POST /api/reservations` dans la langue
+  du client ; le journal du serveur reste en français.
+- **Tunnel** : l'adresse de la page suit les dates, les voyageurs et l'étape
+  atteinte ; changer de langue lève le blocage puis rouvre le tunnel à la
+  saisie des coordonnées.
+- **Contrôles** : 11 cas de plus dans `verify:tarification` (148), dont « devis
+  identique en anglais et en français ».
+
+### Ce qui a été vérifié
+
+- `npm run lint`, `npx tsc --noEmit`, `npm run build` : passent. Le build ne
+  pré-génère aucune page lue en base (`prerender-manifest.json` : `/_not-found`
+  seulement).
+- **Sur la base PostgreSQL 16 jetable** du poste (tunnel SSH fermé) :
+  `bash scripts/parcours/lancer.sh` **10 étapes sur 10** — conversion OK ;
+  prix, taxe et devis 148 cas ; remise à zéro ; blocage et tunnel 39 cas ;
+  parcours L'Armu et LaPhine 0 échec (signature comprise, par l'aiguillage) ;
+  URL signées 0 échec ; contrôles en base 81, 0 échec ; contrôles PDF OK ;
+  `db:verify` 115, 0 échec.
+- **51 contrôles d'adresses** par le serveur : 17 pages en 200 dans les deux
+  langues, 7 adresses en 404 (dont `/en/signer/…`, `/en/suivi/…`, `/de/gites`),
+  redirections `/fr/…` et `/gites/larmu`, attribut `lang`, hreflang, contenu
+  anglais, mention « Available in French only », tunnel non indexé.
+- **Dans un navigateur sans fenêtre**, à 1 280 px et à 390 px : tunnel anglais
+  jusqu'à l'écran de paiement (7 nuits bloquées), clic sur « FR » → 0 nuit
+  bloquée, tentative supprimée, tunnel français à la saisie des coordonnées avec
+  les mêmes dates et les mêmes montants (554,78 €) ; fiche française → « EN »
+  avec l'ancre conservée ; aucun débordement en largeur.
+
+### Ce qui n'a PAS été vérifié
+
+- La **relecture de l'anglais** par les propriétaires et l'avis du juriste
+  (point 13 de `docs/06-avant-premier-client.md`).
+- `gites_test` et la base réelle (tunnel fermé, comme au lot 2).
+- Les balises hreflang en adresses absolues : `NEXT_PUBLIC_SITE_URL` n'est pas
+  réglée sur ce poste.
+
+### Écarts avec le plan annoncé
+
+- **Textes rangés à côté de ce qui les affiche** (français et anglais côte à
+  côte, `Bilingue<T>`) au lieu de deux fichiers `lib/i18n/fr.ts` et `en.ts` :
+  une phrase et sa traduction se relisent et se modifient ensemble. La garantie
+  annoncée tient : une traduction manquante empêche la compilation.
+- **Fichiers en plus** : `lib/i18n/metadonnees.ts` (hreflang),
+  `components/layout/ChoixLangue.tsx` (le sélecteur partagé).
+- **Le tunnel recopie dates et voyageurs dans son adresse** (rechargement,
+  changement de langue) ; jamais les coordonnées.
+- **Corrigé en cours de route** : la page « Quel gîte ? » plantait (l'en-tête
+  du tunnel passait un gestionnaire de clic depuis un composant serveur), vu
+  par les contrôles d'adresses, le build ne rendant pas cette page ; la mise à
+  jour de l'adresse du tunnel était ignorée par le routeur de Next.js tant que
+  l'état passé n'était pas `null`.
+
+### Points reportés
+
+- **Lot 3** : chaque écran ajouté s'écrit dans les deux langues ; le retour de
+  paiement par redirection devra reprendre la tentative en cours.
+- **Lot 4** : enregistrer la langue du client sur la réservation, pour que
+  ses courriels partent dans sa langue (accord du gérant le 18 octobre 2026).
+- **Phase 6** : relecture et juridique (point 13).
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

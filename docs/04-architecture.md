@@ -65,16 +65,20 @@ navigateur.
 ## 2. Organisation du dépôt
 
 ```
+middleware.ts   Aiguillage des langues : /… → français, /en/… → anglais (D-22)
 app/            Pages et routes (Next.js App Router)
   api/          Routes serveur : contrats, contrats/signer, factures, documents, reservations
-  gites/        Liste et fiche d'un gîte
-  reserver/     Tunnel de réservation : calendrier, devis, coordonnées, blocage (paiement au lot 3)
-  signer/       Page publique de signature d'un contrat
-  suivi/        Page de suivi côté client (contenu de démonstration à ce jour)
-  legal/        Mentions, CGV, confidentialité, cookies
+  [lang]/       TOUTES les pages, une fois par langue (fr, en) ; layout.tsx est la mise en page générale
+    gites/        Liste et fiche d'un gîte
+    reserver/     Tunnel de réservation : calendrier, devis, coordonnées, blocage (paiement au lot 3)
+    signer/       Page publique de signature d'un contrat (français seulement)
+    suivi/        Page de suivi côté client (démonstration, français seulement)
+    legal/        Mentions, CGV, confidentialité, cookies (texte français dans les deux langues)
+    [...introuvable]/  Toute autre adresse : page introuvable dans la langue de l'adresse
+  globals.css   Styles communs
 components/
   pdf/          Les trois documents PDF (contrat, facture d'acompte, de solde)
-  layout/       En-tête, pied de page, bandeau cookies
+  layout/       En-tête, pied de page, bandeau cookies, sélecteur de langue
   ui/           Composants réutilisables
 lib/
   centimes.ts   Les DEUX fonctions de frontière du modèle monétaire
@@ -94,7 +98,8 @@ lib/
   reservations.ts  Chargement réservation + gîte joint, avec conversion en centimes
   gites-publics.ts Chiffres des gîtes pour les pages publiques (cache, dégradation)
   auth.ts       Vérification du secret service-à-service
-  data/         Contenu éditorial du site, en code (gîtes, récits, légal) — plus aucun prix
+  i18n/         Langues (D-22) : liste, liens dans la bonne langue, balises hreflang
+  data/         Contenu éditorial du site, en code et en deux langues (gîtes, récits, activités) — plus aucun prix
 db/
   schema/       Le schéma Drizzle : un fichier par table. SOURCE DE VÉRITÉ.
   migrations/   Les SQL générés, numérotés. meta/ est le journal de Drizzle.
@@ -263,8 +268,8 @@ permettrait de lire n'importe quel fichier du serveur.
 | `POST /api/contrats/signer` | **Aucun secret** — le jeton du lien authentifie le signataire | Enregistre la preuve, écrit le PDF signé, passe le document en `signe`. **Une transaction.** |
 | `POST /api/factures` | `x-service-secret` | Émet la facture d'acompte ou de solde via `creer_facture`. Ré-émission idempotente pour le même numéro. |
 | `GET /api/documents/{chemin}` | **URL signée** (`token` + `expires`) | Seul accès aux PDF. |
-| `GET /signer/{token}` | Le jeton | Page publique de signature. |
-| `POST /api/reservations` | **Aucun secret** — limite de 5 blocages par adresse en 10 minutes | Recalcule le devis, enregistre la réservation « en attente de paiement » et bloque ses nuits. **Une transaction.** `201` · `400` demande invalide · `404` gîte inconnu · `409` refus métier ou dates prises (avec les autres gîtes libres) · `429` trop de tentatives · `503` tunnel indisponible · `500` erreur inattendue |
+| `GET /signer/{token}` | Le jeton | Page publique de signature (français seulement ; `/en/signer/…` est introuvable). |
+| `POST /api/reservations` | **Aucun secret** — limite de 5 blocages par adresse en 10 minutes | Recalcule le devis, enregistre la réservation « en attente de paiement » et bloque ses nuits. **Une transaction.** Messages dans la langue reçue (`langue` : `fr` par défaut, ou `en`). `201` · `400` demande invalide · `404` gîte inconnu · `409` refus métier ou dates prises (avec les autres gîtes libres) · `429` trop de tentatives · `503` tunnel indisponible · `500` erreur inattendue |
 | `DELETE /api/reservations/{id}` | L'identifiant tiré au hasard, connu du seul navigateur qui a créé la tentative | Lève le blocage et supprime la tentative. `200` · `404` · `409` réservation engagée (jamais supprimée) |
 
 **Pourquoi trois régimes différents.** Les routes d'émission frappent des
@@ -280,8 +285,12 @@ Edge ; et une émission de document est un **effet de bord** qui ne doit jamais
 être mis en cache.
 
 **Les pages publiques qui affichent des chiffres sont, elles aussi, en rendu à
-la demande** : `/`, `/gites`, `/gites/[slug]` et `/contact` portent
-`dynamic = 'force-dynamic'`. Ce n'est pas pour éviter le cache — le cache est
+la demande** : `/`, `/gites`, `/gites/[slug]`, `/contact` et `/reserver`
+(dans les deux langues, sous `app/[lang]/`) portent
+`dynamic = 'force-dynamic'`. Le build les liste avec le symbole « ● » à cause
+des deux langues déclarées par `app/[lang]/layout.tsx`, mais n'en
+pré-génère aucune : `.next/prerender-manifest.json` ne contient que
+`/_not-found`. Ce n'est pas pour éviter le cache — le cache est
 dans `lib/gites-publics.ts`, 60 secondes — mais pour que **`next build` ne lise
 jamais la base** : un déploiement ne doit pas échouer parce que la base est
 momentanément indisponible (D-13). Contrôle : `npm run build` doit réussir sans
@@ -353,7 +362,7 @@ complet produit les bons montants sur les bons documents**.
 | Niveau | Commande | Ce qu'il prouve |
 |---|---|---|
 | Conversion | `npm run verify:centimes` | L'aller-retour centimes ↔ texte numeric sur 51 cas, dont les valeurs limites |
-| Prix, taxe, devis | `npm run verify:tarification` | 137 cas calculés à la main : dégressivité, séjours à cheval sur deux saisons, règles, refus, grille publique, les deux exemples du guide officiel de la taxe de séjour au centime, le devis du tunnel (capacité et bébés, délai, paiement intégral, nuits prises) et le contrôle des coordonnées. Sans base |
+| Prix, taxe, devis | `npm run verify:tarification` | 148 cas calculés à la main : dégressivité, séjours à cheval sur deux saisons, règles, refus, grille publique, les deux exemples du guide officiel de la taxe de séjour au centime, le devis du tunnel (capacité et bébés, délai, paiement intégral, nuits prises), le contrôle des coordonnées, et l'anglais (formats, messages, liens ; devis identique dans les deux langues). Sans base |
 | Blocage | `DB_CIBLE=test npm run verify:blocage` | Deux clients qui bloquent les mêmes nuits au même instant : un seul gagne ; verrou expiré repris ; chevauchement refusé sans reste ; tentative, seconde tentative, abandon. Avec `--http` (dans `lancer.sh`) : les mêmes cas par le serveur, et la limite anti-abus |
 | Base | `npm run db:verify` | Tables, colonnes, seed, fonctions de numérotation, triggers, index uniques, contraintes de tarification et du calendrier, stockage. **Tout est annulé par ROLLBACK** : aucun numéro consommé |
 | Bout en bout | `bash scripts/parcours/lancer.sh` | Les dix étapes : les contrôles ci-dessus, puis le parcours complet — contrat, signature, factures, idempotence, refus attendus, accès aux PDF, contrôles en base **et** sur les PDF produits |

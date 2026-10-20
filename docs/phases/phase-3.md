@@ -167,6 +167,20 @@ fonctionnel et terminé (13 octobre 2026), back-office compris.
   effacement automatique en Phase 4 (`docs/06-avant-premier-client.md`,
   point 12).
 
+**Deux langues depuis le 16 octobre 2026 (D-22), entre les lots 2 et 3.** Le
+site et le tunnel existent en français et en anglais (`/en`). Conséquences pour
+les lots restants :
+- **chaque écran ajouté** (paiement, confirmation, suivi) s'écrit dans les deux
+  langues, à côté des textes existants (`Bilingue<T>`) ;
+- **lot 4** : la réservation doit **enregistrer la langue du client** (colonne à
+  créer) pour que les courriels partent dans sa langue (accord du gérant le
+  18 octobre 2026) ; le contrat et les
+  factures restent en français ;
+- **lot 3** : un retour de paiement par redirection (3-D Secure) recharge la
+  page ; l'adresse ne porte que les dates, les voyageurs et l'étape
+  « coordonnées ». Le retour devra reprendre la tentative en cours, pas
+  repartir de la saisie des coordonnées.
+
 **À reprendre au lot 3.** L'écran de succès du prototype a été retiré au lot 2 :
 il affichait une fausse référence et trois formules non validées (« contrat
 eIDAS », « télécharger le récap PDF », boîte à clés). Il se reconstruit avec le

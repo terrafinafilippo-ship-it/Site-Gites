@@ -4,14 +4,14 @@
 > **seul** domicile de cette liste : elle ne doit être recopiée nulle part
 > ailleurs (voir `docs/05-protocole-phase.md`, règle 1).
 
-Douze points à traiter **avant qu'un vrai client signe un vrai contrat**. Aucun
+Treize points à traiter **avant qu'un vrai client signe un vrai contrat**. Aucun
 n'empêche le logiciel de fonctionner : ils empêchent qu'il fonctionne
 **correctement le jour où il compte**.
 
 ## Qui peut lever un point
 
-Sept des douze points **ne se résolvent pas, ou pas entièrement, dans le dépôt**
-(3, 6, 7, 9, 10, 11 et 12). Sans cette
+Huit des treize points **ne se résolvent pas, ou pas entièrement, dans le dépôt**
+(3, 6, 7, 9, 10, 11, 12 et 13). Sans cette
 précision, une session future les lira comme des tâches techniques et cherchera
 la réponse au mauvais endroit — dans le code, où elle n'est pas.
 
@@ -39,6 +39,7 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | 10 | Taxe de séjour : régime et taux **vérifiés** ; restent l'assiette (ménage), les bébés et les tarifs 2027 | **Le service taxe de séjour** (Ardèche Grand Air) | Phase 3 |
 | 11 | Saisir les vrais tarifs, périodes, barème et réglages de taxe | **Les propriétaires**, au back-office | Avant l'ouverture (Phase 5) |
 | 12 | Durée de conservation des tentatives de réservation abandonnées | **Les propriétaires** (juriste), puis développement | Phase 4 |
+| 13 | Site en anglais : relire la traduction, faire valider l'anglais du juridique | **Les propriétaires** (relecture), **le juriste** (pages juridiques, bannière cookies) | Avant l'ouverture (Phase 6) |
 
 ---
 
@@ -431,6 +432,38 @@ confidentialité (Phase 6).
 
 **Le contrôle.** Une tentative expirée plus ancienne que la durée fixée
 n'existe plus en base ; la politique de confidentialité annonce la même durée.
+
+---
+
+## 13. Site en anglais : relire la traduction, faire valider l'anglais du juridique
+
+**Qui peut lever :** **les propriétaires** (relecture de l'anglais), **le
+juriste** (pages juridiques et bannière cookies) · **avant l'ouverture**
+(Phase 6)
+
+**La raison.** Depuis le 16 octobre 2026 (D-22), le site existe en anglais sous
+`/en`. Tous les textes anglais sont des **traductions fidèles du français faites
+par une session**, sans rien ajouter : personne ne les a relus. Ils engagent
+pourtant les propriétaires autant que le français (art. L.121-2 C. conso.,
+pratiques commerciales trompeuses). Deux formules héritées et non validées en
+français le sont aussi en anglais : « tout compris » / « all included » (fiche
+gîte, `docs/03-conformite.md` § 5).
+
+Les pages juridiques, elles, ne sont **pas traduites** : en anglais, elles
+affichent le texte français avec « Available in French only ». La bannière
+cookies est traduite (un consentement doit être compris de celui qui le donne)
+mais personne n'a validé cette traduction.
+
+**L'action.**
+1. Les propriétaires relisent l'anglais page par page (accueil, gîtes, fiches,
+   activités, contact, tunnel). Les textes sont, dans le code, à côté du
+   français : une session peut en sortir une liste à relire.
+2. Le juriste dit si un client anglophone peut accepter des CGV qu'il n'a qu'en
+   français, valide l'anglais de la bannière cookies, et fournit (ou fait
+   faire) les traductions juridiques s'il les juge nécessaires.
+
+**Le contrôle.** Chaque page anglaise a été relue et validée par écrit ; la
+réponse du juriste sur les CGV est conservée.
 
 ---
 

@@ -4,9 +4,9 @@
 
 **Dépendances :** Phase 2 close. **Parallélisable** avec les phases 4 et 5.
 
-**Cette phase porte trois des dix points bloquants** de
-`docs/06-avant-premier-client.md` (6, 7 et 8), dont deux dépendent de réponses
-**extérieures au dépôt**. Les questions doivent être posées **dès l'ouverture de
+**Cette phase porte quatre des treize points bloquants** de
+`docs/06-avant-premier-client.md` (6, 7, 8 et 13), dont trois dépendent de
+réponses **extérieures au dépôt**. Les questions doivent être posées **dès l'ouverture de
 la phase**, pas à la fin : une réponse de comptable ne s'obtient pas en une
 heure.
 
@@ -28,31 +28,37 @@ référencement en place.
    source vérifiable** : leur origine est à établir avant publication
    (`docs/00-projet.md` § 2).
 3. **Habillage graphique de la page de signature**, reporté depuis la Phase 1.
+4. **L'anglais** (D-22, point 13) : le site existe en anglais depuis le
+   16 octobre 2026, traduit par une session. Relecture par les propriétaires ;
+   réponse du juriste sur des CGV disponibles en français seulement ;
+   traductions juridiques s'il les demande.
 
 ### Légal — les trois points bloquants
-4. **Identité du bailleur** (point 6) : question au **comptable**, dans ses trois
+5. **Identité du bailleur** (point 6) : question au **comptable**, dans ses trois
    volets — qui exploite, comment les revenus sont déclarés, l'exonération de TVA
    de l'art. 261 D 4° CGI tient-elle. Puis alignement des mentions légales, des
    CGV, du contrat, des deux factures et de `lib/constantes.ts`. Traiter au
    passage l'**écart E-7** (`EMETTEUR` et `MENTIONS` déclarés mais jamais
    importés : les PDF recopient leurs valeurs).
-5. **Médiateur de la consommation** (point 7) : question aux **propriétaires** —
+6. **Médiateur de la consommation** (point 7) : question aux **propriétaires** —
    existe-t-il une adhésion en cours, à qui. Puis un seul organisme partout.
-6. **Article 12 du contrat — règles sauna** (point 8). Ce n'est **pas** une
+7. **Article 12 du contrat — règles sauna** (point 8). Ce n'est **pas** une
    décision ouverte : le principe est arrêté (spa interdit aux moins de 6 ans,
    sauna aux moins de 12 ans). Il manque l'écriture, et une décision technique
    sur le déclenchement de la section (colonne `a_sauna` ou lecture du texte
    libre `equipements_specifiques`).
 
 ### Légal — le reste
-7. **Mentions légales LCEN, CGV, RGPD et cookies** : les textes existent
+8. **Mentions légales LCEN, CGV, RGPD et cookies** : les textes existent
    (`lib/data/legal.ts`) mais datent de l'ancien site et contredisent les
-   documents contractuels. À reprendre après la réponse du point 4.
-8. **Médiation de la consommation** affichée conformément à l'art. L.612-1
+   documents contractuels. À reprendre après la réponse du point 5.
+9. **Médiation de la consommation** affichée conformément à l'art. L.612-1
    C. conso.
 
 ### SEO
-9. Balises, métadonnées, données structurées.
+10. Balises, métadonnées, données structurées. Les balises hreflang des deux
+    langues existent déjà (`lib/i18n/metadonnees.ts`) ; elles donnent des
+    adresses relatives tant que `NEXT_PUBLIC_SITE_URL` n'est pas réglée.
 
 ---
 
@@ -63,7 +69,7 @@ calendriers (Phase 7).
 
 **Le mécanisme de caution** est arrêté (décision D-16) et sa phrase a déjà été
 corrigée dans les CGV et la politique cookies le 9 octobre 2026. Il reste, au
-point 7 ci-dessus, à **aligner l'ensemble des CGV et des mentions RGPD sur
+point 8 ci-dessus, à **aligner l'ensemble des CGV et des mentions RGPD sur
 l'article 6 et l'article 14 du contrat** : délai de mainlevée, conservation des
 données de carte par Stripe, solde au choix du client, envoi des courriels par
 Brevo. La politique de confidentialité annonce aujourd'hui une conservation de

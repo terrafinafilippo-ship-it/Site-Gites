@@ -821,6 +821,58 @@ requêtes, laisse passer deux clients simultanés : c'est la double vente.
 
 ---
 
+## D-22 · Deux langues, le français sans préfixe et l'anglais sous `/en`
+
+**Date :** 16 octobre 2026 (entre les lots 2 et 3 de la Phase 3). Choix des
+propriétaires : site entier sauf le juridique (option B), une adresse par
+langue (option A). L'italien est retiré du site, sélecteur et mentions
+(réponse du 18 octobre 2026). Les courriels partiront dans la langue du
+client (accord du 18 octobre 2026, lot 4).
+
+**Décision.**
+- **Le français garde ses adresses** (`/gites/laphine`) ; l'anglais vit sous
+  `/en` (`/en/gites/laphine`), mêmes mots dans l'adresse. Toutes les pages sont
+  sous `app/[lang]/` ; `middleware.ts` réécrit les adresses sans préfixe vers
+  le français et redirige `/fr/…` vers l'adresse sans préfixe (301).
+- **Chaque texte est écrit dans les deux langues, côte à côte**, près de ce qui
+  l'affiche (`Bilingue<T>`, `lib/i18n/langues.ts`). Une phrase oubliée dans une
+  langue est une erreur de compilation.
+- **Les calculs ne connaissent pas la langue.** Seuls l'affichage
+  (`lib/format.ts` : « €1,234.56 », « 12 January 2027 ») et les messages
+  montrés au client (refus du devis, erreurs de coordonnées, réponses de
+  `/api/reservations`) en dépendent. Le journal du serveur reste en français.
+- **Restent en français :** les pages juridiques (affichées en anglais avec
+  « Available in French only »), le contrat, les factures, la page de
+  signature et la page de suivi (`/en/signer/…` et `/en/suivi/…` sont des pages
+  introuvables), les noms de tarifs saisis par les propriétaires.
+- **Le changement de langue dans le tunnel lève d'abord le blocage des dates**
+  (D-21), puis rouvre le tunnel dans l'autre langue, dates et voyageurs
+  conservés par l'adresse de la page ; les coordonnées, jamais mises dans
+  l'adresse, sont à ressaisir.
+- **Le site ne bascule jamais seul** selon la langue de l'ordinateur.
+
+**Pourquoi.** Le site existe pour faire réserver en direct (`docs/00-projet.md`).
+Une adresse par langue permet à Google de montrer les pages anglaises aux
+recherches en anglais (balises hreflang), et un lien partagé s'ouvre dans la
+langue où il a été copié. Un cookie de langue sur une adresse unique aurait
+caché l'anglais aux moteurs de recherche, et le référencement de la Phase 6
+aurait obligé à tout refaire.
+
+**Ce qui pourrait mal tourner.**
+- Une traduction juridique faite par une session pourrait être opposée par le
+  client : elle viendra d'un traducteur ou du juriste
+  (`docs/06-avant-premier-client.md`, point 13).
+- Le texte anglais est une traduction fidèle du français, non relue : les
+  propriétaires la relisent avant l'ouverture (même point).
+- Les courriels du lot 4 devront connaître la langue du client : la
+  réservation ne l'enregistre pas encore (à ajouter au lot 4).
+
+**Si on revient dessus.** Changer une adresse publiée casse les liens partagés
+et le référencement : traduire plus tard les mots de l'adresse
+(`/en/cottages/…`) imposerait des redirections 301 pour chaque ancienne adresse.
+
+---
+
 ## Décisions ouvertes
 
 Elles ne sont **pas tranchées** et ne doivent pas l'être dans le code.
