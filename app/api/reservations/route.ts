@@ -11,12 +11,45 @@
 // libres) · 429 trop de tentatives · 503 tunnel indisponible (base, réglages) ·
 // 500 erreur inattendue. Un 409 est une situation normale ; un 503 ou un 500
 // est une panne, journalisée comme telle.
+//
+// `langue` (« fr » par défaut, ou « en ») : langue des messages renvoyés,
+// celle de la page du client (D-22). Le journal du serveur reste en français.
 import { NextResponse } from "next/server";
 
 import { validerCoordonnees } from "@/lib/coordonnees";
 import { isGiteId } from "@/lib/data/gites";
+import { estLangue, type Bilingue, type Langue } from "@/lib/i18n/langues";
 import { messageErreur } from "@/lib/route-helpers";
 import { enregistrerTentative, TunnelIndisponible } from "@/lib/tunnel";
+
+const MESSAGES: Bilingue<{
+  corpsInvalide: string;
+  giteInconnu: (gite: string) => string;
+  champsInvalides: string;
+  tropDeTentatives: string;
+  datesPrises: string;
+  indisponible: string;
+  erreur: string;
+}> = {
+  fr: {
+    corpsInvalide: "Corps JSON invalide.",
+    giteInconnu: (gite) => `Gîte inconnu : « ${gite} ».`,
+    champsInvalides: "Certaines coordonnées sont à compléter.",
+    tropDeTentatives: "Trop de tentatives en peu de temps. Réessayez dans quelques minutes, ou appelez-nous.",
+    datesPrises: "Ces dates viennent d'être prises.",
+    indisponible: "La réservation en ligne est momentanément indisponible.",
+    erreur: "Erreur inattendue.",
+  },
+  en: {
+    corpsInvalide: "Invalid JSON body.",
+    giteInconnu: (gite) => `Unknown gîte: “${gite}”.`,
+    champsInvalides: "Some of your details need completing.",
+    tropDeTentatives: "Too many attempts in a short time. Please try again in a few minutes, or call us.",
+    datesPrises: "These dates have just been taken.",
+    indisponible: "Online booking is temporarily unavailable.",
+    erreur: "Unexpected error.",
+  },
+};
 
 // ─── Limite des tentatives ────────────────────────────────────────────────────
 // Sans limite, un robot pourrait bloquer toutes les dates en boucle sans jamais
@@ -84,14 +117,16 @@ export async function POST(request: Request) {
   try {
     corps = (await request.json()) as Record<string, unknown>;
   } catch {
-    return reponse(400, { code: "CORPS_INVALIDE", error: "Corps JSON invalide." });
+    return reponse(400, { code: "CORPS_INVALIDE", error: MESSAGES.fr.corpsInvalide });
   }
   if (!corps || typeof corps !== "object") {
-    return reponse(400, { code: "CORPS_INVALIDE", error: "Corps JSON invalide." });
+    return reponse(400, { code: "CORPS_INVALIDE", error: MESSAGES.fr.corpsInvalide });
   }
+  const langue: Langue = estLangue(corps.langue) ? corps.langue : "fr";
+  const m = MESSAGES[langue];
 
   const gite = chaine(corps.gite);
-  if (!isGiteId(gite)) return reponse(404, { code: "GITE_INCONNU", error: `Gîte inconnu : « ${gite} ».` });
+  if (!isGiteId(gite)) return reponse(404, { code: "GITE_INCONNU", error: m.giteInconnu(gite) });
 
   const demande = {
     arrivee: chaine(corps.arrivee),
@@ -100,11 +135,15 @@ export async function POST(request: Request) {
     enfants: entier(corps.enfants),
     bebes: entier(corps.bebes),
   };
-  const coordonnees = validerCoordonnees(corps.coordonnees, Number.isSafeInteger(demande.adultes) ? demande.adultes : 0);
+  const coordonnees = validerCoordonnees(
+    corps.coordonnees,
+    Number.isSafeInteger(demande.adultes) ? demande.adultes : 0,
+    langue,
+  );
   if (!coordonnees.ok) {
     return reponse(400, {
       code: "CHAMPS_INVALIDES",
-      error: "Certaines coordonnées sont à compléter.",
+      error: m.champsInvalides,
       erreurs: coordonnees.erreurs,
     });
   }
@@ -116,12 +155,12 @@ export async function POST(request: Request) {
   if (adresse && !tentativeAutorisee(adresse, Date.now())) {
     return reponse(429, {
       code: "TROP_DE_TENTATIVES",
-      error: "Trop de tentatives en peu de temps. Réessayez dans quelques minutes, ou appelez-nous.",
+      error: m.tropDeTentatives,
     });
   }
 
   try {
-    const r = await enregistrerTentative(gite, demande, coordonnees.coordonnees, totalAttendu);
+    const r = await enregistrerTentative(gite, demande, coordonnees.coordonnees, totalAttendu, langue);
     if (r.ok) {
       return reponse(201, {
         id: r.id,
@@ -135,7 +174,7 @@ export async function POST(request: Request) {
     if (r.raison === "DATES_PRISES") {
       return reponse(409, {
         code: "DATES_PRISES",
-        error: "Ces dates viennent d'être prises.",
+        error: m.datesPrises,
         nuitsPrises: r.nuitsPrises,
         alternatives: r.alternatives,
       });
@@ -147,10 +186,10 @@ export async function POST(request: Request) {
       console.error(`[api/reservations] TUNNEL INDISPONIBLE (${gite}) :`, erreur.message);
       return reponse(503, {
         code: "TUNNEL_INDISPONIBLE",
-        error: "La réservation en ligne est momentanément indisponible.",
+        error: m.indisponible,
       });
     }
     console.error(`[api/reservations] ERREUR (${gite}) :`, messageErreur(erreur));
-    return reponse(500, { code: "ERREUR", error: "Erreur inattendue." });
+    return reponse(500, { code: "ERREUR", error: m.erreur });
   }
 }

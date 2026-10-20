@@ -32,6 +32,7 @@ import {
   type ReglagesTunnel,
 } from "@/lib/devis";
 import { leverBlocage, lireNuitsPrises, poserBlocage } from "@/lib/disponibilites";
+import type { Langue } from "@/lib/i18n/langues";
 import { isUniqueViolation } from "@/lib/route-helpers";
 import type { Executeur } from "@/lib/reservations";
 import { chargerTarification } from "@/lib/tarifs";
@@ -207,10 +208,12 @@ export async function enregistrerTentative(
   demande: DemandeDevis,
   coordonnees: Coordonnees,
   totalAttendu: number | null,
+  /** Langue des messages de refus renvoyés au client. */
+  langue: Langue = "fr",
 ): Promise<ResultatTentative> {
   const db = getDb();
   const { giteId, donnees } = await chargerDonneesTunnel(slug, db);
-  const resultat = devisSejour(preparerDevis(donnees), demande);
+  const resultat = devisSejour(preparerDevis(donnees, langue), demande);
   if (!resultat.ok) {
     if (resultat.refus.donneeManquante) {
       console.warn(`[tunnel] DONNÉE MANQUANTE pour « ${slug} » : ${resultat.refus.detail}`);

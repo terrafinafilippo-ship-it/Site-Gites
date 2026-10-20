@@ -13,13 +13,16 @@
 // FOURNIE : un module pur ne lit pas l'horloge, et ce n'est pas le navigateur
 // du client qui décide du délai minimum avant l'arrivée.
 //
-// Les refus portent DEUX textes : `message`, la phrase montrée au client, et
-// `detail`, la cause technique écrite dans le journal du serveur.
+// Les refus portent DEUX textes : `message`, la phrase montrée au client dans
+// SA langue (celle du contexte, décision D-22), et `detail`, la cause
+// technique écrite dans le journal du serveur, toujours en français.
 //
 // MONTANTS EN CENTIMES ENTIERS.
 
 import { DELAI_SOLDE_DEFAUT } from "@/lib/constantes";
-import { ajouterJours, jourSemaineIso, jourUtc, nombreDeNuits, nomJourIso } from "@/lib/dates-civiles";
+import { ajouterJours, jourSemaineIso, jourUtc, nombreDeNuits, NOMS_JOURS_ISO } from "@/lib/dates-civiles";
+import { fmtDateLongue } from "@/lib/format";
+import type { Bilingue, Langue } from "@/lib/i18n/langues";
 import { montantsDesPostes, type Montants } from "@/lib/montants";
 import {
   calculerSejour,
@@ -89,13 +92,16 @@ export interface ContexteDevis {
   donnees: DonneesDevis;
   periodes: PeriodeResolue[];
   prises: ReadonlySet<string>;
+  /** Langue des messages de refus montrés au client. */
+  langue: Langue;
 }
 
-export function preparerDevis(donnees: DonneesDevis): ContexteDevis {
+export function preparerDevis(donnees: DonneesDevis, langue: Langue = "fr"): ContexteDevis {
   return {
     donnees,
     periodes: resoudrePeriodes(donnees.tarification, donnees.gite.slug),
     prises: new Set(donnees.nuitsPrises),
+    langue,
   };
 }
 
@@ -150,31 +156,94 @@ export type ResultatDevis = { ok: true; devis: Devis } | { ok: false; refus: Ref
 
 const OCCUPANTS_MAXIMUM_TECHNIQUE = 50;
 
-/** « samedi », « vendredi ou samedi », « lundi, mardi ou samedi ». */
-function listeJours(jours: readonly number[]): string {
-  const noms = [...jours].sort((a, b) => a - b).map(nomJourIso);
+/**
+ * Les phrases montrées au client, dans chaque langue. Le nom d'un tarif
+ * (« Été ») est celui saisi par les propriétaires : il reste tel quel.
+ */
+const PHRASES: Bilingue<{
+  jours: readonly string[];
+  ou: string;
+  datesInvalides: string;
+  nuitFermee: (date: string) => string;
+  arrivees: (tarif: string, jours: string) => string;
+  departs: (tarif: string, jours: string) => string;
+  sejourMinimum: (tarif: string, minimum: number) => string;
+  taxe: string;
+  occupantsInvalides: string;
+  sansAdulte: string;
+  bebesNonComptes: (hors: number, age: number) => string;
+  capacite: (gite: string, max: number) => string;
+  arriveePassee: string;
+  arriveeVeille: string;
+  arriveeDelai: (jours: number) => string;
+  nuitPrise: (date: string) => string;
+}> = {
+  fr: {
+    jours: NOMS_JOURS_ISO,
+    ou: "ou",
+    datesInvalides: "Ces dates ne sont pas valides.",
+    nuitFermee: (date) => `La nuit du ${date} n'est pas ouverte à la réservation en ligne.`,
+    arrivees: (tarif, jours) => `En « ${tarif} », les arrivées se font le ${jours}.`,
+    departs: (tarif, jours) => `En « ${tarif} », les départs se font le ${jours}.`,
+    sejourMinimum: (tarif, minimum) => `En « ${tarif} », un séjour compte au moins ${minimum} nuits.`,
+    taxe: "La réservation en ligne n'est pas possible pour ces dates.",
+    occupantsInvalides: "Le nombre de voyageurs n'est pas valide.",
+    sansAdulte: "Une réservation compte au moins un adulte.",
+    bebesNonComptes: (hors, age) =>
+      hors === 1
+        ? ` Un bébé de moins de ${age} ans n'est pas compté ; les suivants le sont.`
+        : ` ${hors} bébés de moins de ${age} ans ne sont pas comptés ; les suivants le sont.`,
+    capacite: (gite, max) => `${gite} accueille ${max} personnes au plus.`,
+    arriveePassee: "La date d'arrivée est passée.",
+    arriveeVeille: "Une arrivée se réserve au plus tard la veille.",
+    arriveeDelai: (jours) => `Une arrivée se réserve au plus tard ${jours} jours avant.`,
+    nuitPrise: (date) => `La nuit du ${date} est déjà prise.`,
+  },
+  en: {
+    jours: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+    ou: "or",
+    datesInvalides: "These dates are not valid.",
+    nuitFermee: (date) => `The night of ${date} is not open for online booking.`,
+    arrivees: (tarif, jours) => `During “${tarif}”, arrivals are on ${jours}.`,
+    departs: (tarif, jours) => `During “${tarif}”, departures are on ${jours}.`,
+    sejourMinimum: (tarif, minimum) => `During “${tarif}”, a stay is at least ${minimum} nights.`,
+    taxe: "Online booking is not possible for these dates.",
+    occupantsInvalides: "The number of guests is not valid.",
+    sansAdulte: "A booking must include at least one adult.",
+    bebesNonComptes: (hors, age) =>
+      hors === 1
+        ? ` One baby under ${age} is not counted; any further babies are.`
+        : ` ${hors} babies under ${age} are not counted; any further babies are.`,
+    capacite: (gite, max) => `${gite} accommodates ${max} people at most.`,
+    arriveePassee: "The arrival date has passed.",
+    arriveeVeille: "Arrivals can be booked up to the day before at the latest.",
+    arriveeDelai: (jours) => `Arrivals can be booked up to ${jours} days before at the latest.`,
+    nuitPrise: (date) => `The night of ${date} is already taken.`,
+  },
+};
+
+/** « samedi », « vendredi ou samedi », « lundi, mardi ou samedi » (ou en anglais). */
+function listeJours(jours: readonly number[], langue: Langue): string {
+  const p = PHRASES[langue];
+  const noms = [...jours].sort((a, b) => a - b).map((j) => p.jours[j - 1]);
   if (noms.length <= 1) return noms.join("");
-  return `${noms.slice(0, -1).join(", ")} ou ${noms[noms.length - 1]}`;
+  return `${noms.slice(0, -1).join(", ")} ${p.ou} ${noms[noms.length - 1]}`;
 }
 
-/** « 17 octobre 2026 ». Date civile lue en UTC : aucun décalage de fuseau. */
-export function dateLongue(iso: string): string {
-  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
+/** « 17 octobre 2026 » / « 17 October 2026 ». Date civile lue en UTC : aucun décalage de fuseau. */
+export function dateLongue(iso: string, langue: Langue = "fr"): string {
+  return fmtDateLongue(iso, langue);
 }
 
-function refusDeSejour(r: RefusSejour): RefusDevis {
+function refusDeSejour(r: RefusSejour, langue: Langue): RefusDevis {
+  const p = PHRASES[langue];
   switch (r.motif) {
     case "DATES_INVALIDES":
-      return { motif: r.motif, message: "Ces dates ne sont pas valides.", detail: r.message, donneeManquante: false };
+      return { motif: r.motif, message: p.datesInvalides, detail: r.message, donneeManquante: false };
     case "NUIT_SANS_TARIF":
       return {
         motif: r.motif,
-        message: `La nuit du ${dateLongue(r.date)} n'est pas ouverte à la réservation en ligne.`,
+        message: p.nuitFermee(dateLongue(r.date, langue)),
         detail: r.message,
         donneeManquante: false,
       };
@@ -182,38 +251,38 @@ function refusDeSejour(r: RefusSejour): RefusDevis {
     case "BAREME_ABSENT":
       return {
         motif: r.motif,
-        message: `La nuit du ${dateLongue(r.date)} n'est pas ouverte à la réservation en ligne.`,
+        message: p.nuitFermee(dateLongue(r.date, langue)),
         detail: r.message,
         donneeManquante: true,
       };
     case "ARRIVEE_NON_AUTORISEE":
       return {
         motif: r.motif,
-        message: `En « ${r.tarifNom} », les arrivées se font le ${listeJours(r.joursAutorises)}.`,
+        message: p.arrivees(r.tarifNom, listeJours(r.joursAutorises, langue)),
         detail: r.message,
         donneeManquante: false,
       };
     case "DEPART_NON_AUTORISE":
       return {
         motif: r.motif,
-        message: `En « ${r.tarifNom} », les départs se font le ${listeJours(r.joursAutorises)}.`,
+        message: p.departs(r.tarifNom, listeJours(r.joursAutorises, langue)),
         detail: r.message,
         donneeManquante: false,
       };
     case "SEJOUR_TROP_COURT":
       return {
         motif: r.motif,
-        message: `En « ${r.tarifNom} », un séjour compte au moins ${r.minimum} nuits.`,
+        message: p.sejourMinimum(r.tarifNom, r.minimum),
         detail: r.message,
         donneeManquante: false,
       };
   }
 }
 
-function refusDeTaxe(r: RefusTaxe): RefusDevis {
+function refusDeTaxe(r: RefusTaxe, langue: Langue): RefusDevis {
   return {
     motif: r.motif,
-    message: "La réservation en ligne n'est pas possible pour ces dates.",
+    message: PHRASES[langue].taxe,
     detail: `taxe de séjour : ${r.message}`,
     donneeManquante: r.motif === "TAXE_NON_DEFINIE" || r.motif === "REGLAGE_INCOMPLET",
   };
@@ -233,11 +302,12 @@ export function placesOccupees(o: Occupants, reglages: ReglagesTunnel): number {
 /** Refus lié aux voyageurs seuls, ou `null`. */
 export function controlerOccupants(ctx: ContexteDevis, o: Occupants): RefusDevis | null {
   const { gite, reglages } = ctx.donnees;
+  const p = PHRASES[ctx.langue];
   const max = OCCUPANTS_MAXIMUM_TECHNIQUE;
   if (!entierEntre(o.adultes, 0, max) || !entierEntre(o.enfants, 0, max) || !entierEntre(o.bebes, 0, max)) {
     return {
       motif: "OCCUPANTS_INVALIDES",
-      message: "Le nombre de voyageurs n'est pas valide.",
+      message: p.occupantsInvalides,
       detail: `occupants reçus : ${JSON.stringify(o)}`,
       donneeManquante: false,
     };
@@ -245,7 +315,7 @@ export function controlerOccupants(ctx: ContexteDevis, o: Occupants): RefusDevis
   if (o.adultes < 1) {
     return {
       motif: "SANS_ADULTE",
-      message: "Une réservation compte au moins un adulte.",
+      message: p.sansAdulte,
       detail: "aucun adulte",
       donneeManquante: false,
     };
@@ -253,15 +323,10 @@ export function controlerOccupants(ctx: ContexteDevis, o: Occupants): RefusDevis
   const places = placesOccupees(o, reglages);
   if (places > gite.capaciteMax) {
     const hors = reglages.bebesHorsCapacite;
-    const precision =
-      o.bebes > 0 && hors > 0
-        ? hors === 1
-          ? ` Un bébé de moins de ${reglages.bebeAgeLimite} ans n'est pas compté ; les suivants le sont.`
-          : ` ${hors} bébés de moins de ${reglages.bebeAgeLimite} ans ne sont pas comptés ; les suivants le sont.`
-        : "";
+    const precision = o.bebes > 0 && hors > 0 ? p.bebesNonComptes(hors, reglages.bebeAgeLimite) : "";
     return {
       motif: "CAPACITE_DEPASSEE",
-      message: `${gite.nom} accueille ${gite.capaciteMax} personnes au plus.${precision}`,
+      message: `${p.capacite(gite.nom, gite.capaciteMax)}${precision}`,
       detail: `${places} places demandées pour une capacité de ${gite.capaciteMax}`,
       donneeManquante: false,
     };
@@ -284,6 +349,7 @@ export function controlerDates(
   arrivee: string,
   depart: string,
 ): { ok: true; prix: PrixSejour } | { ok: false; refus: RefusDevis } {
+  const p = PHRASES[ctx.langue];
   try {
     jourUtc(arrivee);
     jourUtc(depart);
@@ -292,7 +358,7 @@ export function controlerDates(
       ok: false,
       refus: {
         motif: "DATES_INVALIDES",
-        message: "Ces dates ne sont pas valides.",
+        message: p.datesInvalides,
         detail: (erreur as Error).message,
         donneeManquante: false,
       },
@@ -304,10 +370,10 @@ export function controlerDates(
     const delai = ctx.donnees.reglages.delaiReservationJours;
     const message =
       arrivee < ctx.donnees.aujourdhui
-        ? "La date d'arrivée est passée."
+        ? p.arriveePassee
         : delai === 1
-          ? "Une arrivée se réserve au plus tard la veille."
-          : `Une arrivée se réserve au plus tard ${delai} jours avant.`;
+          ? p.arriveeVeille
+          : p.arriveeDelai(delai);
     return {
       ok: false,
       refus: {
@@ -327,7 +393,7 @@ export function controlerDates(
         ok: false,
         refus: {
           motif: "NUITS_PRISES",
-          message: `La nuit du ${dateLongue(nuit)} est déjà prise.`,
+          message: p.nuitPrise(dateLongue(nuit, ctx.langue)),
           detail: `nuit ${nuit} prise`,
           donneeManquante: false,
         },
@@ -336,7 +402,7 @@ export function controlerDates(
   }
 
   const sejour = calculerSejour(ctx.periodes, arrivee, depart);
-  return sejour.ok ? { ok: true, prix: sejour.prix } : { ok: false, refus: refusDeSejour(sejour.refus) };
+  return sejour.ok ? { ok: true, prix: sejour.prix } : { ok: false, refus: refusDeSejour(sejour.refus, ctx.langue) };
 }
 
 // ─── Devis ────────────────────────────────────────────────────────────────────
@@ -363,7 +429,7 @@ export function devisSejour(ctx: ContexteDevis, demande: DemandeDevis): Resultat
     nbBebes: occupants.bebes,
     reglages: taxes,
   });
-  if (!taxe.ok) return { ok: false, refus: refusDeTaxe(taxe.refus) };
+  if (!taxe.ok) return { ok: false, refus: refusDeTaxe(taxe.refus, ctx.langue) };
 
   const montants = montantsDesPostes({
     prixLocation: prix.total,

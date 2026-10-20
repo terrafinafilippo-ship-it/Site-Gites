@@ -37,6 +37,8 @@ import {
   type ResultatDevis,
 } from '../lib/devis';
 import { montantsDesPostes } from '../lib/montants';
+import { fmtDateLongue, fmtEuro, fmtPrix, fmtTaux, fmtTauxCentiemes } from '../lib/format';
+import { cheminSansLangue, lien, type Langue } from '../lib/i18n/langues';
 
 let nbCas = 0;
 let echecs = 0;
@@ -453,16 +455,19 @@ const DONNEES_DEVIS = donnees(
   [periode('Basse', '2027-01-02', '2027-03-06'), periode('Été', '2027-07-03', '2027-08-28')],
 );
 
-function contexte(gite: GiteTunnel, extra: Partial<DonneesDevis> = {}) {
-  return preparerDevis({
-    tarification: DONNEES_DEVIS,
-    taxes: [SAVAS_2026],
-    gite,
-    reglages: REGLAGES_TUNNEL,
-    nuitsPrises: [],
-    aujourdhui: '2026-10-15',
-    ...extra,
-  });
+function contexte(gite: GiteTunnel, extra: Partial<DonneesDevis> = {}, langue: Langue = 'fr') {
+  return preparerDevis(
+    {
+      tarification: DONNEES_DEVIS,
+      taxes: [SAVAS_2026],
+      gite,
+      reglages: REGLAGES_TUNNEL,
+      nuitsPrises: [],
+      aujourdhui: '2026-10-15',
+      ...extra,
+    },
+    langue,
+  );
 }
 
 function refusDevisAttendu(r: ResultatDevis, motif: string, libelle: string): void {
@@ -615,6 +620,47 @@ const CLIENT = {
   );
   const colocSeul = validerCoordonnees({ ...CLIENT, colocataire: { civilite: '', prenom: 'Julien', nom: 'Durand' } }, 1);
   noter(!colocSeul.ok && !!colocSeul.erreurs.colocataire, 'second locataire avec un seul adulte → refus', colocSeul.ok ? null : colocSeul.erreurs);
+}
+
+// ─── 10. Anglais (décision D-22) : affichage seulement, mêmes montants ───────
+
+console.log('--- anglais : montants, dates, messages, liens');
+{
+  noter(fmtEuro(123456, 'en') === '€1,234.56' && fmtEuro(-1230, 'en') === '-€12.30', 'montant en anglais : €1,234.56 et -€12.30', [fmtEuro(123456, 'en'), fmtEuro(-1230, 'en')]);
+  noter(fmtPrix(67000, 'en') === '€670' && fmtPrix(67050, 'en') === '€670.50', 'prix affiché en anglais : €670 et €670.50', [fmtPrix(67000, 'en'), fmtPrix(67050, 'en')]);
+  noter(fmtTaux(30, 'en') === '30%' && fmtTauxCentiemes(550, 'en') === '5.5%', 'taux en anglais : 30% et 5.5%', [fmtTaux(30, 'en'), fmtTauxCentiemes(550, 'en')]);
+  noter(fmtDateLongue('2027-01-12', 'en') === '12 January 2027', 'date en anglais : 12 January 2027', fmtDateLongue('2027-01-12', 'en'));
+
+  const fr = devisSejour(contexte(ARMU), { ...SEMAINE, adultes: 2, enfants: 0, bebes: 0 });
+  const en = devisSejour(contexte(ARMU, {}, 'en'), { ...SEMAINE, adultes: 2, enfants: 0, bebes: 0 });
+  noter(
+    fr.ok && en.ok && JSON.stringify(fr.devis) === JSON.stringify(en.devis),
+    'devis identique en anglais et en français (554,78 €) : la langue ne touche aucun montant',
+    en.ok ? en.devis.montants.totalTtc : en.refus,
+  );
+  const veille = devisSejour(contexte(ARMU, { aujourdhui: '2027-01-09' }, 'en'), { ...SEMAINE, adultes: 2, enfants: 0, bebes: 0 });
+  noter(
+    !veille.ok && veille.refus.message === 'Arrivals can be booked up to the day before at the latest.' && veille.refus.detail.startsWith('arrivée'),
+    'refus en anglais pour le client, cause en français pour le journal',
+    veille.ok ? null : veille.refus,
+  );
+  const prise = devisSejour(contexte(ARMU, { nuitsPrises: ['2027-01-12'] }, 'en'), { ...SEMAINE, adultes: 2, enfants: 0, bebes: 0 });
+  noter(!prise.ok && prise.refus.message === 'The night of 12 January 2027 is already taken.', 'nuit prise, en anglais', prise.ok ? null : prise.refus);
+  const ete = devisSejour(contexte(ARMU, {}, 'en'), { arrivee: '2027-07-08', depart: '2027-07-15', adultes: 2, enfants: 0, bebes: 0 });
+  noter(!ete.ok && ete.refus.message === 'During “Été”, arrivals are on Saturday.', 'règle d\'arrivée en anglais (le nom du tarif reste celui saisi)', ete.ok ? null : ete.refus);
+  const coord = validerCoordonnees({ ...CLIENT, email: 'pas-une-adresse' }, 1, 'en');
+  noter(!coord.ok && coord.erreurs.email === 'This email address is not valid.', 'erreur de coordonnées en anglais', coord.ok ? null : coord.erreurs);
+
+  noter(
+    lien('en', '/gites/laphine') === '/en/gites/laphine' && lien('fr', '/gites/laphine') === '/gites/laphine' &&
+      lien('en', '/') === '/en' && lien('en', '/reserver?gite=armu') === '/en/reserver?gite=armu',
+    'liens : /en devant en anglais, rien en français',
+  );
+  noter(
+    cheminSansLangue('/en/gites') === '/gites' && cheminSansLangue('/en') === '/' &&
+      cheminSansLangue('/fr/contact') === '/contact' && cheminSansLangue('/entree') === '/entree',
+    'chemin sans langue : /en/gites → /gites, /en → /, /fr/contact → /contact, /entree intact',
+  );
 }
 
 console.log(echecs === 0 ? `\n${nbCas} cas, tous passent.` : `\n${nbCas} cas, ${echecs} en échec.`);
