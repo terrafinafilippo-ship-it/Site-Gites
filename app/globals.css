@@ -508,11 +508,13 @@ small, .caption {
   color: var(--color-gray-medium);
   letter-spacing: 0.05em;
 }
-.site-header .hd-lang button {
-  background: none; border: 0; padding: 4px 6px;
-  color: inherit; cursor: pointer; font-size: 13px;
+/* Sélecteur de langue : de vrais liens (/en/…), pas des boutons (D-22). */
+.site-header .hd-lang a {
+  padding: 4px 6px;
+  color: inherit; font-size: 13px;
+  text-decoration: none;
 }
-.site-header .hd-lang button.is-active {
+.site-header .hd-lang a.is-active {
   color: var(--tw-green-dark);
   font-weight: 500;
 }
@@ -573,11 +575,13 @@ small, .caption {
   display: flex; gap: 12px;
   color: var(--color-gray-medium); font-size: 14px;
 }
-.mob-nav__panel .lang button {
-  background: none; border: 0; cursor: pointer;
+.mob-nav__panel .lang a {
+  display: inline-block;
+  border: 0;
+  font-family: inherit;
   color: inherit; padding: 6px 8px; font-size: 14px;
 }
-.mob-nav__panel .lang button.is-active {
+.mob-nav__panel .lang a.is-active {
   color: var(--tw-green-dark); font-weight: 500;
 }
 
