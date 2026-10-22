@@ -4,14 +4,14 @@
 > **seul** domicile de cette liste : elle ne doit être recopiée nulle part
 > ailleurs (voir `docs/05-protocole-phase.md`, règle 1).
 
-Treize points à traiter **avant qu'un vrai client signe un vrai contrat**. Aucun
+Quatorze points à traiter **avant qu'un vrai client signe un vrai contrat**. Aucun
 n'empêche le logiciel de fonctionner : ils empêchent qu'il fonctionne
 **correctement le jour où il compte**.
 
 ## Qui peut lever un point
 
-Huit des treize points **ne se résolvent pas, ou pas entièrement, dans le dépôt**
-(3, 6, 7, 9, 10, 11, 12 et 13). Sans cette
+Neuf des quatorze points **ne se résolvent pas, ou pas entièrement, dans le dépôt**
+(3, 6, 7, 9, 10, 11, 12, 13 et 14). Sans cette
 précision, une session future les lira comme des tâches techniques et cherchera
 la réponse au mauvais endroit — dans le code, où elle n'est pas.
 
@@ -40,6 +40,7 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | 11 | Saisir les vrais tarifs, périodes, barème et réglages de taxe | **Les propriétaires**, au back-office | Avant l'ouverture (Phase 5) |
 | 12 | Durée de conservation des tentatives de réservation abandonnées | **Les propriétaires** (juriste), puis développement | Phase 4 |
 | 13 | Site en anglais : relire la traduction, faire valider l'anglais du juridique | **Les propriétaires** (relecture), **le juriste** (pages juridiques, bannière cookies) | Avant l'ouverture (Phase 6) |
+| 14 | Passer Stripe en mode réel et brancher l'avis de paiement | **Les propriétaires** (compte Stripe activé), puis développement | Au déploiement |
 
 ---
 
@@ -135,7 +136,10 @@ dans le même envoi au juriste :
 - une réservation faite **à moins de 30 jours** de l'arrivée se paie en totalité
   (D-20) — l'article 5.1 ne prévoit pas ce cas ;
 - le **texte d'accord pour l'enregistrement de la carte**, validé par le gérant
-  le 14 octobre 2026 : son texte est dans `docs/phases/phase-3.md`.
+  le 14 octobre 2026, **et sa traduction anglaise** validée le 20 octobre 2026 :
+  les deux textes sont dans `docs/phases/phase-3.md` (et en base, table
+  `textes_accord`). Une version corrigée par le juriste s'ajoute en base comme
+  une nouvelle version datée ; les réservations déjà faites gardent la leur.
 
 **Le contrôle.** Une réservation de test menée jusqu'au départ : la caution est
 bloquée la veille, libérée d'un clic, et la carte n'est plus attachée au client
@@ -464,6 +468,39 @@ mais personne n'a validé cette traduction.
 
 **Le contrôle.** Chaque page anglaise a été relue et validée par écrit ; la
 réponse du juriste sur les CGV est conservée.
+
+---
+
+## 14. Passer Stripe en mode réel et brancher l'avis de paiement
+
+**Qui peut lever :** **les propriétaires** (activer le compte Stripe de la
+SARL DE LA VOUTE : identité, compte bancaire), puis développement · **au
+déploiement**
+
+**La raison.** Depuis le lot 3 de la Phase 3 (D-23), le tunnel encaisse par
+Stripe, **en mode test seulement** : le site refuse toute clé réelle
+(`lib/stripe.ts`). Deux choses manquent pour encaisser pour de vrai :
+- les **clés réelles**, qui n'existent qu'une fois le compte activé ;
+- l'**avis de paiement** (webhook) déclaré chez Stripe vers
+  `https://<site>/api/stripe/webhook`, avec son secret. Sans lui, un client qui
+  paie puis ferme sa page avant le retour reste « en attente » : son argent est
+  pris, sa réservation n'est pas confirmée.
+
+**L'action.**
+1. Les propriétaires activent le compte Stripe et créent l'avis de paiement
+   (événements `payment_intent.succeeded`, `payment_intent.payment_failed`,
+   `payment_intent.canceled`, `payment_intent.processing`). Ils règlent aussi
+   le **nom public** du compte et le **libellé sur le relevé bancaire** : le
+   compte de test affiche aujourd'hui « LES GITES DE SAMOYAS », que le client
+   voit pendant la validation bancaire et sur son relevé.
+2. Développement : lever le refus des clés réelles (décision de mise en ligne,
+   pas une variable), saisir les trois variables dans Coolify
+   (`.env.example`), rejouer le parcours de paiement en mode test sur le
+   serveur déployé.
+
+**Le contrôle.** Un paiement réel d'un petit montant, page fermée aussitôt
+après la validation bancaire : la réservation passe « confirmée » par l'avis
+seul ; puis remboursement depuis le tableau de bord Stripe.
 
 ---
 

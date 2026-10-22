@@ -16,6 +16,7 @@ main dans un outil graphique.
 | `migrations/0002_tarification.sql` | Les sept tables de tarification et de taxe de séjour (Phase 3, D-17 et D-18). Générée. |
 | `migrations/0003_tarification_contraintes.sql` | Écrite à la main : interdiction du chevauchement de deux périodes, et création de la ligne unique de `reglages`. |
 | `migrations/0004_tunnel.sql` | Phase 3, lot 2 : réglages du tunnel dans `reglages`, forme définitive de `disponibilites` (les lignes « libre » sont effacées : une nuit sans ligne est libre), `reservations.detail_calcul`, `taxes_sejour.bebes_parmi_occupants`. Générée, plus un effacement écrit à la main. |
+| `migrations/0005_paiement.sql` | Phase 3, lot 3 : réglages du paiement, conditions figées et choix du client sur `reservations` (les réservations existantes reçoivent 30 % et 30 jours, puis la valeur par défaut est retirée), forme définitive de `paiements`, table `textes_accord` immuable avec ses deux premières versions (français, anglais). Générée, plus les triggers, l'insertion des textes et le retrait des valeurs par défaut écrits à la main. |
 | `index.ts` | Le client de base de données partagé par le site (pool de 10 connexions maximum). |
 | `seed.ts` | Insère ou remet à jour les trois gîtes. |
 | `verify.ts` | Auto-vérification complète, sans rien laisser en base. |
@@ -69,7 +70,8 @@ commitée.
 - **reglages** : une seule ligne, créée par la migration 0003 — règle générale
   de réservation, barème général, jour de début des périodes ; depuis la
   migration 0004, les réglages du tunnel (durée du blocage, délai avant
-  l'arrivée, horaires, bébés).
+  l'arrivée, horaires, bébés) ; depuis la migration 0005, ceux du paiement
+  (taux d'acompte, délai du solde, délai du virement de caution).
 - **taxes_sejour** : les réglages de taxe de séjour, par gîte et datés.
 
 **Calendrier** (forme définitive en Phase 3, lot 2 — décision D-21)
@@ -85,10 +87,17 @@ saisi : les fiches masquent alors leurs prix. Sur la base de test, la remise à
 zéro du parcours (`scripts/parcours/reinitialiser.ts`) charge une tarification
 d'essai, marquée « (essai) ». **`npm run db:seed` ne touche pas à ces tables.**
 
-**Tables provisoires** (structure minimale, affinée en Phase 3)
+**Paiement** (forme définitive en Phase 3, lot 3 — décision D-23)
 
-- **paiements** : chaque mouvement d'argent (acompte, solde, caution) avec sa
-  référence chez le prestataire.
+- **paiements** : chaque paiement chez le prestataire (PaymentIntent Stripe),
+  avec son statut et, s'il y a lieu, son remboursement. Une ligne par paiement
+  Stripe (index unique `reference_externe`).
+- **textes_accord** : le texte d'accord pour l'enregistrement de la carte, une
+  version datée par langue, **immuable** (trigger) : des réservations le citent
+  comme preuve.
+
+**Tables provisoires** (structure minimale)
+
 - **avis** : les avis clients affichés sur le site.
 - **audit_logs** : le journal des actions sensibles.
 

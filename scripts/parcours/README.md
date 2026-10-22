@@ -18,8 +18,9 @@ signature ne se supprime pas. Ne jamais lancer ces scripts sur la base réelle.
 | Étape | Contrôle |
 |---|---|
 | Conversion | Aller-retour centimes ↔ texte numeric sur les valeurs limites (`npm run verify:centimes`) |
-| Prix, taxe et devis | Prix de location d'un séjour, taxe de séjour, devis du tunnel, contrôle des coordonnées et anglais : 148 cas calculés à la main, dont les deux exemples officiels (`npm run verify:tarification`) |
+| Prix, taxe et devis | Prix de location d'un séjour, taxe de séjour, devis du tunnel, contrôle des coordonnées, règlement (caution, solde, texte d'accord) et anglais : 165 cas calculés à la main, dont les deux exemples officiels (`npm run verify:tarification`) |
 | Blocage des dates | Deux clients qui bloquent les mêmes nuits au même instant : un seul gagne ; blocage expiré repris ; tentative, seconde tentative refusée avec les autres gîtes, abandon ; puis par le serveur : codes de réponse, deux POST simultanés, limite anti-abus (`scripts/verifier-blocage.ts --http`) |
+| Paiement | Stripe simulé : ouverture, refus, paiement confirmé une seule fois, paiement arrivé après le blocage (confirmé ou remboursé), remboursement rattrapé, retour en arrière qui annule le paiement ; puis **Stripe en mode test** par le serveur : carte de test, page de confirmation, carte refusée, avis signé (`scripts/verifier-paiement.ts --http`) |
 | Contrat | Émission, numéro `CTR-AAAA-NNN`, PDF, recopie du numéro sur la réservation |
 | Signature | Page publique, preuve enregistrée, PDF signé, statut `signe` |
 | Factures | Acompte puis solde, numéros `FAC-AAAA-NNN` continus, montants exacts |
@@ -37,7 +38,11 @@ signature ne se supprime pas. Ne jamais lancer ces scripts sur la base réelle.
    python -m pip install --user pypdf pymupdf
    ```
 2. **Base de test** renseignée dans `.env.local` : `DATABASE_URL_TEST`,
-   `DOCUMENT_SERVICE_SECRET`, `STORAGE_SIGNING_SECRET` (voir `.env.example`).
+   `DOCUMENT_SERVICE_SECRET`, `STORAGE_SIGNING_SECRET` (voir `.env.example`),
+   et les **clés Stripe de test** (`STRIPE_SECRET_KEY`,
+   `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`) : sans elles,
+   le tunnel ne s'ouvre pas et les étapes « blocage » et « paiement » échouent
+   en le disant.
    Les scripts lisent ce fichier ; aucun secret n'est écrit ni affiché.
 3. **Schéma et gîtes à jour** sur la base de test, une fois pour toutes :
    ```bash

@@ -720,6 +720,134 @@ changer de langue dans le tunnel lève d'abord le blocage des dates).
 
 ---
 
+## Phase 3 — lot 3 : le paiement, Stripe en mode test (20 octobre 2026)
+
+La phase reste ouverte (lots 4 et 5).
+
+### Ce qui a été décidé
+
+Avec le gérant, le 20 octobre 2026 (D-23) :
+- le client paie **sur le site**, dans le champ de carte de Stripe intégré à
+  l'étape 4, pas sur une page Stripe ;
+- le **texte d'accord pour la carte en anglais** : traduction fidèle du texte
+  français du 14 octobre, validée telle quelle ;
+- l'**écran après paiement** ne montre que des faits ; « Souvent ça passe au
+  second essai » est retiré de l'écran de refus.
+
+Puis le 22 octobre 2026, au premier affichage avec les clés de test : le champ
+de Stripe ne montre que la carte, sans Link ni la phrase d'autorisation de
+Stripe (doublon du texte d'accord).
+
+Par la session (D-23) : le serveur ne croit que Stripe, par deux chemins
+(retour du client, avis de Stripe) et un constat idempotent ; taux d'acompte et
+délai du solde recopiés sur chaque réservation, sans valeur par défaut ; texte
+d'accord en table versionnée et immuable ; clé réelle refusée tant que le site
+n'est pas mis en ligne ; colonne de la langue du client créée dès ce lot
+plutôt qu'au lot 4 (une migration de moins).
+
+### Ce qui a été fait
+
+- **Migration 0005** : réglages du paiement (acompte 30 %, solde 30 jours,
+  virement de caution 3 jours avant l'arrivée) ; sur `reservations`, les
+  conditions figées, les choix du client, la langue, les identifiants Stripe
+  et le texte d'accord ; `paiements` dans sa forme définitive ; table
+  `textes_accord` avec ses deux premières versions (français, anglais).
+- **`lib/reglement.ts`** : choix de la caution et du solde (rien de pré-choisi,
+  prélèvement seulement avec une caution par carte, pas de solde en paiement
+  intégral), texte d'accord avec ses repères remplacés.
+- **`lib/stripe.ts`** : le prestataire derrière une interface (Stripe, ou un
+  simulé pour les contrôles) ; refus des clés réelles.
+- **`lib/paiement.ts`** : ouverture du paiement, annulation au retour en
+  arrière, constat (nuits vendues, ou remboursement intégral), page de retour
+  protégée par le secret du paiement.
+- **`lib/disponibilites.ts`** : `vendreNuits`, la vente des nuits en une
+  requête, même après la fin du blocage si personne ne les a reprises.
+- **Tunnel** : étape 3 « Récapitulatif et règlement » avec les choix ; étape 4
+  avec le champ de Stripe et le texte d'accord ; écran de refus corrigé
+  (« vos dates restent bloquées ») ; le tunnel ne s'ouvre pas sans clés de
+  test ni texte d'accord. Nouvelle page `/reserver/confirmation` et route
+  `/api/stripe/webhook`.
+- **Fiche gîte** : acompte et délai du solde lus dans les réglages.
+- **Paquets** : `stripe` 22.6.2, `@stripe/stripe-js` 9.17.0,
+  `@stripe/react-stripe-js` 6.12.0, versions exactes. Les dernières versions
+  majeures (23, 10, 7) avaient moins de trois semaines, et `stripe` 23 retire
+  le paramètre « cartes seulement » de la création d'un paiement.
+- **Contrôles** : `verify:tarification` 165 cas (17 de plus : réglages,
+  règlement, texte d'accord comparé mot pour mot à la migration) ; nouveau
+  `verify:paiement` (40 cas avec un Stripe simulé, et une partie `--http` par
+  Stripe en mode test) ; `verify:blocage` contrôle les conditions figées et le
+  texte d'accord ; `db:verify` 130 contrôles (contraintes du paiement,
+  immutabilité du texte d'accord) ; `lancer.sh` passe à onze étapes.
+
+### Ce qui a été vérifié
+
+- `npm run lint`, `npx tsc --noEmit`, `npm run build` : passent ; le build ne
+  pré-génère que `/_not-found`.
+- **Sur la base PostgreSQL 16 jetable** du poste (tunnel SSH toujours fermé),
+  migration 0005 appliquée sur des réservations existantes (30 % et 30 jours
+  reçus) ; `bash scripts/parcours/lancer.sh` : **neuf étapes sur onze**.
+  Conversion OK ; prix, taxe et devis 165 cas ; remise à zéro ; parcours
+  L'Armu et LaPhine 0 échec ; URL signées 0 échec ; contrôles en base 81,
+  0 échec (**aucun montant n'a bougé**) ; contrôles PDF OK ; `db:verify` 130,
+  0 échec. Les deux étapes restantes échouent **comme prévu**, en le disant :
+  « clés Stripe de TEST absentes de .env.local » (blocage : 31 cas sur 32 ;
+  paiement : 40 cas sur 41, toute la partie simulée passe).
+- **Dans un navigateur sans fenêtre**, serveur lancé avec des clés factices,
+  en français à 1 280 px et en anglais à 390 px : rien de coché à l'étape 3,
+  bouton inactif jusqu'au choix complet, prélèvement retiré et grisé quand la
+  caution passe au virement, récapitulatif suivant le choix ; « Procéder au
+  paiement » → « Le paiement en ligne est momentanément indisponible : vos
+  dates n'ont pas été retenues », 0 nuit bloquée, 0 tentative restante ;
+  aucun débordement en largeur.
+- **Le 22 octobre 2026, clés de test dans `.env.local`** :
+  `bash scripts/parcours/lancer.sh` : **onze étapes sur onze**. Blocage 42 cas,
+  paiement 54 cas, dont, par Stripe en mode test : paiement ouvert au montant
+  du devis du serveur, carte de test acceptée → page « Paiement reçu » et
+  réservation confirmée avec sa carte ; carte refusée → dates libérées et
+  paiement annulé chez Stripe ; retour avec un faux secret → 404.
+- **Dans un navigateur sans fenêtre, avec les clés de test**, en français à
+  1 280 px et en anglais à 390 px : le champ de Stripe s'affiche à l'étape 4
+  (carte, date, code, pays), sans Link ni phrase de Stripe, avec le texte
+  d'accord en dessous ; « Payer 200,60 € » inactif tant que les CGV ne sont
+  pas acceptées ; aucun débordement en largeur.
+
+### Ce qui n'a PAS été vérifié
+
+- **La saisie d'une carte de test dans le champ, à l'écran**, et la
+  **validation 3-D Secure** : le champ de Stripe est hors d'atteinte du
+  navigateur piloté ; le paiement accepté et refusé est vérifié par le
+  serveur (`verify:paiement --http`).
+- **L'avis signé de Stripe** : `STRIPE_WEBHOOK_SECRET` n'est pas dans
+  `.env.local` ; seul le refus sans secret (503) est vérifié.
+- `gites_test` et la base réelle : migrations 0002 à 0005 non appliquées.
+
+### Écarts avec le plan annoncé
+
+- **`lib/reglement.ts`** et **`lib/disponibilites.ts`** (`vendreNuits`) en
+  plus de la liste : le premier sert au navigateur et au serveur, le second
+  garde dans le même fichier les deux requêtes qui écrivent le calendrier.
+- **La langue du client** est enregistrée dès ce lot (prévue au lot 4).
+- **Tunnel fermé sans clés de test**, plutôt qu'un échec à l'étape 4 : le
+  client ne saisit pas tout pour rien. Conséquence : sur ce poste, le tunnel
+  affiche « momentanément indisponible » tant que les clés n'y sont pas.
+- **Page de retour, paiement non abouti** : la tentative est abandonnée tout
+  de suite (dates libérées), sinon le client qui reprend sa réservation
+  butait sur son propre blocage.
+- **Corrigé en cours de route** : après la migration, le serveur de
+  développement relancé à chaud échouait sur toute lecture de la base ; un
+  redémarrage complet a suffi (aucun changement de code).
+
+### Points reportés
+
+- **Lot 4** : courriels (confirmation, paiement remboursé, alerte aux
+  propriétaires) dans la langue du client ; documents d'un paiement intégral ;
+  phrase sur le contrat à signer sur la page de confirmation.
+- **Au déploiement** : Stripe réel et avis de paiement (point 14 de
+  `docs/06-avant-premier-client.md`).
+- **Juriste** : texte d'accord français et anglais (point 3).
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

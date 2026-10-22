@@ -11,7 +11,8 @@ d'octobre 2026, qui a fait entrer les saisons, la taxe de séjour et trois
 moyens de caution dans la phase. Découpage en cinq lots plus bas.
 **État :** cadrage clos le 14 octobre 2026 ; **lot 1 (prix) livré et commité
 le même jour** ; **lot 2 (calendrier et réservation) livré le 15 octobre
-2026**. Lots 3 à 5 à faire.
+2026** ; **lot 3 (paiement, Stripe en mode test) livré le 20 octobre 2026**.
+Lots 4 et 5 à faire.
 
 > **Point 9 tranché à l'ouverture (24 septembre 2026) : échéance décalée au
 > déploiement effectif.** La Phase 3 va produire des PDF sans sauvegarde de
@@ -152,8 +153,8 @@ fonctionnel et terminé (13 octobre 2026), back-office compris.
 |---|---|---|
 | **1. Prix** | Tables de tarification et de taxe, calcul du prix d'un séjour et de la taxe, fiches gîtes lues en base, contrôles | **Livré le 14 octobre 2026** — voir `docs/journal-phases.md` |
 | **2. Calendrier et réservation** | Disponibilités réelles, blocage de 20 minutes, refus si un prix manque, erreur sur un gîte inconnu, tunnel branché sur les vrais chiffres (âges, horaires, prix, taxe) | **Livré le 15 octobre 2026** — voir `docs/journal-phases.md` |
-| **3. Paiement** | Stripe en mode test : acompte ou total, carte conservée seulement si choisie, choix de la caution et du solde, paiement tardif, autres gîtes proposés | À faire |
-| **4. Courriels et suivi** | Brevo, contrat généré, lien de signature, page de suivi à lien secret, courriels aux propriétaires ; **libellé de la taxe dans les PDF** (une réservation du tunnel n'a plus de taux unique : `taux_taxe_sejour` est vide, et les PDF impriment encore « (… %) ») | À faire |
+| **3. Paiement** | Stripe en mode test : acompte ou total, carte conservée seulement si choisie, choix de la caution et du solde, paiement tardif, autres gîtes proposés | **Livré le 20 octobre 2026** (D-23) — voir `docs/journal-phases.md` ; parcours rejoué par Stripe en mode test le 22 octobre 2026 (11 étapes sur 11) ; restent la validation 3-D Secure à l'écran et l'avis signé |
+| **4. Courriels et suivi** | Brevo, contrat généré, lien de signature, page de suivi à lien secret, courriels aux propriétaires (dont le paiement remboursé, journalisé seulement au lot 3) ; **libellé de la taxe dans les PDF** (une réservation du tunnel n'a plus de taux unique : `taux_taxe_sejour` est vide, et les PDF impriment encore « (… %) ») ; **documents d'un paiement intégral** (`paiement_integral` : ni acompte ni solde, alors que `calculerMontants` applique le taux d'acompte) ; phrase « contrat à signer par courriel » sur la page de confirmation | À faire |
 | **5. Contrat et pages** | Articles 5.1 et 6 du contrat, pages qui décrivent la caution, horaires, boîte à clés retirée, documentation | À faire |
 
 **Points ouverts après le lot 2**, hors code :
@@ -172,21 +173,39 @@ site et le tunnel existent en français et en anglais (`/en`). Conséquences pou
 les lots restants :
 - **chaque écran ajouté** (paiement, confirmation, suivi) s'écrit dans les deux
   langues, à côté des textes existants (`Bilingue<T>`) ;
-- **lot 4** : la réservation doit **enregistrer la langue du client** (colonne à
-  créer) pour que les courriels partent dans sa langue (accord du gérant le
-  18 octobre 2026) ; le contrat et les
-  factures restent en français ;
-- **lot 3** : un retour de paiement par redirection (3-D Secure) recharge la
-  page ; l'adresse ne porte que les dates, les voyageurs et l'étape
-  « coordonnées ». Le retour devra reprendre la tentative en cours, pas
-  repartir de la saisie des coordonnées.
+- **lot 4** : les courriels partent dans la langue du client (accord du gérant
+  le 18 octobre 2026), **enregistrée sur la réservation depuis le lot 3**
+  (`reservations.langue`) ; le contrat et les factures restent en français ;
+- ~~**lot 3** : le retour de paiement par redirection (3-D Secure) reprend la
+  tentative en cours~~ → fait : il arrive sur `/reserver/confirmation`, qui
+  revérifie le paiement chez Stripe.
 
-**À reprendre au lot 3.** L'écran de succès du prototype a été retiré au lot 2 :
-il affichait une fausse référence et trois formules non validées (« contrat
-eIDAS », « télécharger le récap PDF », boîte à clés). Il se reconstruit avec le
-paiement, à partir des seules phrases confirmées. Les écrans « paiement
-refusé » et « authentification échouée » sont conservés tels quels, inaccessibles
-jusque-là.
+**Décisions du lot 3 (20 octobre 2026, D-23).** Le client paie **sur le site**
+(champ de carte Stripe intégré, pas de page Stripe). Le **texte d'accord en
+anglais** est la traduction fidèle validée par le gérant :
+
+> By confirming this payment, I agree that the card used will be stored by
+> Stripe, payment provider of SARL DE LA VOUTE, for the following operations:
+> – a pre-authorisation of [security deposit amount] as a security deposit,
+> made the day before my departure. It is not charged unless damage is found,
+> and it is released no later than 3 days after my departure;
+> – [if chosen by the client] the charge of the balance of [amount] on [date].
+> My card details are deleted no later than 7 days after my departure.
+
+Les deux textes sont en base (`textes_accord`, migration 0005). Sans la ligne
+du solde, la phrase de la caution finit par un point au lieu d'un
+point-virgule. **L'écran après paiement** n'affiche que des faits (référence,
+séjour, montant payé, solde et son règlement, caution et son moyen, téléphones
+des propriétaires) ; la phrase sur le contrat à signer par courriel n'y
+apparaîtra qu'au lot 4. **Écran « paiement refusé »** : « Souvent ça passe au
+second essai… » est retiré ; « dates non bloquées », devenu faux, est remplacé
+par « vos dates restent bloquées jusqu'à la fin du délai ». Les autres phrases
+du prototype de ces deux écrans restent sur la liste du lot 5.
+
+**22 octobre 2026, après le premier affichage avec les clés de test.** Le champ
+de Stripe ne montre que la carte : ni **Link** (compte Stripe proposé au
+client), ni la **phrase d'autorisation de Stripe**, doublon du texte d'accord
+(D-23).
 
 ---
 
@@ -278,9 +297,9 @@ Le risque est réel depuis la Phase 2 : les slugs ont changé (`larmu` →
 
 La constante `BOOKING` et les fausses propositions ont disparu : prix, ménage,
 taxe, caution et capacité viennent de la base, l'acompte du calcul des
-documents (`lib/montants.ts`). Restent écrits dans le code jusqu'au lot 3 : le
-taux d'acompte (30 %) et le délai du solde (30 jours), qui changent aussi les
-contrats et les factures.
+documents (`lib/montants.ts`). Le taux d'acompte (30 %) et le délai du solde
+(30 jours) sont devenus des réglages au lot 3, recopiés sur chaque réservation
+(D-23).
 
 `app/reserver/ReserverFunnel.tsx` porte des valeurs de démonstration qui ne
 viennent pas de la base — et qui, depuis la Phase 2, **contredisent visiblement
@@ -341,7 +360,7 @@ l'écran de choix existera :
 | `ReserverFunnel.tsx`, récapitulatif latéral | ~~« Solde de … prélevé J-30 »~~ → « Solde de … à régler au plus tard le … » (lot 2) |
 | `ReserverFunnel.tsx`, étape 3 | ~~« Le solde sera prélevé J-30 sur la même carte. »~~ → idem (lot 2) |
 | `ReserverFunnel.tsx`, étape 4 | ~~« le solde J-30 sera prélevé sur la même carte »~~ → retirée (lot 2) |
-| `ReserverFunnel.tsx`, écran de succès | ~~« Prélèvement automatique du solde… »~~ → écran retiré, à reconstruire au lot 3 |
+| `ReserverFunnel.tsx`, écran de succès | ~~« Prélèvement automatique du solde… »~~ → reconstruit au lot 3 (`reserver/confirmation`) : le règlement choisi par le client |
 | `app/suivi/[ref]/page.tsx` | « prélevés automatiquement sur la même carte » |
 | `lib/data/legal.ts`, CGV § 02 | « Le solde du séjour est prélevé automatiquement à J-30 » — Phase 6 |
 

@@ -119,25 +119,26 @@ le dossier `admin/`. Les maquettes du back-office se récupèrent dans ce commit
 
 ---
 
-## 3. Modèle de données — les dix-sept tables
+## 3. Modèle de données — les dix-huit tables
 
-**Cœur métier — sept tables exercées par le code**
+**Cœur métier — neuf tables exercées par le code**
 
 | Table | Rôle | Garanties structurelles |
 |---|---|---|
 | `gites` | Les trois gîtes : nom, référence Gîtes de France, slug, adresse, capacité, forfait ménage, caution, tarifs, taux de taxe. **La base prime sur toute constante du code.** | `ref_gdf` et `slug` uniques |
-| `reservations` | Une ligne par séjour, quel que soit son statut (`brouillon`, `en_attente_paiement`, `confirmee`, `annulee`, `terminee`). Client, conjoint, dates, occupants, montants, paiement de l'acompte. Depuis le lot 2, le tunnel l'écrit « en attente de paiement » à l'arrivée sur l'écran de paiement, avec `detail_calcul` : le devis figé (prix nuit par nuit, étapes de la taxe). | `reference` unique · `updated_at` tenu par trigger |
+| `reservations` | Une ligne par séjour, quel que soit son statut (`brouillon`, `en_attente_paiement`, `confirmee`, `annulee`, `terminee`). Client, conjoint, dates, occupants, montants, paiement de l'acompte. Depuis le lot 2, le tunnel l'écrit « en attente de paiement » à l'arrivée sur l'écran de paiement, avec `detail_calcul` : le devis figé (prix nuit par nuit, étapes de la taxe). Depuis le lot 3 : conditions **figées** (`taux_acompte`, `delai_solde_jours`, `paiement_integral`), choix du client (`moyen_caution`, `mode_solde`), `langue`, identifiants Stripe de la carte conservée, texte d'accord recopié mot pour mot avec sa version. Payée, elle passe `confirmee` ; payée trop tard sur des nuits reprises, `annulee` (remboursée). | `reference` unique · `updated_at` tenu par trigger · taux et délai du solde **sans valeur par défaut** · prélèvement du solde seulement avec une caution par carte, jamais en paiement intégral · texte d'accord et version ensemble |
 | `disponibilites` | Le calendrier des **nuits prises**, une ligne par gîte et par nuit : `verrou` (blocage pendant le paiement, avec échéance), `reserve`, `bloque`. **Une nuit sans ligne est libre** ; un verrou expiré vaut libre (D-21). Origine `directe`, `airbnb`, `booking`, `gdf` (Phase 7). | **Index unique `(gite_id, date)`** : la garantie contre la double vente · un verrou a une échéance et une réservation · une nuit vendue en direct désigne sa réservation |
 | `documents` | Le registre des PDF émis : contrat, facture d'acompte, facture de solde. Chemin (`url_pdf`), numéro, statut (`genere` puis `signe`), jeton de signature pour les contrats. | **Index unique `(reservation_id, type)`** : un double clic ou un webhook en double ne peut pas créer deux contrats · `token` unique quand non nul |
 | `signatures` | La preuve de signature : qui, quand, depuis quelle adresse, avec quel texte de consentement, et l'empreinte SHA-256 du PDF signé. | **Trigger d'immutabilité** (UPDATE et DELETE refusés) · une seule signature par document |
 | `factures` | Les factures d'acompte et de solde : numéro légal, montant, date d'émission, instantané des données du PDF. | `numero` unique · créées **exclusivement** par `creer_facture` |
 | `compteurs_documents` | Le compteur de numérotation, une ligne par série et par année. | Clé primaire `(serie, annee)` · **jamais une SEQUENCE** |
+| `paiements` | Chaque paiement chez le prestataire (PaymentIntent Stripe), forme définitive depuis le lot 3 : type (`acompte`, `total`, puis `solde` et `caution` en Phase 4), montant, statut (`en_attente`, `reussi`, `echoue`, `annule`, `a_rembourser`, `rembourse`), motif et référence du remboursement. | **Index unique `reference_externe`** : un paiement Stripe n'a qu'une ligne · remboursement toujours motivé · `updated_at` tenu par trigger |
+| `textes_accord` | Le texte d'accord pour l'enregistrement de la carte, **une version par langue et par date** d'entrée en vigueur, avec qui l'a validé. Repères `{caution}`, `{ligne_solde}`, `{montant}`, `{date}`. | **Trigger d'immutabilité** · clé `(objet, langue, en_vigueur_depuis)` |
 
 **Tables provisoires — structure minimale, aucun code ne les exerce encore**
 
 | Table | Rôle prévu | Affinée en |
 |---|---|---|
-| `paiements` | Chaque mouvement d'argent (acompte, solde, caution) et sa référence chez le prestataire. `montant` est déjà en mode texte, sans appelant. | Phase 3 |
 | `avis` | Les avis clients affichés sur le site. | Phase 6 |
 | `audit_logs` | Le journal des actions sensibles. Aucun trigger ne l'alimente. | Phase 3 |
 
@@ -150,7 +151,7 @@ le dossier `admin/`. Les maquettes du back-office se récupèrent dans ce commit
 | `periodes` | Les plages de dates d'un tarif : première nuit incluse, jour de fin **exclu**. Règles et barème propres possibles. | **Contrainte d'exclusion `periodes_sans_chevauchement`** (migration 0003) : une nuit relève d'au plus un tarif · fin > début · un tarif utilisé ne se supprime pas |
 | `baremes` | Les barèmes de dégressivité. | `nom` unique |
 | `baremes_coefficients` | Une case de barème par **rang** de nuit (1 = première). Une ligne par rang plutôt qu'un tableau : le pilote pg lit un tableau de numeric en flottants. | Clé `(bareme_id, rang)` · rang ≥ 1 · coefficient > 0 · rangs consécutifs contrôlés à la lecture |
-| `reglages` | **Une seule ligne** (id = 1), créée par la migration 0003 : règle générale (nuits minimum, jours d'arrivée et de départ), barème général, jour de début attendu des périodes ; depuis la migration 0004, les réglages du tunnel : durée du blocage (20 min), délai minimum avant l'arrivée (1 jour), horaires (18 h, 9 h, 20 h), bébés (âge 2 ans, 1 hors capacité, 1 lit). Les lots suivants y ajoutent leurs réglages. | `id = 1` imposé · son absence est une panne, jamais comblée par des valeurs par défaut · bornes sur chaque réglage |
+| `reglages` | **Une seule ligne** (id = 1), créée par la migration 0003 : règle générale (nuits minimum, jours d'arrivée et de départ), barème général, jour de début attendu des périodes ; depuis la migration 0004, les réglages du tunnel : durée du blocage (20 min), délai minimum avant l'arrivée (1 jour), horaires (18 h, 9 h, 20 h), bébés (âge 2 ans, 1 hors capacité, 1 lit) ; depuis la migration 0005, le paiement : taux d'acompte (30 %), délai du solde (30 jours), délai du virement de caution (3 jours avant l'arrivée). | `id = 1` imposé · son absence est une panne, jamais comblée par des valeurs par défaut · bornes sur chaque réglage |
 | `taxes_sejour` | Les réglages de taxe de séjour, **par gîte et datés** : mode, taux, plafond, tarif fixe, taxe additionnelle, ménage dans l'assiette, bébés parmi les occupants, source. | Clé `(gite_id, date_debut)` · paramètres requis selon le mode |
 
 En base réelle, ces tables sont **vides** jusqu'à la saisie par les
@@ -269,8 +270,10 @@ permettrait de lire n'importe quel fichier du serveur.
 | `POST /api/factures` | `x-service-secret` | Émet la facture d'acompte ou de solde via `creer_facture`. Ré-émission idempotente pour le même numéro. |
 | `GET /api/documents/{chemin}` | **URL signée** (`token` + `expires`) | Seul accès aux PDF. |
 | `GET /signer/{token}` | Le jeton | Page publique de signature (français seulement ; `/en/signer/…` est introuvable). |
-| `POST /api/reservations` | **Aucun secret** — limite de 5 blocages par adresse en 10 minutes | Recalcule le devis, enregistre la réservation « en attente de paiement » et bloque ses nuits. **Une transaction.** Messages dans la langue reçue (`langue` : `fr` par défaut, ou `en`). `201` · `400` demande invalide · `404` gîte inconnu · `409` refus métier ou dates prises (avec les autres gîtes libres) · `429` trop de tentatives · `503` tunnel indisponible · `500` erreur inattendue |
-| `DELETE /api/reservations/{id}` | L'identifiant tiré au hasard, connu du seul navigateur qui a créé la tentative | Lève le blocage et supprime la tentative. `200` · `404` · `409` réservation engagée (jamais supprimée) |
+| `POST /api/reservations` | **Aucun secret** — limite de 5 blocages par adresse en 10 minutes | Recalcule le devis, contrôle le règlement choisi (`reglement` : caution, solde), enregistre la réservation « en attente de paiement » et bloque ses nuits (**une transaction**), puis ouvre le paiement chez Stripe et renvoie son secret (connu de ce seul navigateur). Messages dans la langue reçue (`langue` : `fr` par défaut, ou `en`). `201` · `400` demande ou règlement invalide · `404` gîte inconnu · `409` refus métier ou dates prises (avec les autres gîtes libres) · `429` trop de tentatives · `503` tunnel ou paiement indisponible (Stripe injoignable : la tentative est abandonnée) · `500` erreur inattendue |
+| `DELETE /api/reservations/{id}` | L'identifiant tiré au hasard, connu du seul navigateur qui a créé la tentative | Annule le paiement ouvert chez Stripe, lève le blocage et supprime la tentative. `200` · `404` · `409` réservation engagée (payée ou en cours de paiement : jamais supprimée) |
+| `GET /reserver/confirmation` | Le secret du paiement (`payment_intent_client_secret`, ajouté par Stripe), comparé en temps constant | Revérifie le paiement chez Stripe et constate : confirmée, remboursée (autres gîtes proposés), en cours, ou non aboutie (tentative abandonnée). Faux secret : `404` |
+| `POST /api/stripe/webhook` | **Signature Stripe** (`STRIPE_WEBHOOK_SECRET`) sur le corps brut | Même constat que la page de retour, idempotent. `200` · `400` signature invalide · `500` à reprendre (Stripe renvoie l'avis) · `503` secret absent |
 
 **Pourquoi trois régimes différents.** Les routes d'émission frappent des
 numéros légaux : seul un appelant **serveur** (back-office, webhook de paiement)
@@ -362,10 +365,11 @@ complet produit les bons montants sur les bons documents**.
 | Niveau | Commande | Ce qu'il prouve |
 |---|---|---|
 | Conversion | `npm run verify:centimes` | L'aller-retour centimes ↔ texte numeric sur 51 cas, dont les valeurs limites |
-| Prix, taxe, devis | `npm run verify:tarification` | 148 cas calculés à la main : dégressivité, séjours à cheval sur deux saisons, règles, refus, grille publique, les deux exemples du guide officiel de la taxe de séjour au centime, le devis du tunnel (capacité et bébés, délai, paiement intégral, nuits prises), le contrôle des coordonnées, et l'anglais (formats, messages, liens ; devis identique dans les deux langues). Sans base |
+| Prix, taxe, devis | `npm run verify:tarification` | 165 cas calculés à la main : dégressivité, séjours à cheval sur deux saisons, règles, refus, grille publique, les deux exemples du guide officiel de la taxe de séjour au centime, le devis du tunnel (capacité et bébés, délai, paiement intégral, nuits prises, taux et délais lus dans les réglages), le contrôle des coordonnées, le règlement (choix de la caution et du solde, texte d'accord identique au mot près à celui de la migration), et l'anglais (formats, messages, liens ; devis identique dans les deux langues). Sans base |
 | Blocage | `DB_CIBLE=test npm run verify:blocage` | Deux clients qui bloquent les mêmes nuits au même instant : un seul gagne ; verrou expiré repris ; chevauchement refusé sans reste ; tentative, seconde tentative, abandon. Avec `--http` (dans `lancer.sh`) : les mêmes cas par le serveur, et la limite anti-abus |
-| Base | `npm run db:verify` | Tables, colonnes, seed, fonctions de numérotation, triggers, index uniques, contraintes de tarification et du calendrier, stockage. **Tout est annulé par ROLLBACK** : aucun numéro consommé |
-| Bout en bout | `bash scripts/parcours/lancer.sh` | Les dix étapes : les contrôles ci-dessus, puis le parcours complet — contrat, signature, factures, idempotence, refus attendus, accès aux PDF, contrôles en base **et** sur les PDF produits |
+| Paiement | `DB_CIBLE=test npm run verify:paiement` | Avec un **prestataire simulé** (sans réseau ni clé) : ouverture, refus puis paiement, constat répété et simultané (retour et avis), paiement arrivé après le blocage (nuits libres : confirmé ; reprises : remboursé une seule fois), remboursement en panne puis rattrapé, montant inattendu, paiement inconnu, retour en arrière, faux secret. Avec `--http` (dans `lancer.sh`) : **Stripe en mode test** — vraie carte de test, page de confirmation, carte refusée, avis signé. **Sans clés de test, `--http` échoue en le disant** |
+| Base | `npm run db:verify` | Tables, colonnes, seed, fonctions de numérotation, triggers, index uniques, contraintes de tarification, du calendrier et du paiement, immutabilité du texte d'accord, stockage. **Tout est annulé par ROLLBACK** : aucun numéro consommé |
+| Bout en bout | `bash scripts/parcours/lancer.sh` | Les onze étapes : les contrôles ci-dessus, puis le parcours complet — contrat, signature, factures, idempotence, refus attendus, accès aux PDF, contrôles en base **et** sur les PDF produits. Les étapes « blocage » et « paiement » exigent les clés Stripe de test |
 
 **Les deux réservations de test** (`scripts/parcours/reference.ts`) sont
 complémentaires :

@@ -865,11 +865,89 @@ aurait obligé à tout refaire.
 - Le texte anglais est une traduction fidèle du français, non relue : les
   propriétaires la relisent avant l'ouverture (même point).
 - Les courriels du lot 4 devront connaître la langue du client : la
-  réservation ne l'enregistre pas encore (à ajouter au lot 4).
+  réservation l'enregistre depuis le lot 3 (`reservations.langue`).
 
 **Si on revient dessus.** Changer une adresse publiée casse les liens partagés
 et le référencement : traduire plus tard les mots de l'adresse
 (`/en/cottages/…`) imposerait des redirections 301 pour chaque ancienne adresse.
+
+---
+
+## D-23 · Paiement : la carte se saisit sur le site, seul Stripe fait foi
+
+**Date :** 20 octobre 2026 (Phase 3, lot 3). Choix du gérant : payer **sur le
+site** plutôt que sur une page Stripe (« ça fait plus pro et ça donne plus
+confiance ») ; texte d'accord pour la carte en anglais validé ; écran de
+confirmation limité aux faits, et la phrase « Souvent ça passe au second
+essai » retirée de l'écran de refus.
+
+**Décision.**
+- **Le champ de carte de Stripe est intégré à l'étape 4** (Payment Element,
+  `app/[lang]/reserver/PaiementStripe.tsx`), cartes seulement. Les numéros de
+  carte ne passent jamais par le serveur du site. Le texte d'accord s'affiche
+  sous le champ, le compte à rebours du blocage reste visible.
+- **Le champ ne montre que la carte** (choix du gérant, 22 octobre 2026) :
+  ni Link (le compte Stripe que Stripe propose d'ouvrir, avec e-mail,
+  téléphone et nom, que le client prendrait pour une demande du site), ni la
+  phrase d'autorisation de Stripe sous le champ (« vous autorisez … à débiter
+  votre carte pour les paiements futurs »), doublon moins précis du texte
+  d'accord des propriétaires, qui reste le seul engagement affiché.
+- **Le paiement s'ouvre avec le blocage des dates** (`POST /api/reservations`),
+  au montant du devis **du serveur**. Revenir en arrière **annule le paiement
+  chez Stripe avant** de supprimer la tentative ; un paiement déjà abouti rend
+  la réservation engagée.
+- **Le serveur ne croit que Stripe.** Deux chemins constatent le paiement : la
+  page de retour du client (`/reserver/confirmation`, qui exige le secret du
+  paiement) et l'avis signé de Stripe (`/api/stripe/webhook`). Le constat
+  (`lib/paiement.ts`) est **idempotent** : ligne `paiements` verrouillée, un
+  paiement n'est traité qu'une fois, quel que soit l'ordre d'arrivée.
+- **Payé = nuits vendues, ou remboursé.** Les nuits passent de « bloquées » à
+  « vendues » en une requête (`vendreNuits`), même après l'échéance si
+  personne ne les a reprises. Sinon — ou si le montant reçu diffère d'un
+  centime, ou si la réservation est inconnue — **remboursement intégral
+  automatique** : l'intention est écrite (`a_rembourser`) avant l'appel à
+  Stripe, l'appel porte une clé d'idempotence, une panne se rattrape au constat
+  suivant.
+- **La carte n'est conservée que pour une caution par carte** (client Stripe et
+  `setup_future_usage: off_session`, D-16) ; le prélèvement du solde n'est
+  proposé qu'avec elle (D-19).
+- **Taux d'acompte, délai du solde et délai du virement de caution sont des
+  réglages** (`reglages`). Le taux et le délai du solde sont **recopiés sur
+  chaque réservation**, sans valeur par défaut : modifier un réglage ne change
+  aucun contrat conclu. Les réservations antérieures ont reçu 30 % et 30 jours.
+- **Le texte d'accord est une donnée versionnée** (`textes_accord`, une version
+  par langue et par date, immuable par trigger). Le texte affiché est recopié
+  mot pour mot sur la réservation, avec sa version. Sans texte en vigueur dans
+  chaque langue, le tunnel ne s'ouvre pas.
+- **Mode test seulement** : une clé réelle est refusée (`lib/stripe.ts`), et le
+  tunnel ne s'ouvre pas sans clés de test. Le passage au réel est le point 14
+  de `docs/06-avant-premier-client.md`.
+
+**Pourquoi.** Un client qui quitte le site au moment de payer est un client
+qu'on perd plus souvent ; le champ intégré garde aussi le texte d'accord à
+l'endroit validé. Le navigateur peut mentir ou se fermer : seul ce que Stripe
+répond engage, et l'avis de Stripe confirme même quand le client ferme sa page.
+Les conditions figées sur la réservation sont celles que porteront le contrat
+et les factures : un réglage modifié demain ne peut pas réécrire un contrat
+d'hier.
+
+**Ce qui pourrait mal tourner.**
+- **Sans avis de Stripe configuré en production**, un client qui paie puis
+  ferme sa page avant le retour reste « en attente » : l'avis est obligatoire
+  au déploiement (point 14).
+- **Un paiement intégral** (D-20) est enregistré comme tel
+  (`reservations.paiement_integral`, paiement de type `total`) ; les documents
+  du lot 4 devront l'imprimer sans acompte ni solde — `calculerMontants`
+  applique le taux d'acompte à toute réservation.
+- **Le courriel au client et l'alerte aux propriétaires** pour un paiement
+  remboursé arrivent au lot 4 : d'ici là, le cas n'est que journalisé
+  (« PROBLÈME À TRAITER »).
+
+**Si on revient dessus.** Passer à une page Stripe (Checkout) déplace le texte
+d'accord et le compte à rebours hors du site. Confirmer sur la seule parole du
+navigateur, c'est vendre des nuits sans argent reçu. Supprimer la recopie des
+conditions sur la réservation, c'est laisser un réglage réécrire les contrats
+déjà signés.
 
 ---
 

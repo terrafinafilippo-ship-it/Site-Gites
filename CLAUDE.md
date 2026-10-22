@@ -25,13 +25,15 @@ npm run db:migrate       # applique les migrations en attente
 npm run db:seed          # insère ou remet à jour les trois gîtes
 npm run db:verify        # auto-vérification de la base (tout est annulé par ROLLBACK)
 npm run verify:centimes  # aller-retour centimes <-> texte numeric (51 cas)
-npm run verify:tarification  # prix, taxe de séjour, devis du tunnel, anglais (148 cas, sans base)
+npm run verify:tarification  # prix, taxe de séjour, devis du tunnel, règlement, anglais (165 cas, sans base)
 DB_CIBLE=test npm run verify:blocage  # blocage des dates : deux clients simultanés (base de test)
+DB_CIBLE=test npm run verify:paiement # paiement, Stripe simulé (base de test) ; --http : Stripe en mode test
 
 bash scripts/parcours/lancer.sh   # non-régression complète (contrat, signature, factures)
 ```
 
-Le parcours de non-régression exige la base de **test** et un serveur à part :
+Le parcours de non-régression exige la base de **test**, les clés Stripe de
+**test** dans `.env.local` (`.env.example`) et un serveur à part :
 
 ```bash
 DB_CIBLE=test npm run db:migrate && DB_CIBLE=test npm run db:seed
