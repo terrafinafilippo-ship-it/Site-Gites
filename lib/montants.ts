@@ -17,10 +17,7 @@ import type { FactureSoldeData } from '@/components/pdf/FactureSoldePDF';
 import type { ContratData } from '@/components/pdf/ContratPDF';
 import type { GiteRow, ReservationAvecGite } from '@/lib/reservations';
 import {
-  TAUX_ACOMPTE,
-  TAUX_SOLDE,
   FORFAIT_MENAGE_DEFAUT,
-  DELAI_SOLDE_DEFAUT,
   CAUTION_DEFAUT,
   HEURE_ARRIVEE_DEFAUT,
   HEURE_DEPART_DEFAUT,
@@ -44,8 +41,8 @@ export type Gite = GiteRow;
 // ─── Résultat du calcul (tous les champs en CENTIMES ENTIERS) ────────────────
 export interface Montants {
   base: number; // sous-total = séjour + forfait ménage + options (hors taxe)
-  acompte: number; // 30 % du total TTC (taxe de séjour incluse), arrondi au centime
-  solde: number; // totalTtc − acompte (70 % du total TTC)
+  acompte: number; // taux d'acompte de la réservation × total TTC (taxe incluse), arrondi au centime
+  solde: number; // totalTtc − acompte
   taxeSejour: number; // valeur fournie par la réservation (jamais recalculée)
   totalTtc: number; // base + taxe de séjour
   forfaitMenage: number; // forfait effectivement appliqué
@@ -58,7 +55,8 @@ export interface Montants {
  * Règle métier (validée le 12/06/2026) :
  *   - sous-total (base) = prix séjour + forfait ménage + options
  *   - total TTC = sous-total + taxe de séjour
- *   - acompte = TAUX_ACOMPTE % du TOTAL TTC (taxe de séjour incluse)
+ *   - acompte = taux d'acompte DE LA RÉSERVATION (figé à sa création,
+ *     30 % jusqu'ici) appliqué au TOTAL TTC (taxe de séjour incluse)
  *   - solde   = totalTtc − acompte
  *   - la taxe de séjour est FOURNIE par la réservation, jamais recalculée ici.
  *
@@ -74,7 +72,7 @@ export function calculerMontants(resa: Reservation): Montants {
     forfaitMenage: resa.forfait_menage ?? gite?.forfait_menage ?? FORFAIT_MENAGE_DEFAUT,
     options: resa.options ?? 0,
     taxeSejour: resa.taxe_sejour ?? 0,
-  });
+  }, resa.taux_acompte);
 }
 
 /** Les quatre postes d'un séjour, en CENTIMES ENTIERS. */
@@ -89,15 +87,21 @@ export interface PostesSejour {
  * Montants à partir des postes : le cœur de calculerMontants, appelé aussi par
  * le devis du tunnel (lib/devis.ts). Le client voit donc, avant de payer,
  * l'acompte exact que porteront sa facture et son contrat.
+ *
+ * `tauxAcompte` en pourcentage (30 = 30 %) : celui des réglages pour un devis,
+ * celui de la réservation pour un document.
  */
-export function montantsDesPostes(p: PostesSejour): Montants {
+export function montantsDesPostes(p: PostesSejour, tauxAcompte: number): Montants {
+  if (!Number.isInteger(tauxAcompte) || tauxAcompte < 1 || tauxAcompte > 100) {
+    throw new Error(`montantsDesPostes : taux d'acompte invalide (${tauxAcompte})`);
+  }
   // Additions d'entiers : exactes, aucun arrondi.
   const base = p.prixLocation + p.forfaitMenage + p.options;
   const totalTtc = base + p.taxeSejour;
   // SEUL arrondi du modèle : conversion du TAUX d'acompte en montant. Le `/ 100`
   // porte sur le taux (30 % → 0,3), pas sur un montant ; Math.round ramène le
   // résultat à un entier de centimes.
-  const acompte = Math.round(totalTtc * (TAUX_ACOMPTE / 100));
+  const acompte = Math.round(totalTtc * (tauxAcompte / 100));
   const solde = totalTtc - acompte;
 
   return {
@@ -197,11 +201,11 @@ function mapAcompteData(
     montantTaxeSejour: m.taxeSejour,
     totalTtc: m.totalTtc,
 
-    tauxAcompte: TAUX_ACOMPTE,
+    tauxAcompte: resa.taux_acompte,
     montantAcompte: m.acompte,
     montantSolde: m.solde,
-    delaiSolde: DELAI_SOLDE_DEFAUT,
-    dateButoirSolde: minusDaysFr(dateArriveeIso, DELAI_SOLDE_DEFAUT),
+    delaiSolde: resa.delai_solde_jours,
+    dateButoirSolde: minusDaysFr(dateArriveeIso, resa.delai_solde_jours),
 
     modePaiement: resa.mode_paiement ?? '',
     datePaiement: ctx.datePaiement,
@@ -299,12 +303,12 @@ export function mapContratData(
     montantTaxeSejour: montants.taxeSejour,
     totalTtc: montants.totalTtc,
 
-    tauxAcompte: TAUX_ACOMPTE,
+    tauxAcompte: resa.taux_acompte,
     montantAcompte: montants.acompte,
-    tauxSolde: TAUX_SOLDE,
+    tauxSolde: 100 - resa.taux_acompte,
     montantSolde: montants.solde,
-    delaiSolde: DELAI_SOLDE_DEFAUT,
-    dateButoirSolde: minusDaysFr(dateArriveeIso, DELAI_SOLDE_DEFAUT),
+    delaiSolde: resa.delai_solde_jours,
+    dateButoirSolde: minusDaysFr(dateArriveeIso, resa.delai_solde_jours),
 
     delaiToleranceCommerciale: DELAI_TOLERANCE_COMMERCIALE_DEFAUT,
     contactArriveeTel: gite?.contact_arrivee_tel ?? '',

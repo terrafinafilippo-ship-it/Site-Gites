@@ -12,6 +12,7 @@
 // timestamptz.
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   date,
   index,
@@ -27,6 +28,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { gites } from "./gites";
+import { textes_accord } from "./textes-accord";
 
 export const STATUTS_RESERVATION = [
   "brouillon",
@@ -36,6 +38,14 @@ export const STATUTS_RESERVATION = [
   "terminee",
 ] as const;
 export type StatutReservation = (typeof STATUTS_RESERVATION)[number];
+
+/** Moyen de la caution choisi par le client (D-19). */
+export const MOYENS_CAUTION = ["carte", "cheque", "virement"] as const;
+export type MoyenCaution = (typeof MOYENS_CAUTION)[number];
+
+/** Règlement du solde choisi par le client : prélèvement automatique ou lien (D-16). */
+export const MODES_SOLDE = ["prelevement", "lien"] as const;
+export type ModeSolde = (typeof MODES_SOLDE)[number];
 
 export const reservations = pgTable(
   "reservations",
@@ -96,6 +106,32 @@ export const reservations = pgTable(
     // de la taxe de séjour, litige). NULL pour une réservation saisie à la main.
     detail_calcul: jsonb().$type<Record<string, unknown>>(),
 
+    // Conditions de paiement FIGÉES à la réservation (lot 3, migration 0005) :
+    // recopiées des réglages, elles ne changent plus si les réglages changent.
+    // Pas de valeur par défaut : qui crée une réservation dit lesquelles
+    // s'appliquent (les réservations antérieures ont reçu 30 % et 30 jours).
+    taux_acompte: integer().notNull(),
+    delai_solde_jours: integer().notNull(),
+    // Arrivée trop proche (D-20) : le total est réglé à la réservation, sans solde.
+    paiement_integral: boolean().notNull().default(false),
+
+    // Choix du client dans le tunnel (NULL pour une réservation saisie à la main).
+    moyen_caution: text().$type<MoyenCaution>(),
+    // NULL en paiement intégral (pas de solde).
+    mode_solde: text().$type<ModeSolde>(),
+    // Langue du client (D-22) : celle de ses courriels. Contrat et factures restent en français.
+    langue: text().$type<"fr" | "en">().notNull().default("fr"),
+
+    // Carte enregistrée pour la caution et, si choisi, le solde (D-16) : les
+    // identifiants Stripe seulement, jamais un numéro de carte. Renseignés au
+    // paiement, et seulement si la caution est par carte.
+    stripe_customer_id: text(),
+    stripe_payment_method_id: text(),
+    // Texte d'accord pour l'enregistrement de la carte, tel qu'affiché au
+    // client (crochets remplacés), et la version dont il vient. Mot pour mot.
+    accord_carte_id: uuid().references(() => textes_accord.id),
+    accord_carte_texte: text(),
+
     // Paiement de l'acompte (données du prestataire)
     mode_paiement: text(),
     reference_transaction: text(),
@@ -111,6 +147,27 @@ export const reservations = pgTable(
     check(
       "reservations_statut_check",
       sql`${t.statut} in ('brouillon', 'en_attente_paiement', 'confirmee', 'annulee', 'terminee')`,
+    ),
+    check(
+      "reservations_conditions_check",
+      sql`${t.taux_acompte} between 1 and 100 and ${t.delai_solde_jours} between 0 and 365`,
+    ),
+    check("reservations_langue_check", sql`${t.langue} in ('fr', 'en')`),
+    check(
+      "reservations_moyen_caution_check",
+      sql`${t.moyen_caution} is null or ${t.moyen_caution} in ('carte', 'cheque', 'virement')`,
+    ),
+    // Prélèvement automatique : seulement sur une carte enregistrée, donc une
+    // caution par carte (D-19). Aucun solde en paiement intégral (D-20).
+    check(
+      "reservations_mode_solde_check",
+      sql`${t.mode_solde} is null or (${t.mode_solde} in ('prelevement', 'lien')
+          and not ${t.paiement_integral}
+          and (${t.mode_solde} = 'lien' or ${t.moyen_caution} = 'carte'))`,
+    ),
+    check(
+      "reservations_accord_carte_check",
+      sql`(${t.accord_carte_id} is null) = (${t.accord_carte_texte} is null)`,
     ),
   ],
 );

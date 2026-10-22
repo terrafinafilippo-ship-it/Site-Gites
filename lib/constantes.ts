@@ -26,17 +26,14 @@ export const MENTIONS = {
 } as const;
 
 // ─── Paramètres financiers par défaut ─────────────────────────────────────────
-// Acompte = 30 % / solde = 70 % du TOTAL TTC (séjour + forfait ménage + options
-// + taxe de séjour). La valeur de la taxe est fournie par la réservation et
-// n'est jamais recalculée ici.
+// Le taux d'acompte et le délai du solde ne sont plus ici : ce sont des
+// réglages (table reglages, Phase 3 lot 3), recopiés sur chaque réservation
+// (reservations.taux_acompte, reservations.delai_solde_jours).
 //
 // UNITÉS : tout MONTANT est un ENTIER DE CENTIMES (voir lib/centimes.ts) ;
 // un TAUX est un nombre décimal en pourcentage (un taux n'est pas de l'argent).
-export const TAUX_ACOMPTE = 30; // % (taux)
-export const TAUX_SOLDE = 70; // % (taux)
 export const FORFAIT_MENAGE_DEFAUT = 8000; // centimes (80,00 €)
 export const CAUTION_DEFAUT = 50000; // centimes (500,00 €, non facturée)
-export const DELAI_SOLDE_DEFAUT = 30; // jours avant l'arrivée
 
 // Paramètres opérationnels du contrat (valeurs par défaut ; surchargées par la
 // réservation ou le gîte en back-office quand la colonne est renseignée).

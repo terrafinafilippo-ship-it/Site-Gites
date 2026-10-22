@@ -13,16 +13,20 @@
     "db:verify": "tsx db/verify.ts",
     "verify:centimes": "tsx scripts/verifier-centimes.ts",
     "verify:tarification": "tsx scripts/verifier-tarification.ts",
-    "verify:blocage": "tsx scripts/verifier-blocage.ts"
+    "verify:blocage": "tsx scripts/verifier-blocage.ts",
+    "verify:paiement": "tsx scripts/verifier-paiement.ts"
   },
   "dependencies": {
     "@next/env": "^15.5.19",
     "@react-pdf/renderer": "^4.5.1",
+    "@stripe/react-stripe-js": "6.12.0",
+    "@stripe/stripe-js": "9.17.0",
     "drizzle-orm": "^0.45.2",
     "next": "^15.3.3",
     "pg": "^8.23.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "stripe": "22.6.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",

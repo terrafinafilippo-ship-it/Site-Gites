@@ -1,0 +1,2236 @@
+{
+  "id": "027a09bb-653d-4787-b436-f37b0f3462d7",
+  "prevId": "a2f329e0-ca8f-4462-940f-e2c234d39654",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.gites": {
+      "name": "gites",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ref_gdf": {
+          "name": "ref_gdf",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "adresse": {
+          "name": "adresse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "capacite_max": {
+          "name": "capacite_max",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "forfait_menage": {
+          "name": "forfait_menage",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "caution": {
+          "name": "caution",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "equipements_specifiques": {
+          "name": "equipements_specifiques",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "a_spa": {
+          "name": "a_spa",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "contact_arrivee_tel": {
+          "name": "contact_arrivee_tel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tarif_semaine_base": {
+          "name": "tarif_semaine_base",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tarif_weekend": {
+          "name": "tarif_weekend",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "taux_taxe_sejour": {
+          "name": "taux_taxe_sejour",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "actif": {
+          "name": "actif",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "gites_ref_gdf_key": {
+          "name": "gites_ref_gdf_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "ref_gdf"
+          ]
+        },
+        "gites_slug_key": {
+          "name": "gites_slug_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.reservations": {
+      "name": "reservations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "gite_id": {
+          "name": "gite_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reference": {
+          "name": "reference",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statut": {
+          "name": "statut",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'brouillon'"
+        },
+        "numero_contrat": {
+          "name": "numero_contrat",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "client_civilite": {
+          "name": "client_civilite",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "client_nom": {
+          "name": "client_nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "client_prenom": {
+          "name": "client_prenom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "client_adresse": {
+          "name": "client_adresse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "client_code_postal": {
+          "name": "client_code_postal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "client_ville": {
+          "name": "client_ville",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "client_pays": {
+          "name": "client_pays",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'France'"
+        },
+        "client_email": {
+          "name": "client_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "client_telephone": {
+          "name": "client_telephone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "client_civilite_conjoint": {
+          "name": "client_civilite_conjoint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "client_nom_conjoint": {
+          "name": "client_nom_conjoint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "client_prenom_conjoint": {
+          "name": "client_prenom_conjoint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_arrivee": {
+          "name": "date_arrivee",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_depart": {
+          "name": "date_depart",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "heure_arrivee": {
+          "name": "heure_arrivee",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "heure_depart": {
+          "name": "heure_depart",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "heure_limite_arrivee": {
+          "name": "heure_limite_arrivee",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nb_adultes": {
+          "name": "nb_adultes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "nb_enfants": {
+          "name": "nb_enfants",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "nb_bebes": {
+          "name": "nb_bebes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "occupants_majeurs": {
+          "name": "occupants_majeurs",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prix_location": {
+          "name": "prix_location",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "forfait_menage": {
+          "name": "forfait_menage",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "options": {
+          "name": "options",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "taxe_sejour": {
+          "name": "taxe_sejour",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "taux_taxe_sejour": {
+          "name": "taux_taxe_sejour",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "detail_calcul": {
+          "name": "detail_calcul",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "taux_acompte": {
+          "name": "taux_acompte",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "delai_solde_jours": {
+          "name": "delai_solde_jours",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paiement_integral": {
+          "name": "paiement_integral",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "moyen_caution": {
+          "name": "moyen_caution",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mode_solde": {
+          "name": "mode_solde",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "langue": {
+          "name": "langue",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'fr'"
+        },
+        "stripe_customer_id": {
+          "name": "stripe_customer_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripe_payment_method_id": {
+          "name": "stripe_payment_method_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accord_carte_id": {
+          "name": "accord_carte_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accord_carte_texte": {
+          "name": "accord_carte_texte",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mode_paiement": {
+          "name": "mode_paiement",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reference_transaction": {
+          "name": "reference_transaction",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_paiement_acompte": {
+          "name": "date_paiement_acompte",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "reservations_gite_id_idx": {
+          "name": "reservations_gite_id_idx",
+          "columns": [
+            {
+              "expression": "gite_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "reservations_gite_id_gites_id_fk": {
+          "name": "reservations_gite_id_gites_id_fk",
+          "tableFrom": "reservations",
+          "tableTo": "gites",
+          "columnsFrom": [
+            "gite_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "reservations_accord_carte_id_textes_accord_id_fk": {
+          "name": "reservations_accord_carte_id_textes_accord_id_fk",
+          "tableFrom": "reservations",
+          "tableTo": "textes_accord",
+          "columnsFrom": [
+            "accord_carte_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "reservations_reference_key": {
+          "name": "reservations_reference_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "reference"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "reservations_statut_check": {
+          "name": "reservations_statut_check",
+          "value": "\"reservations\".\"statut\" in ('brouillon', 'en_attente_paiement', 'confirmee', 'annulee', 'terminee')"
+        },
+        "reservations_conditions_check": {
+          "name": "reservations_conditions_check",
+          "value": "\"reservations\".\"taux_acompte\" between 1 and 100 and \"reservations\".\"delai_solde_jours\" between 0 and 365"
+        },
+        "reservations_langue_check": {
+          "name": "reservations_langue_check",
+          "value": "\"reservations\".\"langue\" in ('fr', 'en')"
+        },
+        "reservations_moyen_caution_check": {
+          "name": "reservations_moyen_caution_check",
+          "value": "\"reservations\".\"moyen_caution\" is null or \"reservations\".\"moyen_caution\" in ('carte', 'cheque', 'virement')"
+        },
+        "reservations_mode_solde_check": {
+          "name": "reservations_mode_solde_check",
+          "value": "\"reservations\".\"mode_solde\" is null or (\"reservations\".\"mode_solde\" in ('prelevement', 'lien')\n          and not \"reservations\".\"paiement_integral\"\n          and (\"reservations\".\"mode_solde\" = 'lien' or \"reservations\".\"moyen_caution\" = 'carte'))"
+        },
+        "reservations_accord_carte_check": {
+          "name": "reservations_accord_carte_check",
+          "value": "(\"reservations\".\"accord_carte_id\" is null) = (\"reservations\".\"accord_carte_texte\" is null)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.documents": {
+      "name": "documents",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "reservation_id": {
+          "name": "reservation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "numero": {
+          "name": "numero",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url_pdf": {
+          "name": "url_pdf",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statut": {
+          "name": "statut",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'genere'"
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "token_expire_at": {
+          "name": "token_expire_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "template_version": {
+          "name": "template_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_signature": {
+          "name": "date_signature",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "documents_resa_type_uidx": {
+          "name": "documents_resa_type_uidx",
+          "columns": [
+            {
+              "expression": "reservation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "documents_token_uidx": {
+          "name": "documents_token_uidx",
+          "columns": [
+            {
+              "expression": "token",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"documents\".\"token\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "documents_reservation_id_reservations_id_fk": {
+          "name": "documents_reservation_id_reservations_id_fk",
+          "tableFrom": "documents",
+          "tableTo": "reservations",
+          "columnsFrom": [
+            "reservation_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.signatures": {
+      "name": "signatures",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "reservation_id": {
+          "name": "reservation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "document_id": {
+          "name": "document_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "signataire_nom": {
+          "name": "signataire_nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "signataire_email": {
+          "name": "signataire_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "consentement_texte": {
+          "name": "consentement_texte",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "document_hash": {
+          "name": "document_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "document_storage_path": {
+          "name": "document_storage_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ip_signataire": {
+          "name": "ip_signataire",
+          "type": "inet",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "signe_at": {
+          "name": "signe_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "signatures_document_id_uidx": {
+          "name": "signatures_document_id_uidx",
+          "columns": [
+            {
+              "expression": "document_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "signatures_reservation_id_idx": {
+          "name": "signatures_reservation_id_idx",
+          "columns": [
+            {
+              "expression": "reservation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "signatures_reservation_id_reservations_id_fk": {
+          "name": "signatures_reservation_id_reservations_id_fk",
+          "tableFrom": "signatures",
+          "tableTo": "reservations",
+          "columnsFrom": [
+            "reservation_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "signatures_document_id_documents_id_fk": {
+          "name": "signatures_document_id_documents_id_fk",
+          "tableFrom": "signatures",
+          "tableTo": "documents",
+          "columnsFrom": [
+            "document_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.factures": {
+      "name": "factures",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "numero": {
+          "name": "numero",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reservation_id": {
+          "name": "reservation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "facture_acompte_id": {
+          "name": "facture_acompte_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "montant_ttc": {
+          "name": "montant_ttc",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_emission": {
+          "name": "date_emission",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "current_date"
+        },
+        "pdf_url": {
+          "name": "pdf_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "donnees": {
+          "name": "donnees",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "factures_reservation_id_idx": {
+          "name": "factures_reservation_id_idx",
+          "columns": [
+            {
+              "expression": "reservation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "factures_reservation_id_reservations_id_fk": {
+          "name": "factures_reservation_id_reservations_id_fk",
+          "tableFrom": "factures",
+          "tableTo": "reservations",
+          "columnsFrom": [
+            "reservation_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "factures_facture_acompte_id_factures_id_fk": {
+          "name": "factures_facture_acompte_id_factures_id_fk",
+          "tableFrom": "factures",
+          "tableTo": "factures",
+          "columnsFrom": [
+            "facture_acompte_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "factures_numero_key": {
+          "name": "factures_numero_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "numero"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "factures_type_check": {
+          "name": "factures_type_check",
+          "value": "\"factures\".\"type\" in ('acompte', 'solde')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.compteurs_documents": {
+      "name": "compteurs_documents",
+      "schema": "",
+      "columns": {
+        "serie": {
+          "name": "serie",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "annee": {
+          "name": "annee",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dernier_numero": {
+          "name": "dernier_numero",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "compteurs_documents_serie_annee_pk": {
+          "name": "compteurs_documents_serie_annee_pk",
+          "columns": [
+            "serie",
+            "annee"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.paiements": {
+      "name": "paiements",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "reservation_id": {
+          "name": "reservation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "montant": {
+          "name": "montant",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statut": {
+          "name": "statut",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prestataire": {
+          "name": "prestataire",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reference_externe": {
+          "name": "reference_externe",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_paiement": {
+          "name": "date_paiement",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "motif_remboursement": {
+          "name": "motif_remboursement",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reference_remboursement": {
+          "name": "reference_remboursement",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_remboursement": {
+          "name": "date_remboursement",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "paiements_reservation_id_idx": {
+          "name": "paiements_reservation_id_idx",
+          "columns": [
+            {
+              "expression": "reservation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "paiements_reference_externe_uidx": {
+          "name": "paiements_reference_externe_uidx",
+          "columns": [
+            {
+              "expression": "reference_externe",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "paiements_reservation_id_reservations_id_fk": {
+          "name": "paiements_reservation_id_reservations_id_fk",
+          "tableFrom": "paiements",
+          "tableTo": "reservations",
+          "columnsFrom": [
+            "reservation_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "paiements_type_check": {
+          "name": "paiements_type_check",
+          "value": "\"paiements\".\"type\" in ('acompte', 'total', 'solde', 'caution')"
+        },
+        "paiements_statut_check": {
+          "name": "paiements_statut_check",
+          "value": "\"paiements\".\"statut\" in ('en_attente', 'reussi', 'echoue', 'annule', 'a_rembourser', 'rembourse')"
+        },
+        "paiements_remboursement_check": {
+          "name": "paiements_remboursement_check",
+          "value": "\"paiements\".\"statut\" not in ('a_rembourser', 'rembourse') or \"paiements\".\"motif_remboursement\" is not null"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.disponibilites": {
+      "name": "disponibilites",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "gite_id": {
+          "name": "gite_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statut": {
+          "name": "statut",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'directe'"
+        },
+        "reservation_id": {
+          "name": "reservation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "verrou_expire_at": {
+          "name": "verrou_expire_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "disponibilites_gite_date_uidx": {
+          "name": "disponibilites_gite_date_uidx",
+          "columns": [
+            {
+              "expression": "gite_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "disponibilites_reservation_id_idx": {
+          "name": "disponibilites_reservation_id_idx",
+          "columns": [
+            {
+              "expression": "reservation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "disponibilites_gite_id_gites_id_fk": {
+          "name": "disponibilites_gite_id_gites_id_fk",
+          "tableFrom": "disponibilites",
+          "tableTo": "gites",
+          "columnsFrom": [
+            "gite_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "disponibilites_reservation_id_reservations_id_fk": {
+          "name": "disponibilites_reservation_id_reservations_id_fk",
+          "tableFrom": "disponibilites",
+          "tableTo": "reservations",
+          "columnsFrom": [
+            "reservation_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "disponibilites_statut_check": {
+          "name": "disponibilites_statut_check",
+          "value": "\"disponibilites\".\"statut\" in ('verrou', 'reserve', 'bloque')"
+        },
+        "disponibilites_source_check": {
+          "name": "disponibilites_source_check",
+          "value": "\"disponibilites\".\"source\" in ('directe', 'airbnb', 'booking', 'gdf')"
+        },
+        "disponibilites_verrou_echeance_check": {
+          "name": "disponibilites_verrou_echeance_check",
+          "value": "(\"disponibilites\".\"statut\" = 'verrou') = (\"disponibilites\".\"verrou_expire_at\" is not null)"
+        },
+        "disponibilites_verrou_reservation_check": {
+          "name": "disponibilites_verrou_reservation_check",
+          "value": "\"disponibilites\".\"statut\" <> 'verrou' or (\"disponibilites\".\"source\" = 'directe' and \"disponibilites\".\"reservation_id\" is not null)"
+        },
+        "disponibilites_reserve_directe_check": {
+          "name": "disponibilites_reserve_directe_check",
+          "value": "\"disponibilites\".\"statut\" <> 'reserve' or \"disponibilites\".\"source\" <> 'directe' or \"disponibilites\".\"reservation_id\" is not null"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.avis": {
+      "name": "avis",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "gite_id": {
+          "name": "gite_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "note": {
+          "name": "note",
+          "type": "numeric(2, 1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "commentaire": {
+          "name": "commentaire",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "auteur": {
+          "name": "auteur",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_sejour": {
+          "name": "date_sejour",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "publie": {
+          "name": "publie",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "avis_gite_id_idx": {
+          "name": "avis_gite_id_idx",
+          "columns": [
+            {
+              "expression": "gite_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "avis_gite_id_gites_id_fk": {
+          "name": "avis_gite_id_gites_id_fk",
+          "tableFrom": "avis",
+          "tableTo": "gites",
+          "columnsFrom": [
+            "gite_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.audit_logs": {
+      "name": "audit_logs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "table_cible": {
+          "name": "table_cible",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ligne_id": {
+          "name": "ligne_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "acteur": {
+          "name": "acteur",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "details": {
+          "name": "details",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.baremes": {
+      "name": "baremes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "baremes_nom_key": {
+          "name": "baremes_nom_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "nom"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.baremes_coefficients": {
+      "name": "baremes_coefficients",
+      "schema": "",
+      "columns": {
+        "bareme_id": {
+          "name": "bareme_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rang": {
+          "name": "rang",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "coefficient": {
+          "name": "coefficient",
+          "type": "numeric(6, 4)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "baremes_coefficients_bareme_id_baremes_id_fk": {
+          "name": "baremes_coefficients_bareme_id_baremes_id_fk",
+          "tableFrom": "baremes_coefficients",
+          "tableTo": "baremes",
+          "columnsFrom": [
+            "bareme_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "baremes_coefficients_pkey": {
+          "name": "baremes_coefficients_pkey",
+          "columns": [
+            "bareme_id",
+            "rang"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "baremes_coefficients_rang_check": {
+          "name": "baremes_coefficients_rang_check",
+          "value": "\"baremes_coefficients\".\"rang\" >= 1"
+        },
+        "baremes_coefficients_coefficient_check": {
+          "name": "baremes_coefficients_coefficient_check",
+          "value": "\"baremes_coefficients\".\"coefficient\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.tarifs": {
+      "name": "tarifs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nuits_minimum": {
+          "name": "nuits_minimum",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jours_arrivee": {
+          "name": "jours_arrivee",
+          "type": "integer[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jours_depart": {
+          "name": "jours_depart",
+          "type": "integer[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bareme_id": {
+          "name": "bareme_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "tarifs_bareme_id_baremes_id_fk": {
+          "name": "tarifs_bareme_id_baremes_id_fk",
+          "tableFrom": "tarifs",
+          "tableTo": "baremes",
+          "columnsFrom": [
+            "bareme_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "tarifs_nom_key": {
+          "name": "tarifs_nom_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "nom"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "tarifs_nuits_minimum_check": {
+          "name": "tarifs_nuits_minimum_check",
+          "value": "(\"tarifs\".\"nuits_minimum\" is null or \"tarifs\".\"nuits_minimum\" >= 1)"
+        },
+        "tarifs_jours_arrivee_check": {
+          "name": "tarifs_jours_arrivee_check",
+          "value": "(\"tarifs\".\"jours_arrivee\" is null or (cardinality(\"tarifs\".\"jours_arrivee\") >= 1 and \"tarifs\".\"jours_arrivee\" <@ array[1, 2, 3, 4, 5, 6, 7]))"
+        },
+        "tarifs_jours_depart_check": {
+          "name": "tarifs_jours_depart_check",
+          "value": "(\"tarifs\".\"jours_depart\" is null or (cardinality(\"tarifs\".\"jours_depart\") >= 1 and \"tarifs\".\"jours_depart\" <@ array[1, 2, 3, 4, 5, 6, 7]))"
+        },
+        "tarifs_nom_check": {
+          "name": "tarifs_nom_check",
+          "value": "length(trim(\"tarifs\".\"nom\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.tarifs_prix": {
+      "name": "tarifs_prix",
+      "schema": "",
+      "columns": {
+        "tarif_id": {
+          "name": "tarif_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gite_id": {
+          "name": "gite_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prix_nuit": {
+          "name": "prix_nuit",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "tarifs_prix_tarif_id_tarifs_id_fk": {
+          "name": "tarifs_prix_tarif_id_tarifs_id_fk",
+          "tableFrom": "tarifs_prix",
+          "tableTo": "tarifs",
+          "columnsFrom": [
+            "tarif_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "tarifs_prix_gite_id_gites_id_fk": {
+          "name": "tarifs_prix_gite_id_gites_id_fk",
+          "tableFrom": "tarifs_prix",
+          "tableTo": "gites",
+          "columnsFrom": [
+            "gite_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "tarifs_prix_pkey": {
+          "name": "tarifs_prix_pkey",
+          "columns": [
+            "tarif_id",
+            "gite_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "tarifs_prix_prix_nuit_check": {
+          "name": "tarifs_prix_prix_nuit_check",
+          "value": "\"tarifs_prix\".\"prix_nuit\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.periodes": {
+      "name": "periodes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tarif_id": {
+          "name": "tarif_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_debut": {
+          "name": "date_debut",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_fin": {
+          "name": "date_fin",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nuits_minimum": {
+          "name": "nuits_minimum",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jours_arrivee": {
+          "name": "jours_arrivee",
+          "type": "integer[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jours_depart": {
+          "name": "jours_depart",
+          "type": "integer[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bareme_id": {
+          "name": "bareme_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "periodes_tarif_id_idx": {
+          "name": "periodes_tarif_id_idx",
+          "columns": [
+            {
+              "expression": "tarif_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "periodes_tarif_id_tarifs_id_fk": {
+          "name": "periodes_tarif_id_tarifs_id_fk",
+          "tableFrom": "periodes",
+          "tableTo": "tarifs",
+          "columnsFrom": [
+            "tarif_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "periodes_bareme_id_baremes_id_fk": {
+          "name": "periodes_bareme_id_baremes_id_fk",
+          "tableFrom": "periodes",
+          "tableTo": "baremes",
+          "columnsFrom": [
+            "bareme_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "periodes_dates_check": {
+          "name": "periodes_dates_check",
+          "value": "\"periodes\".\"date_fin\" > \"periodes\".\"date_debut\""
+        },
+        "periodes_nuits_minimum_check": {
+          "name": "periodes_nuits_minimum_check",
+          "value": "(\"periodes\".\"nuits_minimum\" is null or \"periodes\".\"nuits_minimum\" >= 1)"
+        },
+        "periodes_jours_arrivee_check": {
+          "name": "periodes_jours_arrivee_check",
+          "value": "(\"periodes\".\"jours_arrivee\" is null or (cardinality(\"periodes\".\"jours_arrivee\") >= 1 and \"periodes\".\"jours_arrivee\" <@ array[1, 2, 3, 4, 5, 6, 7]))"
+        },
+        "periodes_jours_depart_check": {
+          "name": "periodes_jours_depart_check",
+          "value": "(\"periodes\".\"jours_depart\" is null or (cardinality(\"periodes\".\"jours_depart\") >= 1 and \"periodes\".\"jours_depart\" <@ array[1, 2, 3, 4, 5, 6, 7]))"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.reglages": {
+      "name": "reglages",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "default": 1
+        },
+        "nuits_minimum": {
+          "name": "nuits_minimum",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "jours_arrivee": {
+          "name": "jours_arrivee",
+          "type": "integer[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{1,2,3,4,5,6,7}'::integer[]"
+        },
+        "jours_depart": {
+          "name": "jours_depart",
+          "type": "integer[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{1,2,3,4,5,6,7}'::integer[]"
+        },
+        "bareme_general_id": {
+          "name": "bareme_general_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "periodes_jour_debut": {
+          "name": "periodes_jour_debut",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duree_blocage_minutes": {
+          "name": "duree_blocage_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 20
+        },
+        "delai_reservation_jours": {
+          "name": "delai_reservation_jours",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "heure_arrivee": {
+          "name": "heure_arrivee",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'18:00'"
+        },
+        "heure_depart": {
+          "name": "heure_depart",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'09:00'"
+        },
+        "heure_limite_arrivee": {
+          "name": "heure_limite_arrivee",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'20:00'"
+        },
+        "bebe_age_limite": {
+          "name": "bebe_age_limite",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 2
+        },
+        "bebes_hors_capacite": {
+          "name": "bebes_hors_capacite",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "lits_bebe": {
+          "name": "lits_bebe",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "taux_acompte": {
+          "name": "taux_acompte",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 30
+        },
+        "delai_solde_jours": {
+          "name": "delai_solde_jours",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 30
+        },
+        "delai_virement_caution_jours": {
+          "name": "delai_virement_caution_jours",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 3
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "reglages_bareme_general_id_baremes_id_fk": {
+          "name": "reglages_bareme_general_id_baremes_id_fk",
+          "tableFrom": "reglages",
+          "tableTo": "baremes",
+          "columnsFrom": [
+            "bareme_general_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "reglages_ligne_unique_check": {
+          "name": "reglages_ligne_unique_check",
+          "value": "\"reglages\".\"id\" = 1"
+        },
+        "reglages_nuits_minimum_check": {
+          "name": "reglages_nuits_minimum_check",
+          "value": "\"reglages\".\"nuits_minimum\" >= 1"
+        },
+        "reglages_jours_arrivee_check": {
+          "name": "reglages_jours_arrivee_check",
+          "value": "(cardinality(\"reglages\".\"jours_arrivee\") >= 1 and \"reglages\".\"jours_arrivee\" <@ array[1, 2, 3, 4, 5, 6, 7])"
+        },
+        "reglages_jours_depart_check": {
+          "name": "reglages_jours_depart_check",
+          "value": "(cardinality(\"reglages\".\"jours_depart\") >= 1 and \"reglages\".\"jours_depart\" <@ array[1, 2, 3, 4, 5, 6, 7])"
+        },
+        "reglages_periodes_jour_debut_check": {
+          "name": "reglages_periodes_jour_debut_check",
+          "value": "\"reglages\".\"periodes_jour_debut\" is null or \"reglages\".\"periodes_jour_debut\" between 1 and 7"
+        },
+        "reglages_duree_blocage_check": {
+          "name": "reglages_duree_blocage_check",
+          "value": "\"reglages\".\"duree_blocage_minutes\" between 1 and 120"
+        },
+        "reglages_delai_reservation_check": {
+          "name": "reglages_delai_reservation_check",
+          "value": "\"reglages\".\"delai_reservation_jours\" between 0 and 365"
+        },
+        "reglages_heures_check": {
+          "name": "reglages_heures_check",
+          "value": "\"reglages\".\"heure_limite_arrivee\" >= \"reglages\".\"heure_arrivee\""
+        },
+        "reglages_bebes_check": {
+          "name": "reglages_bebes_check",
+          "value": "\"reglages\".\"bebe_age_limite\" between 1 and 17 and \"reglages\".\"bebes_hors_capacite\" between 0 and 10\n          and \"reglages\".\"lits_bebe\" between 0 and 10"
+        },
+        "reglages_paiement_check": {
+          "name": "reglages_paiement_check",
+          "value": "\"reglages\".\"taux_acompte\" between 1 and 100 and \"reglages\".\"delai_solde_jours\" between 0 and 365\n          and \"reglages\".\"delai_virement_caution_jours\" between 0 and 60"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.taxes_sejour": {
+      "name": "taxes_sejour",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "gite_id": {
+          "name": "gite_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_debut": {
+          "name": "date_debut",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mode": {
+          "name": "mode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "taux": {
+          "name": "taux",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "plafond": {
+          "name": "plafond",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tarif_fixe": {
+          "name": "tarif_fixe",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "taxe_additionnelle": {
+          "name": "taxe_additionnelle",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "menage_dans_assiette": {
+          "name": "menage_dans_assiette",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "bebes_parmi_occupants": {
+          "name": "bebes_parmi_occupants",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "taxes_sejour_gite_id_gites_id_fk": {
+          "name": "taxes_sejour_gite_id_gites_id_fk",
+          "tableFrom": "taxes_sejour",
+          "tableTo": "gites",
+          "columnsFrom": [
+            "gite_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "taxes_sejour_gite_date_key": {
+          "name": "taxes_sejour_gite_date_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "gite_id",
+            "date_debut"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "taxes_sejour_mode_check": {
+          "name": "taxes_sejour_mode_check",
+          "value": "\"taxes_sejour\".\"mode\" in ('proportionnel', 'fixe')"
+        },
+        "taxes_sejour_parametres_check": {
+          "name": "taxes_sejour_parametres_check",
+          "value": "(\"taxes_sejour\".\"mode\" = 'proportionnel' and \"taxes_sejour\".\"taux\" is not null and \"taxes_sejour\".\"plafond\" is not null)\n          or (\"taxes_sejour\".\"mode\" = 'fixe' and \"taxes_sejour\".\"tarif_fixe\" is not null)"
+        },
+        "taxes_sejour_valeurs_check": {
+          "name": "taxes_sejour_valeurs_check",
+          "value": "(\"taxes_sejour\".\"taux\" is null or \"taxes_sejour\".\"taux\" > 0) and (\"taxes_sejour\".\"plafond\" is null or \"taxes_sejour\".\"plafond\" > 0)\n          and (\"taxes_sejour\".\"tarif_fixe\" is null or \"taxes_sejour\".\"tarif_fixe\" >= 0) and \"taxes_sejour\".\"taxe_additionnelle\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.textes_accord": {
+      "name": "textes_accord",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "objet": {
+          "name": "objet",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "langue": {
+          "name": "langue",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "en_vigueur_depuis": {
+          "name": "en_vigueur_depuis",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "modele": {
+          "name": "modele",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "modele_solde": {
+          "name": "modele_solde",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valide_par": {
+          "name": "valide_par",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "textes_accord_version_key": {
+          "name": "textes_accord_version_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "objet",
+            "langue",
+            "en_vigueur_depuis"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "textes_accord_objet_check": {
+          "name": "textes_accord_objet_check",
+          "value": "\"textes_accord\".\"objet\" in ('carte')"
+        },
+        "textes_accord_langue_check": {
+          "name": "textes_accord_langue_check",
+          "value": "\"textes_accord\".\"langue\" in ('fr', 'en')"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -41,8 +41,10 @@
 // blanc annoncerait libres des nuits qu'on ne sait pas lire.
 import { unstable_cache } from "next/cache";
 
+import { eq } from "drizzle-orm";
+
 import { getDb } from "@/db";
-import { gites } from "@/db/schema";
+import { gites, reglages } from "@/db/schema";
 import { centimesDepuisNumeric } from "@/lib/centimes";
 import { GITES, isGiteId, type GiteId } from "@/lib/data/gites";
 import { ajouterJours, aujourdhuiParis, nombreDeNuits, premierJourDuMois } from "@/lib/dates-civiles";
@@ -81,6 +83,34 @@ export interface ChiffresGite {
   taxe: ReglageTaxe | null;
   /** Calendrier des mois affichés ; `null` = illisible, calendrier masqué. */
   calendrier: JourCalendrier[] | null;
+  /** Taux d'acompte (%) et délai du solde (jours), réglages communs ; `null` = illisibles, masqués. */
+  conditions: ConditionsPaiement | null;
+}
+
+export interface ConditionsPaiement {
+  tauxAcompte: number;
+  delaiSoldeJours: number;
+}
+
+/** Conditions de paiement des réglages, ou `null` (panne journalisée) : la fiche les masque. */
+async function lireConditions(): Promise<ConditionsPaiement | null> {
+  try {
+    const [r] = await getDb()
+      .select({ taux: reglages.taux_acompte, delai: reglages.delai_solde_jours })
+      .from(reglages)
+      .where(eq(reglages.id, 1));
+    if (!r) {
+      console.warn("[gites-publics] VALEUR ABSENTE EN BASE : réglages généraux (reglages, id = 1) — acompte et solde masqués.");
+      return null;
+    }
+    return { tauxAcompte: r.taux, delaiSoldeJours: r.delai };
+  } catch (erreur) {
+    console.error(
+      "[gites-publics] RÉGLAGES ILLISIBLES : acompte et solde masqués.",
+      erreur instanceof Error ? erreur.message : erreur,
+    );
+    return null;
+  }
 }
 
 /**
@@ -193,6 +223,7 @@ async function chargerDepuisBase(): Promise<Partial<Record<GiteId, ChiffresGite>
     .from(gites);
 
   const tarification = await lireTarification();
+  const conditions = await lireConditions();
   const aujourdhui = aujourdhuiParis();
 
   const parGite: Partial<Record<GiteId, ChiffresGite>> = {};
@@ -250,6 +281,7 @@ async function chargerDepuisBase(): Promise<Partial<Record<GiteId, ChiffresGite>
       plancherSemaine: grille ? plancherSemaine(grille) : null,
       taxe,
       calendrier: await lireCalendrier(ligne.id, ligne.slug, tarification, aujourdhui),
+      conditions,
     };
   }
 

@@ -65,7 +65,8 @@ async function main(): Promise<void> {
            date_arrivee, date_depart, heure_arrivee, heure_depart, heure_limite_arrivee,
            nb_adultes, nb_enfants, nb_bebes, occupants_majeurs,
            prix_location, forfait_menage, options, taxe_sejour, taux_taxe_sejour,
-           mode_paiement, reference_transaction, date_paiement_acompte
+           mode_paiement, reference_transaction, date_paiement_acompte,
+           taux_acompte, delai_solde_jours
          ) values (
            $1, $2, 'confirmee',
            $3, $4, $5, $6, $7, $8, $9, $10, $11,
@@ -73,7 +74,8 @@ async function main(): Promise<void> {
            $15, $16, $17, $18, $19,
            $20, $21, $22, $23,
            $24, $25, $26, $27, $28,
-           $29, $30, $31
+           $29, $30, $31,
+           $32, $33
          ) returning id`,
         [
           gite.id, resa.reference,
@@ -89,6 +91,7 @@ async function main(): Promise<void> {
           numericDepuisCentimes(resa.attendu.taxeSejour),
           resa.tauxTaxeSejour,
           resa.modePaiement, resa.referenceTransaction, resa.datePaiementAcompte,
+          resa.tauxAcompte, resa.delaiSoldeJours,
         ],
       );
       console.log(`Réservation ${resa.reference} créée : ${rows[0].id}`);

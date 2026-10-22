@@ -1,6 +1,7 @@
 // Le TUNNEL DE RÉSERVATION côté serveur : charger ce dont il a besoin,
 // enregistrer une tentative (réservation « en attente de paiement » et dates
-// bloquées), l'abandonner.
+// bloquées, avec le règlement choisi par le client), l'abandonner. Le
+// paiement lui-même est dans lib/paiement.ts.
 //
 // CE MODULE NE DÉGRADE JAMAIS (héritage de la Phase 2, docs/phases/phase-3.md) :
 // une base illisible, un gîte absent, des réglages manquants lèvent une
@@ -13,10 +14,10 @@
 // et des coordonnées, jamais un montant.
 import { randomInt } from "node:crypto";
 
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { gites, reglages, reservations } from "@/db/schema";
+import { gites, paiements, reglages, reservations } from "@/db/schema";
 import { centimesDepuisNumeric, numericDepuisCentimes } from "@/lib/centimes";
 import { occupantsMajeurs, type Coordonnees } from "@/lib/coordonnees";
 import { GITE_IDS, type GiteId } from "@/lib/data/gites";
@@ -32,7 +33,9 @@ import {
   type ReglagesTunnel,
 } from "@/lib/devis";
 import { leverBlocage, lireNuitsPrises, poserBlocage } from "@/lib/disponibilites";
-import type { Langue } from "@/lib/i18n/langues";
+import { LANGUES, type Langue } from "@/lib/i18n/langues";
+import { annulerPaiementsOuverts, lireTexteAccord } from "@/lib/paiement";
+import { carteEnregistree, texteAccordCarte, validerChoix, type ChoixReglement } from "@/lib/reglement";
 import { isUniqueViolation } from "@/lib/route-helpers";
 import type { Executeur } from "@/lib/reservations";
 import { chargerTarification } from "@/lib/tarifs";
@@ -58,6 +61,9 @@ export async function lireReglagesTunnel(executeur: Executeur = getDb()): Promis
     bebeAgeLimite: r.bebe_age_limite,
     bebesHorsCapacite: r.bebes_hors_capacite,
     litsBebe: r.lits_bebe,
+    tauxAcompte: r.taux_acompte,
+    delaiSoldeJours: r.delai_solde_jours,
+    delaiVirementCautionJours: r.delai_virement_caution_jours,
   };
 }
 
@@ -104,6 +110,14 @@ async function lireDonneesTunnel(slug: GiteId, executeur: Executeur): Promise<Tu
   for (const anomalie of lue.anomalies) console.warn(`[tunnel] ${anomalie}`);
 
   const aujourdhui = aujourdhuiParis();
+  // Sans texte d'accord pour l'enregistrement de la carte, dans chaque langue
+  // du site, le tunnel ne s'ouvre pas : la caution par carte serait proposée
+  // sans que le client puisse lire ce qu'il accepte (docs/phases/phase-3.md).
+  for (const langue of LANGUES) {
+    if (!(await lireTexteAccord(executeur, langue, aujourdhui))) {
+      throw new TunnelIndisponible(`texte d'accord pour la carte absent en base (langue ${langue}, table textes_accord)`);
+    }
+  }
   const fins = lue.tarification.periodes.map((p) => p.fin).sort();
   const horizon = fins.length > 0 ? fins[fins.length - 1] : null;
   const finLecture = horizon && horizon > aujourdhui ? horizon : ajouterJours(aujourdhui, HORIZON_PAR_DEFAUT_JOURS);
@@ -189,8 +203,13 @@ export type ResultatTentative =
       dureeBlocageMinutes: number;
       /** Le total recalculé diffère de celui que le client avait sous les yeux. */
       prixModifie: boolean;
+      choix: ChoixReglement;
+      /** Texte d'accord affiché sous la carte (caution par carte), sinon `null`. */
+      accordCarte: string | null;
+      client: { email: string; nom: string };
     }
   | { ok: false; raison: "REFUS"; refus: RefusDevis }
+  | { ok: false; raison: "REGLEMENT"; message: string }
   | { ok: false; raison: "DATES_PRISES"; nuitsPrises: string[]; alternatives: Alternative[] };
 
 class DatesPrises extends Error {
@@ -208,7 +227,9 @@ export async function enregistrerTentative(
   demande: DemandeDevis,
   coordonnees: Coordonnees,
   totalAttendu: number | null,
-  /** Langue des messages de refus renvoyés au client. */
+  /** Caution et solde choisis par le client, tels que reçus (contrôlés ici, sur le devis du serveur). */
+  reglementBrut: unknown,
+  /** Langue du client : messages de refus, texte d'accord, courriels (lot 4). */
   langue: Langue = "fr",
 ): Promise<ResultatTentative> {
   const db = getDb();
@@ -231,6 +252,28 @@ export async function enregistrerTentative(
   const devis = resultat.devis;
   const { locataire, colocataire } = coordonnees;
   const r = donnees.reglages;
+
+  const reglement = validerChoix(reglementBrut, devis.paiementIntegral, langue);
+  if (!reglement.ok) {
+    console.warn(`[tunnel] règlement refusé (${slug}) : ${reglement.detail}`);
+    return { ok: false, raison: "REGLEMENT", message: reglement.message };
+  }
+  const choix = reglement.choix;
+  let accord: { id: string; texte: string } | null = null;
+  if (carteEnregistree(choix)) {
+    const modele = await lireTexteAccord(db, langue, donnees.aujourdhui);
+    if (!modele) throw new TunnelIndisponible(`texte d'accord pour la carte absent en base (langue ${langue})`);
+    accord = {
+      id: modele.id,
+      texte: texteAccordCarte(modele, {
+        caution: devis.caution,
+        prelevement:
+          choix.modeSolde === "prelevement" && devis.dateLimiteSolde
+            ? { montant: devis.montants.solde, date: devis.dateLimiteSolde }
+            : null,
+      }),
+    };
+  }
 
   for (let essai = 1; ; essai += 1) {
     const reference = nouvelleReference(demande.arrivee);
@@ -272,6 +315,15 @@ export async function enregistrerTentative(
             // avant que le contrat ne soit généré depuis le tunnel (lot 4).
             taux_taxe_sejour: null,
             detail_calcul: detailCalcul(devis, r),
+            // Conditions figées : un réglage modifié demain ne change pas ce contrat.
+            taux_acompte: devis.tauxAcompte,
+            delai_solde_jours: devis.delaiSoldeJours,
+            paiement_integral: devis.paiementIntegral,
+            moyen_caution: choix.moyenCaution,
+            mode_solde: choix.modeSolde,
+            langue,
+            accord_carte_id: accord?.id ?? null,
+            accord_carte_texte: accord?.texte ?? null,
           })
           .returning({ id: reservations.id });
 
@@ -294,6 +346,9 @@ export async function enregistrerTentative(
         devis,
         dureeBlocageMinutes: r.dureeBlocageMinutes,
         prixModifie: totalAttendu !== null && totalAttendu !== devis.montants.totalTtc,
+        choix,
+        accordCarte: accord?.texte ?? null,
+        client: { email: coordonnees.email, nom: `${locataire.prenom} ${locataire.nom}` },
       };
     } catch (erreur) {
       if (erreur instanceof DatesPrises) {
@@ -315,12 +370,15 @@ export type ResultatAbandon = "ABANDONNEE" | "ABSENTE" | "ENGAGEE";
 
 /**
  * Abandon d'une tentative (le client revient en arrière depuis le paiement) :
- * le blocage est levé et la réservation SUPPRIMÉE, avec les coordonnées du
- * client — rien n'a été payé ni émis, et garder ces données n'aurait aucune
- * raison. Une réservation engagée (payée, contrat émis, autre statut) est
- * refusée : elle ne se supprime jamais.
+ * son paiement encore ouvert est ANNULÉ chez le prestataire, puis le blocage
+ * est levé et la réservation SUPPRIMÉE, avec les coordonnées du client — rien
+ * n'a été payé ni émis, et garder ces données n'aurait aucune raison. Une
+ * réservation engagée (payée ou en cours de paiement, contrat émis, autre
+ * statut) est refusée : elle ne se supprime jamais.
  */
 export async function abandonnerTentative(reservationId: string): Promise<ResultatAbandon> {
+  // Hors transaction : un appel au prestataire ne doit pas tenir un verrou de base.
+  if (!(await annulerPaiementsOuverts(getDb(), reservationId))) return "ENGAGEE";
   return getDb().transaction(async (tx) => {
     const [resa] = await tx
       .select({ statut: reservations.statut, paye: reservations.date_paiement_acompte, contrat: reservations.numero_contrat })
@@ -330,6 +388,18 @@ export async function abandonnerTentative(reservationId: string): Promise<Result
     if (!resa) return "ABSENTE";
     if (resa.statut !== "en_attente_paiement" || resa.paye !== null || resa.contrat !== null) return "ENGAGEE";
 
+    // Un paiement constaté entre l'annulation et ce verrou : la réservation est engagée.
+    const payes = await tx
+      .select({ id: paiements.id })
+      .from(paiements)
+      .where(
+        and(
+          eq(paiements.reservation_id, reservationId),
+          inArray(paiements.statut, ["reussi", "a_rembourser", "rembourse"]),
+        ),
+      );
+    if (payes.length > 0) return "ENGAGEE";
+    await tx.delete(paiements).where(eq(paiements.reservation_id, reservationId));
     await leverBlocage(tx, reservationId);
     await tx
       .delete(reservations)

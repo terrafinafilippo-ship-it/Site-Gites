@@ -72,6 +72,9 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     "nb_adultes", "nb_enfants", "nb_bebes", "occupants_majeurs",
     "prix_location", "forfait_menage", "options", "taxe_sejour", "taux_taxe_sejour",
     "detail_calcul",
+    // Paiement (Phase 3, lot 3, migration 0005).
+    "taux_acompte", "delai_solde_jours", "paiement_integral", "moyen_caution", "mode_solde", "langue",
+    "stripe_customer_id", "stripe_payment_method_id", "accord_carte_id", "accord_carte_texte",
     "mode_paiement", "reference_transaction", "date_paiement_acompte",
     "created_at", "updated_at",
   ],
@@ -91,7 +94,8 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
   compteurs_documents: ["serie", "annee", "dernier_numero"],
   paiements: [
     "id", "reservation_id", "type", "montant", "statut", "prestataire", "reference_externe",
-    "date_paiement", "created_at",
+    "date_paiement", "motif_remboursement", "reference_remboursement", "date_remboursement",
+    "created_at", "updated_at",
   ],
   disponibilites: [
     "id", "gite_id", "date", "statut", "source", "reservation_id", "verrou_expire_at", "created_at",
@@ -113,12 +117,16 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     // Tunnel (Phase 3, lot 2, migration 0004).
     "duree_blocage_minutes", "delai_reservation_jours", "heure_arrivee", "heure_depart",
     "heure_limite_arrivee", "bebe_age_limite", "bebes_hors_capacite", "lits_bebe",
+    // Paiement (Phase 3, lot 3, migration 0005).
+    "taux_acompte", "delai_solde_jours", "delai_virement_caution_jours",
     "updated_at",
   ],
   taxes_sejour: [
     "id", "gite_id", "date_debut", "mode", "taux", "plafond", "tarif_fixe", "taxe_additionnelle",
     "menage_dans_assiette", "bebes_parmi_occupants", "source", "created_at",
   ],
+  // Texte d'accord pour l'enregistrement de la carte (Phase 3, lot 3).
+  textes_accord: ["id", "objet", "langue", "en_vigueur_depuis", "modele", "modele_solde", "valide_par", "created_at"],
 };
 
 // Quelques types sensibles (le module de contrat en dépend).
@@ -199,6 +207,8 @@ async function verifierSchema(client: PoolClient): Promise<void> {
   const noms = triggers.rows.map((t) => t.tgname);
   noter("1", noms.includes("signatures_immuables"), "trigger signatures_immuables présent");
   noter("1", noms.includes("reservations_set_updated_at"), "trigger reservations_set_updated_at présent");
+  noter("1", noms.includes("paiements_set_updated_at"), "trigger paiements_set_updated_at présent");
+  noter("1", noms.includes("textes_accord_immuables"), "trigger textes_accord_immuables présent");
 
   const index = await client.query<{ indexname: string }>(
     `select indexname from pg_indexes where schemaname = 'public'`,
@@ -209,6 +219,7 @@ async function verifierSchema(client: PoolClient): Promise<void> {
     "documents_token_uidx",
     "signatures_document_id_uidx",
     "disponibilites_gite_date_uidx",
+    "paiements_reference_externe_uidx",
   ]) {
     noter("1", idx.includes(nom), `index unique ${nom} présent`);
   }
@@ -234,6 +245,17 @@ async function verifierSchema(client: PoolClient): Promise<void> {
     `select count(*)::int as n from disponibilites where statut not in ('verrou', 'reserve', 'bloque')`,
   );
   noter("1", libres.rows[0].n === 0, "disponibilites : aucune ligne hors des trois états", `${libres.rows[0].n} ligne(s)`);
+
+  // Le tunnel ne s'ouvre pas sans texte d'accord pour la carte, dans chaque langue.
+  const accords = await client.query<{ langue: string }>(
+    `select distinct langue from textes_accord where objet = 'carte' and en_vigueur_depuis <= current_date order by langue`,
+  );
+  noter(
+    "1",
+    accords.rows.map((r) => r.langue).join(",") === "en,fr",
+    "texte d'accord pour la carte en vigueur, en français et en anglais",
+    accords.rows.map((r) => r.langue).join(", ") || "aucun",
+  );
 }
 
 // ─── 2. Seed des gîtes ───────────────────────────────────────────────────────
@@ -325,9 +347,10 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
     const reference = `VERIFY-${randomBytes(4).toString("hex")}`;
     const resa = await client.query<{ id: string; created_at: Date }>(
       `insert into reservations (gite_id, reference, statut, date_arrivee, date_depart,
-                                 client_nom, client_prenom, client_email, nb_adultes, prix_location)
+                                 client_nom, client_prenom, client_email, nb_adultes, prix_location,
+                                 taux_acompte, delai_solde_jours)
        values ($1, $2, 'confirmee', '2026-10-03', '2026-10-10', 'VERIFICATION', 'Test',
-               'verify@example.invalid', 2, 450)
+               'verify@example.invalid', 2, 450, 30, 30)
        returning id, created_at`,
       [giteId, reference],
     );
@@ -597,6 +620,60 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
       );
       noter("6c", codePg(doublon.erreur) === "23505", "seconde ligne pour la même nuit refusée (index unique)", codePg(doublon.erreur));
     }
+
+    // ── 6d. Paiement : conditions figées, choix du client, texte d'accord ──
+    titre("6d. Paiement : conditions, choix, texte d'accord");
+    const tauxNul = await attendreErreur(
+      client, "sp_taux_nul", `update reglages set taux_acompte = 0 where id = 1`, [],
+    );
+    noter("6d", codePg(tauxNul.erreur) === "23514", "taux d'acompte de 0 % refusé", codePg(tauxNul.erreur));
+    if (giteId) {
+      const sansConditions = await attendreErreur(
+        client, "sp_sans_conditions",
+        `insert into reservations (gite_id, reference, statut, date_arrivee, date_depart)
+         values ($1, 'VERIFY-SANS-CONDITIONS', 'brouillon', '2099-06-01', '2099-06-08')`, [giteId],
+      );
+      noter("6d", codePg(sansConditions.erreur) === "23502", "réservation sans taux d'acompte ni délai du solde refusée (aucune valeur par défaut)", codePg(sansConditions.erreur));
+    }
+    const prelevementCheque = await attendreErreur(
+      client, "sp_prelevement_cheque",
+      `update reservations set moyen_caution = 'cheque', mode_solde = 'prelevement' where id = $1`, [resaId],
+    );
+    noter("6d", codePg(prelevementCheque.erreur) === "23514", "prélèvement du solde avec une caution par chèque refusé", codePg(prelevementCheque.erreur));
+    const soldeIntegral = await attendreErreur(
+      client, "sp_solde_integral",
+      `update reservations set moyen_caution = 'carte', mode_solde = 'lien', paiement_integral = true where id = $1`, [resaId],
+    );
+    noter("6d", codePg(soldeIntegral.erreur) === "23514", "règlement du solde pour un paiement intégral refusé", codePg(soldeIntegral.erreur));
+    const accordSansVersion = await attendreErreur(
+      client, "sp_accord_sans_version",
+      `update reservations set accord_carte_texte = 'texte' where id = $1`, [resaId],
+    );
+    noter("6d", codePg(accordSansVersion.erreur) === "23514", "texte d'accord sans sa version refusé", codePg(accordSansVersion.erreur));
+    const statutPaiement = await attendreErreur(
+      client, "sp_statut_paiement",
+      `insert into paiements (reservation_id, type, montant, statut) values ($1, 'acompte', 10, 'inconnu')`, [resaId],
+    );
+    noter("6d", codePg(statutPaiement.erreur) === "23514", "statut de paiement inconnu refusé", codePg(statutPaiement.erreur));
+    const sansMotif = await attendreErreur(
+      client, "sp_sans_motif",
+      `insert into paiements (reservation_id, type, montant, statut) values ($1, 'total', 10, 'a_rembourser')`, [resaId],
+    );
+    noter("6d", codePg(sansMotif.erreur) === "23514", "remboursement sans motif refusé", codePg(sansMotif.erreur));
+    const doublonPaiement = await attendreErreur(
+      client, "sp_doublon_paiement",
+      `insert into paiements (reservation_id, type, montant, statut, reference_externe)
+       values ($1, 'acompte', 10, 'en_attente', 'pi_verify'), ($1, 'acompte', 10, 'en_attente', 'pi_verify')`, [resaId],
+    );
+    noter("6d", codePg(doublonPaiement.erreur) === "23505", "même paiement du prestataire enregistré deux fois refusé", codePg(doublonPaiement.erreur));
+    const majAccord = await attendreErreur(
+      client, "sp_maj_accord", `update textes_accord set modele = modele || ' ' where objet = 'carte'`, [],
+    );
+    noter("6d", majAccord.erreur !== null && /immuable/i.test(messageErreur(majAccord.erreur)), "texte d'accord : modification refusée par le trigger", majAccord.erreur ? messageErreur(majAccord.erreur).split("\n")[0] : "aucune erreur");
+    const supprAccord = await attendreErreur(
+      client, "sp_suppr_accord", `delete from textes_accord where objet = 'carte'`, [],
+    );
+    noter("6d", supprAccord.erreur !== null && /immuable/i.test(messageErreur(supprAccord.erreur)), "texte d'accord : suppression refusée par le trigger", supprAccord.erreur ? messageErreur(supprAccord.erreur).split("\n")[0] : "aucune erreur");
   } finally {
     await client.query("ROLLBACK");
   }

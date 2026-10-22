@@ -137,6 +137,16 @@ export const fmtHeure = (hhmm: string, langue: Langue = 'fr'): string => {
   return `${String(parseInt(h, 10)).padStart(2, '0')}:${m}`;
 };
 
+/** « samedi 12 juin 2027 » / « Saturday 12 June 2027 ». Date civile lue en UTC. */
+export const fmtDateAvecJour = (iso: string, langue: Langue = 'fr'): string =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString(LOCALE[langue], {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+
 /** « 17 octobre 2026 » / « 17 October 2026 ». Date civile lue en UTC : aucun décalage de fuseau. */
 export const fmtDateLongue = (iso: string, langue: Langue = 'fr'): string =>
   new Date(`${iso}T00:00:00Z`).toLocaleDateString(LOCALE[langue], {

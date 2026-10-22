@@ -6,7 +6,6 @@ import ImageSlot from "@/components/ui/ImageSlot";
 import Badge from "@/components/ui/Badge";
 import { GITES, GITE_IDS, isGiteId } from "@/lib/data/gites";
 import { STORIES } from "@/lib/data/stories";
-import { DELAI_SOLDE_DEFAUT, TAUX_ACOMPTE } from "@/lib/constantes";
 import { jourSemaineIso } from "@/lib/dates-civiles";
 import { fmtMois, fmtNote, fmtPlage, fmtPrix, fmtTaux, fmtTaxeSejour, INITIALES_JOURS } from "@/lib/format";
 import {
@@ -669,8 +668,12 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
                     )}
                   </>
                 )}
-                <li><span>{t.acompte}</span><strong>{fmtTaux(TAUX_ACOMPTE, langue)}</strong></li>
-                <li><span>{t.solde}</span><strong>{t.soldeDelai(DELAI_SOLDE_DEFAUT)}</strong></li>
+                {chiffres?.conditions && (
+                  <>
+                    <li><span>{t.acompte}</span><strong>{fmtTaux(chiffres.conditions.tauxAcompte, langue)}</strong></li>
+                    <li><span>{t.solde}</span><strong>{t.soldeDelai(chiffres.conditions.delaiSoldeJours)}</strong></li>
+                  </>
+                )}
                 <li><span>{t.animaux}</span><strong>{t.nonAdmis}</strong></li>
                 <li><span>{t.lingeDraps}</span><strong>{t.fournis}</strong></li>
                 <li><span>{t.chauffageLib}</span><strong>{t.compris}</strong></li>

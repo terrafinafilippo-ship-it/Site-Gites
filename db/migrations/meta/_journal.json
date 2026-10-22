@@ -36,6 +36,13 @@
       "when": 1792091313901,
       "tag": "0004_tunnel",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792522355801,
+      "tag": "0005_paiement",
+      "breakpoints": true
     }
   ]
 }

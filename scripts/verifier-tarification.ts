@@ -1,7 +1,8 @@
 // Contrôle du calcul des prix de séjour (lib/tarification.ts), de la taxe de
-// séjour (lib/taxe-sejour.ts), du devis du tunnel (lib/devis.ts) et du contrôle
-// des coordonnées (lib/coordonnees.ts), cas par cas, montants attendus
-// calculés à la main.
+// séjour (lib/taxe-sejour.ts), du devis du tunnel (lib/devis.ts), du contrôle
+// des coordonnées (lib/coordonnees.ts) et du règlement choisi par le client
+// (lib/reglement.ts : caution, solde, texte d'accord), cas par cas, montants
+// attendus calculés à la main.
 //
 // Lancer : npm run verify:tarification
 // Code de sortie 1 si un cas échoue. Aucune base de données requise : les
@@ -9,6 +10,8 @@
 // d'essai ; seuls les réglages de taxe reprennent les valeurs officielles de
 // Savas (délibération CC_2025_119), et les deux exemples du guide officiel
 // d'Ardèche Grand Air doivent être retrouvés au centime.
+import { readFileSync } from 'node:fs';
+
 import { ajouterJours, jourSemaineIso, nombreDeNuits } from '../lib/dates-civiles';
 import { diviserArrondiEntier, entierDepuisDecimal } from '../lib/decimaux';
 import {
@@ -37,6 +40,7 @@ import {
   type ResultatDevis,
 } from '../lib/devis';
 import { montantsDesPostes } from '../lib/montants';
+import { carteEnregistree, choixComplet, texteAccordCarte, validerChoix } from '../lib/reglement';
 import { fmtDateLongue, fmtEuro, fmtPrix, fmtTaux, fmtTauxCentiemes } from '../lib/format';
 import { cheminSansLangue, lien, type Langue } from '../lib/i18n/langues';
 
@@ -443,6 +447,9 @@ const REGLAGES_TUNNEL: ReglagesTunnel = {
   bebeAgeLimite: 2,
   bebesHorsCapacite: 1,
   litsBebe: 1,
+  tauxAcompte: 30,
+  delaiSoldeJours: 30,
+  delaiVirementCautionJours: 3,
 };
 const ARMU: GiteTunnel = { slug: 'armu', nom: "L'Armu", capaciteMax: 2, forfaitMenage: 8000, caution: 40000 };
 const LAPHINE: GiteTunnel = { slug: 'laphine', nom: 'LaPhine', capaciteMax: 4, forfaitMenage: 8000, caution: 50000 };
@@ -571,8 +578,43 @@ const SEMAINE = { arrivee: '2027-01-09', depart: '2027-01-16' };
 }
 {
   // Le devis et les documents partagent le calcul : réservation de référence L'Armu.
-  const m = montantsDesPostes({ prixLocation: 45730, forfaitMenage: 8000, options: 2550, taxeSejour: 1386 });
+  const m = montantsDesPostes({ prixLocation: 45730, forfaitMenage: 8000, options: 2550, taxeSejour: 1386 }, 30);
   noter(m.totalTtc === 57666 && m.acompte === 17300 && m.solde === 40366, 'montantsDesPostes = montants de référence (576,66 / 173,00 / 403,66)', m);
+  let refuse = false;
+  try {
+    montantsDesPostes({ prixLocation: 45730, forfaitMenage: 8000, options: 0, taxeSejour: 0 }, 0);
+  } catch {
+    refuse = true;
+  }
+  noter(refuse, "taux d'acompte de 0 % : refusé, jamais un acompte nul");
+}
+{
+  // Lot 3 : taux d'acompte, délai du solde et délai du virement viennent des réglages.
+  const quarante = devisSejour(
+    contexte(ARMU, { reglages: { ...REGLAGES_TUNNEL, tauxAcompte: 40 } }),
+    { ...SEMAINE, adultes: 2, enfants: 0, bebes: 0 },
+  );
+  noter(
+    quarante.ok && quarante.devis.tauxAcompte === 40 && quarante.devis.aRegler === 22191 &&
+      quarante.devis.montants.solde === 33287,
+    'acompte réglé à 40 % : 221,91 € sur 554,78 € (arrondi au centime), solde 332,87 €',
+    quarante.ok ? quarante.devis.montants : quarante.refus,
+  );
+  const delai45 = devisSejour(
+    contexte(ARMU, { aujourdhui: '2026-11-25', reglages: { ...REGLAGES_TUNNEL, delaiSoldeJours: 45 } }),
+    { ...SEMAINE, adultes: 2, enfants: 0, bebes: 0 },
+  );
+  noter(
+    delai45.ok && delai45.devis.paiementIntegral && delai45.devis.delaiSoldeJours === 45,
+    'délai du solde réglé à 45 jours : réservé le 25 novembre pour le 9 janvier, paiement intégral',
+    delai45.ok ? delai45.devis.dateLimiteSolde : delai45.refus,
+  );
+  const r = devisSejour(contexte(ARMU), { ...SEMAINE, adultes: 2, enfants: 0, bebes: 0 });
+  noter(
+    r.ok && r.devis.dateLimiteVirementCaution === '2027-01-06',
+    'caution par virement reçue au plus tard le 6 janvier (3 jours avant le 9)',
+    r.ok ? r.devis.dateLimiteVirementCaution : r.refus,
+  );
 }
 
 // ─── 9. Coordonnées du client (lib/coordonnees.ts) ────────────────────────────
@@ -661,6 +703,91 @@ console.log('--- anglais : montants, dates, messages, liens');
       cheminSansLangue('/fr/contact') === '/contact' && cheminSansLangue('/entree') === '/entree',
     'chemin sans langue : /en/gites → /gites, /en → /, /fr/contact → /contact, /entree intact',
   );
+}
+
+// ─── 11. Règlement : caution, solde, texte d'accord (lot 3) ──────────────────
+
+console.log("--- règlement : caution, solde, texte d'accord");
+{
+  const ok = validerChoix({ moyenCaution: 'carte', modeSolde: 'prelevement' }, false);
+  noter(ok.ok && ok.choix.modeSolde === 'prelevement', 'carte + prélèvement : accepté');
+  noter(validerChoix({ moyenCaution: 'cheque', modeSolde: 'lien' }, false).ok, 'chèque + lien : accepté');
+  const sansCarte = validerChoix({ moyenCaution: 'virement', modeSolde: 'prelevement' }, false);
+  noter(
+    !sansCarte.ok && sansCarte.message === 'Le prélèvement automatique du solde demande une caution par carte.',
+    'virement + prélèvement : refusé (pas de carte enregistrée)',
+    sansCarte,
+  );
+  const rien = validerChoix({}, false, 'en');
+  noter(!rien.ok && rien.message === 'Choose how you will provide the security deposit.', 'rien choisi : refusé (rien n\'est pré-choisi), message en anglais', rien);
+  const sansSolde = validerChoix({ moyenCaution: 'carte' }, false);
+  noter(!sansSolde.ok && sansSolde.message === 'Choisissez comment régler le solde.', 'caution choisie sans le solde : refusé', sansSolde);
+  const integral = validerChoix({ moyenCaution: 'cheque', modeSolde: 'prelevement' }, true);
+  noter(integral.ok && integral.choix.modeSolde === null, 'paiement intégral : pas de solde, le choix reçu est ignoré', integral);
+  noter(
+    choixComplet({ moyenCaution: 'carte', modeSolde: null }, true) !== null &&
+      choixComplet({ moyenCaution: 'carte', modeSolde: null }, false) === null,
+    'bouton « Procéder au paiement » : actif dès la caution en paiement intégral, sinon caution ET solde',
+  );
+  noter(
+    carteEnregistree({ moyenCaution: 'carte', modeSolde: 'lien' }) &&
+      !carteEnregistree({ moyenCaution: 'virement', modeSolde: 'lien' }),
+    'carte enregistrée seulement pour une caution par carte',
+  );
+
+  // Les modèles de la migration 0005, et les textes validés le 14 et le 20 octobre 2026.
+  const MODELE_FR =
+    "En validant ce paiement, j'accepte que la carte utilisée soit conservée par Stripe, prestataire de paiement de la SARL DE LA VOUTE, pour les opérations suivantes :\n– une préautorisation de {caution} au titre du dépôt de garantie, effectuée la veille de mon départ. Elle n'est pas débitée, sauf dégât constaté, et elle est levée au plus tard 3 jours après mon départ{ligne_solde}.\nLes données de ma carte sont supprimées au plus tard 7 jours après mon départ.";
+  const SOLDE_FR = ' ;\n– le prélèvement du solde de {montant}, le {date}';
+  const MODELE_EN =
+    'By confirming this payment, I agree that the card used will be stored by Stripe, payment provider of SARL DE LA VOUTE, for the following operations:\n– a pre-authorisation of {caution} as a security deposit, made the day before my departure. It is not charged unless damage is found, and it is released no later than 3 days after my departure{ligne_solde}.\nMy card details are deleted no later than 7 days after my departure.';
+  const SOLDE_EN = ';\n– the charge of the balance of {montant} on {date}';
+  const migration = readFileSync('db/migrations/0005_paiement.sql', 'utf8');
+  const enSql = (t: string) => t.replaceAll("'", "''");
+  noter(
+    [MODELE_FR, SOLDE_FR, MODELE_EN, SOLDE_EN].every((t) => migration.includes(enSql(t))),
+    'les modèles contrôlés ici sont ceux de la migration 0005, mot pour mot',
+  );
+
+  const fr = texteAccordCarte(
+    { id: 'v-fr', langue: 'fr', modele: MODELE_FR, modeleSolde: SOLDE_FR },
+    { caution: 40000, prelevement: { montant: 38835, date: '2026-12-10' } },
+  );
+  noter(
+    fr ===
+      "En validant ce paiement, j'accepte que la carte utilisée soit conservée par Stripe, prestataire de paiement de la SARL DE LA VOUTE, pour les opérations suivantes :\n" +
+        '– une préautorisation de 400 € au titre du dépôt de garantie, effectuée la veille de mon départ. Elle n\'est pas débitée, sauf dégât constaté, et elle est levée au plus tard 3 jours après mon départ ;\n' +
+        '– le prélèvement du solde de 388,35 €, le 10 décembre 2026.\n' +
+        'Les données de ma carte sont supprimées au plus tard 7 jours après mon départ.',
+    'texte d\'accord, prélèvement choisi : le texte validé le 14 octobre, crochets remplis',
+    fr,
+  );
+  const frSansSolde = texteAccordCarte(
+    { id: 'v-fr', langue: 'fr', modele: MODELE_FR, modeleSolde: SOLDE_FR },
+    { caution: 40000, prelevement: null },
+  );
+  noter(
+    frSansSolde.includes('levée au plus tard 3 jours après mon départ.\nLes données') && !frSansSolde.includes('solde'),
+    'texte d\'accord, solde par lien : sans la ligne du solde, la phrase finit par un point',
+    frSansSolde,
+  );
+  const en = texteAccordCarte(
+    { id: 'v-en', langue: 'en', modele: MODELE_EN, modeleSolde: SOLDE_EN },
+    { caution: 40000, prelevement: { montant: 38835, date: '2026-12-10' } },
+  );
+  noter(
+    en.includes('a pre-authorisation of €400 as a security deposit') &&
+      en.includes('after my departure;\n– the charge of the balance of €388.35 on 10 December 2026.\n'),
+    'texte d\'accord en anglais : montants et date à l\'anglaise',
+    en,
+  );
+  let incomplet = false;
+  try {
+    texteAccordCarte({ id: 'v-x', langue: 'fr', modele: 'Caution {caution}, {inconnu}', modeleSolde: '' }, { caution: 1, prelevement: null });
+  } catch {
+    incomplet = true;
+  }
+  noter(incomplet, 'repère inconnu dans un modèle : le texte n\'est pas affiché (erreur)');
 }
 
 console.log(echecs === 0 ? `\n${nbCas} cas, tous passent.` : `\n${nbCas} cas, ${echecs} en échec.`);

@@ -19,7 +19,6 @@
 //
 // MONTANTS EN CENTIMES ENTIERS.
 
-import { DELAI_SOLDE_DEFAUT } from "@/lib/constantes";
 import { ajouterJours, jourSemaineIso, jourUtc, nombreDeNuits, NOMS_JOURS_ISO } from "@/lib/dates-civiles";
 import { fmtDateLongue } from "@/lib/format";
 import type { Bilingue, Langue } from "@/lib/i18n/langues";
@@ -52,6 +51,12 @@ export interface ReglagesTunnel {
   bebesHorsCapacite: number;
   /** Lits bébé disponibles dans un gîte. */
   litsBebe: number;
+  /** Taux de l'acompte, en pourcentage du total TTC (30 = 30 %). */
+  tauxAcompte: number;
+  /** Le solde est dû ce nombre de jours avant l'arrivée ; au-delà, paiement intégral (D-20). */
+  delaiSoldeJours: number;
+  /** Une caution par virement est reçue au plus tard ce nombre de jours avant l'arrivée (D-19). */
+  delaiVirementCautionJours: number;
 }
 
 /** Le gîte réservé, tel qu'en base. Montants en centimes. */
@@ -117,6 +122,10 @@ export interface Devis {
   taxe: DetailTaxe;
   /** Sous-total, total, acompte et solde : le calcul exact des documents. */
   montants: Montants;
+  /** Taux de l'acompte appliqué (réglages au moment du devis), en pourcentage. */
+  tauxAcompte: number;
+  /** Délai du solde appliqué, en jours avant l'arrivée. */
+  delaiSoldeJours: number;
   /** Paiement intégral à la réservation (D-20) : la date limite du solde est atteinte. */
   paiementIntegral: boolean;
   /** Ce que le client règle aujourd'hui : l'acompte, ou le total. */
@@ -124,6 +133,8 @@ export interface Devis {
   /** Date limite du solde (aaaa-mm-jj) ; `null` en paiement intégral. */
   dateLimiteSolde: string | null;
   caution: number;
+  /** Date limite de réception d'une caution par virement (aaaa-mm-jj). */
+  dateLimiteVirementCaution: string;
   /** Plus de bébés que de lits bébé : signalé au client, sans refus. */
   litsBebeInsuffisants: boolean;
 }
@@ -436,10 +447,10 @@ export function devisSejour(ctx: ContexteDevis, demande: DemandeDevis): Resultat
     forfaitMenage: gite.forfaitMenage,
     options: 0,
     taxeSejour: taxe.taxe.total,
-  });
+  }, reglages.tauxAcompte);
 
   // D-20 : la date limite du solde atteinte, le client paie le total.
-  const dateLimite = ajouterJours(demande.arrivee, -DELAI_SOLDE_DEFAUT);
+  const dateLimite = ajouterJours(demande.arrivee, -reglages.delaiSoldeJours);
   const paiementIntegral = aujourdhui >= dateLimite;
 
   return {
@@ -453,10 +464,13 @@ export function devisSejour(ctx: ContexteDevis, demande: DemandeDevis): Resultat
       prix,
       taxe: taxe.taxe,
       montants,
+      tauxAcompte: reglages.tauxAcompte,
+      delaiSoldeJours: reglages.delaiSoldeJours,
       paiementIntegral,
       aRegler: paiementIntegral ? montants.totalTtc : montants.acompte,
       dateLimiteSolde: paiementIntegral ? null : dateLimite,
       caution: gite.caution,
+      dateLimiteVirementCaution: ajouterJours(demande.arrivee, -reglages.delaiVirementCautionJours),
       litsBebeInsuffisants: occupants.bebes > reglages.litsBebe,
     },
   };

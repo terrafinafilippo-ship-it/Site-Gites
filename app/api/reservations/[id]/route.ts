@@ -1,6 +1,9 @@
 // DELETE /api/reservations/{id} — le client quitte l'écran de paiement pour
-// revenir en arrière : le blocage de ses dates est levé tout de suite, et la
-// tentative est supprimée avec ses coordonnées (rien n'a été payé ni émis).
+// revenir en arrière : son paiement encore ouvert est annulé chez Stripe, le
+// blocage de ses dates est levé tout de suite, et la tentative est supprimée
+// avec ses coordonnées (rien n'a été payé ni émis). Un paiement déjà abouti
+// ou en traitement rend la réservation engagée (409) : l'avis de Stripe la
+// confirmera, ou la remboursera.
 //
 // L'identifiant (uuid tiré au hasard, connu du seul navigateur qui a créé la
 // tentative) suffit : la seule action permise est d'abandonner SA tentative

@@ -78,6 +78,49 @@ export async function poserBlocage(
   return { ok: false, nuitsPrises };
 }
 
+export type ResultatVente = { ok: true } | { ok: false; nuitsPrises: string[] };
+
+/**
+ * Le paiement a abouti : les nuits [arrivee, depart[ passent de « bloquées »
+ * à « vendues » pour la réservation. UNE requête, comme le blocage :
+ *   - une nuit encore bloquée pour ELLE (même après l'échéance) est vendue ;
+ *   - une nuit libre (sans ligne, ou verrou expiré d'un autre) est reprise ;
+ *   - une nuit prise par un autre (verrou en cours, vendue, fermée) ne l'est pas.
+ * C'est le cas du paiement arrivé après la fin du blocage (D-21) : le résultat
+ * dit si TOUTES les nuits sont à elle. Sinon, l'appelant DOIT annuler la
+ * transaction (des nuits libres viennent d'être écrites) et rembourser.
+ */
+export async function vendreNuits(
+  tx: Executeur,
+  bloc: { giteId: string; reservationId: string; arrivee: string; depart: string },
+): Promise<ResultatVente> {
+  const nbNuits = nombreDeNuits(bloc.arrivee, bloc.depart);
+  if (nbNuits < 1) throw new Error(`vendreNuits : séjour sans nuit (${bloc.arrivee} → ${bloc.depart})`);
+
+  const resultat = await tx.execute<{ date: string }>(sql`
+    insert into disponibilites (gite_id, date, statut, source, reservation_id, verrou_expire_at)
+    select ${bloc.giteId}::uuid, nuit::date, 'reserve', 'directe', ${bloc.reservationId}::uuid, null
+      from generate_series(${bloc.arrivee}::date, ${bloc.depart}::date - 1, interval '1 day') as nuit
+    on conflict (gite_id, date) do update
+       set statut = 'reserve',
+           source = 'directe',
+           reservation_id = excluded.reservation_id,
+           verrou_expire_at = null
+     where disponibilites.statut = 'verrou'
+       and (disponibilites.reservation_id = excluded.reservation_id
+            or disponibilites.verrou_expire_at <= now())
+    returning date::text as date`);
+
+  if (resultat.rows.length === nbNuits) return { ok: true };
+  const obtenues = new Set(resultat.rows.map((r) => r.date));
+  const nuitsPrises: string[] = [];
+  for (let i = 0; i < nbNuits; i += 1) {
+    const nuit = ajouterJours(bloc.arrivee, i);
+    if (!obtenues.has(nuit)) nuitsPrises.push(nuit);
+  }
+  return { ok: false, nuitsPrises };
+}
+
 /** Lève le blocage d'une réservation. Renvoie le nombre de nuits libérées. */
 export async function leverBlocage(executeur: Executeur, reservationId: string): Promise<number> {
   const resultat = await executeur.execute(sql`

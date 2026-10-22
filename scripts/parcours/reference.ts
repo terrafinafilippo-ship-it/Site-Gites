@@ -51,6 +51,9 @@ export interface ReservationReference {
   modePaiement: string;
   referenceTransaction: string;
   datePaiementAcompte: string | null;
+  /** Conditions figées sur la réservation depuis le lot 3 de la Phase 3 : celles du contrat, inchangées. */
+  tauxAcompte: number;
+  delaiSoldeJours: number;
   attendu: MontantsAttendus;
 }
 
@@ -79,6 +82,8 @@ export const RESERVATIONS_REFERENCE: ReservationReference[] = [
     modePaiement: "Carte bancaire",
     referenceTransaction: "TEST-PAY-0001",
     datePaiementAcompte: "2026-09-15T18:28:23.118Z",
+    tauxAcompte: 30,
+    delaiSoldeJours: 30,
     attendu: {
       prixLocation: 45730, // 457,30 €
       forfaitMenage: 8000, // 80,00 € (valeur du gîte)
@@ -114,6 +119,8 @@ export const RESERVATIONS_REFERENCE: ReservationReference[] = [
     modePaiement: "Carte bancaire",
     referenceTransaction: "TEST-PAY-0002",
     datePaiementAcompte: null,
+    tauxAcompte: 30,
+    delaiSoldeJours: 30,
     attendu: {
       prixLocation: 62000, // 620,00 €
       forfaitMenage: 8000, // 80,00 €

@@ -5,7 +5,8 @@
 #   bash scripts/parcours/lancer.sh
 #
 # Prérequis : base de test migrée et semée, serveur démarré sur PARCOURS_BASE_URL
-# (voir README.md). Le script remet la base de TEST à zéro avant de commencer.
+# (voir README.md), clés Stripe de TEST dans .env.local (tunnel et paiement).
+# Le script remet la base de TEST à zéro avant de commencer.
 set -u
 
 BASE_URL="${PARCOURS_BASE_URL:-http://localhost:3001}"
@@ -39,6 +40,7 @@ etape "Conversion des montants (aller-retour centimes)" npm run -s verify:centim
 etape "Prix des séjours et taxe de séjour (calcul)" npm run -s verify:tarification
 etape "Remise à zéro de la base de test" env DB_CIBLE=test npx tsx scripts/parcours/reinitialiser.ts
 etape "Blocage des dates et tunnel (deux clients simultanés)" env DB_CIBLE=test npx tsx scripts/verifier-blocage.ts --http
+etape "Paiement (Stripe simulé, puis Stripe en mode test)" env DB_CIBLE=test npx tsx scripts/verifier-paiement.ts --http
 etape "Parcours L'Armu (avec options)" bash scripts/parcours/parcours.sh TEST-2026-ARMU-001
 etape "Parcours LaPhine (sans option, garde du cas B)" bash scripts/parcours/parcours.sh TEST-2026-LAPHINE-002 --cas-b
 etape "Accès aux PDF par URL signée" bash scripts/parcours/urls-signees.sh

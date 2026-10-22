@@ -18,3 +18,5 @@ export * from "./tarifs-prix";
 export * from "./periodes";
 export * from "./reglages";
 export * from "./taxes-sejour";
+// Paiement (Phase 3, lot 3).
+export * from "./textes-accord";

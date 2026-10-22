@@ -530,6 +530,31 @@ button.mcDay { font: inherit; font-size: 13px; color: inherit; padding: 0; }
 }
 .optionCardPrice { font-weight: 500; }
 
+/* Step 3 — Choix de la caution et du solde (lot 3) : rien n'est coché d'avance */
+.choixIntro {
+  font-size: 14px;
+  color: var(--color-gray-medium);
+  margin: -4px 0 14px;
+  line-height: 1.5;
+}
+.choixCarte {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.choixCarte .optionCardName,
+.choixCarte .optionCardDesc { display: block; }
+.choixCarte:focus-visible {
+  outline: 2px solid var(--tw-green-dark);
+  outline-offset: 2px;
+}
+.choixRond { border-radius: 50%; }
+.optionCard.isInactive {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .detailedRecap {
   background: #fff;
   border: 1px solid #e3dfd1;
@@ -629,41 +654,22 @@ button.mcDay { font: inherit; font-size: 13px; color: inherit; padding: 0; }
   font-size: 12px;
   font-weight: 500;
 }
-.stripeMock {
-  background: #fafaf6;
-  border: 1px dashed #d4cebd;
-  border-radius: var(--radius-default);
-  padding: 56px 32px;
-  text-align: center;
+/* Step 4 — Texte d'accord pour l'enregistrement de la carte, sous le champ de Stripe */
+.accordCarte {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #ebe7d8;
 }
-.stripeMock svg { color: var(--color-gray-medium); margin-bottom: 12px; }
-.stripeMock h4 {
-  font-family: var(--tw-font-serif);
-  font-size: 18px;
-  font-weight: 400;
+.accordCarte h4 {
+  font-size: 13px;
+  font-weight: 600;
   margin-bottom: 6px;
 }
-.stripeMock p { font-size: 13px; color: var(--color-gray-medium); }
-.stripeMockCards {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  margin-top: 18px;
-  opacity: 0.6;
-}
-.stripeMockCards i {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 10px;
-  background: #fff;
-  border: 1px solid #e3dfd1;
-  border-radius: 3px;
-  font-family: monospace;
-  font-style: normal;
-  font-size: 11px;
+.accordCarte p {
+  font-size: 13px;
+  line-height: 1.55;
   color: var(--color-charcoal);
-  letter-spacing: 0.05em;
+  white-space: pre-line;
 }
 
 .consentBlock {
@@ -1004,3 +1010,26 @@ button.mcDay { font: inherit; font-size: 13px; color: inherit; padding: 0; }
   color: var(--color-gray-medium);
   line-height: 1.5;
 }
+
+/* Écran « refused » : la réponse de la banque, telle que Stripe la donne */
+.reponseBanque {
+  font-size: 14px;
+  color: var(--color-gray-medium);
+  margin-bottom: 8px;
+}
+
+/* Page de retour de paiement : les faits de la réservation */
+.confirmation {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.confirmation li {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #ebe7d8;
+}
+.confirmation li:last-child { border-bottom: none; padding-bottom: 0; }

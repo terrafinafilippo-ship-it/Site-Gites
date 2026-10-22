@@ -4,6 +4,7 @@ import { GITES, isGiteId } from "@/lib/data/gites";
 import { lireChiffresPublics } from "@/lib/gites-publics";
 import { langueDe } from "@/lib/i18n/langues";
 import { metadonnees } from "@/lib/i18n/metadonnees";
+import { configurationPaiement } from "@/lib/stripe";
 import { chargerDonneesTunnel, type DonneesTunnel } from "@/lib/tunnel";
 import ChoixGite, { TunnelIndisponible } from "./ChoixGite";
 import ReserverFunnel, { type DemandeInitiale } from "./ReserverFunnel";
@@ -80,5 +81,19 @@ export default async function ReserverPage({
     );
     return <TunnelIndisponible langue={langue} nomGite={gite.name} />;
   }
-  return <ReserverFunnel langue={langue} gite={gite} donnees={donnees} initial={demandeInitiale(parametres)} />;
+  // Sans paiement possible, le client ne doit pas tout saisir pour échouer à la dernière étape.
+  const paiement = configurationPaiement();
+  if (!paiement.ok) {
+    console.error(`[reserver] PAIEMENT NON CONFIGURÉ (${slug}) : ${paiement.raison}`);
+    return <TunnelIndisponible langue={langue} nomGite={gite.name} />;
+  }
+  return (
+    <ReserverFunnel
+      langue={langue}
+      gite={gite}
+      donnees={donnees}
+      initial={demandeInitiale(parametres)}
+      clePublique={paiement.clePublique}
+    />
+  );
 }

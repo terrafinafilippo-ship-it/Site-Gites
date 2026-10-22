@@ -5,8 +5,11 @@
 //   3. Un séjour qui chevauche est refusé sans rien laisser derrière lui ; un
 //      séjour qui commence le jour d'un départ est accepté.
 //   4. Le parcours du tunnel (lib/tunnel.ts) : tentative enregistrée au prix du
-//      devis, seconde tentative refusée avec les autres gîtes libres, abandon
-//      qui libère tout.
+//      devis, avec ses conditions figées, le règlement choisi et le texte
+//      d'accord ; seconde tentative refusée avec les autres gîtes libres ;
+//      abandon qui libère tout.
+//   5. (--http) Par le serveur : exige les clés Stripe de TEST (le tunnel ne
+//      s'ouvre pas sans elles) ; sans elles, le contrôle échoue en le disant.
 //
 // REFUSE de s'exécuter si DB_CIBLE ne vaut pas "test". Les lignes créées sont
 // supprimées à la fin, et au début (reste d'un essai interrompu). Le point 4
@@ -52,8 +55,10 @@ async function nettoyer(): Promise<void> {
 
 async function nouvelleReservation(giteId: string, nom: string, arrivee = A, depart = B): Promise<string> {
   const r = await db.execute<{ id: string }>(sql`
-    insert into reservations (gite_id, reference, statut, date_arrivee, date_depart, client_nom, nb_adultes)
-    values (${giteId}::uuid, ${PREFIXE + nom}, 'en_attente_paiement', ${arrivee}::date, ${depart}::date, ${nom}, 2)
+    insert into reservations (gite_id, reference, statut, date_arrivee, date_depart, client_nom, nb_adultes,
+                              taux_acompte, delai_solde_jours)
+    values (${giteId}::uuid, ${PREFIXE + nom}, 'en_attente_paiement', ${arrivee}::date, ${depart}::date, ${nom}, 2,
+            30, 30)
     returning id`);
   return r.rows[0].id;
 }
@@ -107,10 +112,25 @@ async function verifierHttp(coordonnees: Coordonnees): Promise<void> {
   noter(choix.status === 200 && choix.texte.includes("Quel gîte souhaitez-vous réserver"), "/reserver sans gîte : écran de choix", choix.status);
   noter((await page("/reserver?gite=larmu")).status === 404, "/reserver?gite=larmu (ancien nom) : 404, pas LaPhine en silence");
   noter((await page("/reserver?gite=toString")).status === 404, "/reserver?gite=toString : 404");
-  const tunnel = await page("/reserver?gite=armu");
-  noter(tunnel.status === 200 && tunnel.texte.includes("Quand venez-vous"), "/reserver?gite=armu : tunnel ouvert", tunnel.status);
   const fiche = await page("/gites/armu");
   noter(fiche.status === 200 && fiche.texte.includes("Non réservable en ligne"), "fiche L'Armu : calendrier réel affiché", fiche.status);
+  const tunnel = await page("/reserver?gite=armu");
+  // Depuis le lot 3, le tunnel ne s'ouvre qu'avec les clés Stripe de TEST : sans
+  // elles, il refuse (« momentanément indisponible ») et chaque POST ouvrirait
+  // un paiement impossible. Le contrôle le dit et échoue, il ne passe pas en silence.
+  const clesStripe =
+    (process.env.STRIPE_SECRET_KEY ?? "").startsWith("sk_test_") &&
+    (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "").startsWith("pk_test_");
+  if (!clesStripe) {
+    noter(
+      tunnel.status === 200 && tunnel.texte.includes("momentanément indisponible"),
+      "sans clés Stripe de test : le tunnel refuse de s'ouvrir",
+      tunnel.status,
+    );
+    noter(false, "clés Stripe de TEST absentes de .env.local : blocage par le serveur non vérifié (deux POST simultanés, abandon, limite)");
+    return;
+  }
+  noter(tunnel.status === 200 && tunnel.texte.includes("Quand venez-vous"), "/reserver?gite=armu : tunnel ouvert", tunnel.status);
 
   const poster = async (corps: unknown) => {
     const r = await fetch(`${base}/api/reservations`, {
@@ -121,7 +141,10 @@ async function verifierHttp(coordonnees: Coordonnees): Promise<void> {
     return { status: r.status, corps: (await r.json().catch(() => ({}))) as Record<string, unknown> };
   };
   const arrivee = samediDans(7);
-  const demande = { gite: "armu", arrivee, depart: ajouterJours(arrivee, 7), adultes: 2, enfants: 0, bebes: 0, coordonnees };
+  const demande = {
+    gite: "armu", arrivee, depart: ajouterJours(arrivee, 7), adultes: 2, enfants: 0, bebes: 0, coordonnees,
+    reglement: { moyenCaution: "cheque", modeSolde: "lien" },
+  };
 
   noter((await poster("{pas du json")).status === 400, "POST corps illisible : 400");
   noter((await poster({ ...demande, gite: "larmu" })).status === 404, "POST gîte inconnu : 404");
@@ -237,7 +260,9 @@ async function main(): Promise<void> {
       autresAdultes: [{ prenom: "Second", nom: "Adulte" }],
     };
 
-    const premiere = await enregistrerTentative("armu", demande, coordonnees, null);
+    // Caution par carte et solde prélevé : le texte d'accord est recopié sur la réservation.
+    const reglement = { moyenCaution: "carte", modeSolde: "prelevement" };
+    const premiere = await enregistrerTentative("armu", demande, coordonnees, null, reglement);
     if (!premiere.ok) {
       noter(false, `tentative enregistrée (${arrivee} → ${depart})`, premiere);
       return;
@@ -252,6 +277,26 @@ async function main(): Promise<void> {
         from reservations where id = ${premiere.id}::uuid`);
     const l = ligne.rows[0];
     noter(l?.statut === "en_attente_paiement", "statut « en attente de paiement »", l?.statut);
+    const conditions = await db.execute<{
+      taux_acompte: number; delai_solde_jours: number; moyen_caution: string; mode_solde: string;
+      langue: string; accord: string | null; version: string | null;
+    }>(sql`
+      select taux_acompte, delai_solde_jours, moyen_caution, mode_solde, langue,
+             accord_carte_texte as accord, accord_carte_id::text as version
+        from reservations where id = ${premiere.id}::uuid`);
+    const c = conditions.rows[0];
+    noter(
+      c?.taux_acompte === premiere.devis.tauxAcompte && c.delai_solde_jours === premiere.devis.delaiSoldeJours,
+      "taux d'acompte et délai du solde des réglages figés sur la réservation",
+      c,
+    );
+    noter(c?.moyen_caution === "carte" && c.mode_solde === "prelevement" && c.langue === "fr", "choix du client et langue enregistrés", c);
+    noter(
+      c?.accord !== null && c?.accord === premiere.accordCarte && c.version !== null &&
+        c.accord.includes("le prélèvement du solde de") && !/\{[a-z_]+\}/.test(c.accord),
+      "texte d'accord enregistré mot pour mot, repères remplacés, ligne du solde présente",
+      c?.accord,
+    );
     noter(
       l?.detail?.formatVersion === 1 && l.detail.montants?.totalTtc === premiere.devis.montants.totalTtc,
       "détail du calcul enregistré, total identique au devis",
@@ -260,7 +305,7 @@ async function main(): Promise<void> {
     noter(l?.heure_arrivee === "18:00:00" && l.occupants_majeurs === "Essai BLOCAGE, Second ADULTE", "horaires des réglages et occupants majeurs recopiés", l);
     noter((await nuitsBloquees(premiere.id)) === 7, "7 nuits bloquées");
 
-    const seconde = await enregistrerTentative("armu", demande, coordonnees, null);
+    const seconde = await enregistrerTentative("armu", demande, coordonnees, null, reglement);
     noter(!seconde.ok && seconde.raison === "DATES_PRISES", "seconde tentative sur les mêmes dates : refusée", seconde.ok ? seconde.reference : seconde);
     const alternatives = !seconde.ok && seconde.raison === "DATES_PRISES" ? seconde.alternatives : [];
     noter(

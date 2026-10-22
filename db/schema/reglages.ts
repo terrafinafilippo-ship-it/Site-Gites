@@ -23,8 +23,11 @@
 //     bébés qui ne comptent pas dans la capacité (1 : un second bébé prend une
 //     place), lits bébé disponibles (1) — réponses du 15 octobre 2026.
 //
-// Les colonnes du lot 3 (taux d'acompte, délai du solde) s'y ajouteront par
-// une nouvelle migration.
+//   - paiement (lot 3, migration 0005) : taux de l'acompte (30 %) et délai du
+//     solde (30 jours avant l'arrivée), valeurs du contrat ; délai de
+//     réception d'une caution par virement (3 jours avant l'arrivée, D-19).
+//     Le taux et le délai du solde sont RECOPIÉS sur chaque réservation : les
+//     changer ici ne modifie aucun contrat déjà conclu.
 import { sql } from "drizzle-orm";
 import { check, integer, pgTable, time, timestamp, uuid } from "drizzle-orm/pg-core";
 
@@ -55,6 +58,10 @@ export const reglages = pgTable(
     bebe_age_limite: integer().notNull().default(2),
     bebes_hors_capacite: integer().notNull().default(1),
     lits_bebe: integer().notNull().default(1),
+    // Taux en pourcentage du total TTC (30 = 30 %) : un taux n'est pas de l'argent.
+    taux_acompte: integer().notNull().default(30),
+    delai_solde_jours: integer().notNull().default(30),
+    delai_virement_caution_jours: integer().notNull().default(3),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -73,6 +80,11 @@ export const reglages = pgTable(
       "reglages_bebes_check",
       sql`${t.bebe_age_limite} between 1 and 17 and ${t.bebes_hors_capacite} between 0 and 10
           and ${t.lits_bebe} between 0 and 10`,
+    ),
+    check(
+      "reglages_paiement_check",
+      sql`${t.taux_acompte} between 1 and 100 and ${t.delai_solde_jours} between 0 and 365
+          and ${t.delai_virement_caution_jours} between 0 and 60`,
     ),
   ],
 );

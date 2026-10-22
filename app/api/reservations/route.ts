@@ -1,15 +1,18 @@
 // POST /api/reservations — le client arrive sur l'écran de paiement : la
-// réservation est enregistrée « en attente de paiement » et ses nuits sont
-// bloquées pendant la durée réglée (20 minutes au départ).
+// réservation est enregistrée « en attente de paiement » avec le règlement
+// qu'il a choisi (caution, solde), ses nuits sont bloquées pendant la durée
+// réglée (20 minutes au départ), et son paiement est ouvert chez Stripe. La
+// réponse porte le secret du paiement, que seul ce navigateur reçoit. Si
+// Stripe ne répond pas, la tentative est abandonnée : rien n'est retenu.
 //
 // Le corps ne porte JAMAIS de montant qui serait cru : le devis est recalculé
 // par le serveur (lib/tunnel.ts). Le total que le client avait sous les yeux
 // est seulement comparé, pour l'avertir si le prix a changé entre-temps.
 //
-// Réponses : 201 enregistrée · 400 demande invalide · 404 gîte inconnu ·
-// 409 refus métier (règle, capacité, dates prises — avec les autres gîtes
-// libres) · 429 trop de tentatives · 503 tunnel indisponible (base, réglages) ·
-// 500 erreur inattendue. Un 409 est une situation normale ; un 503 ou un 500
+// Réponses : 201 enregistrée · 400 demande invalide (coordonnées, règlement) ·
+// 404 gîte inconnu · 409 refus métier (règle, capacité, dates prises — avec
+// les autres gîtes libres) · 429 trop de tentatives · 503 tunnel ou paiement
+// indisponible (base, réglages, Stripe) · 500 erreur inattendue. Un 409 est une situation normale ; un 503 ou un 500
 // est une panne, journalisée comme telle.
 //
 // `langue` (« fr » par défaut, ou « en ») : langue des messages renvoyés,
@@ -19,8 +22,11 @@ import { NextResponse } from "next/server";
 import { validerCoordonnees } from "@/lib/coordonnees";
 import { isGiteId } from "@/lib/data/gites";
 import { estLangue, type Bilingue, type Langue } from "@/lib/i18n/langues";
+import { ouvrirPaiement } from "@/lib/paiement";
+import { carteEnregistree } from "@/lib/reglement";
 import { messageErreur } from "@/lib/route-helpers";
-import { enregistrerTentative, TunnelIndisponible } from "@/lib/tunnel";
+import { PaiementIndisponible } from "@/lib/stripe";
+import { abandonnerTentative, enregistrerTentative, TunnelIndisponible } from "@/lib/tunnel";
 
 const MESSAGES: Bilingue<{
   corpsInvalide: string;
@@ -29,6 +35,7 @@ const MESSAGES: Bilingue<{
   tropDeTentatives: string;
   datesPrises: string;
   indisponible: string;
+  paiementIndisponible: string;
   erreur: string;
 }> = {
   fr: {
@@ -38,6 +45,7 @@ const MESSAGES: Bilingue<{
     tropDeTentatives: "Trop de tentatives en peu de temps. Réessayez dans quelques minutes, ou appelez-nous.",
     datesPrises: "Ces dates viennent d'être prises.",
     indisponible: "La réservation en ligne est momentanément indisponible.",
+    paiementIndisponible: "Le paiement en ligne est momentanément indisponible : vos dates n'ont pas été retenues.",
     erreur: "Erreur inattendue.",
   },
   en: {
@@ -47,6 +55,7 @@ const MESSAGES: Bilingue<{
     tropDeTentatives: "Too many attempts in a short time. Please try again in a few minutes, or call us.",
     datesPrises: "These dates have just been taken.",
     indisponible: "Online booking is temporarily unavailable.",
+    paiementIndisponible: "Online payment is temporarily unavailable: your dates have not been held.",
     erreur: "Unexpected error.",
   },
 };
@@ -160,8 +169,30 @@ export async function POST(request: Request) {
   }
 
   try {
-    const r = await enregistrerTentative(gite, demande, coordonnees.coordonnees, totalAttendu, langue);
+    const r = await enregistrerTentative(gite, demande, coordonnees.coordonnees, totalAttendu, corps.reglement, langue);
     if (r.ok) {
+      let clientSecret: string;
+      try {
+        ({ clientSecret } = await ouvrirPaiement({
+          reservationId: r.id,
+          reference: r.reference,
+          montant: r.devis.aRegler,
+          paiementIntegral: r.devis.paiementIntegral,
+          enregistrerCarte: carteEnregistree(r.choix),
+          client: r.client,
+          description: `Réservation ${r.reference} — ${gite} — ${r.devis.arrivee} → ${r.devis.depart}`,
+        }));
+      } catch (erreur) {
+        // Sans paiement ouvert, la tentative ne sert à rien : les dates sont libérées.
+        await abandonnerTentative(r.id).catch((e: unknown) =>
+          console.error(`[api/reservations] abandon après échec du paiement (${r.id}) :`, messageErreur(e)),
+        );
+        if (erreur instanceof PaiementIndisponible) {
+          console.error(`[api/reservations] PAIEMENT INDISPONIBLE (${gite}) :`, erreur.message);
+          return reponse(503, { code: "PAIEMENT_INDISPONIBLE", error: m.paiementIndisponible });
+        }
+        throw erreur;
+      }
       return reponse(201, {
         id: r.id,
         reference: r.reference,
@@ -169,8 +200,12 @@ export async function POST(request: Request) {
         dureeBlocageMinutes: r.dureeBlocageMinutes,
         devis: r.devis,
         prixModifie: r.prixModifie,
+        choix: r.choix,
+        accordCarte: r.accordCarte,
+        clientSecret,
       });
     }
+    if (r.raison === "REGLEMENT") return reponse(400, { code: "REGLEMENT_INVALIDE", error: r.message });
     if (r.raison === "DATES_PRISES") {
       return reponse(409, {
         code: "DATES_PRISES",

@@ -16,14 +16,18 @@
 // rechargement ou un changement de langue les retrouve. Les coordonnées n'y
 // sont jamais (données personnelles) : elles sont à ressaisir.
 //
-// Le paiement lui-même est branché au lot 3 (Stripe) : d'ici là, le bouton
-// « Payer » reste inactif. Les écrans « refused » et « 3ds-failed » sont ceux
-// du prototype, conservés pour le lot 3 et inaccessibles d'ici là.
+// RÈGLEMENT (lot 3) : à l'étape 3, le client choisit le moyen de sa caution et
+// le règlement du solde — rien n'est pré-choisi, le bouton reste inactif tant
+// qu'il n'a pas choisi (lib/reglement.ts). À l'étape 4, il paie par carte dans
+// le champ de Stripe intégré à la page (PaiementStripe.tsx) ; le texte d'accord
+// pour l'enregistrement de la carte s'affiche sous le champ quand la caution
+// est par carte. Le paiement abouti mène à /reserver/confirmation, qui le
+// revérifie chez Stripe. Refus de la banque et 3-D Secure échoué : écrans
+// « refused » et « 3ds-failed », les dates restant bloquées.
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import ImageSlot from "@/components/ui/ImageSlot";
-import { DELAI_SOLDE_DEFAUT, TAUX_ACOMPTE } from "@/lib/constantes";
 import {
   CIVILITES,
   LIBELLES_CIVILITE,
@@ -43,9 +47,18 @@ import {
 } from "@/lib/devis";
 import { fmtDateCourte, fmtEuro, fmtHeure, fmtPrix, fmtTaux } from "@/lib/format";
 import { lien, type Bilingue, type Langue } from "@/lib/i18n/langues";
+import {
+  choixComplet,
+  prelevementPossible,
+  type ChoixPartiel,
+  type ChoixReglement,
+  type ModeSolde,
+  type MoyenCaution,
+} from "@/lib/reglement";
 import type { Alternative, DonneesTunnel } from "@/lib/tunnel";
 import Calendrier from "./Calendrier";
 import EnteteTunnel from "./EnteteTunnel";
+import PaiementStripe, { type EssaiPaiement } from "./PaiementStripe";
 import styles from "./page.module.css";
 
 export type FunnelState = "step1" | "step2" | "step3" | "step4" | "conflict" | "refused" | "3ds-failed";
@@ -69,6 +82,11 @@ interface Tentative {
   prixModifie: boolean;
   /** Fin du blocage selon l'horloge du navigateur (durée reçue + heure de réception). */
   echeance: number;
+  /** Secret du paiement ouvert chez Stripe : connu de ce seul navigateur. */
+  clientSecret: string;
+  choix: ChoixReglement;
+  /** Texte d'accord pour l'enregistrement de la carte, tel qu'enregistré ; `null` sans caution par carte. */
+  accordCarte: string | null;
 }
 
 interface Formulaire {
@@ -122,8 +140,8 @@ const TEXTES: Bilingue<{
   totalite: string;
   acompte: (taux: string) => string;
   aujourdhui: (montant: string) => string;
-  caution: (montant: string) => string;
-  solde: (montant: string, date: string) => string;
+  cautionRecap: (moyen: MoyenCaution | null, montant: string, dateVirement: string) => string;
+  soldeRecap: (montant: string, date: string, mode: ModeSolde | null) => string;
   arriveeProche: (jours: number) => string;
   arriveeProcheCourt: (jours: number) => string;
   etapes: [string, string, string, string];
@@ -169,7 +187,25 @@ const TEXTES: Bilingue<{
   autresAdultesAide: string;
   adultePrenom: (n: number) => string;
   titre3: string;
-  intro3: string;
+  intro3: (integral: boolean) => string;
+  titreCaution: string;
+  introCaution: (montant: string) => string;
+  cautionCarte: string;
+  cautionCarteDetail: (montant: string) => string;
+  cautionCheque: string;
+  cautionChequeDetail: (montant: string) => string;
+  cautionVirement: string;
+  cautionVirementDetail: (montant: string, date: string) => string;
+  titreSolde: string;
+  introSolde: (montant: string, date: string) => string;
+  soldePrelevement: string;
+  soldePrelevementDetail: (date: string) => string;
+  soldeLien: string;
+  soldeLienDetail: (date: string) => string;
+  prelevementAvecCarte: string;
+  choixRequis: (integral: boolean) => string;
+  accordTitre: string;
+  reponseBanque: (message: string) => string;
   litBebe: string;
   litBebeFourni: string;
   litBebeDetail: string;
@@ -180,7 +216,6 @@ const TEXTES: Bilingue<{
   taxeDetail: (adultes: string, nuits: string) => string;
   aReglerTotalite: string;
   aReglerAcompte: (taux: string) => string;
-  cautionDetail: (montant: string) => ReactNode;
   blocageAVenir: (minutes: number) => string;
   enregistrement: string;
   procederPaiement: string;
@@ -193,8 +228,6 @@ const TEXTES: Bilingue<{
   rebloquer: string;
   carte: string;
   paiementSecurise: string;
-  champsStripe: string;
-  paiementFerme: string;
   accepteAvant: string;
   cgv: string;
   accepteApres: string;
@@ -215,7 +248,6 @@ const TEXTES: Bilingue<{
   rienPreleve: string;
   troisPistes: string;
   reessayerTitre: string;
-  reessayerTexte: string;
   reessayer: string;
   autreCarteTitre: string;
   autreCarteTexte: string;
@@ -254,12 +286,23 @@ const TEXTES: Bilingue<{
     totalite: "Totalité du séjour",
     acompte: (taux) => `Acompte ${taux}`,
     aujourdhui: (montant) => `${montant} aujourd'hui`,
-    caution: (montant) =>
-      `Caution de ${montant} : préautorisation sur votre carte la veille du départ, sans débit sauf dégât constaté.`,
-    solde: (montant, date) => `Solde de ${montant} à régler au plus tard le ${date}.`,
+    cautionRecap: (moyen, montant, dateVirement) =>
+      moyen === "carte"
+        ? `Caution de ${montant} : préautorisation sur votre carte la veille du départ, sans débit sauf dégât constaté.`
+        : moyen === "cheque"
+          ? `Caution de ${montant} : chèque remis à l'arrivée, non encaissé.`
+          : moyen === "virement"
+            ? `Caution de ${montant} : virement reçu au plus tard le ${dateVirement}.`
+            : `Caution de ${montant} : par carte, chèque ou virement, au choix.`,
+    soldeRecap: (montant, date, mode) =>
+      mode === "prelevement"
+        ? `Solde de ${montant} prélevé le ${date}.`
+        : mode === "lien"
+          ? `Solde de ${montant} à régler par lien au plus tard le ${date}.`
+          : `Solde de ${montant} à régler au plus tard le ${date}.`,
     arriveeProche: (jours) => `Arrivée à moins de ${jours} jours : le séjour se règle en totalité à la réservation.`,
     arriveeProcheCourt: (jours) => `Arrivée à moins de ${jours} jours : le séjour se règle en totalité.`,
-    etapes: ["Dates & voyageurs", "Coordonnées", "Options & récapitulatif", "Paiement"],
+    etapes: ["Dates & voyageurs", "Coordonnées", "Récapitulatif & règlement", "Paiement"],
     titre1: "Quand venez-vous, et combien êtes-vous ?",
     intro1: "Choisissez vos dates dans le calendrier : les nuits déjà prises sont rayées.",
     vosDates: "Vos dates",
@@ -301,8 +344,35 @@ const TEXTES: Bilingue<{
     autresAdultes: "Les autres adultes du séjour",
     autresAdultesAide: "Le contrat indique le nom de chaque adulte présent.",
     adultePrenom: (n) => `Adulte ${n} — prénom`,
-    titre3: "Quelques options pour votre séjour",
-    intro3: "Aucune n'est obligatoire — choisissez ce qui vous fait plaisir.",
+    titre3: "Récapitulatif et règlement",
+    intro3: (integral) =>
+      integral
+        ? "Vérifiez votre séjour, puis choisissez le moyen de votre caution."
+        : "Vérifiez votre séjour, puis choisissez le moyen de votre caution et le règlement du solde.",
+    titreCaution: "Votre caution",
+    introCaution: (montant) => `Un dépôt de garantie de ${montant} est demandé pour le séjour. Choisissez comment le constituer :`,
+    cautionCarte: "Par carte bancaire",
+    cautionCarteDetail: (montant) =>
+      `Préautorisation de ${montant} sur la carte de ce paiement, la veille de votre départ, levée au plus tard 3 jours après. Non débitée sauf dégât constaté.`,
+    cautionCheque: "Par chèque",
+    cautionChequeDetail: (montant) =>
+      `Chèque de ${montant} remis à votre arrivée, gardé sans être encaissé, rendu au plus tard 3 jours après votre départ.`,
+    cautionVirement: "Par virement",
+    cautionVirementDetail: (montant, date) =>
+      `Virement de ${montant} reçu au plus tard le ${date}, restitué par virement au plus tard 3 jours après votre départ.`,
+    titreSolde: "Le solde",
+    introSolde: (montant, date) => `Solde de ${montant} à régler au plus tard le ${date}. Choisissez comment :`,
+    soldePrelevement: "Prélèvement automatique",
+    soldePrelevementDetail: (date) => `Prélevé le ${date} sur la carte de ce paiement.`,
+    soldeLien: "Paiement par lien",
+    soldeLienDetail: (date) => `Vous le réglez vous-même, par un lien que nous vous enverrons, au plus tard le ${date}.`,
+    prelevementAvecCarte: "Proposé avec une caution par carte.",
+    choixRequis: (integral) =>
+      integral
+        ? "Choisissez le moyen de votre caution pour continuer."
+        : "Choisissez le moyen de votre caution et le règlement du solde pour continuer.",
+    accordTitre: "Enregistrement de votre carte",
+    reponseBanque: (message) => `Réponse de la banque : ${message}`,
     litBebe: "Lit bébé",
     litBebeFourni: "Lit bébé fourni",
     litBebeDetail: "Lit et linge inclus, sans surcoût. Précisez-le nous si vous en avez besoin.",
@@ -314,12 +384,6 @@ const TEXTES: Bilingue<{
     taxeDetail: (adultes, nuits) => `${adultes} × ${nuits} · les mineurs ne la paient pas`,
     aReglerTotalite: "À régler maintenant — totalité du séjour",
     aReglerAcompte: (taux) => `À régler maintenant — acompte ${taux}`,
-    cautionDetail: (montant) => (
-      <>
-        Caution de {montant} : préautorisation sur votre carte bancaire la veille de votre départ, levée au
-        plus tard 3 jours après. <strong>Non débitée</strong> sauf dégât constaté.
-      </>
-    ),
     blocageAVenir: (minutes) =>
       `À l'étape suivante, vos dates sont bloquées pendant ${minutes} minutes, le temps du paiement.`,
     enregistrement: "Enregistrement…",
@@ -333,8 +397,6 @@ const TEXTES: Bilingue<{
     rebloquer: "Bloquer à nouveau mes dates",
     carte: "Carte bancaire",
     paiementSecurise: "Paiement sécurisé · Stripe",
-    champsStripe: "Champs de carte Stripe Elements",
-    paiementFerme: "Le paiement en ligne n'est pas encore ouvert.",
     accepteAvant: "J'accepte les ",
     cgv: "conditions générales de vente",
     accepteApres: ", le barème d'annulation et les conditions du dépôt de garantie.",
@@ -355,11 +417,9 @@ const TEXTES: Bilingue<{
     titreRefus: "Votre paiement n'a pas pu aboutir.",
     introRefus:
       "Votre banque n'a pas autorisé l'opération. Ne vous inquiétez pas — c'est fréquent et ça se règle en quelques secondes.",
-    rienPreleve: "Aucune somme prélevée · dates non bloquées",
+    rienPreleve: "Aucune somme prélevée · vos dates restent bloquées jusqu'à la fin du délai",
     troisPistes: "Trois pistes pour finaliser votre séjour :",
     reessayerTitre: "Réessayer maintenant",
-    reessayerTexte:
-      "Même carte, même paiement. Souvent ça passe au second essai si votre banque a juste demandé une confirmation.",
     reessayer: "Réessayer le paiement",
     autreCarteTitre: "Utiliser une autre carte",
     autreCarteTexte: "Vous pouvez aussi tenter avec une autre carte. Aucun blocage : vos données saisies sont gardées.",
@@ -399,12 +459,23 @@ const TEXTES: Bilingue<{
     totalite: "Full stay",
     acompte: (taux) => `Down payment ${taux}`,
     aujourdhui: (montant) => `${montant} today`,
-    caution: (montant) =>
-      `Security deposit of ${montant}: a pre-authorisation on your card the day before departure, not charged unless damage is found.`,
-    solde: (montant, date) => `Balance of ${montant} to be paid by ${date} at the latest.`,
+    cautionRecap: (moyen, montant, dateVirement) =>
+      moyen === "carte"
+        ? `Security deposit of ${montant}: a pre-authorisation on your card the day before departure, not charged unless damage is found.`
+        : moyen === "cheque"
+          ? `Security deposit of ${montant}: cheque handed over on arrival, not cashed.`
+          : moyen === "virement"
+            ? `Security deposit of ${montant}: transfer received by ${dateVirement} at the latest.`
+            : `Security deposit of ${montant}: by card, cheque or bank transfer, as you prefer.`,
+    soldeRecap: (montant, date, mode) =>
+      mode === "prelevement"
+        ? `Balance of ${montant} charged on ${date}.`
+        : mode === "lien"
+          ? `Balance of ${montant} to be paid by link by ${date} at the latest.`
+          : `Balance of ${montant} to be paid by ${date} at the latest.`,
     arriveeProche: (jours) => `Arrival in less than ${jours} days: the full stay is paid on booking.`,
     arriveeProcheCourt: (jours) => `Arrival in less than ${jours} days: the full stay is paid now.`,
-    etapes: ["Dates & guests", "Your details", "Options & summary", "Payment"],
+    etapes: ["Dates & guests", "Your details", "Summary & payment terms", "Payment"],
     titre1: "When are you coming, and how many of you?",
     intro1: "Choose your dates in the calendar: nights already taken are crossed out.",
     vosDates: "Your dates",
@@ -446,8 +517,35 @@ const TEXTES: Bilingue<{
     autresAdultes: "The other adults staying",
     autresAdultesAide: "The contract gives the name of each adult present.",
     adultePrenom: (n) => `Adult ${n} — first name`,
-    titre3: "A few options for your stay",
-    intro3: "None is compulsory — choose whatever you like.",
+    titre3: "Summary and payment terms",
+    intro3: (integral) =>
+      integral
+        ? "Check your stay, then choose how you will provide the security deposit."
+        : "Check your stay, then choose how you will provide the security deposit and pay the balance.",
+    titreCaution: "Your security deposit",
+    introCaution: (montant) => `A security deposit of ${montant} is required for the stay. Choose how to provide it:`,
+    cautionCarte: "By bank card",
+    cautionCarteDetail: (montant) =>
+      `A pre-authorisation of ${montant} on the card used for this payment, the day before your departure, released 3 days later at the latest. Not charged unless damage is found.`,
+    cautionCheque: "By cheque",
+    cautionChequeDetail: (montant) =>
+      `A cheque for ${montant} handed over on arrival, kept without being cashed, returned 3 days after your departure at the latest.`,
+    cautionVirement: "By bank transfer",
+    cautionVirementDetail: (montant, date) =>
+      `A transfer of ${montant} received by ${date} at the latest, refunded by transfer 3 days after your departure at the latest.`,
+    titreSolde: "The balance",
+    introSolde: (montant, date) => `Balance of ${montant} to be paid by ${date} at the latest. Choose how:`,
+    soldePrelevement: "Automatic payment",
+    soldePrelevementDetail: (date) => `Charged on ${date} to the card used for this payment.`,
+    soldeLien: "Payment by link",
+    soldeLienDetail: (date) => `You pay it yourself, through a link we will send you, by ${date} at the latest.`,
+    prelevementAvecCarte: "Available with a security deposit by card.",
+    choixRequis: (integral) =>
+      integral
+        ? "Choose how you will provide the security deposit to continue."
+        : "Choose how you will provide the security deposit and pay the balance to continue.",
+    accordTitre: "Storing your card",
+    reponseBanque: (message) => `Bank's response: ${message}`,
     litBebe: "Baby cot",
     litBebeFourni: "Baby cot provided",
     litBebeDetail: "Cot and linen included, at no extra cost. Let us know if you need it.",
@@ -459,12 +557,6 @@ const TEXTES: Bilingue<{
     taxeDetail: (adultes, nuits) => `${adultes} × ${nuits} · minors do not pay it`,
     aReglerTotalite: "To pay now — full stay",
     aReglerAcompte: (taux) => `To pay now — down payment ${taux}`,
-    cautionDetail: (montant) => (
-      <>
-        Security deposit of {montant}: a pre-authorisation on your bank card the day before your departure,
-        released 3 days later at the latest. <strong>Not charged</strong> unless damage is found.
-      </>
-    ),
     blocageAVenir: (minutes) =>
       `At the next step, your dates are held for ${minutes} minutes, while you pay.`,
     enregistrement: "Saving…",
@@ -478,8 +570,6 @@ const TEXTES: Bilingue<{
     rebloquer: "Hold my dates again",
     carte: "Bank card",
     paiementSecurise: "Secure payment · Stripe",
-    champsStripe: "Stripe Elements card fields",
-    paiementFerme: "Online payment is not open yet.",
     accepteAvant: "I accept the ",
     cgv: "terms and conditions of sale",
     accepteApres: ", the cancellation scale and the security deposit conditions.",
@@ -500,11 +590,9 @@ const TEXTES: Bilingue<{
     titreRefus: "Your payment could not go through.",
     introRefus:
       "Your bank did not authorise the payment. Don't worry — it happens often and can be sorted in a few seconds.",
-    rienPreleve: "Nothing charged · dates not held",
+    rienPreleve: "Nothing charged · your dates stay held until the time runs out",
     troisPistes: "Three ways to complete your booking:",
     reessayerTitre: "Try again now",
-    reessayerTexte:
-      "Same card, same payment. It often works on the second try if your bank just asked for a confirmation.",
     reessayer: "Retry the payment",
     autreCarteTitre: "Use another card",
     autreCarteTexte: "You can also try another card. Nothing is lost: the details you entered are kept.",
@@ -658,6 +746,45 @@ function Compteur({
   );
 }
 
+/** Une option à cocher parmi d'autres (caution, solde) : rien n'est coché d'avance. */
+function CarteChoix({
+  nom,
+  detail,
+  choisie,
+  inactive,
+  note,
+  onChoisir,
+}: {
+  nom: string;
+  detail: string;
+  choisie: boolean;
+  inactive?: boolean;
+  note?: string;
+  onChoisir: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={choisie}
+      aria-disabled={inactive || undefined}
+      disabled={inactive}
+      className={`${styles.optionCard} ${styles.choixCarte}${choisie ? ` ${styles.isOn}` : ""}${inactive ? ` ${styles.isInactive}` : ""}`}
+      onClick={onChoisir}
+    >
+      <span className={`${styles.optionCardCheck} ${styles.choixRond}`}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      </span>
+      <span className={styles.optionCardBody}>
+        <span className={styles.optionCardName}>{nom}</span>
+        <span className={styles.optionCardDesc}>{inactive && note ? note : detail}</span>
+      </span>
+    </button>
+  );
+}
+
 // ─── Tunnel ──────────────────────────────────────────────────────────────────
 
 export default function ReserverFunnel({
@@ -665,20 +792,23 @@ export default function ReserverFunnel({
   gite,
   donnees,
   initial,
+  clePublique,
 }: {
   langue: Langue;
   gite: GiteData;
   donnees: DonneesTunnel;
   initial: DemandeInitiale;
+  /** Clé publique Stripe (pk_test_…), vérifiée par le serveur avant d'ouvrir le tunnel. */
+  clePublique: string;
 }) {
   const t = TEXTES[langue];
   const l = (chemin: string) => lien(langue, chemin);
   const euros = (centimes: number) => fmtEuro(centimes, langue);
   const date = (iso: string) => dateLongue(iso, langue);
-  const tauxAcompte = fmtTaux(TAUX_ACOMPTE, langue);
 
   const ctx = useMemo(() => preparerDevis(donnees, langue), [donnees, langue]);
   const { reglages } = donnees;
+
   const capacite = donnees.gite.capaciteMax;
 
   const [arrivee, setArrivee] = useState<string | null>(initial.arrivee ?? null);
@@ -704,6 +834,9 @@ export default function ReserverFunnel({
   const [message, setMessage] = useState<string | null>(null);
   const [cgvAccepted, setCgvAccepted] = useState(false);
   const [maintenant, setMaintenant] = useState(0);
+  // Caution et solde : RIEN n'est pré-choisi (cadrage du 13 octobre 2026).
+  const [reglement, setReglement] = useState<ChoixPartiel>({ moyenCaution: null, modeSolde: null });
+  const [reponseBanque, setReponseBanque] = useState<string | null>(null);
 
   // ── Devis du navigateur (affichage seulement) ──
   const occupants: Occupants = { adultes, enfants, bebes };
@@ -714,6 +847,14 @@ export default function ReserverFunnel({
   const refusDates = dates && !dates.ok ? dates.refus : resultat && !resultat.ok ? resultat.refus : null;
   // Une fois les dates bloquées, c'est le devis du SERVEUR qui s'affiche.
   const devis = tentative?.devis ?? devisClient;
+  const tauxAcompte = fmtTaux(devis?.tauxAcompte ?? reglages.tauxAcompte, langue);
+  const choixFait = devis ? choixComplet(reglement, devis.paiementIntegral) : null;
+  const choisirCaution = (moyenCaution: MoyenCaution) =>
+    setReglement((r) => ({
+      moyenCaution,
+      // Le prélèvement exige une carte enregistrée : il est retiré, jamais remplacé en silence.
+      modeSolde: r.modeSolde === "prelevement" && !prelevementPossible(moyenCaution) ? null : r.modeSolde,
+    }));
 
   const peutAjouter = (o: Partial<Occupants>) => controlerOccupants(ctx, { ...occupants, ...o }) === null;
 
@@ -801,6 +942,7 @@ export default function ReserverFunnel({
 
   async function bloquer() {
     if (!devisClient || !arrivee || !depart) return;
+    if (!choixComplet(reglement, devisClient.paiementIntegral)) return;
     setEnvoi(true);
     setMessage(null);
     try {
@@ -816,6 +958,7 @@ export default function ReserverFunnel({
           bebes,
           coordonnees: coordonneesBrutes(),
           totalAttendu: devisClient.montants.totalTtc,
+          reglement,
           langue,
         }),
       });
@@ -827,6 +970,9 @@ export default function ReserverFunnel({
           devis: corps.devis as Devis,
           prixModifie: corps.prixModifie === true,
           echeance: Date.now() + Number(corps.dureeBlocageMinutes) * 60_000,
+          clientSecret: String(corps.clientSecret),
+          choix: corps.choix as ChoixReglement,
+          accordCarte: typeof corps.accordCarte === "string" ? corps.accordCarte : null,
         });
         setCgvAccepted(false);
         goTo("step4");
@@ -848,6 +994,21 @@ export default function ReserverFunnel({
     } finally {
       setEnvoi(false);
     }
+  }
+
+  /** Issue d'un essai de paiement dans le champ de Stripe. */
+  function traiterEssai(essai: EssaiPaiement) {
+    if (essai.type === "abouti") {
+      // La page de confirmation revérifie le paiement chez Stripe : elle seule confirme.
+      window.location.assign(essai.urlConfirmation);
+      return;
+    }
+    if (essai.type === "erreur") {
+      setMessage(essai.message ?? t.erreurConnexion);
+      return;
+    }
+    goTo(essai.type === "refus" ? "refused" : "3ds-failed");
+    setReponseBanque(essai.message);
   }
 
   async function rebloquer() {
@@ -895,10 +1056,18 @@ export default function ReserverFunnel({
             {t.aujourdhui(euros(devis.aRegler))}
           </div>
           <div className={styles.recapCaution}>
-            {t.caution(fmtPrix(devis.caution, langue))}{" "}
+            {t.cautionRecap(
+              tentative?.choix.moyenCaution ?? reglement.moyenCaution,
+              fmtPrix(devis.caution, langue),
+              date(devis.dateLimiteVirementCaution),
+            )}{" "}
             {devis.dateLimiteSolde
-              ? t.solde(euros(devis.montants.solde), date(devis.dateLimiteSolde))
-              : t.arriveeProche(DELAI_SOLDE_DEFAUT)}
+              ? t.soldeRecap(
+                  euros(devis.montants.solde),
+                  date(devis.dateLimiteSolde),
+                  tentative ? tentative.choix.modeSolde : reglement.modeSolde,
+                )
+              : t.arriveeProche(devis.delaiSoldeJours)}
           </div>
         </>
       )}
@@ -1165,7 +1334,7 @@ export default function ReserverFunnel({
             <div className={styles.funnel}>
               <div className={styles.stepPane}>
                 <h1>{t.titre3}</h1>
-                <p className={styles.stepLead}>{t.intro3}</p>
+                <p className={styles.stepLead}>{t.intro3(devis.paiementIntegral)}</p>
 
                 <div className={styles.fieldGroup}>
                   {bebes > 0 && (
@@ -1227,26 +1396,75 @@ export default function ReserverFunnel({
                       <strong>{devis.paiementIntegral ? t.aReglerTotalite : t.aReglerAcompte(tauxAcompte)}</strong>
                       <small>
                         {devis.dateLimiteSolde
-                          ? t.solde(euros(devis.montants.solde), date(devis.dateLimiteSolde))
-                          : t.arriveeProcheCourt(DELAI_SOLDE_DEFAUT)}
+                          ? t.soldeRecap(euros(devis.montants.solde), date(devis.dateLimiteSolde), null)
+                          : t.arriveeProcheCourt(devis.delaiSoldeJours)}
                       </small>
                     </span>
                     <em>{euros(devis.aRegler)}</em>
                   </div>
-                  <p style={{ fontSize: 12, color: "var(--color-gray-medium)", marginTop: 14, lineHeight: 1.5 }}>
-                    {t.cautionDetail(fmtPrix(devis.caution, langue))}
-                  </p>
                 </div>
 
+                <div className={styles.fieldGroup}>
+                  <h3 id="titre-caution">{t.titreCaution}</h3>
+                  <p className={styles.choixIntro}>{t.introCaution(fmtPrix(devis.caution, langue))}</p>
+                  <div role="radiogroup" aria-labelledby="titre-caution">
+                    <CarteChoix
+                      nom={t.cautionCarte}
+                      detail={t.cautionCarteDetail(fmtPrix(devis.caution, langue))}
+                      choisie={reglement.moyenCaution === "carte"}
+                      onChoisir={() => choisirCaution("carte")}
+                    />
+                    <CarteChoix
+                      nom={t.cautionCheque}
+                      detail={t.cautionChequeDetail(fmtPrix(devis.caution, langue))}
+                      choisie={reglement.moyenCaution === "cheque"}
+                      onChoisir={() => choisirCaution("cheque")}
+                    />
+                    <CarteChoix
+                      nom={t.cautionVirement}
+                      detail={t.cautionVirementDetail(fmtPrix(devis.caution, langue), date(devis.dateLimiteVirementCaution))}
+                      choisie={reglement.moyenCaution === "virement"}
+                      onChoisir={() => choisirCaution("virement")}
+                    />
+                  </div>
+                </div>
+
+                {devis.dateLimiteSolde && (
+                  <div className={styles.fieldGroup}>
+                    <h3 id="titre-solde">{t.titreSolde}</h3>
+                    <p className={styles.choixIntro}>
+                      {t.introSolde(euros(devis.montants.solde), date(devis.dateLimiteSolde))}
+                    </p>
+                    <div role="radiogroup" aria-labelledby="titre-solde">
+                      <CarteChoix
+                        nom={t.soldePrelevement}
+                        detail={t.soldePrelevementDetail(date(devis.dateLimiteSolde))}
+                        choisie={reglement.modeSolde === "prelevement"}
+                        inactive={reglement.moyenCaution !== null && !prelevementPossible(reglement.moyenCaution)}
+                        note={t.prelevementAvecCarte}
+                        onChoisir={() => setReglement((r) => ({ ...r, modeSolde: "prelevement" }))}
+                      />
+                      <CarteChoix
+                        nom={t.soldeLien}
+                        detail={t.soldeLienDetail(date(devis.dateLimiteSolde))}
+                        choisie={reglement.modeSolde === "lien"}
+                        onChoisir={() => setReglement((r) => ({ ...r, modeSolde: "lien" }))}
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {message && <div className={styles.avis}>{message}</div>}
-                <p className={styles.miniCalAide}>{t.blocageAVenir(reglages.dureeBlocageMinutes)}</p>
+                <p className={styles.miniCalAide}>
+                  {choixFait ? t.blocageAVenir(reglages.dureeBlocageMinutes) : t.choixRequis(devis.paiementIntegral)}
+                </p>
 
                 <div className={styles.stepActions}>
                   <button className={styles.stepBack} onClick={() => goTo("step2")}>
                     {ChevronLeft}
                     {t.retour}
                   </button>
-                  <button className="btn btn-primary" disabled={envoi} onClick={() => void bloquer()}>
+                  <button className="btn btn-primary" disabled={envoi || !choixFait} onClick={() => void bloquer()}>
                     {envoi ? t.enregistrement : t.procederPaiement}
                     {ArrowRight}
                   </button>
@@ -1288,69 +1506,83 @@ export default function ReserverFunnel({
                 )}
                 {message && <div className={styles.avis}>{message}</div>}
 
-                <div className={styles.stripeBlock} style={{ marginTop: 20 }}>
-                  <div className={styles.stripeBlockHead}>
-                    <h3>{t.carte}</h3>
-                    <span className={styles.secureTag}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                        <rect x="4" y="11" width="16" height="10" rx="1" />
-                        <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-                      </svg>
-                      {t.paiementSecurise}
-                    </span>
-                  </div>
-                  <div className={styles.stripeMock}>
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3">
-                      <rect x="2" y="6" width="20" height="13" rx="1.5" />
-                      <line x1="2" y1="10" x2="22" y2="10" />
-                    </svg>
-                    <h4>{t.champsStripe}</h4>
-                    <p>{t.paiementFerme}</p>
-                  </div>
-                </div>
+                <PaiementStripe
+                  key={tentative.clientSecret}
+                  clePublique={clePublique}
+                  clientSecret={tentative.clientSecret}
+                  langue={langue}
+                  urlRetour={`${window.location.origin}${l("/reserver/confirmation")}`}
+                  onEssai={traiterEssai}
+                  rendu={({ champ, payer, pret, enCours }) => (
+                    <>
+                      <div className={styles.stripeBlock} style={{ marginTop: 20 }}>
+                        <div className={styles.stripeBlockHead}>
+                          <h3>{t.carte}</h3>
+                          <span className={styles.secureTag}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                              <rect x="4" y="11" width="16" height="10" rx="1" />
+                              <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                            </svg>
+                            {t.paiementSecurise}
+                          </span>
+                        </div>
+                        {champ}
+                        {tentative.accordCarte && (
+                          <div className={styles.accordCarte}>
+                            <h4>{t.accordTitre}</h4>
+                            <p>{tentative.accordCarte}</p>
+                          </div>
+                        )}
+                      </div>
 
-                <div className={styles.consentBlock}>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={cgvAccepted}
-                      onChange={(e) => setCgvAccepted(e.target.checked)}
-                    />
-                    <span>
-                      <strong>
-                        {t.accepteAvant}<Link href={l("/legal/cgv")}>{t.cgv}</Link>
-                      </strong>
-                      {t.accepteApres}{" "}
-                      <span className={styles.req}>*</span>
-                    </span>
-                  </label>
-                  <label>
-                    <input type="checkbox" />
-                    <span>{t.avis}</span>
-                  </label>
-                </div>
+                      <div className={styles.consentBlock}>
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={cgvAccepted}
+                            onChange={(e) => setCgvAccepted(e.target.checked)}
+                          />
+                          <span>
+                            <strong>
+                              {t.accepteAvant}<Link href={l("/legal/cgv")}>{t.cgv}</Link>
+                            </strong>
+                            {t.accepteApres}{" "}
+                            <span className={styles.req}>*</span>
+                          </span>
+                        </label>
+                        <label>
+                          <input type="checkbox" />
+                          <span>{t.avis}</span>
+                        </label>
+                      </div>
 
-                <div className={styles.stepActions}>
-                  <button
-                    className={styles.stepBack}
-                    disabled={envoi}
-                    onClick={async () => {
-                      await abandonner();
-                      goTo("step3");
-                    }}
-                  >
-                    {ChevronLeft}
-                    {t.retour}
-                  </button>
-                  {/* Paiement branché au lot 3 (Stripe) : bouton inactif jusque-là. */}
-                  <button className="btn btn-primary" disabled>
-                    {t.payer(euros(tentative.devis.aRegler))}
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <rect x="4" y="11" width="16" height="10" rx="1" />
-                      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-                    </svg>
-                  </button>
-                </div>
+                      <div className={styles.stepActions}>
+                        <button
+                          className={styles.stepBack}
+                          disabled={envoi || enCours}
+                          onClick={async () => {
+                            await abandonner();
+                            goTo("step3");
+                          }}
+                        >
+                          {ChevronLeft}
+                          {t.retour}
+                        </button>
+                        <button
+                          className="btn btn-primary"
+                          disabled={!pret || enCours || !cgvAccepted || blocageExpire}
+                          onClick={() => void payer()}
+                        >
+                          {t.payer(euros(tentative.devis.aRegler))}
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <rect x="4" y="11" width="16" height="10" rx="1" />
+                            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                          </svg>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                />
 
                 <p style={{ fontSize: 12, color: "var(--color-gray-medium)", textAlign: "center", marginTop: 20 }}>
                   {t.troisDS}
@@ -1450,6 +1682,7 @@ export default function ReserverFunnel({
                 {NoChargeCheck}
                 {t.rienPreleve}
               </div>
+              {reponseBanque && <p className={styles.reponseBanque}>{t.reponseBanque(reponseBanque)}</p>}
               <p>{t.troisPistes}</p>
               <div className={styles.recourses}>
                 <div className={styles.recourse}>
@@ -1458,7 +1691,6 @@ export default function ReserverFunnel({
                     <polyline points="21 4 21 10 15 10" />
                   </svg>
                   <strong>{t.reessayerTitre}</strong>
-                  <p>{t.reessayerTexte}</p>
                   <button className="btn btn-primary" style={{ marginTop: 12, width: "100%" }} onClick={() => goTo("step4")}>
                     {t.reessayer}
                   </button>
