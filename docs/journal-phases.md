@@ -848,6 +848,80 @@ plutôt qu'au lot 4 (une migration de moins).
 
 ---
 
+## Phase 3 — lot 4, étape 1 : des documents justes (23 octobre 2026)
+
+Le lot 4 est découpé en trois étapes (choix du gérant) : 1. des documents
+justes ; 2. après le paiement (contrat, Brevo, courriels) ; 3. la page de
+suivi. La phase reste ouverte.
+
+### Ce qui a été décidé
+
+Avec le gérant, le 23 octobre 2026 :
+- ligne de la taxe des PDF : « Taxe de séjour — 2 adultes × 7 nuits (mineurs
+  exonérés) » ;
+- fiche gîte : taux et plafond tout compris, « 5,5 % … au plus 4,84 € par
+  adulte et par nuit ; mineurs exonérés ». Le gérant a confirmé que ses
+  5,5 % sont bien 5 % plus les 10 % du département, déjà appliqués ;
+- paiement intégral : pas de contrat automatique ; clauses rédigées au lot 5.
+
+Par la session : une réservation calculée à l'ancienne garde « Taxe de séjour
+(5,5 %) » ; refus (409) des routes de contrat et de facture pour un paiement
+intégral ; sommaire du contrat rendu insécable (voir les écarts).
+
+### Ce qui a été fait
+
+- **`lib/montants.ts`** : `libelleTaxeSejour` ; paiement intégral → acompte =
+  total, solde = 0 ; instantané des factures en version 3 (`libelleTaxeSejour`
+  remplace `tauxTaxeSejour`).
+- **PDF** (contrat, deux endroits ; factures d'acompte et de solde) : la ligne
+  de la taxe vient de `libelleTaxeSejour`. Rien d'autre ne change dans le
+  texte.
+- **`lib/format.ts`** : `fmtTaxeSejour` en taux et plafond tout compris, en
+  français et en anglais, calculés depuis les réglages.
+- **`POST /api/contrats`, `POST /api/factures`** : 409 pour un paiement
+  intégral, avec la raison.
+- **Contrôles** : `verify:tarification` 174 cas (9 de plus : phrases de la
+  fiche, ligne des PDF, montants d'un paiement intégral) ; le contrôle des
+  instantanés du parcours attend la version 3.
+
+### Ce qui a été vérifié
+
+- `npm run lint`, `npx tsc --noEmit`, `npm run build` : passent ; le build ne
+  pré-génère que `/_not-found`.
+- `bash scripts/parcours/lancer.sh`, base PostgreSQL 16 jetable, clés Stripe
+  de test : **onze étapes sur onze**, aucun montant de référence n'a bougé ;
+  les deux réservations de référence gardent « Taxe de séjour (5,5 %) ».
+- **Sur la base jetable**, une réservation du tunnel simulée (copie d'une
+  réservation de référence, taux vidé) : contrat et facture d'acompte émis,
+  ligne « Taxe de séjour — 2 adultes × 7 nuits (mineurs exonérés) » lue dans
+  les deux PDF et regardée à l'image ; la même en paiement intégral : contrat
+  409, facture 409, aucun numéro consommé.
+- Fiches gîte servies par le serveur : la nouvelle phrase, en français et en
+  anglais.
+
+### Ce qui n'a PAS été vérifié
+
+- Une vraie réservation du tunnel menée jusqu'au contrat : le contrat n'est
+  pas encore créé après le paiement (étape 2).
+
+### Écarts avec le plan annoncé
+
+- **Sommaire du contrat** (`ContratPDF.tsx`), hors liste : il ne tient pas en
+  bas de la page 1 et passait déjà coupé (deux lignes en page 1, la suite en
+  page 2). La ligne de la taxe, sur deux lignes dans le récapitulatif de la
+  page 1, y laissait le titre seul. Il est rendu insécable et part entier en
+  page 2 ; le contrat garde ses dix pages.
+- **`scripts/parcours/controler.ts`**, hors liste : attend la version 3 de
+  l'instantané.
+
+### Points reportés
+
+- **Lot 5** : clauses du paiement intégral (5.1, 5.2, 5.3, 7.2) et article
+  4.4, avec le reste du contrat ; relecture par le juriste (point 3).
+- **Phase 4** : la facture d'un paiement intégral (question au comptable).
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

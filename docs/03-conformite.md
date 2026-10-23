@@ -281,7 +281,8 @@ conservés **dix ans**.
 - La **ligne en base** est le document légal (voir `docs/02-decisions.md`, D-05) :
   `factures`, `documents`, `signatures` ne sont jamais supprimées, et
   `factures.donnees` contient un instantané complet et auto-décrit
-  (`unite: "centimes"`, `formatVersion: 2`) suffisant pour reconstituer le PDF.
+  (`unite: "centimes"`, `formatVersion: 3` depuis le 23 octobre 2026, la taxe
+  décrite par son libellé imprimé) suffisant pour reconstituer le PDF.
 - Les PDF vivent sur le **volume persistant** du VPS (`lib/storage.ts`).
 - Sauvegardes quotidiennes de la base par Coolify vers Cloudflare R2, avec
   procédure de restauration écrite (`db/README.md`).
@@ -408,13 +409,17 @@ collecté, exonérations.
 |---|---|
 | `taxes_sejour` | Les réglages, **par gîte et datés** : mode (proportionnel / fixe), taux, plafond, tarif fixe, taxe additionnelle, ménage dans l'assiette, bébés parmi les occupants, source. **Vide en base réelle** : à saisir (point 11 de `docs/06-avant-premier-client.md`). Les valeurs de Savas ci-dessus sont chargées dans la base de test. |
 | `lib/taxe-sejour.ts` | Le calcul, étape par étape, arrondi à chaque étape. Une nuit sans réglage est un refus, jamais une taxe nulle. |
-| Fiches gîtes | Affichent la règle en vigueur, lue en base : « 5 % du prix de la nuitée par personne, plafonné à 4,40 €, majoré de 10 % ». |
+| Fiches gîtes | Affichent la règle en vigueur, lue en base, **taxe additionnelle comprise** : « 5,5 % du prix de la nuit par personne, au plus 4,84 € par adulte et par nuit ; mineurs exonérés » (23 octobre 2026). |
 | Tunnel de réservation | Branché au **lot 2** (15 octobre 2026) : le devis (`lib/devis.ts`) appelle `lib/taxe-sejour.ts` ; la taxe et le détail de chaque étape sont figés avec la réservation (`reservations.taxe_sejour`, `reservations.detail_calcul`). Ce détail sert aussi au **registre**. |
 | `lib/montants.ts` | **Ne recalcule rien** : la taxe est une valeur **fournie** par la réservation (`reservations.taxe_sejour`) et reprise telle quelle sur le contrat et les factures. |
-| `gites.taux_taxe_sejour` et `reservations.taux_taxe_sejour` | **5,50**, l'ancienne forme. Plus lue par les pages ; laissée **vide** sur les réservations du tunnel. Les PDF impriment encore « Taxe de séjour (… %) » à partir de la réservation : libellé à reprendre **au lot 4**, avant que le contrat ne soit généré depuis le tunnel. |
+| `gites.taux_taxe_sejour` et `reservations.taux_taxe_sejour` | **5,50**, l'ancienne forme. Plus lue par les pages ; laissée **vide** sur les réservations du tunnel. Les PDF ne s'en servent plus que pour une réservation calculée à l'ancienne. |
+| Contrat et factures | Depuis le 23 octobre 2026 (lot 4) : « Taxe de séjour — 2 adultes × 7 nuits (mineurs exonérés) » (`libelleTaxeSejour`, `lib/montants.ts`). |
 
-**L'écart restant.** Le libellé des PDF (lot 4) et les trois questions au
-service taxe de séjour (point 10 de `docs/06-avant-premier-client.md`). Le site
+**L'écart restant.** Les trois questions au service taxe de séjour (point 10
+de `docs/06-avant-premier-client.md`), et l'article 4.4 du contrat, qui dit la
+taxe collectée « pour le compte de la commune de Savas » et « reversée à la
+commune » : elle est votée par Annonay Rhône Agglo et une part va au
+département (lot 5, juriste). Le site
 ne sera pas mis en ligne avant la fin des lots.
 
 **Exemple.** 780 € de location pour 7 nuits, 2 adultes et 1 enfant : 111,43 €

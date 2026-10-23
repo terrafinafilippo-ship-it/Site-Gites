@@ -769,6 +769,13 @@ limite compris : un client qui réserve le 10 décembre pour le 9 janvier paie
 tout, plutôt qu'un acompte le matin et un solde le soir. Le seuil reste le
 délai du solde (`DELAI_SOLDE_DEFAUT`), qui deviendra un réglage au lot 3.
 
+**Documents (lot 4, 23 octobre 2026, choix du gérant).** Le contrat ne prévoit
+pas ce cas (articles 5.1, 5.2, 5.3 et 7.2) : la rédaction est reportée au
+lot 5, avec la réécriture de l'article 5.1. D'ici là, `POST /api/contrats` et
+`POST /api/factures` **refusent** une réservation payée en totalité (409),
+plutôt que d'émettre un document faux et déjà numéroté. `calculerMontants`
+donne acompte = total et solde = 0.
+
 ---
 
 ## D-21 · Blocage des dates pendant le paiement : une ligne par nuit, sans tâche de nettoyage

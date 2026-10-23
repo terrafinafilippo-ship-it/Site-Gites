@@ -18,7 +18,7 @@ signature ne se supprime pas. Ne jamais lancer ces scripts sur la base réelle.
 | Étape | Contrôle |
 |---|---|
 | Conversion | Aller-retour centimes ↔ texte numeric sur les valeurs limites (`npm run verify:centimes`) |
-| Prix, taxe et devis | Prix de location d'un séjour, taxe de séjour, devis du tunnel, contrôle des coordonnées, règlement (caution, solde, texte d'accord) et anglais : 165 cas calculés à la main, dont les deux exemples officiels (`npm run verify:tarification`) |
+| Prix, taxe et devis | Prix de location d'un séjour, taxe de séjour, devis du tunnel, contrôle des coordonnées, règlement (caution, solde, texte d'accord), anglais, taxe affichée et paiement intégral : 174 cas calculés à la main, dont les deux exemples officiels (`npm run verify:tarification`) |
 | Blocage des dates | Deux clients qui bloquent les mêmes nuits au même instant : un seul gagne ; blocage expiré repris ; tentative, seconde tentative refusée avec les autres gîtes, abandon ; puis par le serveur : codes de réponse, deux POST simultanés, limite anti-abus (`scripts/verifier-blocage.ts --http`) |
 | Paiement | Stripe simulé : ouverture, refus, paiement confirmé une seule fois, paiement arrivé après le blocage (confirmé ou remboursé), remboursement rattrapé, retour en arrière qui annule le paiement ; puis **Stripe en mode test** par le serveur : carte de test, page de confirmation, carte refusée, avis signé (`scripts/verifier-paiement.ts --http`) |
 | Contrat | Émission, numéro `CTR-AAAA-NNN`, PDF, recopie du numéro sur la réservation |

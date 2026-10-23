@@ -134,7 +134,11 @@ dans le même envoi au juriste :
   (D-19) — l'article 6 est à réécrire en conséquence, y compris le cas du
   client arrivé sans caution ;
 - une réservation faite **à moins de 30 jours** de l'arrivée se paie en totalité
-  (D-20) — l'article 5.1 ne prévoit pas ce cas ;
+  (D-20) — les articles 5.1, 5.2, 5.3 et 7.2 ne prévoient pas ce cas (clauses
+  à rédiger au lot 5 ; d'ici là, aucun contrat n'est émis pour ce cas) ;
+- l'**article 4.4** dit la taxe de séjour collectée « pour le compte de la
+  commune de Savas » et « reversée à la commune » ; elle est votée par Annonay
+  Rhône Agglo, et une part va au département ;
 - le **texte d'accord pour l'enregistrement de la carte**, validé par le gérant
   le 14 octobre 2026, **et sa traduction anglaise** validée le 20 octobre 2026 :
   les deux textes sont dans `docs/phases/phase-3.md` (et en base, table

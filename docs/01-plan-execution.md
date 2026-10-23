@@ -15,7 +15,7 @@
 | 1 | Fusion du module contrat + modèle monétaire | **Close** — 16 septembre 2026 | — |
 | A | Référentiel du projet dans le dépôt | **Close** — 17 septembre 2026 | ce document |
 | 2 | Assainissement et connexion du site | **Close** — 18 septembre 2026 | `docs/phases/phase-2.md` |
-| 3 | Moteur de réservation | **En cours** — cadrage clos et lot 1 (prix) livré le 14 octobre 2026 ; lot 2 (calendrier et réservation) livré le 15 octobre ; site en deux langues (français, anglais) le 16 octobre ; lot 3 (paiement Stripe, mode test) le 20 octobre ; lots 4 et 5 à faire | `docs/phases/phase-3.md` |
+| 3 | Moteur de réservation | **En cours** — cadrage clos et lot 1 (prix) livré le 14 octobre 2026 ; lot 2 (calendrier et réservation) livré le 15 octobre ; site en deux langues (français, anglais) le 16 octobre ; lot 3 (paiement Stripe, mode test) le 20 octobre ; lot 4 en cours (étape 1, documents justes, le 23 octobre) ; lot 5 à faire | `docs/phases/phase-3.md` |
 | 4 | Cycle de paiement complet | À ouvrir | `docs/phases/phase-4.md` |
 | 5 | Back-office Patricia et Nicolas | À ouvrir | `docs/phases/phase-5.md` |
 | 6 | Contenus, légal, SEO | À ouvrir | `docs/phases/phase-6.md` |

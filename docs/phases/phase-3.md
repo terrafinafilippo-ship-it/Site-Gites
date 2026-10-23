@@ -154,8 +154,8 @@ fonctionnel et terminé (13 octobre 2026), back-office compris.
 | **1. Prix** | Tables de tarification et de taxe, calcul du prix d'un séjour et de la taxe, fiches gîtes lues en base, contrôles | **Livré le 14 octobre 2026** — voir `docs/journal-phases.md` |
 | **2. Calendrier et réservation** | Disponibilités réelles, blocage de 20 minutes, refus si un prix manque, erreur sur un gîte inconnu, tunnel branché sur les vrais chiffres (âges, horaires, prix, taxe) | **Livré le 15 octobre 2026** — voir `docs/journal-phases.md` |
 | **3. Paiement** | Stripe en mode test : acompte ou total, carte conservée seulement si choisie, choix de la caution et du solde, paiement tardif, autres gîtes proposés | **Livré le 20 octobre 2026** (D-23) — voir `docs/journal-phases.md` ; parcours rejoué par Stripe en mode test le 22 octobre 2026 (11 étapes sur 11) ; restent la validation 3-D Secure à l'écran et l'avis signé |
-| **4. Courriels et suivi** | Brevo, contrat généré, lien de signature, page de suivi à lien secret, courriels aux propriétaires (dont le paiement remboursé, journalisé seulement au lot 3) ; **libellé de la taxe dans les PDF** (une réservation du tunnel n'a plus de taux unique : `taux_taxe_sejour` est vide, et les PDF impriment encore « (… %) ») ; **documents d'un paiement intégral** (`paiement_integral` : ni acompte ni solde, alors que `calculerMontants` applique le taux d'acompte) ; phrase « contrat à signer par courriel » sur la page de confirmation | À faire |
-| **5. Contrat et pages** | Articles 5.1 et 6 du contrat, pages qui décrivent la caution, horaires, boîte à clés retirée, documentation | À faire |
+| **4. Courriels et suivi** | Brevo, contrat généré, lien de signature, page de suivi à lien secret, courriels aux propriétaires (dont le paiement remboursé, journalisé seulement au lot 3) ; **libellé de la taxe dans les PDF** (une réservation du tunnel n'a plus de taux unique : `taux_taxe_sejour` est vide, et les PDF impriment encore « (… %) ») ; **documents d'un paiement intégral** (`paiement_integral` : ni acompte ni solde, alors que `calculerMontants` applique le taux d'acompte) ; phrase « contrat à signer par courriel » sur la page de confirmation | En cours, en trois étapes : **1. documents justes livrée le 23 octobre 2026** (libellé de la taxe, paiement intégral) ; 2. après le paiement (contrat, Brevo, courriels) ; 3. page de suivi |
+| **5. Contrat et pages** | Articles 5.1 et 6 du contrat, **clauses du paiement intégral** (5.1, 5.2, 5.3, 7.2), **article 4.4** (la taxe est votée par Annonay Rhône Agglo, une part va au département), pages qui décrivent la caution, horaires, boîte à clés retirée, documentation | À faire |
 
 **Points ouverts après le lot 2**, hors code :
 - les bébés comptent-ils parmi les **occupants** de la taxe de séjour, et le
@@ -206,6 +206,22 @@ du prototype de ces deux écrans restent sur la liste du lot 5.
 de Stripe ne montre que la carte : ni **Link** (compte Stripe proposé au
 client), ni la **phrase d'autorisation de Stripe**, doublon du texte d'accord
 (D-23).
+
+**Décisions du lot 4, étape 1 (23 octobre 2026).**
+- **Ligne de la taxe sur le contrat et les factures** : « Taxe de séjour —
+  2 adultes × 7 nuits (mineurs exonérés) ». Elle reste vraie quand le plafond
+  joue, quand le taux change en cours de séjour ou pour un gîte classé. Une
+  réservation calculée à l'ancienne (taux unique sur la location) garde
+  « Taxe de séjour (5,5 %) », qui explique son montant.
+- **Fiche gîte** : le taux et le plafond **tout compris** (taxe additionnelle
+  du département incluse) — « 5,5 % du prix de la nuit par personne, au plus
+  4,84 € par adulte et par nuit ; mineurs exonérés ». Le gérant avait lu
+  « 5 % » dans l'ancienne phrase ; le calcul, lui, appliquait déjà 5,5 %.
+- **Paiement intégral** : aucun contrat ni aucune facture n'est émis
+  (réponse 409) tant que les clauses ne sont pas rédigées (lot 5) et que le
+  comptable n'a pas dit quelle facture émettre (Phase 4). Les propriétaires
+  seront alertés à l'étape 2 et s'en occupent à la main. Le calcul interne
+  donne déjà acompte = total et solde = 0.
 
 ---
 
