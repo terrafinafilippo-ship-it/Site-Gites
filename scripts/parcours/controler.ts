@@ -99,7 +99,7 @@ async function main(): Promise<void> {
         );
         // Auto-description de l'unité (chantier 1f).
         noter(d.unite === "centimes", `${f.numero} : donnees.unite = "centimes"`, String(d.unite));
-        noter(d.formatVersion === 2, `${f.numero} : donnees.formatVersion = 2`, String(d.formatVersion));
+        noter(d.formatVersion === 3, `${f.numero} : donnees.formatVersion = 3`, String(d.formatVersion));
 
         // Les montants de l'instantané, poste par poste.
         const postes: Array<[keyof MontantsAttendus, string]> = [

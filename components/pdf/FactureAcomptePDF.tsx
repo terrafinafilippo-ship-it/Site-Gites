@@ -411,7 +411,8 @@ export type FactureAcompteData = {
   forfaitMenage: number;
   montantOptions: number; // ligne « Options » affichée seulement si différent de 0
   sousTotal: number;
-  tauxTaxeSejour: number;
+  /** Ligne imprimée, construite par lib/montants.ts (libelleTaxeSejour). */
+  libelleTaxeSejour: string;
   montantTaxeSejour: number;
   totalTtc: number;
   tauxAcompte: number;
@@ -553,7 +554,7 @@ export function FactureAcomptePDF({ data, logo }: { data: FactureAcompteData; lo
           </View>
           <View style={styles.line}>
             <Text style={styles.lineDesc}>
-              Taxe de séjour ({data.tauxTaxeSejour.toString().replace('.', ',')} %)
+              {data.libelleTaxeSejour}
             </Text>
             <Text style={styles.lineAmount}>
               {fmtEuro(data.montantTaxeSejour)}

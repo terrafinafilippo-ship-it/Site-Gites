@@ -435,7 +435,8 @@ export type ContratData = {
   forfaitMenage: number;
   montantOptions: number; // ligne « Options » affichée seulement si différent de 0
   sousTotal: number;
-  tauxTaxeSejour: number;
+  /** Ligne imprimée, construite par lib/montants.ts (libelleTaxeSejour). */
+  libelleTaxeSejour: string;
   montantTaxeSejour: number;
   totalTtc: number;
 
@@ -511,8 +512,6 @@ export function ContratPDF({
   data: ContratData;
   logo: Buffer | null;
 }) {
-  const tauxTs = data.tauxTaxeSejour.toString().replace('.', ',');
-
   return (
     <Document
       title={`Contrat ${data.numeroContrat}`}
@@ -673,7 +672,7 @@ export function ContratPDF({
             )}
             <View style={styles.echRow}>
               <Text style={[styles.echTd, { flex: 3 }]}>
-                Taxe de séjour ({tauxTs} %)
+                {data.libelleTaxeSejour}
               </Text>
               <Text style={[styles.echTd, { flex: 1.5, textAlign: 'right' }]}>
                 {fmtEuro(data.montantTaxeSejour)}
@@ -766,8 +765,9 @@ export function ContratPDF({
           </View>
         </View>
 
-        {/* Sommaire */}
-        <View style={styles.toc}>
+        {/* Sommaire — insécable : il ne tient pas en bas de la page 1 et passait
+            coupé (titre seul, ou deux lignes) ; il part entier en page 2. */}
+        <View style={styles.toc} wrap={false}>
           <Text style={styles.tocTitle}>Sommaire</Text>
           <View style={styles.tocGrid}>
             <View style={styles.tocCol}>
@@ -1040,7 +1040,7 @@ export function ContratPDF({
             </View>
             <View style={styles.tblRow}>
               <Text style={[styles.tblTd, { flex: 4 }]}>
-                Taxe de séjour ({tauxTs} %)
+                {data.libelleTaxeSejour}
               </Text>
               <Text
                 style={[styles.tblTd, { flex: 1.5, textAlign: 'right' }]}

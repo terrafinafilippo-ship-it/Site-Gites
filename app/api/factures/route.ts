@@ -96,6 +96,19 @@ export async function POST(request: Request) {
       { status: 404 },
     );
   }
+  // Paiement intégral (D-20) : ni acompte ni solde. La facture à émettre est
+  // une question posée au comptable (Phase 4) ; d'ici là, aucune facture n'est
+  // émise, plutôt qu'une facture fausse et déjà numérotée.
+  if (resa.paiement_integral) {
+    return NextResponse.json(
+      {
+        error:
+          "Réservation payée en totalité : ni facture d'acompte ni facture de solde. " +
+          "La facture à émettre attend la réponse du comptable (Phase 4). Aucune facture n'est émise.",
+      },
+      { status: 409 },
+    );
+  }
 
   // ── 3. Facture d'acompte de référence (obligatoire pour un solde) ────────
   let factureAcompte: FactureRow | null = null;

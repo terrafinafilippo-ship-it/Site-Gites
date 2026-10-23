@@ -106,6 +106,19 @@ export async function POST(request: Request) {
       { status: 404 },
     );
   }
+  // Paiement intégral (D-20) : le contrat ne prévoit pas ce cas (art. 5.1, 5.2,
+  // 5.3, 7.2). Les clauses sont à rédiger au lot 5 de la Phase 3 ; d'ici là,
+  // aucun contrat n'est émis, plutôt qu'un contrat faux et déjà numéroté.
+  if (resa.paiement_integral) {
+    return NextResponse.json(
+      {
+        error:
+          "Réservation payée en totalité : le contrat ne prévoit pas encore ce cas " +
+          "(articles 5.1, 5.2, 5.3 et 7.2, à rédiger au lot 5). Aucun contrat n'est émis.",
+      },
+      { status: 409 },
+    );
+  }
 
   const logo = chargerLogo(); // null si illisible : le contrat sort sans logo
   const token = randomBytes(24).toString('base64url'); // 32 caractères URL-safe

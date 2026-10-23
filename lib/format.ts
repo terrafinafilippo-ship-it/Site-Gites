@@ -5,6 +5,7 @@
 // en français et appellent ces fonctions sans langue (décision D-22).
 
 import { numericDepuisCentimes } from '@/lib/centimes';
+import { diviserArrondiEntier } from '@/lib/decimaux';
 import { LOCALE, type Langue } from '@/lib/i18n/langues';
 import type { ReglageTaxe } from '@/lib/taxe-sejour';
 
@@ -86,28 +87,29 @@ export const fmtPlage = (debut: string, fin: string, langue: Langue = 'fr'): str
 };
 
 /**
- * Règle de taxe de séjour en une phrase DESCRIPTIVE, reprise des termes du
- * guide officiel : « 5 % du prix de la nuitée par personne, plafonné à 4,40 €,
- * majoré de 10 % » ou, pour un gîte classé, « 0,82 € par personne et par nuit,
- * majoré de 10 % ».
+ * Règle de taxe de séjour en une phrase, TAXE ADDITIONNELLE COMPRISE (décision
+ * du 23 octobre 2026 : le client lit le taux qu'il paie, pas ses composantes) :
+ * « 5,5 % du prix de la nuit par personne, au plus 4,84 € par adulte et par
+ * nuit ; mineurs exonérés » (5 % + 10 % de 5 % ; plafond 4,40 € + 0,44 €) ou,
+ * pour un gîte classé, « 0,90 € par adulte et par nuit ; mineurs exonérés ».
+ *
+ * Les montants tout compris suivent le calcul (lib/taxe-sejour.ts, étape 5) :
+ * la taxe additionnelle est arrondie à part, puis ajoutée.
  */
 export const fmtTaxeSejour = (r: ReglageTaxe, langue: Langue = 'fr'): string => {
-  if (langue === 'en') {
-    const plus = r.taxeAdditionnelle > 0 ? `, plus ${fmtTauxCentiemes(r.taxeAdditionnelle, langue)}` : '';
-    if (r.mode === 'fixe' && r.tarifFixe !== null) {
-      return `${fmtPrix(r.tarifFixe, langue)} per person per night${plus}`;
-    }
-    if (r.mode === 'proportionnel' && r.taux !== null && r.plafond !== null) {
-      return `${fmtTauxCentiemes(r.taux, langue)} of the nightly price per person, capped at ${fmtPrix(r.plafond, langue)}${plus}`;
-    }
-    throw new Error(`fmtTaxeSejour : réglage incomplet (mode ${r.mode})`);
-  }
-  const majoration = r.taxeAdditionnelle > 0 ? `, majoré de ${fmtTauxCentiemes(r.taxeAdditionnelle)}` : '';
+  const toutCompris = (v: number) => v + diviserArrondiEntier(v * r.taxeAdditionnelle, 10_000);
   if (r.mode === 'fixe' && r.tarifFixe !== null) {
-    return `${fmtPrix(r.tarifFixe)} par personne et par nuit${majoration}`;
+    const tarif = fmtPrix(toutCompris(r.tarifFixe), langue);
+    return langue === 'en'
+      ? `${tarif} per adult per night; under-18s exempt`
+      : `${tarif} par adulte et par nuit ; mineurs exonérés`;
   }
   if (r.mode === 'proportionnel' && r.taux !== null && r.plafond !== null) {
-    return `${fmtTauxCentiemes(r.taux)} du prix de la nuitée par personne, plafonné à ${fmtPrix(r.plafond)}${majoration}`;
+    const taux = fmtTauxCentiemes(toutCompris(r.taux), langue);
+    const plafond = fmtPrix(toutCompris(r.plafond), langue);
+    return langue === 'en'
+      ? `${taux} of the nightly price per person, at most ${plafond} per adult per night; under-18s exempt`
+      : `${taux} du prix de la nuit par personne, au plus ${plafond} par adulte et par nuit ; mineurs exonérés`;
   }
   throw new Error(`fmtTaxeSejour : réglage incomplet (mode ${r.mode})`);
 };

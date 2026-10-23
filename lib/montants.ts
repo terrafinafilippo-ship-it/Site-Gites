@@ -59,6 +59,8 @@ export interface Montants {
  *     30 % jusqu'ici) appliqué au TOTAL TTC (taxe de séjour incluse)
  *   - solde   = totalTtc − acompte
  *   - la taxe de séjour est FOURNIE par la réservation, jamais recalculée ici.
+ *   - paiement intégral (D-20) : le total est payé à la réservation, donc
+ *     acompte = totalTtc et solde = 0, quel que soit le taux recopié.
  *
  * Le solde est dérivé de `totalTtc − acompte` (et non d'un second pourcentage) :
  * en centimes entiers, acompte + solde = totalTtc est exact par construction.
@@ -72,7 +74,30 @@ export function calculerMontants(resa: Reservation): Montants {
     forfaitMenage: resa.forfait_menage ?? gite?.forfait_menage ?? FORFAIT_MENAGE_DEFAUT,
     options: resa.options ?? 0,
     taxeSejour: resa.taxe_sejour ?? 0,
-  }, resa.taux_acompte);
+  }, resa.paiement_integral ? 100 : resa.taux_acompte);
+}
+
+/**
+ * Libellé de la ligne « taxe de séjour » des PDF (décision du 23 octobre 2026).
+ *
+ * - Réservation du tunnel (`taux_taxe_sejour` vide) : la taxe est calculée par
+ *   adulte et par nuit (lib/taxe-sejour.ts), les mineurs ne paient pas →
+ *   « Taxe de séjour — 2 adultes × 7 nuits (mineurs exonérés) ». Le libellé
+ *   reste vrai quand le plafond joue, quand le taux change en cours de séjour
+ *   ou pour un gîte classé (tarif fixe).
+ * - Réservation calculée à l'ancienne (un taux unique sur la location) : son
+ *   taux, qui explique son montant → « Taxe de séjour (5,5 %) ».
+ */
+export function libelleTaxeSejour(resa: Reservation): string {
+  if (resa.taux_taxe_sejour !== null && resa.taux_taxe_sejour !== undefined) {
+    return `Taxe de séjour (${resa.taux_taxe_sejour.toString().replace('.', ',')} %)`;
+  }
+  const adultes = resa.nb_adultes ?? 0;
+  const nuits = computeNbNuits(resa.date_arrivee ?? '', resa.date_depart ?? '');
+  return (
+    `Taxe de séjour — ${adultes} adulte${adultes > 1 ? 's' : ''} × ` +
+    `${nuits} nuit${nuits > 1 ? 's' : ''} (mineurs exonérés)`
+  );
 }
 
 /** Les quatre postes d'un séjour, en CENTIMES ENTIERS. */
@@ -180,7 +205,7 @@ function champsCommuns(resa: Reservation) {
     nbAdultes: resa.nb_adultes ?? 0,
 
     prixLocation: resa.prix_location ?? 0,
-    tauxTaxeSejour: resa.taux_taxe_sejour ?? 0,
+    libelleTaxeSejour: libelleTaxeSejour(resa),
   };
 }
 
@@ -245,9 +270,12 @@ function mapSoldeData(
 /**
  * Version du format de l'instantané stocké dans factures.donnees :
  *   1 = montants en euros flottants (session A, jamais stocké en base réelle) ;
- *   2 = montants en CENTIMES ENTIERS + champs d'auto-description.
+ *   2 = montants en CENTIMES ENTIERS + champs d'auto-description ;
+ *   3 = idem, la taxe de séjour décrite par son libellé imprimé
+ *       (`libelleTaxeSejour`) au lieu d'un taux (`tauxTaxeSejour`), le
+ *       23 octobre 2026.
  */
-export const INSTANTANE_FORMAT_VERSION = 2;
+export const INSTANTANE_FORMAT_VERSION = 3;
 
 /**
  * Objet figé dans factures.donnees : les données exactes du PDF, en centimes,

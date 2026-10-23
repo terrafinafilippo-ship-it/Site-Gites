@@ -39,9 +39,9 @@ import {
   type ReglagesTunnel,
   type ResultatDevis,
 } from '../lib/devis';
-import { montantsDesPostes } from '../lib/montants';
+import { calculerMontants, libelleTaxeSejour, montantsDesPostes, type Reservation } from '../lib/montants';
 import { carteEnregistree, choixComplet, texteAccordCarte, validerChoix } from '../lib/reglement';
-import { fmtDateLongue, fmtEuro, fmtPrix, fmtTaux, fmtTauxCentiemes } from '../lib/format';
+import { fmtDateLongue, fmtEuro, fmtPrix, fmtTaux, fmtTauxCentiemes, fmtTaxeSejour } from '../lib/format';
 import { cheminSansLangue, lien, type Langue } from '../lib/i18n/langues';
 
 let nbCas = 0;
@@ -788,6 +788,72 @@ console.log("--- règlement : caution, solde, texte d'accord");
     incomplet = true;
   }
   noter(incomplet, 'repère inconnu dans un modèle : le texte n\'est pas affiché (erreur)');
+}
+
+// ─── Taxe de séjour à l'affichage, paiement intégral (Phase 3, lot 4) ─────────
+
+console.log('--- taxe de séjour affichée, paiement intégral');
+{
+  // Fiche gîte : le taux et le plafond TOUT COMPRIS (taxe additionnelle incluse).
+  noter(
+    fmtTaxeSejour(SAVAS_2026) === '5,5 % du prix de la nuit par personne, au plus 4,84 € par adulte et par nuit ; mineurs exonérés',
+    'fiche gîte : « 5,5 % … au plus 4,84 € par adulte et par nuit ; mineurs exonérés »',
+    fmtTaxeSejour(SAVAS_2026),
+  );
+  noter(
+    fmtTaxeSejour(SAVAS_2026, 'en') === '5.5% of the nightly price per person, at most €4.84 per adult per night; under-18s exempt',
+    'fiche gîte en anglais : « 5.5% … at most €4.84 per adult per night; under-18s exempt »',
+    fmtTaxeSejour(SAVAS_2026, 'en'),
+  );
+  const classe: ReglageTaxe = { ...SAVAS_2026, mode: 'fixe', taux: null, plafond: null, tarifFixe: 82 };
+  noter(
+    fmtTaxeSejour(classe) === '0,90 € par adulte et par nuit ; mineurs exonérés',
+    'fiche d\'un gîte classé : 0,82 € + 10 % = « 0,90 € par adulte et par nuit »',
+    fmtTaxeSejour(classe),
+  );
+  noter(
+    fmtTaxeSejour({ ...SAVAS_2026, taxeAdditionnelle: 0 }) ===
+      '5 % du prix de la nuit par personne, au plus 4,40 € par adulte et par nuit ; mineurs exonérés',
+    'fiche sans taxe additionnelle : 5 %, au plus 4,40 €',
+    fmtTaxeSejour({ ...SAVAS_2026, taxeAdditionnelle: 0 }),
+  );
+
+  // Ligne des PDF. Seuls les champs lus comptent : le reste de la réservation est sans effet.
+  const resa = (r: Partial<Reservation>): Reservation =>
+    ({
+      gites: null, prix_location: 78000, forfait_menage: 8000, options: 0, taxe_sejour: 2870,
+      taux_acompte: 30, paiement_integral: false, taux_taxe_sejour: null,
+      nb_adultes: 2, date_arrivee: '2027-03-06', date_depart: '2027-03-13', ...r,
+    }) as Reservation;
+  noter(
+    libelleTaxeSejour(resa({})) === 'Taxe de séjour — 2 adultes × 7 nuits (mineurs exonérés)',
+    'PDF : « Taxe de séjour — 2 adultes × 7 nuits (mineurs exonérés) »',
+    libelleTaxeSejour(resa({})),
+  );
+  noter(
+    libelleTaxeSejour(resa({ nb_adultes: 1, date_depart: '2027-03-07' })) === 'Taxe de séjour — 1 adulte × 1 nuit (mineurs exonérés)',
+    'PDF : singulier pour 1 adulte et 1 nuit',
+    libelleTaxeSejour(resa({ nb_adultes: 1, date_depart: '2027-03-07' })),
+  );
+  noter(
+    libelleTaxeSejour(resa({ taux_taxe_sejour: 5.5 })) === 'Taxe de séjour (5,5 %)',
+    'PDF : réservation calculée à l\'ancienne → son taux, « (5,5 %) »',
+    libelleTaxeSejour(resa({ taux_taxe_sejour: 5.5 })),
+  );
+
+  // Montants : 780 + 80 + 28,70 = 888,70 € ; acompte 30 % = 266,61 €.
+  const partiel = calculerMontants(resa({}));
+  noter(
+    partiel.totalTtc === 88870 && partiel.acompte === 26661 && partiel.solde === 62209,
+    'acompte et solde : 266,61 € + 622,09 € = 888,70 €',
+    partiel,
+  );
+  const integral = calculerMontants(resa({ paiement_integral: true }));
+  noter(
+    integral.totalTtc === 88870 && integral.acompte === 88870 && integral.solde === 0,
+    'paiement intégral : acompte = total (888,70 €), solde 0, malgré le taux de 30 % recopié',
+    integral,
+  );
 }
 
 console.log(echecs === 0 ? `\n${nbCas} cas, tous passent.` : `\n${nbCas} cas, ${echecs} en échec.`);
