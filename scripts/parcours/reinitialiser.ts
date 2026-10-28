@@ -18,6 +18,7 @@ import { chargerTarifsFictifs } from "./tarifs-fictifs";
 
 // Toutes les tables qui référencent `reservations`, sinon TRUNCATE est refusé.
 const TABLES_A_VIDER = [
+  "courriels",
   "signatures",
   "documents",
   "factures",
@@ -42,6 +43,13 @@ async function main(): Promise<void> {
     await pool.query(`truncate table ${TABLES_A_VIDER.join(", ")}`);
     await pool.query("update compteurs_documents set dernier_numero = 0");
     console.log(`Tables vidées (${TABLES_A_VIDER.length}) et compteurs remis à zéro.`);
+
+    // Les alertes aux propriétaires de la base de TEST vont à une adresse
+    // réservée aux essais, jamais envoyée (lib/messagerie.ts) : le parcours
+    // signe des contrats, et l'alerte « contrat signé » ne doit pas partir
+    // vers la vraie boîte contact@.
+    await pool.query("update alertes set destinataires = array['proprietaires@example.invalid']");
+    console.log("Alertes de la base de test : proprietaires@example.invalid (jamais envoyée).");
 
     // Les PDF de test sont écrits sous STORAGE_PATH ; on repart d'un stockage vide
     // pour que les contrôles de non-régression ne voient que les fichiers du jour.

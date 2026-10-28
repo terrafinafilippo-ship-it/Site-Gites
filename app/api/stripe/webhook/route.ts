@@ -10,12 +10,16 @@
 // La signature de l'avis est vérifiée avec STRIPE_WEBHOOK_SECRET sur le corps
 // BRUT : un avis non signé ou falsifié est refusé (400) sans rien lire.
 //
+// Les courriels inscrits par le constat (lib/courriels.ts) partent APRÈS la
+// réponse : Stripe n'attend pas Brevo.
+//
 // Réponses : 200 traité ou ignoré · 400 signature invalide · 500 traitement à
 // reprendre (Stripe renverra l'avis) · 503 secret absent.
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 
+import { traiterCourriels } from "@/lib/courriels-envoi";
 import { constaterPaiement } from "@/lib/paiement";
-import { messageErreur } from "@/lib/route-helpers";
+import { messageErreur, resolveSiteOrigin } from "@/lib/route-helpers";
 import { PaiementIndisponible, prestataire } from "@/lib/stripe";
 
 export async function POST(request: Request) {
@@ -35,6 +39,7 @@ export async function POST(request: Request) {
 
   try {
     const issue = await constaterPaiement(avis.paiementId);
+    after(() => traiterCourriels(resolveSiteOrigin(request)));
     return NextResponse.json({ ok: true, issue: issue.issue });
   } catch (erreur) {
     console.error(`[stripe/webhook] ${avis.evenement} ${avis.paiementId} à reprendre :`, messageErreur(erreur));

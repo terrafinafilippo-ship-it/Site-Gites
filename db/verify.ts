@@ -119,6 +119,8 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     "heure_limite_arrivee", "bebe_age_limite", "bebes_hors_capacite", "lits_bebe",
     // Paiement (Phase 3, lot 3, migration 0005).
     "taux_acompte", "delai_solde_jours", "delai_virement_caution_jours",
+    // Courriels (Phase 3, lot 4, migration 0006).
+    "courriel_expediteur", "courriel_expediteur_nom", "courriel_reponse",
     "updated_at",
   ],
   taxes_sejour: [
@@ -127,6 +129,13 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
   ],
   // Texte d'accord pour l'enregistrement de la carte (Phase 3, lot 3).
   textes_accord: ["id", "objet", "langue", "en_vigueur_depuis", "modele", "modele_solde", "valide_par", "created_at"],
+  // Courriels et alertes aux propriétaires (Phase 3, lot 4).
+  courriels: [
+    "id", "reservation_id", "objet", "cle", "destinataire", "langue", "donnees", "statut", "tentatives",
+    "prochain_essai_at", "derniere_erreur", "sujet", "corps_texte", "voie", "reference_externe", "envoye_at",
+    "created_at", "updated_at",
+  ],
+  alertes: ["type", "active", "destinataires", "updated_at"],
 };
 
 // Quelques types sensibles (le module de contrat en dépend).
@@ -209,6 +218,8 @@ async function verifierSchema(client: PoolClient): Promise<void> {
   noter("1", noms.includes("reservations_set_updated_at"), "trigger reservations_set_updated_at présent");
   noter("1", noms.includes("paiements_set_updated_at"), "trigger paiements_set_updated_at présent");
   noter("1", noms.includes("textes_accord_immuables"), "trigger textes_accord_immuables présent");
+  noter("1", noms.includes("courriels_set_updated_at"), "trigger courriels_set_updated_at présent");
+  noter("1", noms.includes("alertes_set_updated_at"), "trigger alertes_set_updated_at présent");
 
   const index = await client.query<{ indexname: string }>(
     `select indexname from pg_indexes where schemaname = 'public'`,
@@ -220,10 +231,30 @@ async function verifierSchema(client: PoolClient): Promise<void> {
     "signatures_document_id_uidx",
     "disponibilites_gite_date_uidx",
     "paiements_reference_externe_uidx",
+    "courriels_cle_uidx",
   ]) {
     noter("1", idx.includes(nom), `index unique ${nom} présent`);
   }
   noter("1", idx.includes("disponibilites_reservation_id_idx"), "index disponibilites_reservation_id_idx présent");
+
+  // Courriels : les trois alertes existent (le code ne les crée jamais), et
+  // les adresses d'expédition et de réponse sont renseignées.
+  const lignesAlertes = await client.query<{ type: string }>(`select type from alertes order by type`);
+  noter(
+    "1",
+    lignesAlertes.rows.map((r) => r.type).join(",") === "probleme,reservation,signature",
+    "alertes : les trois lignes (probleme, reservation, signature)",
+    lignesAlertes.rows.map((r) => r.type).join(", "),
+  );
+  const adresses = await client.query<{ e: string; r: string }>(
+    `select courriel_expediteur as e, courriel_reponse as r from reglages where id = 1`,
+  );
+  noter(
+    "1",
+    /@/.test(adresses.rows[0]?.e ?? "") && /@/.test(adresses.rows[0]?.r ?? ""),
+    "reglages : expéditeur et adresse de réponse des courriels renseignés",
+    JSON.stringify(adresses.rows[0]),
+  );
 
   const exclusion = await client.query<{ contype: string }>(
     `select contype from pg_constraint where conname = 'periodes_sans_chevauchement'`,
@@ -549,7 +580,9 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
 
     const secondeLigne = await attendreErreur(
       client, "sp_reglages_2",
-      `insert into reglages (id) values (2)`, [],
+      // Colonnes sans valeur par défaut fournies : c'est la règle « une seule ligne » qui doit refuser.
+      `insert into reglages (id, courriel_expediteur, courriel_expediteur_nom, courriel_reponse)
+       values (2, 'a@example.invalid', 'Essai', 'b@example.invalid')`, [],
     );
     noter("6b", codePg(secondeLigne.erreur) === "23514", "reglages : seconde ligne refusée", codePg(secondeLigne.erreur));
 
@@ -674,6 +707,34 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
       client, "sp_suppr_accord", `delete from textes_accord where objet = 'carte'`, [],
     );
     noter("6d", supprAccord.erreur !== null && /immuable/i.test(messageErreur(supprAccord.erreur)), "texte d'accord : suppression refusée par le trigger", supprAccord.erreur ? messageErreur(supprAccord.erreur).split("\n")[0] : "aucune erreur");
+
+    // ── 6e. Courriels : journal et alertes ──
+    titre("6e. Courriels : journal et alertes");
+    const doublonCourriel = await attendreErreur(
+      client, "sp_doublon_courriel",
+      `insert into courriels (reservation_id, objet, cle, destinataire, langue)
+       values ($1, 'confirmation', 'verify:cle', 'a@example.invalid', 'fr'),
+              ($1, 'confirmation', 'verify:cle', 'a@example.invalid', 'fr')`, [resaId],
+    );
+    noter("6e", codePg(doublonCourriel.erreur) === "23505", "même courriel inscrit deux fois (même clé) refusé", codePg(doublonCourriel.erreur));
+    const objetInconnu = await attendreErreur(
+      client, "sp_objet_courriel",
+      `insert into courriels (objet, cle, destinataire, langue) values ('publicite', 'verify:objet', 'a@example.invalid', 'fr')`, [],
+    );
+    noter("6e", codePg(objetInconnu.erreur) === "23514", "objet de courriel inconnu refusé", codePg(objetInconnu.erreur));
+    const envoyeSansTrace = await attendreErreur(
+      client, "sp_envoye_sans_trace",
+      `insert into courriels (objet, cle, destinataire, langue, statut) values ('confirmation', 'verify:envoye', 'a@example.invalid', 'fr', 'envoye')`, [],
+    );
+    noter("6e", codePg(envoyeSansTrace.erreur) === "23514", "courriel « envoyé » sans date, voie ni sujet refusé", codePg(envoyeSansTrace.erreur));
+    const alerteSansDestinataire = await attendreErreur(
+      client, "sp_alerte_vide", `update alertes set destinataires = '{}' where type = 'probleme' and active`, [],
+    );
+    noter("6e", codePg(alerteSansDestinataire.erreur) === "23514", "alerte active sans destinataire refusée", codePg(alerteSansDestinataire.erreur));
+    const sansExpediteur = await attendreErreur(
+      client, "sp_sans_expediteur", `update reglages set courriel_expediteur = 'pas-une-adresse' where id = 1`, [],
+    );
+    noter("6e", codePg(sansExpediteur.erreur) === "23514", "expéditeur des courriels sans @ refusé", codePg(sansExpediteur.erreur));
   } finally {
     await client.query("ROLLBACK");
   }

@@ -14,7 +14,8 @@
     "verify:centimes": "tsx scripts/verifier-centimes.ts",
     "verify:tarification": "tsx scripts/verifier-tarification.ts",
     "verify:blocage": "tsx scripts/verifier-blocage.ts",
-    "verify:paiement": "tsx scripts/verifier-paiement.ts"
+    "verify:paiement": "tsx scripts/verifier-paiement.ts",
+    "verify:courriels": "tsx scripts/verifier-courriels.ts"
   },
   "dependencies": {
     "@next/env": "^15.5.19",

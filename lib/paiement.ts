@@ -15,9 +15,11 @@
 //   - nuits encore libres → réservation confirmée normalement ;
 //   - nuits prises entre-temps → remboursement intégral automatique, la carte
 //     n'est pas conservée, la réservation passe « annulée », et la page de
-//     retour propose les autres gîtes libres au prix recalculé. Les courriels
-//     (client, propriétaires) arrivent au lot 4 : d'ici là, le cas est
-//     journalisé comme PROBLÈME À TRAITER.
+//     retour propose les autres gîtes libres au prix recalculé.
+//
+// COURRIELS (lot 4) : inscrits DANS la transaction qui confirme ou décide le
+// remboursement (lib/courriels.ts), envoyés ensuite (lib/courriels-envoi.ts).
+// Un constat répété n'inscrit rien de plus.
 //
 // MONTANTS EN CENTIMES ENTIERS.
 import { timingSafeEqual } from "node:crypto";
@@ -27,6 +29,7 @@ import { and, desc, eq, inArray, lte } from "drizzle-orm";
 import { getDb } from "@/db";
 import { paiements, reservations, textes_accord, type StatutPaiement } from "@/db/schema";
 import { centimesDepuisNumeric, numericDepuisCentimes } from "@/lib/centimes";
+import { inscrireApresPaiement, inscrireRemboursement } from "@/lib/courriels";
 import { leverBlocage, vendreNuits } from "@/lib/disponibilites";
 import type { Langue } from "@/lib/i18n/langues";
 import type { ModeleAccord } from "@/lib/reglement";
@@ -152,6 +155,9 @@ class ARembourser extends Error {
   }
 }
 
+/** Début du motif d'un paiement arrivé sur des dates reprises par un autre client. */
+const MOTIF_DATES_PRISES = "paiement arrivé après la fin du blocage";
+
 const STATUT_EN_BASE: Record<Exclude<EtatPaiement["statut"], "reussi">, StatutPaiement> = {
   en_attente: "en_attente",
   en_cours: "en_attente",
@@ -219,7 +225,7 @@ export async function constaterPaiement(paiementId: string, p: Prestataire = pre
       });
       if (!vente.ok) {
         throw new ARembourser(
-          `paiement arrivé après la fin du blocage, nuits reprises par une autre réservation (${vente.nuitsPrises.join(", ")})`,
+          `${MOTIF_DATES_PRISES}, nuits reprises par une autre réservation (${vente.nuitsPrises.join(", ")})`,
         );
       }
 
@@ -239,6 +245,7 @@ export async function constaterPaiement(paiementId: string, p: Prestataire = pre
         .update(paiements)
         .set({ statut: "reussi", date_paiement: new Date() })
         .where(eq(paiements.id, ligne.id));
+      await inscrireApresPaiement(tx, reservationId);
       confirmeeIci = true;
       return { issue: "CONFIRMEE", reservationId } as const;
     });
@@ -272,7 +279,17 @@ async function rembourser(
       .from(paiements)
       .where(eq(paiements.reference_externe, paiementId))
       .for("update");
-    if (!ligne) return null;
+    const courriel = {
+      paiementId,
+      motif,
+      datesPrises: motif.startsWith(MOTIF_DATES_PRISES),
+      montant: etat.montant,
+    };
+    if (!ligne) {
+      // Paiement inconnu du site : alerte aux propriétaires seulement (une par paiement).
+      await inscrireRemboursement(tx, { reservationId: null, ...courriel });
+      return null;
+    }
     if (ligne.statut !== "a_rembourser" && ligne.statut !== "rembourse") {
       await tx
         .update(paiements)
@@ -284,6 +301,7 @@ async function rembourser(
         .set({ statut: "annulee", stripe_payment_method_id: null })
         .where(and(eq(reservations.id, ligne.reservation_id), eq(reservations.statut, "en_attente_paiement")));
       await leverBlocage(tx, ligne.reservation_id);
+      await inscrireRemboursement(tx, { reservationId: ligne.reservation_id, ...courriel });
     }
     return ligne.reservation_id;
   });

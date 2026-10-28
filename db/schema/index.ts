@@ -20,3 +20,6 @@ export * from "./reglages";
 export * from "./taxes-sejour";
 // Paiement (Phase 3, lot 3).
 export * from "./textes-accord";
+// Courriels (Phase 3, lot 4).
+export * from "./courriels";
+export * from "./alertes";

@@ -1,7 +1,7 @@
 import { createElement } from 'react';
 import { createHash } from 'crypto';
 import { renderToBuffer } from '@react-pdf/renderer';
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 
 import { getDb } from '@/db';
@@ -11,7 +11,9 @@ import { calculerMontants, mapContratData } from '@/lib/montants';
 import { chargerReservationAvecGite } from '@/lib/reservations';
 import { fmtDateFr } from '@/lib/format';
 import { texteConsentement } from '@/lib/constantes';
-import { isUniqueViolation, messageErreur } from '@/lib/route-helpers';
+import { inscrireSignature } from '@/lib/courriels';
+import { traiterCourriels } from '@/lib/courriels-envoi';
+import { isUniqueViolation, messageErreur, resolveSiteOrigin } from '@/lib/route-helpers';
 import { chargerLogo } from '@/lib/logo';
 import { ContratPDF, type ContratData } from '@/components/pdf/ContratPDF';
 
@@ -195,9 +197,14 @@ export async function POST(request: Request) {
         throw new EchecSignature(500, 'Document introuvable au moment de la mise à jour du statut.');
       }
 
+      // 9. Alerte « contrat signé » aux propriétaires (lot 4), dans la MÊME
+      //    transaction : pas de signature sans son alerte, ni l'inverse.
+      await inscrireSignature(tx, doc.reservation_id, doc.numero);
+
       return inseree;
     });
 
+    after(() => traiterCourriels(resolveSiteOrigin(request)));
     return NextResponse.json({
       statut: 'signe',
       numero: doc.numero,

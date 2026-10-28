@@ -19,7 +19,10 @@
 //
 // Partie 2 (option --http, lancée par lancer.sh) — le serveur et STRIPE EN
 // MODE TEST, avec les clés de .env.local : tunnel ouvert, paiement réel par
-// carte de test, page de confirmation, carte refusée, avis signé de Stripe.
+// carte de test, page de confirmation, carte refusée, avis signé de Stripe ;
+// et depuis le lot 4, ce que le serveur fait APRÈS la réponse : contrat créé
+// (vrai PDF), confirmation au client et alerte « envoyées » — dans des
+// fichiers, les adresses étant réservées aux essais (lib/messagerie.ts).
 // Sans clés de test, la partie 2 ÉCHOUE en le disant : elle ne passe jamais
 // en silence.
 //
@@ -169,6 +172,11 @@ const COORDONNEES: Coordonnees = {
 
 async function nettoyer(): Promise<void> {
   const ids = sql`select id from reservations where client_email = ${EMAIL_ESSAI}`;
+  // Courriels inscrits par les constats (lot 4), et contrats créés par le
+  // serveur pour les paiements de la partie 2 (base de test seulement).
+  await db.execute(sql`delete from courriels where reservation_id in (${ids})
+                         or (reservation_id is null and donnees->>'paiementId' like 'pi_orphelin_%')`);
+  await db.execute(sql`delete from documents where reservation_id in (${ids})`);
   await db.execute(sql`delete from disponibilites where reservation_id in (${ids})`);
   await db.execute(sql`delete from paiements where reservation_id in (${ids})`);
   await db.execute(sql`delete from reservations where client_email = ${EMAIL_ESSAI}`);
@@ -420,6 +428,31 @@ async function partieHttp(): Promise<void> {
   noter(confirmation.texte.includes(String(ok.corps.reference)), "… avec la référence de la réservation");
   const r = await etatResa(String(ok.corps.id));
   noter(r?.statut === "confirmee" && (r.pm ?? "").startsWith("pm_"), "réservation confirmée en base, carte enregistrée", r);
+  noter(
+    confirmation.texte.includes(`Votre contrat à signer vous est envoyé par courriel, à ${EMAIL_ESSAI}.`),
+    "page de retour : le contrat à signer est annoncé par courriel",
+  );
+
+  // Après la réponse, le serveur crée le contrat et envoie les courriels.
+  const envoyes = await attendreCourriels(String(ok.corps.id));
+  const conf = envoyes.find((c) => c.objet === "confirmation");
+  noter(
+    conf?.statut === "envoye" && conf.voie === "fichier" && (conf.sujet ?? "").startsWith(`Réservation ${String(ok.corps.reference)} confirmée`),
+    "confirmation « envoyée » par le serveur, dans un fichier (adresse de test)",
+    envoyes,
+  );
+  const contrat = await ligne<{ numero: string; token: string }>(sql`
+    select numero, token from documents where reservation_id = ${String(ok.corps.id)}::uuid and type = 'contrat_location'`);
+  noter(
+    !!contrat && /^CTR-\d{4}-\d{3,}$/.test(contrat.numero) && (conf?.corps ?? "").includes(`/signer/${contrat.token}`),
+    "contrat créé (vrai PDF, numéro légal) et son lien de signature dans la confirmation",
+    contrat?.numero,
+  );
+  noter(
+    envoyes.some((c) => c.objet === "alerte_reservation" && c.statut === "envoye" && (c.corps ?? "").includes(contrat?.numero ?? "?")),
+    "alerte « réservation » envoyée, avec le numéro du contrat",
+    envoyes.map((c) => `${c.objet} ${c.statut}`),
+  );
   noter((await page(`/reserver/confirmation?payment_intent=${pi}&payment_intent_client_secret=faux`)).status === 404, "retour avec un faux secret : 404");
 
   // Carte refusée.
@@ -467,13 +500,36 @@ async function partieHttp(): Promise<void> {
   }
 }
 
+/** Attend que le serveur ait traité les courriels de la réservation (envoi après la réponse). */
+async function attendreCourriels(
+  reservationId: string,
+): Promise<Array<{ objet: string; statut: string; voie: string | null; sujet: string | null; corps: string | null }>> {
+  const lire = async () =>
+    (await db.execute(sql`
+      select objet, statut, voie, sujet, corps_texte as corps
+        from courriels where reservation_id = ${reservationId}::uuid order by created_at`)).rows as Array<{
+      objet: string; statut: string; voie: string | null; sujet: string | null; corps: string | null;
+    }>;
+  for (let i = 0; i < 60; i += 1) {
+    const lignes = await lire();
+    if (lignes.length > 0 && lignes.every((c) => c.statut !== "a_envoyer")) return lignes;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  return lire();
+}
+
 async function main(): Promise<void> {
   if (process.env.DB_CIBLE !== "test") {
     throw new Error('DB_CIBLE doit valoir "test" : ce script écrit des réservations et des paiements.');
   }
+  // Base de test : les alertes aux propriétaires vont à une adresse réservée
+  // aux essais, que le serveur n'envoie jamais (lib/messagerie.ts).
+  await db.execute(sql`update alertes set destinataires = array['proprietaires@example.invalid']`);
   await nettoyer();
   try {
     await partieLogique();
+    // Les courriels inscrits par la partie 1 ne doivent pas être envoyés par le serveur en partie 2.
+    await nettoyer();
     if (process.argv.includes("--http")) await partieHttp();
   } finally {
     await nettoyer();

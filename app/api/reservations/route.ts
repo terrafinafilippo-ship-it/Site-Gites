@@ -17,14 +17,15 @@
 //
 // `langue` (« fr » par défaut, ou « en ») : langue des messages renvoyés,
 // celle de la page du client (D-22). Le journal du serveur reste en français.
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 
 import { validerCoordonnees } from "@/lib/coordonnees";
+import { traiterCourriels } from "@/lib/courriels-envoi";
 import { isGiteId } from "@/lib/data/gites";
 import { estLangue, type Bilingue, type Langue } from "@/lib/i18n/langues";
 import { ouvrirPaiement } from "@/lib/paiement";
 import { carteEnregistree } from "@/lib/reglement";
-import { messageErreur } from "@/lib/route-helpers";
+import { messageErreur, resolveSiteOrigin } from "@/lib/route-helpers";
 import { PaiementIndisponible } from "@/lib/stripe";
 import { abandonnerTentative, enregistrerTentative, TunnelIndisponible } from "@/lib/tunnel";
 
@@ -122,6 +123,9 @@ function chaine(v: unknown): string {
 }
 
 export async function POST(request: Request) {
+  // Rattrapage des courriels en retard (lib/courriels-envoi.ts), après la
+  // réponse : chaque arrivée sur l'écran de paiement en relance l'envoi.
+  after(() => traiterCourriels(resolveSiteOrigin(request)));
   let corps: Record<string, unknown>;
   try {
     corps = (await request.json()) as Record<string, unknown>;

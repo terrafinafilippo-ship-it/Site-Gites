@@ -28,8 +28,14 @@
 //     réception d'une caution par virement (3 jours avant l'arrivée, D-19).
 //     Le taux et le délai du solde sont RECOPIÉS sur chaque réservation : les
 //     changer ici ne modifie aucun contrat déjà conclu.
+//
+//   - courriels (lot 4, migration 0006) : expéditeur des courriels
+//     automatiques (reservation@gitesdesamoyas.fr, « Les Gîtes de Samoyas »),
+//     auquel on ne répond pas, et adresse de réponse (contact@gitesdesamoyas.fr) :
+//     un client qui clique sur « Répondre » écrit aux propriétaires (choix du
+//     gérant, 24 octobre 2026). Les alertes ont leur table (`alertes`).
 import { sql } from "drizzle-orm";
-import { check, integer, pgTable, time, timestamp, uuid } from "drizzle-orm/pg-core";
+import { check, integer, pgTable, text, time, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { baremes } from "./baremes";
 import { joursIsoValides, nuitsMinimumValide } from "./regles";
@@ -62,6 +68,10 @@ export const reglages = pgTable(
     taux_acompte: integer().notNull().default(30),
     delai_solde_jours: integer().notNull().default(30),
     delai_virement_caution_jours: integer().notNull().default(3),
+    // Sans valeur par défaut : la migration 0006 écrit celles du gérant.
+    courriel_expediteur: text().notNull(),
+    courriel_expediteur_nom: text().notNull(),
+    courriel_reponse: text().notNull(),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -85,6 +95,11 @@ export const reglages = pgTable(
       "reglages_paiement_check",
       sql`${t.taux_acompte} between 1 and 100 and ${t.delai_solde_jours} between 0 and 365
           and ${t.delai_virement_caution_jours} between 0 and 60`,
+    ),
+    check(
+      "reglages_courriels_check",
+      sql`${t.courriel_expediteur} like '%_@_%' and ${t.courriel_reponse} like '%_@_%'
+          and length(trim(${t.courriel_expediteur_nom})) > 0`,
     ),
   ],
 );

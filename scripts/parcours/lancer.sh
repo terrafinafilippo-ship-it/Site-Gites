@@ -41,6 +41,11 @@ etape "Prix des séjours et taxe de séjour (calcul)" npm run -s verify:tarifica
 etape "Remise à zéro de la base de test" env DB_CIBLE=test npx tsx scripts/parcours/reinitialiser.ts
 etape "Blocage des dates et tunnel (deux clients simultanés)" env DB_CIBLE=test npx tsx scripts/verifier-blocage.ts --http
 etape "Paiement (Stripe simulé, puis Stripe en mode test)" env DB_CIBLE=test npx tsx scripts/verifier-paiement.ts --http
+etape "Courriels (envoi simulé, contrat, alertes, remboursement)" env DB_CIBLE=test npx tsx scripts/verifier-courriels.ts
+# Le paiement par le serveur crée de vrais contrats (numéros légaux de la base
+# de test) : on repart de zéro pour que la numérotation contrôlée plus bas soit
+# celle des deux parcours seulement.
+etape "Remise à zéro avant les parcours" env DB_CIBLE=test npx tsx scripts/parcours/reinitialiser.ts
 etape "Parcours L'Armu (avec options)" bash scripts/parcours/parcours.sh TEST-2026-ARMU-001
 etape "Parcours LaPhine (sans option, garde du cas B)" bash scripts/parcours/parcours.sh TEST-2026-LAPHINE-002 --cas-b
 etape "Accès aux PDF par URL signée" bash scripts/parcours/urls-signees.sh

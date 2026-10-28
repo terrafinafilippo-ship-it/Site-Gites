@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import type { ReactNode } from "react";
+import { traiterCourriels } from "@/lib/courriels-envoi";
 import { isGiteId } from "@/lib/data/gites";
-import { aujourdhuiParis, ajouterJours } from "@/lib/dates-civiles";
-import { fmtDateAvecJour, fmtDateLongue, fmtEuro, fmtHeure, fmtPrix } from "@/lib/format";
+import { fmtDateLongue, fmtEuro } from "@/lib/format";
 import { langueDe, lien, type Bilingue, type Langue } from "@/lib/i18n/langues";
 import { metadonnees } from "@/lib/i18n/metadonnees";
-import { calculerMontants } from "@/lib/montants";
 import { constaterRetour, lirePaiementEnregistre } from "@/lib/paiement";
-import type { ModeSolde, MoyenCaution } from "@/lib/reglement";
+import { CONTACTS, LIBELLES_RECAP, recapitulatif } from "@/lib/recapitulatif";
 import { chargerReservationAvecGite, type ReservationAvecGite } from "@/lib/reservations";
 import { abandonnerTentative, autresGitesLibres, type Alternative } from "@/lib/tunnel";
 import EnteteTunnel from "../EnteteTunnel";
@@ -26,26 +27,19 @@ import styles from "../page.module.css";
 //     gîtes libres au prix recalculé (cadrage du 13 octobre 2026) ;
 //   - paiement non abouti : la tentative est abandonnée (dates libérées), et
 //     le client reprend sa réservation avec les mêmes dates.
-// Le courriel de confirmation et le contrat à signer arrivent au lot 4 : la
-// phrase qui les annonce n'apparaîtra qu'avec eux.
+// Lot 4 : le courriel de confirmation et le contrat à signer partent juste
+// après (lib/courriels.ts, envoi après la réponse) ; la page l'annonce. Les
+// lignes de faits sont celles du courriel (lib/recapitulatif.ts).
 
 export const dynamic = "force-dynamic";
 
 type Parametres = Record<string, string | string[] | undefined>;
 
-const CONTACTS = "Patricia +33 6 79 33 23 51 · Nicolas +33 6 66 89 96 24";
-
 const TEXTES: Bilingue<{
   titrePage: string;
   confirmeTitre: string;
-  reference: (ref: string) => string;
-  referenceAide: string;
-  sejour: (gite: string, du: string, heureArrivee: string, au: string, heureDepart: string) => string;
-  voyageurs: (adultes: number, enfants: number, bebes: number) => string;
-  paye: (montant: string, total: boolean, date: string | null) => string;
-  solde: (montant: string, date: string, mode: ModeSolde | null) => string;
-  caution: (montant: string, moyen: MoyenCaution | null, dateVirement: string | null) => string;
-  question: string;
+  contratEnvoye: (email: string) => string;
+  contratAVenir: (email: string) => string;
   rembourseTitre: string;
   rembourseFait: (montant: string) => string;
   rembourseEnCours: (montant: string) => string;
@@ -67,28 +61,8 @@ const TEXTES: Bilingue<{
   fr: {
     titrePage: "Votre réservation",
     confirmeTitre: "Paiement reçu — merci !",
-    reference: (ref) => `Référence : ${ref}`,
-    referenceAide: "(à rappeler si vous nous contactez)",
-    sejour: (gite, du, ha, au, hd) => `${gite} · du ${du} (arrivée ${ha}) au ${au} (départ ${hd})`,
-    voyageurs: (a, e, b) =>
-      [`${a} adulte${a > 1 ? "s" : ""}`, e ? `${e} enfant${e > 1 ? "s" : ""}` : "", b ? `${b} bébé${b > 1 ? "s" : ""}` : ""]
-        .filter(Boolean)
-        .join(" · "),
-    paye: (montant, total, date) =>
-      `${date ? `Payé le ${date}` : "Payé aujourd'hui"} : ${montant} (${total ? "totalité du séjour" : "acompte"})`,
-    solde: (montant, date, mode) =>
-      `Solde : ${montant} à régler au plus tard le ${date}, ${
-        mode === "prelevement" ? "par prélèvement automatique" : "par un lien que nous vous enverrons"
-      }`,
-    caution: (montant, moyen, dateVirement) =>
-      moyen === "carte"
-        ? `Caution : ${montant}, par carte, bloquée la veille du départ`
-        : moyen === "cheque"
-          ? `Caution : ${montant}, chèque remis à l'arrivée`
-          : moyen === "virement" && dateVirement
-            ? `Caution : ${montant}, virement reçu au plus tard le ${dateVirement}`
-            : `Caution : ${montant}`,
-    question: "Une question ?",
+    contratEnvoye: (email) => `Votre contrat à signer vous est envoyé par courriel, à ${email}.`,
+    contratAVenir: (email) => `Votre contrat vous sera envoyé par courriel, à ${email}.`,
     rembourseTitre: "Ces dates ont été prises pendant votre paiement.",
     rembourseFait: (montant) => `Votre paiement de ${montant} a été intégralement remboursé.`,
     rembourseEnCours: (montant) => `Le remboursement intégral de votre paiement de ${montant} est en cours.`,
@@ -110,28 +84,8 @@ const TEXTES: Bilingue<{
   en: {
     titrePage: "Your booking",
     confirmeTitre: "Payment received — thank you!",
-    reference: (ref) => `Reference: ${ref}`,
-    referenceAide: "(please quote it if you contact us)",
-    sejour: (gite, du, ha, au, hd) => `${gite} · from ${du} (arrival ${ha}) to ${au} (departure ${hd})`,
-    voyageurs: (a, e, b) =>
-      [`${a} adult${a > 1 ? "s" : ""}`, e ? `${e} ${e > 1 ? "children" : "child"}` : "", b ? `${b} bab${b > 1 ? "ies" : "y"}` : ""]
-        .filter(Boolean)
-        .join(" · "),
-    paye: (montant, total, date) =>
-      `${date ? `Paid on ${date}` : "Paid today"}: ${montant} (${total ? "full stay" : "down payment"})`,
-    solde: (montant, date, mode) =>
-      `Balance: ${montant} to be paid by ${date} at the latest, ${
-        mode === "prelevement" ? "by automatic payment" : "through a link we will send you"
-      }`,
-    caution: (montant, moyen, dateVirement) =>
-      moyen === "carte"
-        ? `Security deposit: ${montant}, by card, held the day before departure`
-        : moyen === "cheque"
-          ? `Security deposit: ${montant}, cheque handed over on arrival`
-          : moyen === "virement" && dateVirement
-            ? `Security deposit: ${montant}, transfer received by ${dateVirement} at the latest`
-            : `Security deposit: ${montant}`,
-    question: "A question?",
+    contratEnvoye: (email) => `Your contract to sign is being sent to you by email, at ${email}.`,
+    contratAVenir: (email) => `Your contract will be sent to you by email, at ${email}.`,
     rembourseTitre: "These dates were taken while you were paying.",
     rembourseFait: (montant) => `Your payment of ${montant} has been refunded in full.`,
     rembourseEnCours: (montant) => `The full refund of your payment of ${montant} is in progress.`,
@@ -164,14 +118,6 @@ function texte(p: Parametres, cle: string): string | null {
   const v = p[cle];
   return typeof v === "string" && v.length > 0 ? v : null;
 }
-
-/** Valeur lue dans le détail du calcul figé avec la réservation (lib/devis.ts, detailCalcul). */
-function detail<T>(resa: ReservationAvecGite, cle: string, garde: (v: unknown) => v is T): T | null {
-  const v = resa.detail_calcul?.[cle];
-  return garde(v) ? v : null;
-}
-const estNombre = (v: unknown): v is number => typeof v === "number" && Number.isSafeInteger(v);
-const estDate = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
 /** Lien vers le tunnel avec les dates et les voyageurs de la réservation. */
 function lienTunnel(langue: Langue, resa: ReservationAvecGite, slug: string, etape: boolean): string {
@@ -255,6 +201,14 @@ export default async function ConfirmationPage({
   if (!retour) notFound();
   const { issue } = retour;
 
+  // Courriels inscrits par le constat (confirmation, contrat, alertes,
+  // remboursement) : envoyés APRÈS la réponse, la page n'attend pas Brevo.
+  const entetes = await headers();
+  const origine =
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+    `${entetes.get("x-forwarded-proto") ?? "http"}://${entetes.get("host") ?? "localhost"}`;
+  after(() => traiterCourriels(origine));
+
   // Paiement que le site ne connaît plus (tentative abandonnée) : seulement ce que dit Stripe.
   if (issue.issue === "INCONNU") {
     return (
@@ -274,14 +228,13 @@ export default async function ConfirmationPage({
   const resa = await chargerReservationAvecGite(issue.reservationId);
   const slug = resa?.gites?.slug;
   if (!resa || !slug || !isGiteId(slug)) notFound();
-  const nomGite = resa.gites?.nom ?? slug;
   const date = (iso: string) => fmtDateLongue(iso, langue);
 
   if (issue.issue === "EN_COURS") {
     return (
       <Cadre langue={langue}>
         <Tete ton="info" titre={t.enCoursTitre} sous={t.enCoursTexte} />
-        <p>{t.reference(resa.reference)} {t.referenceAide}</p>
+        <p>{LIBELLES_RECAP[langue].reference(resa.reference)} {LIBELLES_RECAP[langue].referenceAide}</p>
       </Cadre>
     );
   }
@@ -357,48 +310,26 @@ export default async function ConfirmationPage({
   }
 
   // ── Paiement reçu : les faits, rien d'autre ──
-  const total = resa.paiement_integral;
-  const datePaiement = paiement?.datePaiement
-    ? new Date(paiement.datePaiement).toLocaleDateString("sv-SE", { timeZone: "Europe/Paris" })
-    : null;
-  const payeAujourdhui = datePaiement === null || datePaiement === aujourdhuiParis();
-  const caution = detail(resa, "caution", estNombre) ?? resa.gites?.caution ?? null;
-  const dateVirement = detail(resa, "dateLimiteVirementCaution", estDate);
-  const solde = calculerMontants(resa).solde;
-  const heure = (h: string | null) => (h ? fmtHeure(h.slice(0, 5), langue) : "");
+  const r = LIBELLES_RECAP[langue];
+  const faits = recapitulatif(resa, langue, { montant: montantPaye, datePaiement: paiement?.datePaiement ?? null });
+  const email = resa.client_email ?? "";
 
   return (
     <Cadre langue={langue}>
       <Tete ton="info" titre={t.confirmeTitre} />
       <ul className={styles.confirmation}>
         <li>
-          <strong>{t.reference(resa.reference)}</strong> {t.referenceAide}
+          <strong>{faits.reference}</strong> {r.referenceAide}
         </li>
         <li>
-          {t.sejour(
-            nomGite,
-            fmtDateAvecJour(resa.date_arrivee, langue),
-            heure(resa.heure_arrivee),
-            fmtDateAvecJour(resa.date_depart, langue),
-            heure(resa.heure_depart),
-          )}{" "}
-          · {t.voyageurs(resa.nb_adultes, resa.nb_enfants, resa.nb_bebes)}
+          {faits.sejour} · {faits.voyageurs}
         </li>
-        <li>{t.paye(fmtEuro(montantPaye, langue), total, payeAujourdhui || !datePaiement ? null : date(datePaiement))}</li>
-        {!total && (
-          <li>
-            {t.solde(
-              fmtEuro(solde, langue),
-              date(ajouterJours(resa.date_arrivee, -resa.delai_solde_jours)),
-              resa.mode_solde,
-            )}
-          </li>
-        )}
-        {caution !== null && (
-          <li>{t.caution(fmtPrix(caution, langue), resa.moyen_caution, dateVirement ? date(dateVirement) : null)}</li>
-        )}
+        <li>{faits.paye}</li>
+        {faits.solde && <li>{faits.solde}</li>}
+        {faits.caution && <li>{faits.caution}</li>}
+        {email && <li>{resa.paiement_integral ? t.contratAVenir(email) : t.contratEnvoye(email)}</li>}
         <li>
-          {t.question} {CONTACTS}
+          {r.question} {CONTACTS}
         </li>
       </ul>
     </Cadre>
