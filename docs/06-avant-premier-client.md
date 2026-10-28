@@ -4,14 +4,14 @@
 > **seul** domicile de cette liste : elle ne doit être recopiée nulle part
 > ailleurs (voir `docs/05-protocole-phase.md`, règle 1).
 
-Quatorze points à traiter **avant qu'un vrai client signe un vrai contrat**. Aucun
+Quinze points à traiter **avant qu'un vrai client signe un vrai contrat**. Aucun
 n'empêche le logiciel de fonctionner : ils empêchent qu'il fonctionne
 **correctement le jour où il compte**.
 
 ## Qui peut lever un point
 
-Neuf des quatorze points **ne se résolvent pas, ou pas entièrement, dans le dépôt**
-(3, 6, 7, 9, 10, 11, 12, 13 et 14). Sans cette
+Dix des quinze points **ne se résolvent pas, ou pas entièrement, dans le dépôt**
+(3, 6, 7, 9, 10, 11, 12, 13, 14 et 15). Sans cette
 précision, une session future les lira comme des tâches techniques et cherchera
 la réponse au mauvais endroit — dans le code, où elle n'est pas.
 
@@ -41,6 +41,7 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | 12 | Durée de conservation des tentatives de réservation abandonnées | **Les propriétaires** (juriste), puis développement | Phase 4 |
 | 13 | Site en anglais : relire la traduction, faire valider l'anglais du juridique | **Les propriétaires** (relecture), **le juriste** (pages juridiques, bannière cookies) | Avant l'ouverture (Phase 6) |
 | 14 | Passer Stripe en mode réel et brancher l'avis de paiement | **Les propriétaires** (compte Stripe activé), puis développement | Au déploiement |
+| 15 | Brancher les courriels réels sur le serveur déployé | **Phase de déploiement**, puis les propriétaires (réception) | Au déploiement |
 
 ---
 
@@ -432,6 +433,8 @@ tentative supprimée sur-le-champ. Mais un client qui ferme la page laisse une
 réservation « en attente de paiement » dont le blocage expire, et ses
 coordonnées restent en base alors qu'il n'a rien acheté. Le RGPD impose une
 durée de conservation limitée et justifiée (art. 5.1.e) ; aucune n'est fixée.
+Depuis le lot 4 (D-24), le **texte de chaque courriel envoyé** est aussi gardé
+(table `courriels`, preuve de ce que le client a reçu) : même question.
 
 **L'action.** Faire fixer la durée par le juriste (quelques jours suffisent
 pour traiter un paiement tardif, lot 3), puis effacer automatiquement les
@@ -505,6 +508,39 @@ Stripe, **en mode test seulement** : le site refuse toute clé réelle
 **Le contrôle.** Un paiement réel d'un petit montant, page fermée aussitôt
 après la validation bancaire : la réservation passe « confirmée » par l'avis
 seul ; puis remboursement depuis le tableau de bord Stripe.
+
+---
+
+## 15. Brancher les courriels réels sur le serveur déployé
+
+**Qui peut lever :** **phase de déploiement**, puis **les propriétaires**
+(vérifier la réception) · **au déploiement**
+
+**La raison.** Depuis le lot 4 de la Phase 3 (D-24), le site envoie la
+confirmation au client, avec le lien de signature du contrat, et les alertes
+aux propriétaires, par Brevo. Le domaine gitesdesamoyas.fr est authentifié
+chez Brevo (27 octobre 2026) et l'expéditeur reservation@ déclaré ; la clé
+utilisée pour les essais est sur le poste de développement. Sur le serveur :
+- sans `BREVO_API_KEY`, aucun courriel ne part : ils sont écrits dans des
+  fichiers ;
+- sans `NEXT_PUBLIC_SITE_URL`, les liens des courriels prennent l'adresse de
+  la requête reçue, qui peut ne pas être l'adresse publique (proxy de Coolify) :
+  le client recevrait un lien de signature qui ne s'ouvre pas.
+
+**L'action.**
+1. Générer une clé API Brevo propre au serveur (« site-production »,
+   permission d'envoi seulement) et la saisir dans Coolify avec
+   `NEXT_PUBLIC_SITE_URL` (l'adresse publique, sans barre oblique finale).
+2. Vérifier dans la base réelle la table `alertes` : les trois alertes vers
+   contact@gitesdesamoyas.fr (valeurs de la migration 0006).
+3. Facultatif, quelques semaines après l'ouverture : durcir la règle DMARC du
+   domaine (« observer seulement » aujourd'hui) une fois les rapports de Brevo
+   propres.
+
+**Le contrôle.** Une réservation réelle (ou de test sur le serveur déployé)
+avec une adresse Gmail et une adresse Orange : la confirmation arrive dans la
+boîte de réception, pas en indésirables ; son bouton ouvre la page de
+signature ; « Répondre » écrit à contact@ ; l'alerte arrive dans contact@.
 
 ---
 

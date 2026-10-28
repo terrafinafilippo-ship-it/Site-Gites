@@ -28,6 +28,7 @@ npm run verify:centimes  # aller-retour centimes <-> texte numeric (51 cas)
 npm run verify:tarification  # prix, taxe de séjour, devis du tunnel, règlement, anglais (174 cas, sans base)
 DB_CIBLE=test npm run verify:blocage  # blocage des dates : deux clients simultanés (base de test)
 DB_CIBLE=test npm run verify:paiement # paiement, Stripe simulé (base de test) ; --http : Stripe en mode test
+DB_CIBLE=test npm run verify:courriels # courriels, envoi simulé : confirmation, contrat, alertes (base de test)
 
 bash scripts/parcours/lancer.sh   # non-régression complète (contrat, signature, factures)
 ```

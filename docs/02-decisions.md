@@ -958,6 +958,71 @@ déjà signés.
 
 ---
 
+## D-24 · Courriels : inscrits avec l'événement, envoyés après, par Brevo
+
+**Date :** 24 au 27 octobre 2026 (Phase 3, lot 4, étape 2). Choix du gérant :
+- deux adresses sur le domaine : **reservation@gitesdesamoyas.fr** envoie les
+  courriels automatiques et ne reçoit rien ; **contact@gitesdesamoyas.fr** est
+  la boîte que lisent les propriétaires. Un client qui clique sur
+  « Répondre » écrit à contact@ ;
+- le courriel de confirmation ne dit **que des faits**, comme l'écran de
+  confirmation, dans la langue du client ;
+- les trois alertes (réservation payée, contrat signé, problème) vont à
+  **contact@** ; l'objet d'un problème commence par « À TRAITER — » ;
+- le **contrat est créé tout de suite** après le paiement, et son lien de
+  signature est dans le courriel de confirmation.
+
+**Décision.**
+- **Brevo** (API « transactional emails »), domaine gitesdesamoyas.fr
+  authentifié chez Brevo (signatures DKIM, DMARC « observer seulement ») ; la
+  clé `BREVO_API_KEY` ne permet que l'envoi. Les adresses et les alertes sont
+  des **réglages** (`reglages`, table `alertes`), pas du code.
+- **Le courriel est inscrit dans la transaction de l'événement** qui le cause
+  (paiement constaté, remboursement décidé, contrat signé), dans le journal
+  `courriels`, avec une clé unique : constater deux fois n'inscrit rien de plus,
+  et un arrêt du serveur ne perd aucun courriel.
+- **Il part après la réponse** (`after()` de Next), un à la fois, sa ligne
+  verrouillée : la page de retour, l'avis de Stripe, la signature et le tunnel
+  déclenchent l'envoi des courriels dus. Échec : nouvel essai après 1, 5, 15,
+  60 puis 240 minutes ; au sixième, abandon et alerte « À TRAITER — courriel
+  non parti » si le client était le destinataire.
+- **Contrat** : créé juste avant la confirmation ; trois échecs, et la
+  confirmation part sans le lien, les propriétaires sont alertés, un courriel
+  « contrat à signer » retente la création. Paiement intégral : aucun contrat
+  (D-20), alerte « À TRAITER — contrat à envoyer à la main ».
+- **Jamais d'envoi vers une adresse réservée aux essais** (`example.com`,
+  `.invalid`, `.test`…) : le courriel est écrit dans un fichier. Sans clé
+  Brevo, tout est écrit dans des fichiers. Dans la base de test, les alertes
+  vont à `proprietaires@example.invalid`.
+- **Le texte envoyé est gardé** sur la ligne du journal : preuve de ce que le
+  client a reçu.
+
+**Pourquoi.** Un courriel envoyé avant que la transaction soit validée peut
+annoncer une réservation qui n'existe pas ; envoyé après, sans trace, il peut
+se perdre. L'inscrire avec l'événement, puis l'envoyer, évite les deux. Les
+envoyer après la réponse évite au client et à Stripe d'attendre Brevo.
+Envoyer au nom d'une adresse wanadoo par un service tiers est refusé par
+Orange : d'où des adresses sur le domaine des gîtes.
+
+**Ce qui pourrait mal tourner.**
+- **Pas de minuterie avant la Phase 4** : un envoi en retard part à la
+  prochaine activité du site (visite du tunnel, paiement, avis de Stripe).
+- **Double envoi possible**, rare : si le serveur s'arrête entre l'acceptation
+  par Brevo et l'écriture du statut, le courriel repart une fois (Brevo n'a pas
+  de clé d'idempotence).
+- **Les liens des courriels** prennent `NEXT_PUBLIC_SITE_URL`, sinon l'adresse
+  de la requête : à renseigner au déploiement (point 15 de
+  `docs/06-avant-premier-client.md`).
+- **Le texte des courriels est une donnée personnelle** conservée : durée à
+  fixer avec le juriste (point 12).
+
+**Si on revient dessus.** Envoyer dans la transaction, c'est bloquer la
+réservation sur une panne de Brevo. Envoyer sans journal, c'est perdre des
+confirmations sans le savoir. Remettre une adresse personnelle en expéditeur,
+c'est finir en indésirables.
+
+---
+
 ## Décisions ouvertes
 
 Elles ne sont **pas tranchées** et ne doivent pas l'être dans le code.

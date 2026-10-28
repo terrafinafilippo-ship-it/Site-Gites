@@ -17,6 +17,7 @@ main dans un outil graphique.
 | `migrations/0003_tarification_contraintes.sql` | Écrite à la main : interdiction du chevauchement de deux périodes, et création de la ligne unique de `reglages`. |
 | `migrations/0004_tunnel.sql` | Phase 3, lot 2 : réglages du tunnel dans `reglages`, forme définitive de `disponibilites` (les lignes « libre » sont effacées : une nuit sans ligne est libre), `reservations.detail_calcul`, `taxes_sejour.bebes_parmi_occupants`. Générée, plus un effacement écrit à la main. |
 | `migrations/0005_paiement.sql` | Phase 3, lot 3 : réglages du paiement, conditions figées et choix du client sur `reservations` (les réservations existantes reçoivent 30 % et 30 jours, puis la valeur par défaut est retirée), forme définitive de `paiements`, table `textes_accord` immuable avec ses deux premières versions (français, anglais). Générée, plus les triggers, l'insertion des textes et le retrait des valeurs par défaut écrits à la main. |
+| `migrations/0006_courriels.sql` | Phase 3, lot 4 : journal `courriels`, table `alertes` (trois alertes vers contact@), adresses d'expédition et de réponse dans `reglages` (reservation@ et contact@, valeurs du gérant, sans valeur par défaut ensuite). |
 | `index.ts` | Le client de base de données partagé par le site (pool de 10 connexions maximum). |
 | `seed.ts` | Insère ou remet à jour les trois gîtes. |
 | `verify.ts` | Auto-vérification complète, sans rien laisser en base. |
@@ -95,6 +96,15 @@ d'essai, marquée « (essai) ». **`npm run db:seed` ne touche pas à ces tables
 - **textes_accord** : le texte d'accord pour l'enregistrement de la carte, une
   version datée par langue, **immuable** (trigger) : des réservations le citent
   comme preuve.
+
+**Courriels** (Phase 3, lot 4 — décision D-24)
+
+- **courriels** : le journal des courriels du site, une ligne par courriel et
+  par destinataire, inscrite avec l'événement puis envoyée (ou retentée).
+  Clé unique : un événement constaté deux fois n'inscrit qu'un courriel.
+- **alertes** : les trois alertes aux propriétaires, chacune active ou non,
+  avec ses destinataires. Dans la base de test, la remise à zéro les dirige
+  vers `proprietaires@example.invalid`, jamais envoyée.
 
 **Tables provisoires** (structure minimale)
 

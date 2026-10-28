@@ -922,6 +922,110 @@ intégral ; sommaire du contrat rendu insécable (voir les écarts).
 
 ---
 
+## Phase 3 — lot 4, étape 2 : après le paiement, contrat et courriels (27 octobre 2026)
+
+La phase reste ouverte (étape 3 du lot 4 : page de suivi ; lot 5).
+
+### Ce qui a été décidé
+
+Avec le gérant, du 24 au 27 octobre 2026 (D-24) :
+- **adresses** : reservation@gitesdesamoyas.fr envoie les courriels
+  automatiques et ne reçoit rien ; contact@gitesdesamoyas.fr est la boîte des
+  propriétaires, et « Répondre » y écrit ;
+- **confirmation au client** : les faits, comme l'écran de confirmation, avec
+  le lien de signature ; un paragraphe d'accueil des propriétaires pourra
+  s'ajouter ;
+- **alertes** (réservation, signature, problème) : toutes vers contact@ ;
+  l'objet d'un problème commence par « À TRAITER — » ;
+- **contrat** créé tout de suite après le paiement.
+
+Fait par le gérant, guidé pas à pas : boîte contact@ créée chez OVH et
+installée sur son téléphone ; domaine authentifié chez Brevo (connexion
+directe à OVH) ; expéditeur reservation@ déclaré ; clé API Brevo dans
+`.env.local`. Vérifié dans l'annuaire public du domaine : code Brevo, deux
+signatures DKIM, règle DMARC, une seule ligne SPF (celle d'OVH, intacte).
+La clé ne permet que l'envoi (lecture du compte refusée) : contrôlé sans la
+lire ni l'afficher.
+
+Par la session : journal des courriels inscrit dans la transaction de
+l'événement, envoi après la réponse, nouveaux essais espacés puis alerte ;
+jamais d'envoi vers une adresse réservée aux essais ; alertes de la base de
+test vers `proprietaires@example.invalid`.
+
+### Ce qui a été fait
+
+- **Migration 0006** : table `courriels` (journal, clé unique), table
+  `alertes` (trois alertes vers contact@), adresses dans `reglages`.
+- **`lib/messagerie.ts`** : envoi par Brevo, ou dans un fichier (sans clé, ou
+  adresse de test).
+- **`lib/courriels.ts`** (inscription), **`lib/courriels-envoi.ts`** (envoi,
+  nouveaux essais, contrat créé juste avant la confirmation),
+  **`lib/courriels-textes.ts`** (textes français et anglais, alertes en
+  français).
+- **`lib/recapitulatif.ts`** : les lignes de faits, communes à l'écran et au
+  courriel de confirmation (sorties de la page).
+- **`lib/contrat.ts`** : l'émission du contrat, sortie de `POST /api/contrats`
+  sans changement de comportement.
+- **Branchements** : le paiement inscrit la confirmation et l'alerte, un
+  remboursement le courriel au client et l'alerte « À TRAITER » (fin du simple
+  « PROBLÈME À TRAITER » dans le journal du serveur) ; la signature inscrit son
+  alerte dans sa transaction ; page de retour, avis de Stripe, signature et
+  tunnel envoient après la réponse. Page de retour : « Votre contrat à signer
+  vous est envoyé par courriel, à … ».
+- **Contrôles** : nouveau `verify:courriels` (40 cas) ; `verify:paiement`
+  vérifie que le serveur crée le vrai contrat et « envoie » la confirmation
+  (58 cas) ; `db:verify` 142 contrôles ; `lancer.sh` passe à treize étapes
+  (étape courriels, et une seconde remise à zéro avant les parcours).
+
+### Ce qui a été vérifié
+
+- `npm run lint`, `npx tsc --noEmit`, `npm run build` : passent ; le build ne
+  pré-génère que `/_not-found`.
+- Base PostgreSQL 16 jetable, migration 0006 appliquée ;
+  `bash scripts/parcours/lancer.sh` avec les clés Stripe et Brevo : **treize
+  étapes sur treize**, aucun montant de référence n'a bougé.
+- Par Stripe en mode test : paiement, page de retour, puis le serveur crée le
+  contrat (numéro légal, vrai PDF) et écrit la confirmation et l'alerte dans
+  des fichiers ; la confirmation contient le lien de signature de ce contrat.
+- Aucun courriel parti chez Brevo pendant les contrôles : les quatre écrits
+  par le serveur l'ont été dans des fichiers. La confirmation, ouverte dans un
+  navigateur, est conforme au modèle validé.
+- Le contrôle des courriels, lancé trois fois de suite : 40 cas sur 40.
+
+### Ce qui n'a PAS été vérifié
+
+- **Un vrai envoi par Brevo** vers une vraie boîte : il attend l'accord du
+  gérant (une réservation de test avec son adresse).
+- Le courriel « contrat à signer » de rattrapage et l'alerte « courriel non
+  parti » ne sont vérifiés qu'avec l'envoi et le contrat simulés.
+
+### Écarts avec le plan annoncé
+
+- **`lib/recapitulatif.ts`** et **`lib/courriels-envoi.ts`**, hors liste : le
+  premier évite deux copies des lignes de faits, le second sépare l'envoi de
+  l'inscription (lib/paiement.ts n'importe que l'inscription, sans le moteur
+  PDF ni le tunnel).
+- **`courriels-textes.ts`** porte ses textes ; la page de retour garde les
+  siens pour les autres écrans.
+- **Corrigé en cours de route** : l'échéance d'un nouvel essai était comparée
+  à l'heure de Node (à la milliseconde) alors que la base la date à la
+  microseconde : un courriel dû pouvait attendre le passage suivant. La
+  comparaison se fait maintenant dans la base.
+- **`db/verify.ts`** : le contrôle « seconde ligne de réglages refusée »
+  fournit les nouvelles adresses obligatoires, pour que le refus vienne bien
+  de la règle « une seule ligne ».
+
+### Points reportés
+
+- **Étape 3** : page de suivi par lien secret.
+- **Phase 4** : minuterie des envois en retard (aujourd'hui, à la prochaine
+  activité du site), relance d'un contrat non signé.
+- **Lot 5** : contact@ au lieu de l'adresse wanadoo sur le contrat, les
+  factures et l'article sur les données personnelles ?
+- **Au déploiement** : point 15 de `docs/06-avant-premier-client.md`.
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

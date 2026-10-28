@@ -154,7 +154,7 @@ fonctionnel et terminé (13 octobre 2026), back-office compris.
 | **1. Prix** | Tables de tarification et de taxe, calcul du prix d'un séjour et de la taxe, fiches gîtes lues en base, contrôles | **Livré le 14 octobre 2026** — voir `docs/journal-phases.md` |
 | **2. Calendrier et réservation** | Disponibilités réelles, blocage de 20 minutes, refus si un prix manque, erreur sur un gîte inconnu, tunnel branché sur les vrais chiffres (âges, horaires, prix, taxe) | **Livré le 15 octobre 2026** — voir `docs/journal-phases.md` |
 | **3. Paiement** | Stripe en mode test : acompte ou total, carte conservée seulement si choisie, choix de la caution et du solde, paiement tardif, autres gîtes proposés | **Livré le 20 octobre 2026** (D-23) — voir `docs/journal-phases.md` ; parcours rejoué par Stripe en mode test le 22 octobre 2026 (11 étapes sur 11) ; restent la validation 3-D Secure à l'écran et l'avis signé |
-| **4. Courriels et suivi** | Brevo, contrat généré, lien de signature, page de suivi à lien secret, courriels aux propriétaires (dont le paiement remboursé, journalisé seulement au lot 3) ; **libellé de la taxe dans les PDF** (une réservation du tunnel n'a plus de taux unique : `taux_taxe_sejour` est vide, et les PDF impriment encore « (… %) ») ; **documents d'un paiement intégral** (`paiement_integral` : ni acompte ni solde, alors que `calculerMontants` applique le taux d'acompte) ; phrase « contrat à signer par courriel » sur la page de confirmation | En cours, en trois étapes : **1. documents justes livrée le 23 octobre 2026** (libellé de la taxe, paiement intégral) ; 2. après le paiement (contrat, Brevo, courriels) ; 3. page de suivi |
+| **4. Courriels et suivi** | Brevo, contrat généré, lien de signature, page de suivi à lien secret, courriels aux propriétaires (dont le paiement remboursé, journalisé seulement au lot 3) ; **libellé de la taxe dans les PDF** (une réservation du tunnel n'a plus de taux unique : `taux_taxe_sejour` est vide, et les PDF impriment encore « (… %) ») ; **documents d'un paiement intégral** (`paiement_integral` : ni acompte ni solde, alors que `calculerMontants` applique le taux d'acompte) ; phrase « contrat à signer par courriel » sur la page de confirmation | En cours, en trois étapes : **1. documents justes livrée le 23 octobre 2026** (libellé de la taxe, paiement intégral) ; **2. après le paiement livrée le 27 octobre 2026** (contrat créé, courriels Brevo, alertes, D-24) ; 3. page de suivi |
 | **5. Contrat et pages** | Articles 5.1 et 6 du contrat, **clauses du paiement intégral** (5.1, 5.2, 5.3, 7.2), **article 4.4** (la taxe est votée par Annonay Rhône Agglo, une part va au département), pages qui décrivent la caution, horaires, boîte à clés retirée, documentation | À faire |
 
 **Points ouverts après le lot 2**, hors code :
@@ -222,6 +222,25 @@ client), ni la **phrase d'autorisation de Stripe**, doublon du texte d'accord
   comptable n'a pas dit quelle facture émettre (Phase 4). Les propriétaires
   seront alertés à l'étape 2 et s'en occupent à la main. Le calcul interne
   donne déjà acompte = total et solde = 0.
+
+**Décisions du lot 4, étape 2 (24 au 27 octobre 2026, D-24).**
+- **Adresses** : les courriels automatiques partent de
+  **reservation@gitesdesamoyas.fr** (« Les Gîtes de Samoyas »), qui ne reçoit
+  rien ; « Répondre » écrit à **contact@gitesdesamoyas.fr**, la boîte des
+  propriétaires. Domaine authentifié chez Brevo le 27 octobre 2026.
+- **Confirmation au client** : les faits de l'écran de confirmation, le lien
+  « Signer mon contrat », le contact et la signature « Patricia et Nicolas
+  Terrafina — Les Gîtes de Samoyas » ; dans sa langue, le contrat restant en
+  français. Le paragraphe d'accueil écrit par les propriétaires pourra
+  s'ajouter plus tard.
+- **Alertes** : réservation payée, contrat signé et problème vont à contact@ ;
+  l'objet d'un problème commence par « À TRAITER — ». Chacune se coupe ou
+  change de destinataires dans la table `alertes`.
+- **Contrat** : créé tout de suite après le paiement. Échec : confirmation
+  sans le lien, alerte, nouvelle tentative et courriel « contrat à signer ».
+- **À décider au lot 5** : faut-il imprimer contact@ au lieu de l'adresse
+  wanadoo sur le contrat, les factures et l'article sur les données
+  personnelles ?
 
 ---
 

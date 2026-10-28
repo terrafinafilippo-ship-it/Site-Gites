@@ -119,7 +119,7 @@ le dossier `admin/`. Les maquettes du back-office se récupèrent dans ce commit
 
 ---
 
-## 3. Modèle de données — les dix-huit tables
+## 3. Modèle de données — les vingt tables
 
 **Cœur métier — neuf tables exercées par le code**
 
@@ -134,6 +134,9 @@ le dossier `admin/`. Les maquettes du back-office se récupèrent dans ce commit
 | `compteurs_documents` | Le compteur de numérotation, une ligne par série et par année. | Clé primaire `(serie, annee)` · **jamais une SEQUENCE** |
 | `paiements` | Chaque paiement chez le prestataire (PaymentIntent Stripe), forme définitive depuis le lot 3 : type (`acompte`, `total`, puis `solde` et `caution` en Phase 4), montant, statut (`en_attente`, `reussi`, `echoue`, `annule`, `a_rembourser`, `rembourse`), motif et référence du remboursement. | **Index unique `reference_externe`** : un paiement Stripe n'a qu'une ligne · remboursement toujours motivé · `updated_at` tenu par trigger |
 | `textes_accord` | Le texte d'accord pour l'enregistrement de la carte, **une version par langue et par date** d'entrée en vigueur, avec qui l'a validé. Repères `{caution}`, `{ligne_solde}`, `{montant}`, `{date}`. | **Trigger d'immutabilité** · clé `(objet, langue, en_vigueur_depuis)` |
+
+| `courriels` | Le **journal des courriels** du site (lot 4, D-24) : une ligne par courriel et par destinataire, inscrite dans la transaction de l'événement (paiement, remboursement, signature), puis envoyée : statut (`a_envoyer`, `envoye`, `echec`), essais, échéance du prochain, voie (`brevo` ou `fichier`), sujet et texte envoyés. | **Index unique `cle`** : un événement constaté deux fois n'inscrit qu'un courriel · `envoye` exige date, voie et sujet |
+| `alertes` | Les trois alertes aux propriétaires (`reservation`, `signature`, `probleme`) : active ou non, destinataires. Créées par la migration 0006. | Une alerte active a au moins un destinataire |
 
 **Tables provisoires — structure minimale, aucun code ne les exerce encore**
 
@@ -266,7 +269,7 @@ permettrait de lire n'importe quel fichier du serveur.
 | Route | Auth | Effet |
 |---|---|---|
 | `POST /api/contrats` | En-tête `x-service-secret` = `DOCUMENT_SERVICE_SECRET` | Émet le contrat : numéro `CTR`, ligne `documents` avec jeton, PDF, recopie du numéro sur la réservation. **Une transaction.** Idempotent. Refuse une réservation payée en totalité (409, D-20). |
-| `POST /api/contrats/signer` | **Aucun secret** — le jeton du lien authentifie le signataire | Enregistre la preuve, écrit le PDF signé, passe le document en `signe`. **Une transaction.** |
+| `POST /api/contrats/signer` | **Aucun secret** — le jeton du lien authentifie le signataire | Enregistre la preuve, écrit le PDF signé, passe le document en `signe`, inscrit l'alerte « contrat signé ». **Une transaction.** Courriels envoyés après la réponse. |
 | `POST /api/factures` | `x-service-secret` | Émet la facture d'acompte ou de solde via `creer_facture`. Ré-émission idempotente pour le même numéro. Refuse une réservation payée en totalité (409, D-20). |
 | `GET /api/documents/{chemin}` | **URL signée** (`token` + `expires`) | Seul accès aux PDF. |
 | `GET /signer/{token}` | Le jeton | Page publique de signature (français seulement ; `/en/signer/…` est introuvable). |
@@ -368,8 +371,9 @@ complet produit les bons montants sur les bons documents**.
 | Prix, taxe, devis | `npm run verify:tarification` | 174 cas calculés à la main : dégressivité, séjours à cheval sur deux saisons, règles, refus, grille publique, les deux exemples du guide officiel de la taxe de séjour au centime, le devis du tunnel (capacité et bébés, délai, paiement intégral, nuits prises, taux et délais lus dans les réglages), le contrôle des coordonnées, le règlement (choix de la caution et du solde, texte d'accord identique au mot près à celui de la migration), l'anglais (formats, messages, liens ; devis identique dans les deux langues), la taxe affichée (phrase de la fiche, ligne des PDF) et les montants d'un paiement intégral. Sans base |
 | Blocage | `DB_CIBLE=test npm run verify:blocage` | Deux clients qui bloquent les mêmes nuits au même instant : un seul gagne ; verrou expiré repris ; chevauchement refusé sans reste ; tentative, seconde tentative, abandon. Avec `--http` (dans `lancer.sh`) : les mêmes cas par le serveur, et la limite anti-abus |
 | Paiement | `DB_CIBLE=test npm run verify:paiement` | Avec un **prestataire simulé** (sans réseau ni clé) : ouverture, refus puis paiement, constat répété et simultané (retour et avis), paiement arrivé après le blocage (nuits libres : confirmé ; reprises : remboursé une seule fois), remboursement en panne puis rattrapé, montant inattendu, paiement inconnu, retour en arrière, faux secret. Avec `--http` (dans `lancer.sh`) : **Stripe en mode test** — vraie carte de test, page de confirmation, carte refusée, avis signé. **Sans clés de test, `--http` échoue en le disant** |
+| Courriels | `DB_CIBLE=test npm run verify:courriels` | Paiement, messagerie et contrat **simulés** : une confirmation et une alerte par paiement même constaté plusieurs fois ; lien de signature, faits, expéditeur et adresse de réponse ; anglais ; panne puis nouvel essai, échec définitif et alerte ; contrat impossible à créer ; paiement intégral ; remboursements ; alerte coupée ; adresses de test jamais envoyées ; texte échappé. Le vrai contrat créé par le serveur est vérifié par `verify:paiement --http` |
 | Base | `npm run db:verify` | Tables, colonnes, seed, fonctions de numérotation, triggers, index uniques, contraintes de tarification, du calendrier et du paiement, immutabilité du texte d'accord, stockage. **Tout est annulé par ROLLBACK** : aucun numéro consommé |
-| Bout en bout | `bash scripts/parcours/lancer.sh` | Les onze étapes : les contrôles ci-dessus, puis le parcours complet — contrat, signature, factures, idempotence, refus attendus, accès aux PDF, contrôles en base **et** sur les PDF produits. Les étapes « blocage » et « paiement » exigent les clés Stripe de test |
+| Bout en bout | `bash scripts/parcours/lancer.sh` | Les treize étapes : les contrôles ci-dessus, puis le parcours complet — contrat, signature, factures, idempotence, refus attendus, accès aux PDF, contrôles en base **et** sur les PDF produits. Les étapes « blocage » et « paiement » exigent les clés Stripe de test |
 
 **Les deux réservations de test** (`scripts/parcours/reference.ts`) sont
 complémentaires :

@@ -178,7 +178,13 @@ annonce une durée de conservation de la carte, alors qu'aucun des deux n'est
 encore branché (Phases 3 et 4). La déclaration est **exacte pour le système
 cible**, pas pour le code d'aujourd'hui : aucun contrat réel ne doit être signé
 avant que les deux le soient. Une déclaration de destinataire inexacte est un
-défaut d'information, dans un sens comme dans l'autre.
+défaut d'information, dans un sens comme dans l'autre. **Depuis le lot 4 de la
+Phase 3 (27 octobre 2026), les deux sont branchés en essai** : Stripe en mode
+test (D-23), Brevo pour la confirmation, le lien du contrat et les alertes
+(D-24) ; leur passage en réel est aux points 14 et 15 de
+`docs/06-avant-premier-client.md`. Le texte de chaque courriel envoyé est gardé
+en base (table `courriels`) : durée de conservation à fixer avec celle des
+tentatives (point 12).
 
 **Engagement à tenir par le code (Phase 4).** La suppression de la carte au plus
 tard 7 jours après le départ est une promesse faite au client : elle doit être
