@@ -54,8 +54,15 @@ export const reservations = pgTable(
     gite_id: uuid()
       .notNull()
       .references(() => gites.id),
-    // Référence publique courte, affichée au client et utilisée par /suivi/[ref].
+    // Référence publique courte, affichée au client. Elle ne donne accès à rien.
     reference: text().notNull(),
+    // Jeton secret du lien « Ma réservation » (/suivi/{jeton}, lot 4, D-25) :
+    // 64 caractères hexadécimaux tirés par la base (deux UUID aléatoires, soit
+    // 244 bits de hasard), à la création de la ligne. Il ouvre la page tant que
+    // la date de départ + le réglage `suivi_validite_jours` n'est pas passée.
+    jeton_suivi: text()
+      .notNull()
+      .default(sql`replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', '')`),
     statut: text().$type<StatutReservation>().notNull().default("brouillon"),
     // Numéro du contrat émis (série CTR), recopié depuis documents.numero.
     numero_contrat: text(),
@@ -143,6 +150,7 @@ export const reservations = pgTable(
   },
   (t) => [
     unique("reservations_reference_key").on(t.reference),
+    unique("reservations_jeton_suivi_key").on(t.jeton_suivi),
     index("reservations_gite_id_idx").on(t.gite_id),
     check(
       "reservations_statut_check",

@@ -96,12 +96,19 @@ export interface Sejour {
   depart: string;
 }
 
-/** Confirmation de réservation, avec le lien de signature (ou l'annonce du contrat). */
+const BOUTON_SUIVI: Bilingue<string> = { fr: "Voir ma réservation", en: "View my booking" };
+
+/**
+ * Confirmation de réservation, avec le lien de signature (ou l'annonce du
+ * contrat), puis le lien « Ma réservation » (second bouton, choix du gérant du
+ * 28 octobre 2026).
+ */
 export function texteConfirmation(
   langue: Langue,
   s: Sejour,
   faits: Recapitulatif,
   lienContrat: string | null,
+  lienSuivi: string,
   adresseContact: string,
 ): Contenu {
   const en = langue === "en";
@@ -121,6 +128,38 @@ export function texteConfirmation(
           { bouton: en ? "Sign my contract" : "Signer mon contrat", lien: lienContrat },
         ]
       : [{ p: en ? "Your contract will be sent to you by email." : "Votre contrat vous sera envoyé par courriel." }]),
+    { bouton: BOUTON_SUIVI[langue], lien: lienSuivi },
+    { note: contact(langue, adresseContact) },
+    { note: SIGNATURE[langue] },
+  ]);
+}
+
+/** Lien « Ma réservation » redemandé par le formulaire du site (D-25). */
+export function texteLienSuivi(
+  langue: Langue,
+  s: Sejour,
+  lienSuivi: string,
+  finValidite: string,
+  adresseContact: string,
+): Contenu {
+  const en = langue === "en";
+  const plage = plageDates(s.arrivee, s.depart, langue);
+  const fin = fmtDateLongue(finValidite, langue);
+  return assembler(en ? `Your booking link — booking ${s.reference}` : `Votre lien de réservation — réservation ${s.reference}`, [
+    { p: bonjour(langue, s.prenom) },
+    {
+      p: en
+        ? `Here is the link to your booking at ${s.gite}, ${plage}:`
+        : `Voici le lien vers votre réservation à ${s.gite}, du ${plage} :`,
+    },
+    { bouton: BOUTON_SUIVI[langue], lien: lienSuivi },
+    { note: en ? `This link works until ${fin}.` : `Ce lien est valable jusqu'au ${fin}.` },
+    {
+      note: en
+        ? "This email follows a request made on our website. If you did not make it, you can ignore it."
+        : "Ce courriel fait suite à une demande faite sur notre site. Si elle ne vient pas de vous, vous pouvez l'ignorer.",
+    },
+    { note: LIBELLES_RECAP[langue].reference(s.reference) },
     { note: contact(langue, adresseContact) },
     { note: SIGNATURE[langue] },
   ]);
@@ -270,6 +309,7 @@ const OBJETS_CLIENT: Record<string, string> = {
   confirmation: "la confirmation de réservation",
   contrat: "le lien du contrat à signer",
   remboursement: "l'avis de remboursement",
+  lien_suivi: "le lien « Ma réservation » qu'il a redemandé",
 };
 
 export function texteAlerteProbleme(p: Probleme, s: Sejour | null, c: FicheClient | null): Contenu {

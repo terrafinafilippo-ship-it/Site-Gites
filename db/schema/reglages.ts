@@ -34,6 +34,11 @@
 //     auquel on ne répond pas, et adresse de réponse (contact@gitesdesamoyas.fr) :
 //     un client qui clique sur « Répondre » écrit aux propriétaires (choix du
 //     gérant, 24 octobre 2026). Les alertes ont leur table (`alertes`).
+//
+//   - page « Ma réservation » (lot 4, migration 0007, D-25) : le lien ouvre la
+//     page jusqu'à 30 jours après le départ ; le formulaire « Retrouver ma
+//     réservation » envoie au plus 3 courriels par adresse et par 60 minutes
+//     (choix du gérant, 28 octobre 2026).
 import { sql } from "drizzle-orm";
 import { check, integer, pgTable, text, time, timestamp, uuid } from "drizzle-orm/pg-core";
 
@@ -72,6 +77,11 @@ export const reglages = pgTable(
     courriel_expediteur: text().notNull(),
     courriel_expediteur_nom: text().notNull(),
     courriel_reponse: text().notNull(),
+    // Page « Ma réservation » (lot 4, migration 0007, D-25). Lus à chaque
+    // affichage : un changement vaut aussi pour les réservations déjà faites.
+    suivi_validite_jours: integer().notNull().default(30),
+    suivi_demandes_max: integer().notNull().default(3),
+    suivi_demandes_minutes: integer().notNull().default(60),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -100,6 +110,11 @@ export const reglages = pgTable(
       "reglages_courriels_check",
       sql`${t.courriel_expediteur} like '%_@_%' and ${t.courriel_reponse} like '%_@_%'
           and length(trim(${t.courriel_expediteur_nom})) > 0`,
+    ),
+    check(
+      "reglages_suivi_check",
+      sql`${t.suivi_validite_jours} between 0 and 3650 and ${t.suivi_demandes_max} between 1 and 100
+          and ${t.suivi_demandes_minutes} between 1 and 10080`,
     ),
   ],
 );

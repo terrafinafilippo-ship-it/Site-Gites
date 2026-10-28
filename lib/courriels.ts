@@ -5,7 +5,8 @@
 //     contrat à envoyer à la main » (aucun contrat n'est émis, D-20) ;
 //   - remboursement décidé (lib/paiement.ts) → courriel au client, alerte
 //     « À TRAITER » ;
-//   - contrat signé (POST /api/contrats/signer) → alerte « signature ».
+//   - contrat signé (POST /api/contrats/signer) → alerte « signature » ;
+//   - lien « Ma réservation » redemandé (lib/suivi.ts) → courriel au client.
 // L'ENVOI est ailleurs (lib/courriels-envoi.ts), après la réponse : ce module
 // ne fait qu'écrire, sans réseau, et reste léger (lib/paiement.ts l'importe).
 //
@@ -159,6 +160,25 @@ export async function inscrireRemboursement(
     }
   }
   await inscrireProbleme(executeur, "remboursement", r.paiementId, r.reservationId, donnees);
+}
+
+/**
+ * Lien « Ma réservation » redemandé par le formulaire (D-25) : un courriel par
+ * réservation, dans sa langue. `demande` identifie la demande (la limite par
+ * adresse compte les demandes, pas les courriels).
+ */
+export async function inscrireLienSuivi(
+  executeur: Executeur,
+  l: { reservationId: string; destinataire: string; langue: "fr" | "en"; demande: string },
+): Promise<void> {
+  await inscrire(executeur, {
+    objet: "lien_suivi",
+    cle: `lien_suivi:${l.reservationId}:${l.demande}`,
+    reservationId: l.reservationId,
+    destinataire: l.destinataire,
+    langue: l.langue,
+    donnees: { demande: l.demande },
+  });
 }
 
 /** Contrat signé : alerte « signature ». */

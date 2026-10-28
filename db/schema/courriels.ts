@@ -27,6 +27,8 @@ export const OBJETS_COURRIEL = [
   "confirmation",
   "contrat",
   "remboursement",
+  // Lien « Ma réservation » redemandé par le formulaire (D-25).
+  "lien_suivi",
   // Aux propriétaires, en français.
   "alerte_reservation",
   "alerte_signature",
@@ -70,7 +72,7 @@ export const courriels = pgTable(
     index("courriels_a_envoyer_idx").on(t.prochain_essai_at).where(sql`${t.statut} = 'a_envoyer'`),
     check(
       "courriels_objet_check",
-      sql`${t.objet} in ('confirmation', 'contrat', 'remboursement', 'alerte_reservation', 'alerte_signature', 'alerte_probleme')`,
+      sql`${t.objet} in ('confirmation', 'contrat', 'remboursement', 'lien_suivi', 'alerte_reservation', 'alerte_signature', 'alerte_probleme')`,
     ),
     check("courriels_statut_check", sql`${t.statut} in ('a_envoyer', 'envoye', 'echec')`),
     check("courriels_langue_check", sql`${t.langue} in ('fr', 'en')`),

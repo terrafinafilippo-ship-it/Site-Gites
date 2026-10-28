@@ -32,6 +32,7 @@ import {
   texteAlerteSignature,
   texteConfirmation,
   texteContrat,
+  texteLienSuivi,
   texteRemboursement,
   type Contenu,
   type FicheClient,
@@ -44,6 +45,7 @@ import { messagerie } from "@/lib/messagerie";
 import { recapitulatif } from "@/lib/recapitulatif";
 import { chargerReservationAvecGite, type Executeur, type ReservationAvecGite } from "@/lib/reservations";
 import { messageErreur } from "@/lib/route-helpers";
+import { finValidite, lienOuvert, lienSuivi } from "@/lib/suivi";
 import { autresGitesLibres } from "@/lib/tunnel";
 
 /** Délais avant chaque nouvel essai, en minutes ; au-delà, le courriel est abandonné. */
@@ -54,7 +56,7 @@ const ESSAIS_CONTRAT_AVANT_ENVOI = 2;
 /** Délai avant le courriel « contrat à signer » qui retente la création. */
 const RELANCE_CONTRAT_MINUTES = 30;
 
-const OBJETS_CLIENT = new Set(["confirmation", "contrat", "remboursement"]);
+const OBJETS_CLIENT = new Set(["confirmation", "contrat", "remboursement", "lien_suivi"]);
 
 type Courriel = typeof courriels.$inferSelect;
 
@@ -292,6 +294,7 @@ async function preparer(tx: Executeur, c: Courriel, origine: string): Promise<Pr
         sejour(resa),
         recapitulatif(resa, langue, paye),
         lienContrat,
+        lienSuivi(origine, langue, resa.jeton_suivi),
         await adresseReponse(tx),
       );
       return { contenu, apres };
@@ -306,6 +309,25 @@ async function preparer(tx: Executeur, c: Courriel, origine: string): Promise<Pr
       }
       return {
         contenu: texteContrat(langue, sejour(resa), lienSignature(origine, emis.contrat.token), await adresseReponse(tx)),
+      };
+    }
+
+    case "lien_suivi": {
+      if (!resa) return { abandon: "réservation absente" };
+      const [r] = await tx
+        .select({ validite: reglages.suivi_validite_jours })
+        .from(reglages)
+        .where(eq(reglages.id, 1));
+      if (!r) throw new Error("ligne de réglages absente");
+      if (!lienOuvert(resa.date_depart, r.validite)) return { abandon: "lien expiré entre la demande et l'envoi" };
+      return {
+        contenu: texteLienSuivi(
+          langue,
+          sejour(resa),
+          lienSuivi(origine, langue, resa.jeton_suivi),
+          finValidite(resa.date_depart, r.validite),
+          await adresseReponse(tx),
+        ),
       };
     }
 

@@ -6,6 +6,7 @@
 // verifier-paiement.ts --http). La logique, elle, est la vraie :
 //   1. paiement constaté deux fois → UNE confirmation, UNE alerte « réservation » ;
 //   2. envoi : contrat créé juste avant, lien de signature dans le courriel,
+//      lien « Ma réservation » en second bouton,
 //      faits de la réservation, expéditeur et adresse de réponse des réglages ;
 //      l'alerte cite le numéro du contrat ; un second passage n'envoie rien ;
 //   3. client anglophone : courriel en anglais, contrat annoncé en français ;
@@ -298,6 +299,16 @@ async function controles(): Promise<void> {
     "lien de signature du contrat créé, dans le texte et le bouton",
     conf?.texte,
   );
+  const [{ jeton }] = (
+    await db.execute(sql`select jeton_suivi as jeton from reservations where id = ${a.id}::uuid`)
+  ).rows as { jeton: string }[];
+  noter(
+    conf?.texte.includes(`Voir ma réservation\nhttps://site.example/suivi/${jeton}`) === true &&
+      conf.html.includes(`href="https://site.example/suivi/${jeton}"`) &&
+      conf.texte.indexOf("Signer mon contrat") < conf.texte.indexOf("Voir ma réservation"),
+    "second bouton « Voir ma réservation », sous celui du contrat, avec le lien secret",
+    conf?.texte,
+  );
   noter(
     conf?.texte.includes("Votre réservation est confirmée.") === true &&
       conf.texte.includes(`Référence : ${a.reference}`) &&
@@ -343,6 +354,7 @@ async function controles(): Promise<void> {
       confEn.texte.startsWith("Hello Camille,") &&
       confEn.texte.includes("Your contract (in French) is to be signed online:") &&
       confEn.texte.includes("Sign my contract\nhttps://site.example/signer/") &&
+      confEn.texte.includes("View my booking\nhttps://site.example/en/suivi/") &&
       confEn.texte.includes("through a link we will send you") &&
       confEn.texte.includes("cheque handed over on arrival"),
     "courriel en anglais ; contrat annoncé en français",
@@ -571,6 +583,7 @@ async function controles(): Promise<void> {
     { reference: "SAM-X", prenom: "Zoé <script>", gite: "L'Armu", arrivee: "2027-03-06", depart: "2027-03-13" },
     { reference: "Référence : SAM-X", sejour: "s", voyageurs: "v", paye: "p", solde: null, caution: null },
     null,
+    "https://site.example/suivi/0123",
     "contact@gitesdesamoyas.fr",
   );
   noter(

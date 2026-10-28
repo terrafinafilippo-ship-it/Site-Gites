@@ -64,7 +64,7 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     "tarif_weekend", "taux_taxe_sejour", "actif", "created_at",
   ],
   reservations: [
-    "id", "gite_id", "reference", "statut", "numero_contrat",
+    "id", "gite_id", "reference", "jeton_suivi", "statut", "numero_contrat",
     "client_civilite", "client_nom", "client_prenom", "client_adresse", "client_code_postal",
     "client_ville", "client_pays", "client_email", "client_telephone",
     "client_civilite_conjoint", "client_nom_conjoint", "client_prenom_conjoint",
@@ -121,6 +121,7 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     "taux_acompte", "delai_solde_jours", "delai_virement_caution_jours",
     // Courriels (Phase 3, lot 4, migration 0006).
     "courriel_expediteur", "courriel_expediteur_nom", "courriel_reponse",
+    "suivi_validite_jours", "suivi_demandes_max", "suivi_demandes_minutes",
     "updated_at",
   ],
   taxes_sejour: [
@@ -735,6 +736,43 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
       client, "sp_sans_expediteur", `update reglages set courriel_expediteur = 'pas-une-adresse' where id = 1`, [],
     );
     noter("6e", codePg(sansExpediteur.erreur) === "23514", "expéditeur des courriels sans @ refusé", codePg(sansExpediteur.erreur));
+
+    // ── 6f. Page « Ma réservation » : jeton secret et réglages ──
+    titre("6f. Page « Ma réservation » : jeton secret et réglages");
+    const jetons = await client.query<{ jeton: string }>(
+      `select jeton_suivi as jeton from reservations where id = $1`, [resaId],
+    );
+    noter("6f", /^[0-9a-f]{64}$/.test(jetons.rows[0]?.jeton ?? ""), "réservation créée sans jeton : la base en tire un (64 caractères hexadécimaux)", jetons.rows[0]?.jeton);
+    const deux = await client.query<{ a: string; b: string }>(
+      `select replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', '') as a,
+              replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', '') as b`,
+    );
+    noter("6f", deux.rows[0].a !== deux.rows[0].b, "deux tirages successifs diffèrent");
+    const doublonJeton = await attendreErreur(
+      client, "sp_doublon_jeton",
+      `insert into reservations (gite_id, reference, date_arrivee, date_depart, taux_acompte, delai_solde_jours, jeton_suivi)
+       values ($1, $2, '2026-10-03', '2026-10-10', 30, 30, $3)`, [giteId, `${reference}-B`, jetons.rows[0]?.jeton],
+    );
+    noter("6f", codePg(doublonJeton.erreur) === "23505", "même jeton sur deux réservations refusé", codePg(doublonJeton.erreur));
+    const reglagesSuivi = await client.query<{ v: number; m: number; f: number }>(
+      `select suivi_validite_jours as v, suivi_demandes_max as m, suivi_demandes_minutes as f from reglages where id = 1`,
+    );
+    noter(
+      "6f",
+      reglagesSuivi.rows[0]?.v === 30 && reglagesSuivi.rows[0]?.m === 3 && reglagesSuivi.rows[0]?.f === 60,
+      "réglages : lien valable 30 jours après le départ, 3 demandes par 60 minutes",
+      JSON.stringify(reglagesSuivi.rows[0]),
+    );
+    const demandesZero = await attendreErreur(
+      client, "sp_demandes_zero", `update reglages set suivi_demandes_max = 0 where id = 1`, [],
+    );
+    noter("6f", codePg(demandesZero.erreur) === "23514", "zéro demande de lien autorisée refusé", codePg(demandesZero.erreur));
+    const lienSuivi = await attendreErreur(
+      client, "sp_lien_suivi",
+      `insert into courriels (reservation_id, objet, cle, destinataire, langue)
+       values ($1, 'lien_suivi', 'verify:lien', 'a@example.invalid', 'fr')`, [resaId],
+    );
+    noter("6f", lienSuivi.erreur === null, "courriel « lien_suivi » accepté", codePg(lienSuivi.erreur));
   } finally {
     await client.query("ROLLBACK");
   }

@@ -50,6 +50,13 @@
       "when": 1793139937537,
       "tag": "0006_courriels",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793224717690,
+      "tag": "0007_suivi",
+      "breakpoints": true
     }
   ]
 }

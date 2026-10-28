@@ -1,0 +1,103 @@
+/* Page « Ma réservation » et formulaire « Retrouver ma réservation » (lot 4, D-25). */
+
+.page {
+  padding-block: 56px;
+}
+.colonne {
+  max-width: 760px;
+  margin: 0 auto;
+  display: grid;
+  /* minmax(0, …) : la colonne ne s'élargit jamais au-delà de l'écran du téléphone. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+}
+
+.bloc {
+  background: #fff;
+  border: 1px solid #e3dfd1;
+  border-radius: var(--radius-default);
+  padding: 32px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 520px) {
+  .bloc { padding: 22px; }
+}
+.bloc h1 {
+  font-size: clamp(28px, 3.4vw, 36px);
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+.bloc h2 {
+  font-family: var(--tw-font-serif);
+  font-size: 22px;
+  font-weight: 400;
+  margin-bottom: 14px;
+}
+.sous {
+  color: var(--color-gray-medium);
+  font-size: 15px;
+}
+
+.faits {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.faits li {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #ebe7d8;
+}
+.faits li:last-child { border-bottom: none; padding-bottom: 0; }
+
+.etat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: var(--radius-sharp);
+  margin-bottom: 12px;
+}
+.etat.aFaire { background: rgba(212,165,116,0.18); color: #8a5e22; }
+.etat.fait   { background: rgba(90,140,58,0.12); color: #3f6e1f; }
+.etat.attente { background: rgba(180,173,153,0.18); color: #6b6655; }
+
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.note {
+  font-size: 13px;
+  color: var(--color-gray-medium);
+  text-align: center;
+}
+
+.formulaire {
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+}
+.formulaire label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-charcoal);
+}
+.erreur {
+  font-size: 13px;
+  color: var(--color-sienna);
+}
+.recu {
+  padding: 20px;
+  background: rgba(90,140,58,0.08);
+  border: 1px solid rgba(90,140,58,0.4);
+  border-radius: var(--radius-default);
+  font-size: 15px;
+}

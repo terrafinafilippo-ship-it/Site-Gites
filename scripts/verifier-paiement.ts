@@ -455,6 +455,43 @@ async function partieHttp(): Promise<void> {
   );
   noter((await page(`/reserver/confirmation?payment_intent=${pi}&payment_intent_client_secret=faux`)).status === 404, "retour avec un faux secret : 404");
 
+  // Page « Ma réservation » (lot 4, étape 3) : le lien de la confirmation l'ouvre.
+  const jeton = (await ligne<{ jeton: string }>(sql`
+    select jeton_suivi as jeton from reservations where id = ${String(ok.corps.id)}::uuid`))?.jeton ?? "";
+  noter(
+    /Voir ma réservation\nhttps?:\/\/[^/\s]+\/suivi\/[0-9a-f]{64}/.test(conf?.corps ?? "") && (conf?.corps ?? "").includes(`/suivi/${jeton}`),
+    "la confirmation porte le lien « Ma réservation »",
+  );
+  const suivi = await page(`/suivi/${jeton}`);
+  noter(
+    suivi.status === 200 && suivi.texte.includes(String(ok.corps.reference)) &&
+      suivi.texte.includes(`Contrat ${contrat?.numero ?? "?"}, à signer en ligne.`) &&
+      suivi.texte.includes(`href="/signer/${contrat?.token ?? "?"}"`) &&
+      suivi.texte.includes('content="no-referrer"') && suivi.texte.includes("noindex"),
+    "page « Ma réservation » : référence, contrat à signer et son lien ; ni indexée ni transmise",
+    suivi.status,
+  );
+  const suiviEn = await page(`/en/suivi/${jeton}`);
+  noter(suiviEn.status === 200 && suiviEn.texte.includes("Your stay") && suiviEn.texte.includes("in French, to be signed online"), "la même page en anglais", suiviEn.status);
+  const inconnu = await page(`/suivi/${"0".repeat(64)}`);
+  noter(
+    inconnu.status === 200 && inconnu.texte.includes("Ce lien n") && inconnu.texte.includes("Retrouver ma réservation") &&
+      !inconnu.texte.includes(String(ok.corps.reference)),
+    "lien inconnu : « non valable ou expiré », formulaire, aucune donnée",
+    inconnu.status,
+  );
+  const demanderLien = async (email: string) =>
+    (await fetch(`${base}/api/suivi/lien`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    })).status;
+  noter(
+    (await demanderLien("personne@example.invalid")) === 200 && (await demanderLien(EMAIL_ESSAI)) === 200 &&
+      (await demanderLien("pas une adresse")) === 400,
+    "formulaire : même réponse pour une adresse inconnue et connue (200), 400 si mal formée",
+  );
+
   // Carte refusée.
   const arrivee2 = samediDans(22);
   const refus = await poster({ ...demande, arrivee: arrivee2, depart: ajouterJours(arrivee2, 7), reglement: { moyenCaution: "cheque", modeSolde: "lien" } });

@@ -117,6 +117,14 @@ export function validerChemin(chemin: string): string {
   return segments.join("/");
 }
 
+/**
+ * Chemin du contrat SIGNÉ d'une réservation : écrit par POST
+ * /api/contrats/signer, lu par la page « Ma réservation ».
+ */
+export function cheminContratSigne(reservationId: string, numero: string): string {
+  return `contrats/${reservationId}/${numero}-signe.pdf`;
+}
+
 // ─── Signature des URL ────────────────────────────────────────────────────────
 
 function cleSignature(): string {
