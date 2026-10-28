@@ -205,6 +205,16 @@ abandonnée par un retour en arrière est **supprimée sur-le-champ** ; une
 tentative laissée à l'abandon (page fermée) attend une durée de conservation
 et un effacement automatique — point 12 de `docs/06-avant-premier-client.md`.
 
+**Page « Ma réservation » (Phase 3, lot 4, D-25).** Les données d'un séjour
+(adresse du gîte, dates, montants, contrat signé) sont montrées à qui détient
+le lien secret de la réservation : un jeton de 64 caractères tirés au hasard,
+jamais la référence. La page n'est ni indexée, ni mise en cache, ni transmise
+aux sites liés ; elle se ferme 30 jours après le départ (réglage). Le
+formulaire qui renvoie un lien perdu répond la même chose que l'adresse ait
+réservé ou non : il ne révèle pas qui a séjourné aux gîtes. Les demandes de
+lien sont des lignes du journal `courriels` (adresse et texte envoyé) : même
+durée de conservation à fixer (point 12).
+
 **Pages publiques en retard sur le contrat.** La politique de confidentialité
 (`lib/data/legal.ts`) annonce une conservation de 5 ans et ne dit rien de la
 carte ni de Brevo : à aligner en Phase 6.
@@ -252,7 +262,7 @@ Emplacements qui décrivent le mécanisme, à modifier **ensemble** s'il change 
 | `components/pdf/ContratPDF.tsx` art. 14.2, 14.4, 14.5 | Information RGPD |
 | `app/gites/[slug]/page.tsx` | Page publique |
 | `app/reserver/ReserverFunnel.tsx` (4 endroits) | Page publique |
-| `app/suivi/[ref]/page.tsx` | Page publique |
+| `app/[lang]/suivi/[jeton]/page.tsx` (ligne « Caution » des faits, `lib/recapitulatif.ts`) | Page publique |
 | `lib/data/legal.ts` — CGV et politique cookies | Pages publiques `/legal/cgv` et `/legal/cookies` |
 | `docs/contrat-template.md`, `docs/facture-template.md` | Documents de rédaction |
 

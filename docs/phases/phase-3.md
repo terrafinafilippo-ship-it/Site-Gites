@@ -88,7 +88,12 @@ mentions du prototype (« code de la boîte à clés ») sont à retirer : table
 **Page de suivi.** Accès par un **lien secret envoyé par courriel** (code long,
 impossible à deviner). La référence courte (« SAM-… ») ne sert qu'à se parler ;
 elle n'ouvre rien. Un client qui a perdu son courriel redemande son lien en
-saisissant son adresse. Durée de validité du lien réglable.
+saisissant son adresse. Durée de validité du lien réglable. **Livrée le
+28 octobre 2026 (lot 4, étape 3, D-25)** : les faits et l'état du contrat,
+l'adresse et les heures dès le paiement ; lien valable jusqu'à 30 jours après
+le départ ; formulaire « Retrouver ma réservation » sur la page d'un lien
+expiré, 3 demandes par heure et par adresse ; second bouton « Voir ma
+réservation » dans la confirmation.
 
 **Blocage des dates pendant le paiement — livré au lot 2 (D-21).** Les dates
 sont bloquées **à l'arrivée sur l'écran de paiement**, pas au choix des dates.
@@ -154,7 +159,7 @@ fonctionnel et terminé (13 octobre 2026), back-office compris.
 | **1. Prix** | Tables de tarification et de taxe, calcul du prix d'un séjour et de la taxe, fiches gîtes lues en base, contrôles | **Livré le 14 octobre 2026** — voir `docs/journal-phases.md` |
 | **2. Calendrier et réservation** | Disponibilités réelles, blocage de 20 minutes, refus si un prix manque, erreur sur un gîte inconnu, tunnel branché sur les vrais chiffres (âges, horaires, prix, taxe) | **Livré le 15 octobre 2026** — voir `docs/journal-phases.md` |
 | **3. Paiement** | Stripe en mode test : acompte ou total, carte conservée seulement si choisie, choix de la caution et du solde, paiement tardif, autres gîtes proposés | **Livré le 20 octobre 2026** (D-23) — voir `docs/journal-phases.md` ; parcours rejoué par Stripe en mode test le 22 octobre 2026 (11 étapes sur 11) ; restent la validation 3-D Secure à l'écran et l'avis signé |
-| **4. Courriels et suivi** | Brevo, contrat généré, lien de signature, page de suivi à lien secret, courriels aux propriétaires (dont le paiement remboursé, journalisé seulement au lot 3) ; **libellé de la taxe dans les PDF** (une réservation du tunnel n'a plus de taux unique : `taux_taxe_sejour` est vide, et les PDF impriment encore « (… %) ») ; **documents d'un paiement intégral** (`paiement_integral` : ni acompte ni solde, alors que `calculerMontants` applique le taux d'acompte) ; phrase « contrat à signer par courriel » sur la page de confirmation | En cours, en trois étapes : **1. documents justes livrée le 23 octobre 2026** (libellé de la taxe, paiement intégral) ; **2. après le paiement livrée le 27 octobre 2026** (contrat créé, courriels Brevo, alertes, D-24) ; 3. page de suivi |
+| **4. Courriels et suivi** | Brevo, contrat généré, lien de signature, page de suivi à lien secret, courriels aux propriétaires (dont le paiement remboursé, journalisé seulement au lot 3) ; **libellé de la taxe dans les PDF** (une réservation du tunnel n'a plus de taux unique : `taux_taxe_sejour` est vide, et les PDF impriment encore « (… %) ») ; **documents d'un paiement intégral** (`paiement_integral` : ni acompte ni solde, alors que `calculerMontants` applique le taux d'acompte) ; phrase « contrat à signer par courriel » sur la page de confirmation | En cours, en trois étapes : **1. documents justes livrée le 23 octobre 2026** (libellé de la taxe, paiement intégral) ; **2. après le paiement livrée le 27 octobre 2026** (contrat créé, courriels Brevo, alertes, D-24) ; **3. page « Ma réservation » livrée le 28 octobre 2026** (lien secret, formulaire, D-25) — lot clos |
 | **5. Contrat et pages** | Articles 5.1 et 6 du contrat, **clauses du paiement intégral** (5.1, 5.2, 5.3, 7.2), **article 4.4** (la taxe est votée par Annonay Rhône Agglo, une part va au département), pages qui décrivent la caution, horaires, boîte à clés retirée, documentation | À faire |
 
 **Points ouverts après le lot 2**, hors code :
@@ -258,8 +263,9 @@ client), ni la **phrase d'autorisation de Stripe**, doublon du texte d'accord
 4. **Création de la ligne `reservations`** au bon statut, avec sa référence
    publique.
 5. **Courriel de confirmation** portant le **lien de signature** du contrat.
-6. **Page de suivi réelle** — `app/suivi/[ref]/page.tsx` affiche aujourd'hui un
-   séjour entièrement fictif, avec une référence de démonstration figée.
+6. ~~**Page de suivi réelle** — `app/suivi/[ref]/page.tsx` affiche aujourd'hui un
+   séjour entièrement fictif, avec une référence de démonstration figée.~~ →
+   livrée au lot 4 (`app/[lang]/suivi/[jeton]`, D-25).
 7. **Ajouté au cadrage : la tarification (saisons, barème, règles) et le calcul
    de la taxe de séjour**, prévus jusque-là en Phase 5 pour la première et non
    prévus pour le second. Livrés au lot 1 ; le back-office qui les modifie
@@ -349,9 +355,8 @@ les fiches gîtes** :
 reçoit le montant lu en base (`app/reserver/page.tsx` → `cautionCentimes`) et
 n'écrit plus « 500 € ». Si la base ne répond pas, il décrit le mécanisme sans
 chiffre — ce qui reste à remplacer par un **refus d'engager** (point 1
-ci-dessus) quand le tunnel sera réellement branché. La page de suivi, elle,
-affiche encore un séjour fictif : sa phrase de caution ne porte plus de montant,
-et affichera celui de la réservation quand la page sera construite.
+ci-dessus) quand le tunnel sera réellement branché. La page de suivi affiche
+depuis le lot 4 la caution de la réservation (D-25).
 
 Le récapitulatif affiche par ailleurs `gite.profil` (« Couple ») là où il
 affichait « Couple — 2 personnes » : la capacité viendra de la base, comme sur
@@ -396,7 +401,7 @@ l'écran de choix existera :
 | `ReserverFunnel.tsx`, étape 3 | ~~« Le solde sera prélevé J-30 sur la même carte. »~~ → idem (lot 2) |
 | `ReserverFunnel.tsx`, étape 4 | ~~« le solde J-30 sera prélevé sur la même carte »~~ → retirée (lot 2) |
 | `ReserverFunnel.tsx`, écran de succès | ~~« Prélèvement automatique du solde… »~~ → reconstruit au lot 3 (`reserver/confirmation`) : le règlement choisi par le client |
-| `app/suivi/[ref]/page.tsx` | « prélevés automatiquement sur la même carte » |
+| ~~`app/suivi/[ref]/page.tsx`~~ | ~~« prélevés automatiquement sur la même carte »~~ → page reconstruite (lot 4) : le règlement choisi par le client |
 | `lib/data/legal.ts`, CGV § 02 | « Le solde du séjour est prélevé automatiquement à J-30 » — Phase 6 |
 
 ### Phrases du site qui décrivent ce qui n'existe pas (cadrage du 13 octobre 2026)
@@ -406,13 +411,15 @@ Les horaires de référence sont **18 h et 9 h** (contrat), pas 16 h et 10 h.
 
 | Endroit | Phrase |
 |---|---|
-| `app/suivi/[ref]/ArrivalInfo.tsx` | « Le code de la boîte à clés… vous seront communiqués dès la signature », et un faux code affiché |
+| ~~`app/suivi/[ref]/ArrivalInfo.tsx`~~ | ~~« Le code de la boîte à clés… vous seront communiqués dès la signature », et un faux code affiché~~ → fichier supprimé (lot 4) |
 | `app/reserver/ReserverFunnel.tsx`, écran de succès | ~~« Adresse précise, code de la boîte à clés… »~~ → écran retiré (lot 2) |
 | `app/reserver/ReserverFunnel.tsx`, étape 1 | ~~« À partir de 16h », « Avant 10h »~~ → horaires lus en base (lot 2) |
-| `app/suivi/[ref]/ArrivalInfo.tsx` | « entre 16h et 19h », « avant 10h » |
+| ~~`app/suivi/[ref]/ArrivalInfo.tsx`~~ | ~~« entre 16h et 19h », « avant 10h »~~ → horaires de la réservation (lot 4) |
 
 D'autres formules du prototype engagent le vendeur sans avoir été validées
-(« réponse sous 24 h », « modifiable jusqu'à J-31 », « contrat eIDAS »,
+(« réponse sous 24 h », « modifiable jusqu'à J-31 », « contrat eIDAS » — les
+deux derniers ont disparu avec l'ancienne page de suivi ; « sous 24 heures »
+reste sur la page Contact —,
 « télécharger le récap PDF », « avis vérifié Gîtes de France », « souvent ça
 passe au second essai ») : leur liste exhaustive sera soumise aux
 propriétaires au lot 5. Ce qui n'est pas confirmé est retiré, pas reformulé

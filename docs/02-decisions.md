@@ -1023,6 +1023,63 @@ c'est finir en indésirables.
 
 ---
 
+## D-25 · Page « Ma réservation » : un lien secret, sans compte
+
+**Date :** 28 octobre 2026 (Phase 3, lot 4, étape 3). Choix du gérant :
+- la page montre **les faits**, comme la confirmation, plus **l'état du
+  contrat** (à signer, avec son bouton ; ou signé, avec le PDF à télécharger),
+  l'adresse du gîte et les heures **dès le paiement**, et les contacts. Les
+  actions de la maquette qui n'existent pas (modifier ses coordonnées, changer
+  de carte, annuler) sont retirées ;
+- le lien reste valable **jusqu'à 30 jours après le départ** (réglage) ;
+- un lien perdu se redemande par un **formulaire** (adresse e-mail seule), qui
+  répond toujours la même phrase ; au plus **3 demandes par heure** et par
+  adresse (réglage) ; le formulaire n'est proposé que **sur la page d'un lien
+  expiré** (et à l'adresse /suivi, que les propriétaires peuvent donner) ;
+- le courriel de confirmation porte un **second bouton** « Voir ma réservation » ;
+- une réservation remboursée affiche « n'a pas pu être confirmée » et le
+  remboursement ;
+- la page est dans la langue du lien, celle du client.
+
+**Décision.**
+- **Un jeton secret par réservation**, `reservations.jeton_suivi` :
+  64 caractères hexadécimaux tirés par la base à la création de la ligne
+  (deux UUID aléatoires, 244 bits de hasard). La **référence** de la
+  réservation, courte et devinable, ne donne plus accès à rien (la maquette
+  ouvrait la page par la référence).
+- **Validité calculée à l'affichage** : départ + `reglages.suivi_validite_jours`.
+  Changer le réglage vaut aussi pour les réservations déjà faites, à la
+  différence des conditions de paiement, figées sur chaque réservation.
+- **Une seule réponse** pour un jeton inconnu, une réservation jamais payée et
+  un lien expiré : « Ce lien n'est pas valable ou a expiré », avec le
+  formulaire.
+- **Formulaire** : un courriel « lien_suivi » par réservation encore ouverte
+  de l'adresse (payée ou remboursée), dans sa langue, inscrit dans le journal
+  des courriels (D-24). La limite compte les demandes dans ce journal : une
+  adresse inconnue n'écrit rien.
+- **Page ni indexée, ni mise en cache, ni transmise** (en-tête « no-referrer »)
+  aux sites vers lesquels elle pointe.
+
+**Pourquoi.** Un client ne crée pas de compte pour un séjour par an ; un lien
+dans sa boîte suffit, comme le lien de signature. Une réponse unique et une
+limite empêchent de savoir qui a réservé et d'inonder la boîte d'un client.
+
+**Ce qui pourrait mal tourner.**
+- **Qui a le lien voit le séjour** (adresse, dates, montants) et **peut signer
+  le contrat** : le bouton mène au lien de signature. C'est le niveau de
+  protection du courriel de confirmation, qui porte déjà les deux liens.
+- **Après la date limite**, la page est fermée même pour le client : une
+  question tardive passe par contact@.
+- La page est la **Phase 3** : le solde, la caution et une annulation n'y
+  apparaissent que comme des faits, sans action, jusqu'aux phases 4 et 5.
+
+**Si on revient dessus.** Ouvrir la page par la référence, c'est livrer
+l'adresse et les montants de chaque client à qui devine une référence. Dire
+« aucune réservation pour cette adresse », c'est permettre de savoir qui
+séjourne aux gîtes.
+
+---
+
 ## Décisions ouvertes
 
 Elles ne sont **pas tranchées** et ne doivent pas l'être dans le code.

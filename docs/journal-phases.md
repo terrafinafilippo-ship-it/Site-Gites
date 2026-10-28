@@ -1026,6 +1026,90 @@ test vers `proprietaires@example.invalid`.
 
 ---
 
+## Phase 3 — lot 4, étape 3 : page « Ma réservation » (28 octobre 2026)
+
+L'étape 2 est enregistrée le même jour (commits `4987a22` et `58f5203`). Le
+lot 4 est clos ; la phase reste ouverte (lot 5).
+
+### Ce qui a été décidé
+
+Avec le gérant, le 28 octobre 2026 (D-25) :
+- **contenu** : les faits, comme la confirmation, et l'état du contrat (à
+  signer avec son bouton, ou signé avec le PDF) ; les trois actions de la
+  maquette qui n'existent pas sont retirées ;
+- **lien** valable jusqu'à **30 jours après le départ** (réglage) ;
+- **lien perdu** : formulaire avec l'adresse seule, même réponse dans tous les
+  cas, **3 demandes par heure** et par adresse (réglage) ; proposé seulement
+  sur la page d'un lien expiré ;
+- **second bouton** « Voir ma réservation » dans la confirmation ;
+- **adresse et heures** affichées dès le paiement ;
+- **réservation remboursée** : « n'a pas pu être confirmée » ;
+- la page dans la langue du client.
+
+### Ce qui a été fait
+
+- **Migration 0007** : `reservations.jeton_suivi` (64 caractères tirés par la
+  base, unique ; les réservations existantes en reçoivent un), trois réglages
+  (`suivi_validite_jours`, `suivi_demandes_max`, `suivi_demandes_minutes`),
+  courriel `lien_suivi`.
+- **`lib/suivi.ts`** : ce que montre la page (fermée, ouverte, remboursée),
+  validité, demande de lien avec la limite (verrou par adresse).
+- **Pages** : `app/[lang]/suivi/[jeton]` (français et anglais) et
+  `app/[lang]/suivi` (formulaire seul) ; route `POST /api/suivi/lien`.
+  L'ancienne maquette (`suivi/[ref]`, faux code de boîte à clés, horaires
+  16 h–19 h, solde « prélevé automatiquement ») est supprimée.
+- **Courriels** : second bouton dans la confirmation ; courriel « Votre lien
+  de réservation » ; s'il ne part pas, l'alerte « courriel non parti ».
+- **`cheminContratSigne`** (`lib/storage.ts`) : le chemin du contrat signé,
+  écrit par la signature et lu par la page, en un seul endroit.
+- **Contrôles** : nouveau `verify:suivi` (22 cas) ; `verify:courriels`
+  41 cas (lien de la confirmation, anglais) ; `verify:paiement` 63 cas (la
+  vraie page par le serveur, lien inconnu, formulaire) ; `db:verify`
+  148 contrôles (section 6f) ; `lancer.sh` passe à quatorze étapes.
+
+### Ce qui a été vérifié
+
+- `npm run lint`, `npx tsc --noEmit`, `npm run build` : passent ; la page
+  « Ma réservation » est rendue à chaque demande (jamais pré-générée).
+- Base PostgreSQL 16 jetable, migration 0007 appliquée : deux réservations
+  existantes, deux jetons distincts.
+- `bash scripts/parcours/lancer.sh` : **quatorze étapes sur quatorze**, aucun
+  montant de référence n'a bougé.
+- Par Stripe en mode test : la confirmation porte le lien ; la page s'ouvre
+  avec la référence, le contrat à signer et son lien, en français et en
+  anglais ; sans indexation ni transmission de l'adresse.
+- Capture d'écran d'une page au contrat signé (paiement ajouté le temps de la
+  capture sur la base d'essai, puis retiré) et d'un lien inconnu en anglais.
+- Aucun courriel parti chez Brevo : adresses réservées aux essais, écrites
+  dans des fichiers.
+
+### Ce qui n'a PAS été vérifié
+
+- **Le rendu sur un vrai téléphone** : le navigateur des captures ne descend
+  pas sous ~500 pixels de large (la page Contact y est coupée de la même
+  façon). La colonne est protégée contre le débordement.
+- **Le téléchargement du contrat signé depuis la page** n'est vérifié que par
+  la capture (bouton présent) : l'accès aux PDF par URL signée l'est par le
+  parcours.
+
+### Écarts avec le plan annoncé
+
+- **Un courriel par réservation** (et non un seul listant tout) : chacun dans
+  la langue de sa réservation, comme annoncé.
+- **`lib/storage.ts`** et **`app/api/contrats/signer/route.ts`**, hors liste :
+  le chemin du contrat signé n'existe plus qu'à un endroit.
+
+### Points reportés
+
+- **Lot 5** : contrat du paiement intégral, article 4.4, contact@ sur les
+  documents, liste des phrases du prototype.
+- **Phase 4** : minuterie des envois, relance d'un contrat non signé ; sur la
+  page, le solde et la caution restent des faits sans action.
+- **Point 12** : durée de conservation des demandes de lien (journal des
+  courriels).
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul
