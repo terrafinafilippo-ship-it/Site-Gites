@@ -124,7 +124,9 @@ def controler_contrat(chemin, reference, signe):
     nom = Path(chemin).name
     print(f"\n{nom} — contrat{' signé' if signe else ''} ({reference})")
 
-    noter(pages == 10, "10 pages", f"{pages}")
+    # 11 pages depuis le contrat v3 (lot 5) : articles 5 à 7 plus longs, la
+    # liste des annexes passe seule sur la dernière page.
+    noter(pages == 11, "11 pages", f"{pages}")
     noter(images >= 5, "logo sur chaque en-tête (au moins 5 images)", f"{images} image(s)")
     noter(montant(texte, "Caution") == a["caution"], "caution", str(montant(texte, "Caution")))
     noter(montant(texte, "Location \\(") == a["prixLocation"], "ligne « Location »")
@@ -137,6 +139,17 @@ def controler_contrat(chemin, reference, signe):
         noter(montant(texte, "^Options") == a["options"], "montant des options")
     else:
         noter("Options" not in texte, "aucune ligne « Options » (séjour sans option)")
+    # Contrat v3 (lot 5, D-26). Les mots peuvent être coupés par une fin de ligne : \s+.
+    noter("wanadoo" not in texte, "plus aucune adresse wanadoo")
+    noter(texte.count("contact@gitesdesamoyas.fr") >= 3, "contact@ des réglages : en-tête, art. 14.1, art. 15.1",
+          f"{texte.count('contact@gitesdesamoyas.fr')}")
+    noter(re.search(r"Annonay\s+Rhône\s+Agglo", texte) is not None, "taxe collectée pour Annonay Rhône Agglo (art. 4.4)")
+    noter(re.search(r"\(c\)\s+Virement", texte) is not None, "caution : trois moyens décrits (art. 6.2)")
+    # Conservé en cas d'annulation : 30 % du sous-total hors taxe, arrondi au centime (Math.round).
+    retenue = (a["sousTotal"] * 30 + 50) // 100
+    m = re.search(r"comprend,\s+soit\s+(\d[\d   ]*,\d\d) €", texte)
+    noter(m is not None and centimes(m.group(1)) == retenue,
+          f"annulation : {retenue} centimes conservés (art. 7.2)", m.group(1) if m else "absent")
     if signe:
         noter("Signature électronique simple" in texte, "bloc de signature électronique simple")
 

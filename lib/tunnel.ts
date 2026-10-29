@@ -64,6 +64,7 @@ export async function lireReglagesTunnel(executeur: Executeur = getDb()): Promis
     tauxAcompte: r.taux_acompte,
     delaiSoldeJours: r.delai_solde_jours,
     delaiVirementCautionJours: r.delai_virement_caution_jours,
+    delaiRemboursementSoldeHeures: r.delai_remboursement_solde_heures,
   };
 }
 
@@ -318,6 +319,8 @@ export async function enregistrerTentative(
             // Conditions figées : un réglage modifié demain ne change pas ce contrat.
             taux_acompte: devis.tauxAcompte,
             delai_solde_jours: devis.delaiSoldeJours,
+            delai_remboursement_solde_heures: r.delaiRemboursementSoldeHeures,
+            delai_virement_caution_jours: r.delaiVirementCautionJours,
             paiement_integral: devis.paiementIntegral,
             moyen_caution: choix.moyenCaution,
             mode_solde: choix.modeSolde,

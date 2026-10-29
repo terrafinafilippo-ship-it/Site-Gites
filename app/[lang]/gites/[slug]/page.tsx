@@ -195,7 +195,7 @@ const TEXTES: Bilingue<{
     chauffageLib: "Chauffage",
     compris: "Compris",
     noteCaution:
-      "La caution est une préautorisation sur votre carte bancaire, faite la veille de votre départ. Aucune somme n'est débitée, sauf dégât constaté à l'état des lieux de sortie.",
+      "La caution se constitue au choix : par préautorisation sur votre carte bancaire, la veille du départ ; par chèque remis à l'arrivée, qui n'est pas encaissé ; ou par virement reçu avant l'arrivée. Elle est levée, rendue ou remboursée au plus tard 3 jours après le départ, sauf dégât constaté à l'état des lieux de sortie.",
     deuxAutres: "Et les deux autres ?",
     titreAutres: "Ce séjour ne vous va pas tout à fait ?",
     exterieurPhoto: (nom) => `${nom} — extérieur`,
@@ -283,7 +283,7 @@ const TEXTES: Bilingue<{
     chauffageLib: "Heating",
     compris: "Included",
     noteCaution:
-      "The security deposit is a pre-authorisation on your bank card, made the day before you leave. No money is taken, unless damage is found at the check-out inspection.",
+      "You choose how to provide the security deposit: a pre-authorisation on your bank card, the day before you leave; a cheque handed over on arrival, which is not cashed; or a bank transfer received before arrival. It is released, handed back or refunded within 3 days of your departure, unless damage is found at the check-out inspection.",
     deuxAutres: "And the other two?",
     titreAutres: "Not quite the right stay for you?",
     exterieurPhoto: (nom) => `${nom} — exterior`,

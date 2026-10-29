@@ -188,14 +188,32 @@ export const INITIALES_JOURS: Record<Langue, readonly string[]> = {
 export const fmtNote = (note: number, langue: Langue = 'fr'): string =>
   langue === 'en' ? note.toFixed(1) : note.toFixed(1).replace('.', ',');
 
-export const computeNbNuits = (arrivee: string, depart: string): number => {
+/** Note sur 5 lue en CENTIÈMES (réglages) : 497 → « 4,97 » / « 4.97 », 500 → « 5 ». Passe par le texte. */
+export const fmtNoteCentiemes = (centiemes: number, langue: Langue = 'fr'): string =>
+  fmtTauxCentiemes(centiemes, langue).replace(/\s?%$/, '');
+
+export const computeNbNuits =(arrivee: string, depart: string): number => {
   if (!arrivee || !depart) return 0;
   const a = new Date(arrivee);
   const d = new Date(depart);
   return Math.round((d.getTime() - a.getTime()) / (1000 * 60 * 60 * 24));
 };
 
-export const minusDaysFr = (iso: string, days: number): string => {
+/**
+ * Instant civil situé `heures` avant le jour `iso` à l'heure `hhmm` :
+ * (« 2027-03-20 », « 18:00 », 48) → « 18 mars 2027 à 18 h 00 ». Calcul sur les
+ * valeurs civiles lues en UTC : aucun décalage de fuseau, ni de changement d'heure.
+ */
+export const fmtAvantArriveeFr = (iso: string, hhmm: string, heures: number): string => {
+  if (!iso || !hhmm) return '';
+  const [h, m] = hhmm.split(':').map((x) => parseInt(x, 10));
+  const t = new Date(`${iso}T00:00:00Z`);
+  t.setUTCHours(h - heures, m); // un nombre d'heures négatif recule d'autant de jours
+  const date = t.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  return `${date} à ${t.getUTCHours()} h ${String(t.getUTCMinutes()).padStart(2, '0')}`;
+};
+
+export const minusDaysFr =(iso: string, days: number): string => {
   if (!iso) return '';
   const d = new Date(iso);
   d.setDate(d.getDate() - days);

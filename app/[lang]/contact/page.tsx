@@ -30,7 +30,7 @@ const TEXTES: Bilingue<{
     titrePage: "Contact",
     titre: <>Une question ?<br />Patricia &amp; Nicolas vous répondent.</>,
     intro:
-      "Décrochez-nous, ou écrivez-nous. Nous parlons français et anglais — et nous répondons toujours sous 24 heures.",
+      "Décrochez-nous, ou écrivez-nous. Nous parlons français et anglais.",
     joindre: "Nous joindre",
     horaires: "FR · EN — 9h → 20h",
     adresse: "Adresse",
@@ -42,7 +42,7 @@ const TEXTES: Bilingue<{
     titrePage: "Contact",
     titre: <>A question?<br />Patricia &amp; Nicolas will answer.</>,
     intro:
-      "Give us a call, or write to us. We speak French and English — and we always reply within 24 hours.",
+      "Give us a call, or write to us. We speak French and English.",
     joindre: "Reach us",
     horaires: "FR · EN — 9 am → 8 pm",
     adresse: "Address",

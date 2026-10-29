@@ -276,18 +276,17 @@ async function preparer(tx: Executeur, c: Courriel, origine: string): Promise<Pr
       if (!paye) return { abandon: "aucun paiement reçu enregistré" };
       let lienContrat: string | null = null;
       let apres: ((sp: Executeur) => Promise<void>) | undefined;
-      if (!resa.paiement_integral) {
-        const emis = await (await emetteur()).emettre(resa.id);
-        if (emis.ok && emis.contrat.token) {
-          lienContrat = lienSignature(origine, emis.contrat.token);
-        } else {
-          const erreur = emis.ok ? "contrat sans jeton de signature" : emis.message;
-          if (c.tentatives < ESSAIS_CONTRAT_AVANT_ENVOI) throw new Error(`contrat non créé : ${erreur}`);
-          apres = async (sp) => {
-            await inscrireContratARelancer(sp, resa.id, RELANCE_CONTRAT_MINUTES);
-            await inscrireProbleme(sp, "contrat_non_cree", resa.id, resa.id, { erreur });
-          };
-        }
+      // Séjour payé en une fois compris : le contrat le prévoit depuis la v3 (lot 5).
+      const emis = await (await emetteur()).emettre(resa.id);
+      if (emis.ok && emis.contrat.token) {
+        lienContrat = lienSignature(origine, emis.contrat.token);
+      } else {
+        const erreur = emis.ok ? "contrat sans jeton de signature" : emis.message;
+        if (c.tentatives < ESSAIS_CONTRAT_AVANT_ENVOI) throw new Error(`contrat non créé : ${erreur}`);
+        apres = async (sp) => {
+          await inscrireContratARelancer(sp, resa.id, RELANCE_CONTRAT_MINUTES);
+          await inscrireProbleme(sp, "contrat_non_cree", resa.id, resa.id, { erreur });
+        };
       }
       const contenu = texteConfirmation(
         langue,
@@ -374,11 +373,10 @@ async function preparer(tx: Executeur, c: Courriel, origine: string): Promise<Pr
       if (!resa) return { abandon: "réservation absente" };
       const paye = await paiementRecu(tx, resa.id);
       if (!paye) return { abandon: "aucun paiement reçu enregistré" };
-      const contrat = resa.paiement_integral ? null : await (await emetteur()).existant(resa.id);
+      const contrat = await (await emetteur()).existant(resa.id);
       return {
         contenu: texteAlerteReservation(sejour(resa), ficheClient(resa), recapitulatif(resa, "fr", paye), {
           numero: contrat?.numero ?? null,
-          aLaMain: resa.paiement_integral,
         }),
       };
     }
@@ -416,8 +414,6 @@ async function lireProbleme(tx: Executeur, d: Record<string, unknown>): Promise<
         fait: p ? p.statut === "rembourse" : null,
       };
     }
-    case "contrat_a_la_main":
-      return { genre: "contrat_a_la_main" };
     case "contrat_non_cree":
       return { genre: "contrat_non_cree", erreur: String(d.erreur ?? "") };
     case "courriel_non_parti":

@@ -57,6 +57,8 @@ export interface ReglagesTunnel {
   delaiSoldeJours: number;
   /** Une caution par virement est reçue au plus tard ce nombre de jours avant l'arrivée (D-19). */
   delaiVirementCautionJours: number;
+  /** Le solde est remboursé si l'annulation intervient plus de ce nombre d'heures avant l'arrivée (D-26). */
+  delaiRemboursementSoldeHeures: number;
 }
 
 /** Le gîte réservé, tel qu'en base. Montants en centimes. */

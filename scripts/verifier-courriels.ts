@@ -15,7 +15,7 @@
 //   5. contrat impossible à créer : la confirmation part sans le lien au
 //      troisième essai, alerte, puis courriel « contrat à signer » quand la
 //      création aboutit ;
-//   6. paiement intégral : aucun contrat, alerte « contrat à envoyer à la main » ;
+//   6. paiement intégral : contrat créé et envoyé comme les autres (lot 5) ;
 //   7. paiement arrivé sur des dates reprises : courriel de remboursement et
 //      alerte ; paiement inconnu du site : alerte seule ;
 //   8. alerte « contrat signé » ; alerte coupée : rien n'est inscrit ;
@@ -452,22 +452,23 @@ async function controles(): Promise<void> {
   await payer(integral, p);
   const objetsIntegral = (await courrielsDe(integral.id)).map((c) => `${c.objet}${c.genre ? `:${c.genre}` : ""}`).sort();
   noter(
-    JSON.stringify(objetsIntegral) === JSON.stringify(["alerte_probleme:contrat_a_la_main", "alerte_reservation", "confirmation"]),
-    "inscrits : confirmation, alerte « réservation », alerte « contrat à envoyer à la main »",
+    JSON.stringify(objetsIntegral) === JSON.stringify(["alerte_reservation", "confirmation"]),
+    "inscrits : confirmation et alerte « réservation », plus d'alerte « contrat à envoyer à la main » (lot 5)",
     objetsIntegral,
   );
   await traiterCourriels(ORIGINE);
   const lotIntegral = m.vider();
-  noter(e.emis === emisAvant, "aucun contrat n'est créé", e.emis - emisAvant);
+  noter(e.emis === emisAvant + 1, "le contrat est créé, comme pour un acompte (contrat v3)", e.emis - emisAvant);
+  const confIntegral = lotIntegral.find((x) => x.destinataire === EMAIL_ESSAI);
   noter(
-    lotIntegral.find((x) => x.destinataire === EMAIL_ESSAI)?.texte.includes("Votre contrat vous sera envoyé par courriel.") === true &&
-      lotIntegral.find((x) => x.destinataire === EMAIL_ESSAI)?.texte.includes("(totalité du séjour)") === true,
-    "confirmation : totalité payée, contrat annoncé, sans lien",
+    confIntegral?.texte.includes("/signer/jeton") === true && confIntegral?.texte.includes("(totalité du séjour)") === true,
+    "confirmation : totalité payée, lien de signature du contrat",
+    confIntegral?.texte,
   );
   noter(
-    lotIntegral.some((x) => x.sujet.startsWith("À TRAITER — contrat à envoyer à la main")) &&
-      lotIntegral.some((x) => x.texte.includes("Contrat : à envoyer à la main")),
-    "alertes : « À TRAITER — contrat à envoyer à la main » et mention dans l'alerte « réservation »",
+    !lotIntegral.some((x) => x.sujet.includes("à envoyer à la main")) &&
+      lotIntegral.some((x) => x.texte.includes(`Contrat : CTR-SIMULE-${String(e.emis).padStart(3, "0")}, envoyé au client pour signature`)),
+    "alertes : aucune « À TRAITER », l'alerte « réservation » cite le contrat",
     lotIntegral.map((x) => x.sujet),
   );
 

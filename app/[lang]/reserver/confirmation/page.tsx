@@ -39,7 +39,6 @@ const TEXTES: Bilingue<{
   titrePage: string;
   confirmeTitre: string;
   contratEnvoye: (email: string) => string;
-  contratAVenir: (email: string) => string;
   rembourseTitre: string;
   rembourseFait: (montant: string) => string;
   rembourseEnCours: (montant: string) => string;
@@ -62,7 +61,6 @@ const TEXTES: Bilingue<{
     titrePage: "Votre réservation",
     confirmeTitre: "Paiement reçu — merci !",
     contratEnvoye: (email) => `Votre contrat à signer vous est envoyé par courriel, à ${email}.`,
-    contratAVenir: (email) => `Votre contrat vous sera envoyé par courriel, à ${email}.`,
     rembourseTitre: "Ces dates ont été prises pendant votre paiement.",
     rembourseFait: (montant) => `Votre paiement de ${montant} a été intégralement remboursé.`,
     rembourseEnCours: (montant) => `Le remboursement intégral de votre paiement de ${montant} est en cours.`,
@@ -85,7 +83,6 @@ const TEXTES: Bilingue<{
     titrePage: "Your booking",
     confirmeTitre: "Payment received — thank you!",
     contratEnvoye: (email) => `Your contract to sign is being sent to you by email, at ${email}.`,
-    contratAVenir: (email) => `Your contract will be sent to you by email, at ${email}.`,
     rembourseTitre: "These dates were taken while you were paying.",
     rembourseFait: (montant) => `Your payment of ${montant} has been refunded in full.`,
     rembourseEnCours: (montant) => `The full refund of your payment of ${montant} is in progress.`,
@@ -327,7 +324,7 @@ export default async function ConfirmationPage({
         <li>{faits.paye}</li>
         {faits.solde && <li>{faits.solde}</li>}
         {faits.caution && <li>{faits.caution}</li>}
-        {email && <li>{resa.paiement_integral ? t.contratAVenir(email) : t.contratEnvoye(email)}</li>}
+        {email && <li>{t.contratEnvoye(email)}</li>}
         <li>
           {r.question} {CONTACTS}
         </li>

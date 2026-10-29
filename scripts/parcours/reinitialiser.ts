@@ -74,7 +74,7 @@ async function main(): Promise<void> {
            nb_adultes, nb_enfants, nb_bebes, occupants_majeurs,
            prix_location, forfait_menage, options, taxe_sejour, taux_taxe_sejour,
            mode_paiement, reference_transaction, date_paiement_acompte,
-           taux_acompte, delai_solde_jours
+           taux_acompte, delai_solde_jours, delai_remboursement_solde_heures, delai_virement_caution_jours
          ) values (
            $1, $2, 'confirmee',
            $3, $4, $5, $6, $7, $8, $9, $10, $11,
@@ -83,7 +83,7 @@ async function main(): Promise<void> {
            $20, $21, $22, $23,
            $24, $25, $26, $27, $28,
            $29, $30, $31,
-           $32, $33
+           $32, $33, 48, 3
          ) returning id`,
         [
           gite.id, resa.reference,

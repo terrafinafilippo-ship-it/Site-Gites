@@ -119,6 +119,12 @@ export const reservations = pgTable(
     // s'appliquent (les réservations antérieures ont reçu 30 % et 30 jours).
     taux_acompte: integer().notNull(),
     delai_solde_jours: integer().notNull(),
+    // Lot 5 (migration 0008, D-26), figés de même : le solde est remboursé si
+    // l'annulation intervient plus de ce nombre d'heures avant l'heure
+    // d'arrivée ; une caution par virement est reçue au plus tard ce nombre de
+    // jours avant l'arrivée (D-19). Les réservations antérieures ont reçu 48 et 3.
+    delai_remboursement_solde_heures: integer().notNull(),
+    delai_virement_caution_jours: integer().notNull(),
     // Arrivée trop proche (D-20) : le total est réglé à la réservation, sans solde.
     paiement_integral: boolean().notNull().default(false),
 
@@ -159,6 +165,10 @@ export const reservations = pgTable(
     check(
       "reservations_conditions_check",
       sql`${t.taux_acompte} between 1 and 100 and ${t.delai_solde_jours} between 0 and 365`,
+    ),
+    check(
+      "reservations_annulation_check",
+      sql`${t.delai_remboursement_solde_heures} between 0 and 8760 and ${t.delai_virement_caution_jours} between 0 and 60`,
     ),
     check("reservations_langue_check", sql`${t.langue} in ('fr', 'en')`),
     check(

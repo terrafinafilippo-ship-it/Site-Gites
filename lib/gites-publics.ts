@@ -113,6 +113,39 @@ async function lireConditions(): Promise<ConditionsPaiement | null> {
   }
 }
 
+/** Note des avis affichée à l'accueil (réglages, lot 5). Note en centièmes : 497 = 4,97/5. */
+export interface AvisPublics {
+  noteCentiemes: number;
+  nombre: number;
+  /** `null` : pourcentage non renseigné, masqué. */
+  recommandationPct: number | null;
+}
+
+/** Note des avis des réglages, ou `null` (non renseignée, ou panne journalisée) : l'accueil la masque. */
+async function lireAvis(): Promise<AvisPublics | null> {
+  try {
+    const [r] = await getDb()
+      .select({
+        note: reglages.avis_note_centiemes,
+        nombre: reglages.avis_nombre,
+        recommandation: reglages.avis_recommandation_pct,
+      })
+      .from(reglages)
+      .where(eq(reglages.id, 1));
+    if (!r || r.note === null || r.nombre === null) {
+      console.warn("[gites-publics] VALEUR ABSENTE EN BASE : note des avis (reglages.avis_note_centiemes) — note masquée.");
+      return null;
+    }
+    return { noteCentiemes: r.note, nombre: r.nombre, recommandationPct: r.recommandation };
+  } catch (erreur) {
+    console.error(
+      "[gites-publics] RÉGLAGES ILLISIBLES : note des avis masquée.",
+      erreur instanceof Error ? erreur.message : erreur,
+    );
+    return null;
+  }
+}
+
 /**
  * État d'un jour du calendrier public. « changement » : la nuit de la veille
  * ou celle du jour est prise, pas les deux (jour d'arrivée ou de départ d'un
@@ -183,9 +216,14 @@ export interface ChiffresPublics {
   /** `false` = base injoignable : toutes les pages masquent leurs chiffres. */
   disponible: boolean;
   parGite: Partial<Record<GiteId, ChiffresGite>>;
+  /** Note des avis ; `null` = masquée. */
+  avis: AvisPublics | null;
 }
 
-const PUBLICS_INDISPONIBLES: ChiffresPublics = { disponible: false, parGite: {} };
+/** Ce que le cache garde : tout ChiffresPublics sauf `disponible`. */
+type ChiffresLus = Omit<ChiffresPublics, "disponible">;
+
+const PUBLICS_INDISPONIBLES: ChiffresPublics = { disponible: false, parGite: {}, avis: null };
 
 /** Base visée, telle qu'elle entre dans la clé du cache (voir garde-fou 3). */
 function cibleBase(): string {
@@ -209,7 +247,7 @@ async function lireTarification(): Promise<TarificationLue | null> {
   }
 }
 
-async function chargerDepuisBase(): Promise<Partial<Record<GiteId, ChiffresGite>>> {
+async function chargerDepuisBase(): Promise<ChiffresLus> {
   const lignes = await getDb()
     .select({
       id: gites.id,
@@ -293,12 +331,12 @@ async function chargerDepuisBase(): Promise<Partial<Record<GiteId, ChiffresGite>
     }
   }
 
-  return parGite;
+  return { parGite, avis: await lireAvis() };
 }
 
 /** Abandonne au bout de DELAI_MAX_MS : une base qui ne répond pas ne doit pas
  *  faire attendre le visiteur le délai de connexion du pool. */
-async function chargerAvecDelaiMax(): Promise<Partial<Record<GiteId, ChiffresGite>>> {
+async function chargerAvecDelaiMax(): Promise<ChiffresLus> {
   let minuterie: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
@@ -317,7 +355,7 @@ async function chargerAvecDelaiMax(): Promise<Partial<Record<GiteId, ChiffresGit
 
 // Un lecteur caché PAR BASE VISÉE : la clé du cache contient la cible, donc
 // basculer DB_CIBLE ne peut pas resservir l'entrée de l'autre base.
-const lecteursParCible = new Map<string, () => Promise<Partial<Record<GiteId, ChiffresGite>>>>();
+const lecteursParCible = new Map<string, () => Promise<ChiffresLus>>();
 
 function lecteurCache(cible: string) {
   let lecteur = lecteursParCible.get(cible);
@@ -341,7 +379,7 @@ function lecteurCache(cible: string) {
  */
 export async function lireChiffresPublics(): Promise<ChiffresPublics> {
   try {
-    return { disponible: true, parGite: await lecteurCache(cibleBase())() };
+    return { disponible: true, ...(await lecteurCache(cibleBase())()) };
   } catch (erreur) {
     console.error(
       `[gites-publics] BASE INJOIGNABLE (cible ${cibleBase()}) : chiffres masqués sur les pages publiques.`,

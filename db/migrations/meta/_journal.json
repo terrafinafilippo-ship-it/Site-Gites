@@ -57,6 +57,13 @@
       "when": 1793224717690,
       "tag": "0007_suivi",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793252477819,
+      "tag": "0008_annulation",
+      "breakpoints": true
     }
   ]
 }

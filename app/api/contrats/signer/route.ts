@@ -15,6 +15,7 @@ import { inscrireSignature } from '@/lib/courriels';
 import { traiterCourriels } from '@/lib/courriels-envoi';
 import { isUniqueViolation, messageErreur, resolveSiteOrigin } from '@/lib/route-helpers';
 import { chargerLogo } from '@/lib/logo';
+import { adresseContact } from '@/lib/contrat';
 import { ContratPDF, type ContratData } from '@/components/pdf/ContratPDF';
 
 // react-pdf utilise fontkit/zlib → runtime Node obligatoire (pas Edge).
@@ -111,6 +112,13 @@ export async function POST(request: Request) {
     );
   }
 
+  let contactEmail: string;
+  try {
+    contactEmail = await adresseContact(db);
+  } catch (e) {
+    return NextResponse.json({ error: messageErreur(e) }, { status: 500 });
+  }
+
   // ── 5. Hash SHA-256 du PDF NON signé, sur les octets EXACTS stockés ──────
   // (On NE régénère PAS le PDF pour le hasher : on hashe le fichier tel quel,
   //  sinon les octets diffèrent et la preuve d'intégrité saute.)
@@ -159,6 +167,7 @@ export async function POST(request: Request) {
         ...mapContratData(resa, montants, {
           numeroContrat: doc.numero,
           dateEmission: fmtDateFr(doc.created_at.toISOString()),
+          contactEmail,
         }),
         signatureSesId: inseree.id, // identifiant technique unique de la signature SES
         dateSignature: fmtDateHeure(inseree.signe_at),

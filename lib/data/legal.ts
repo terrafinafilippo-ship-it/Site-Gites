@@ -42,30 +42,31 @@ export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
   },
   cgv: {
     title: "Conditions générales de vente",
-    meta: "Applicables aux séjours réservés à partir du 1ᵉʳ janvier 2026 — version 3",
+    meta: "Applicables aux séjours réservés à partir du 1ᵉʳ janvier 2026 — version 4 du 29 octobre 2026",
     body: `
       <section><div class="legal__num">01 — Objet</div><h2>Champ d'application</h2>
         <p>Les présentes conditions s'appliquent à toute réservation effectuée en direct sur ce site, par téléphone ou par email auprès de Patricia &amp; Nicolas Terrafina, exploitants des Gîtes de Samoyas.</p>
       </section>
       <section><div class="legal__num">02 — Réservation &amp; paiement</div><h2>Réservation et règlement</h2>
-        <p>Toute réservation devient ferme après réception de l'acompte de 30 % du séjour et signature électronique du contrat (sous 48 heures). Le solde du séjour est prélevé automatiquement à J-30 sur la même carte bancaire.</p>
-        <p>Un dépôt de garantie, dont le montant figure sur la fiche de chaque gîte et au contrat, est constitué par préautorisation sur la carte bancaire utilisée pour l'acompte, la veille du départ. Aucune somme n'est débitée, sauf dégât constaté à l'état des lieux de sortie.</p>
+        <p>La réservation est ferme dès le paiement en ligne de l'acompte, dont le taux est indiqué lors de la réservation et au contrat. Le contrat de location est ensuite adressé par courriel, pour signature électronique.</p>
+        <p>Le solde est dû au plus tard à la date indiquée au contrat. Lors de la réservation, le client choisit de le régler par prélèvement automatique sur la carte bancaire enregistrée, à cette date, ou par paiement en ligne, au plus tard à cette date. Une réservation faite après cette date est payée en totalité dès la réservation.</p>
+        <p>Un dépôt de garantie, dont le montant figure sur la fiche de chaque gîte et au contrat, est constitué au choix du client : par préautorisation sur sa carte bancaire, la veille du départ, sans débit sauf dégât constaté ; par chèque remis à l'arrivée, qui n'est pas encaissé sauf dégât constaté ; ou par virement reçu avant l'arrivée, à la date indiquée au contrat. Il est restitué au plus tard 3 jours après le départ (article 6 du contrat).</p>
       </section>
       <section><div class="legal__num">03 — Annulation</div><h2>Conditions d'annulation</h2>
-        <p>Toute annulation doit être notifiée par écrit (email ou courrier). Les remboursements suivent le barème ci-dessous :</p>
+        <p>Toute annulation doit être notifiée par écrit (courriel ou courrier). Elle suit l'article 7 du contrat, qui indique les dates et montants exacts :</p>
         <table>
-          <thead><tr><th>Annulation avant l'arrivée</th><th>Remboursement</th><th>Retenue</th></tr></thead>
+          <thead><tr><th>Annulation</th><th>Remboursement</th></tr></thead>
           <tbody>
-            <tr><td>Plus de 60 jours</td><td><strong>100 %</strong> du séjour</td><td>0 €</td></tr>
-            <tr><td>Entre 30 et 60 jours</td><td><strong>70 %</strong> du séjour</td><td>30 % de l'acompte</td></tr>
-            <tr><td>Entre 8 et 29 jours</td><td><strong>30 %</strong> du séjour</td><td>70 % du séjour</td></tr>
-            <tr><td>Moins de 8 jours</td><td><strong>0 %</strong></td><td>100 % du séjour</td></tr>
+            <tr><td>Jusqu'à la date limite du solde</td><td><strong>Toutes les sommes versées</strong></td></tr>
+            <tr><td>Après la date limite du solde, et jusqu'au délai précisé au contrat avant l'heure d'arrivée</td><td><strong>Les sommes versées, sauf l'acompte</strong> (hors taxe de séjour), conservé par le bailleur</td></tr>
+            <tr><td>Passé ce délai</td><td><strong>La taxe de séjour seulement</strong></td></tr>
           </tbody>
         </table>
+        <p>La taxe de séjour n'est due qu'en cas de séjour : elle est remboursée dans tous les cas d'annulation. Pour un séjour payé en totalité à la réservation, la part correspondant à l'acompte est indiquée au contrat.</p>
         <p>Nous recommandons fortement une assurance annulation, à souscrire séparément.</p>
       </section>
       <section><div class="legal__num">04 — Séjour</div><h2>Modalités sur place</h2>
-        <p>Arrivée à partir de 16h, départ avant 10h. Linge de maison et de toilette fourni. Chauffage compris. Animaux non admis. Capacité d'accueil stricte respectée (cf. fiche de chaque gîte). La taxe de séjour (5,5 % TTC du montant de l'hébergement) est facturée séparément.</p>
+        <p>Les heures d'arrivée et de départ sont indiquées lors de la réservation et au contrat. Linge de maison et de toilette fourni. Chauffage compris. Animaux non admis. Capacité d'accueil stricte respectée (cf. fiche de chaque gîte). La taxe de séjour s'ajoute au prix du séjour et se paie avec lui, à la réservation ; son mode de calcul figure sur la fiche de chaque gîte.</p>
       </section>
       <section><div class="legal__num">05 — Litiges</div><h2>Médiation</h2>
         <p>En cas de litige, vous pouvez saisir gratuitement le médiateur de la consommation MTV — Médiation Tourisme Voyage (BP 80303 — 75823 Paris Cedex 17 — mtv.travel). Tout litige relève à défaut des tribunaux français.</p>

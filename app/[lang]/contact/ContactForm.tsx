@@ -38,7 +38,7 @@ const TEXTES: Bilingue<{
   fr: {
     pers: (n) => `${n} pers.`,
     envoye: "Votre message a bien été envoyé.",
-    reponse: "Patricia ou Nicolas vous répondra sous 24 heures, sur l'adresse que vous avez indiquée.",
+    reponse: "Patricia ou Nicolas vous répondra sur l'adresse que vous avez indiquée.",
     ecrivez: "Écrivez-nous",
     intro: "Précisez vos dates et le gîte qui vous intéresse — nous vous répondrons avec une disponibilité ferme.",
     prenom: "Prénom",
@@ -66,7 +66,7 @@ const TEXTES: Bilingue<{
   en: {
     pers: (n) => `${n} people`,
     envoye: "Your message has been sent.",
-    reponse: "Patricia or Nicolas will reply within 24 hours, to the address you gave.",
+    reponse: "Patricia or Nicolas will reply to the address you gave.",
     ecrivez: "Write to us",
     intro: "Tell us your dates and the gîte you are interested in — we will reply with firm availability.",
     prenom: "First name",

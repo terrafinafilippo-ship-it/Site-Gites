@@ -22,9 +22,9 @@ import {
   HEURE_ARRIVEE_DEFAUT,
   HEURE_DEPART_DEFAUT,
   HEURE_LIMITE_ARRIVEE_DEFAUT,
-  DELAI_TOLERANCE_COMMERCIALE_DEFAUT,
 } from '@/lib/constantes';
 import {
+  fmtAvantArriveeFr,
   fmtDateFr,
   fmtHeureFr,
   computeNbNuits,
@@ -138,6 +138,21 @@ export function montantsDesPostes(p: PostesSejour, tauxAcompte: number): Montant
     forfaitMenage: p.forfaitMenage,
     options: p.options,
   };
+}
+
+/**
+ * Somme que le Bailleur CONSERVE si le Locataire annule après la date limite du
+ * solde, mais plus de `delai_remboursement_solde_heures` avant l'arrivée
+ * (article 7.2 du contrat, D-26) : l'acompte, sans la taxe de séjour, qui est
+ * remboursée dans tous les cas d'annulation. Soit le taux d'acompte DE LA
+ * RÉSERVATION appliqué au prix hors taxe de séjour (`base`), arrondi au centime.
+ *
+ * Vaut aussi pour un séjour payé en une fois (D-20) : la part de l'acompte est
+ * conservée, le reste remboursé.
+ */
+export function retenueAnnulation(resa: Reservation, montants: Montants): number {
+  // Même conversion que l'acompte : le `/ 100` porte sur le TAUX, pas sur un montant.
+  return Math.round(montants.base * (resa.taux_acompte / 100));
 }
 
 // ─── Contexte de génération (fourni par la route après creer_facture) ─────────
@@ -295,14 +310,18 @@ export function instantaneFacture(
  * montants calculés et du numéro/date de contrat (fournis par la route).
  *
  * Les champs du tampon de signature (SES) sont laissés vides (signature ultérieure).
+ *
+ * `contactEmail` : l'adresse de contact des réglages (`courriel_reponse`),
+ * imprimée en tête du contrat et aux articles 14 et 15 (lib/contrat.ts, adresseContact).
  */
 export function mapContratData(
   resa: Reservation,
   montants: Montants,
-  ctx: { numeroContrat: string; dateEmission: string },
+  ctx: { numeroContrat: string; dateEmission: string; contactEmail: string },
 ): ContratData {
   const gite = resa.gites ?? undefined;
   const dateArriveeIso = resa.date_arrivee ?? '';
+  const heureArrivee = resa.heure_arrivee ?? HEURE_ARRIVEE_DEFAUT;
 
   return {
     ...champsCommuns(resa),
@@ -337,8 +356,18 @@ export function mapContratData(
     montantSolde: montants.solde,
     delaiSolde: resa.delai_solde_jours,
     dateButoirSolde: minusDaysFr(dateArriveeIso, resa.delai_solde_jours),
+    paiementIntegral: resa.paiement_integral,
+    modeSolde: resa.mode_solde ?? null,
 
-    delaiToleranceCommerciale: DELAI_TOLERANCE_COMMERCIALE_DEFAUT,
+    // Caution (art. 6, D-19) et annulation (art. 7.2, D-26) : délais figés sur la réservation.
+    moyenCaution: resa.moyen_caution ?? null,
+    delaiVirementCaution: resa.delai_virement_caution_jours,
+    dateLimiteVirementCaution: minusDaysFr(dateArriveeIso, resa.delai_virement_caution_jours),
+    delaiRemboursementSolde: resa.delai_remboursement_solde_heures,
+    limiteRemboursementSolde: fmtAvantArriveeFr(dateArriveeIso, heureArrivee, resa.delai_remboursement_solde_heures),
+    retenueAnnulation: retenueAnnulation(resa, montants),
+
+    contactEmail: ctx.contactEmail,
     contactArriveeTel: gite?.contact_arrivee_tel ?? '',
 
     // Tampon de signature SES — renseigné par la route de signature.

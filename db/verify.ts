@@ -74,6 +74,8 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     "detail_calcul",
     // Paiement (Phase 3, lot 3, migration 0005).
     "taux_acompte", "delai_solde_jours", "paiement_integral", "moyen_caution", "mode_solde", "langue",
+    // Annulation et caution (Phase 3, lot 5, migration 0008).
+    "delai_remboursement_solde_heures", "delai_virement_caution_jours",
     "stripe_customer_id", "stripe_payment_method_id", "accord_carte_id", "accord_carte_texte",
     "mode_paiement", "reference_transaction", "date_paiement_acompte",
     "created_at", "updated_at",
@@ -122,6 +124,8 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     // Courriels (Phase 3, lot 4, migration 0006).
     "courriel_expediteur", "courriel_expediteur_nom", "courriel_reponse",
     "suivi_validite_jours", "suivi_demandes_max", "suivi_demandes_minutes",
+    // Annulation et avis (Phase 3, lot 5, migration 0008).
+    "delai_remboursement_solde_heures", "avis_note_centiemes", "avis_nombre", "avis_recommandation_pct",
     "updated_at",
   ],
   taxes_sejour: [
@@ -380,9 +384,10 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
     const resa = await client.query<{ id: string; created_at: Date }>(
       `insert into reservations (gite_id, reference, statut, date_arrivee, date_depart,
                                  client_nom, client_prenom, client_email, nb_adultes, prix_location,
-                                 taux_acompte, delai_solde_jours)
+                                 taux_acompte, delai_solde_jours, delai_remboursement_solde_heures,
+                                 delai_virement_caution_jours)
        values ($1, $2, 'confirmee', '2026-10-03', '2026-10-10', 'VERIFICATION', 'Test',
-               'verify@example.invalid', 2, 450, 30, 30)
+               'verify@example.invalid', 2, 450, 30, 30, 48, 3)
        returning id, created_at`,
       [giteId, reference],
     );
@@ -750,8 +755,9 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
     noter("6f", deux.rows[0].a !== deux.rows[0].b, "deux tirages successifs diffèrent");
     const doublonJeton = await attendreErreur(
       client, "sp_doublon_jeton",
-      `insert into reservations (gite_id, reference, date_arrivee, date_depart, taux_acompte, delai_solde_jours, jeton_suivi)
-       values ($1, $2, '2026-10-03', '2026-10-10', 30, 30, $3)`, [giteId, `${reference}-B`, jetons.rows[0]?.jeton],
+      `insert into reservations (gite_id, reference, date_arrivee, date_depart, taux_acompte, delai_solde_jours,
+                                 delai_remboursement_solde_heures, delai_virement_caution_jours, jeton_suivi)
+       values ($1, $2, '2026-10-03', '2026-10-10', 30, 30, 48, 3, $3)`, [giteId, `${reference}-B`, jetons.rows[0]?.jeton],
     );
     noter("6f", codePg(doublonJeton.erreur) === "23505", "même jeton sur deux réservations refusé", codePg(doublonJeton.erreur));
     const reglagesSuivi = await client.query<{ v: number; m: number; f: number }>(
@@ -773,6 +779,44 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
        values ($1, 'lien_suivi', 'verify:lien', 'a@example.invalid', 'fr')`, [resaId],
     );
     noter("6f", lienSuivi.erreur === null, "courriel « lien_suivi » accepté", codePg(lienSuivi.erreur));
+
+    // ── 6g. Annulation, caution et avis (lot 5, migration 0008, D-26) ──
+    titre("6g. Annulation, caution et avis");
+    const reglagesLot5 = await client.query<{ h: number; note: number | null; nb: number | null; pct: number | null }>(
+      `select delai_remboursement_solde_heures as h, avis_note_centiemes as note, avis_nombre as nb,
+              avis_recommandation_pct as pct
+         from reglages where id = 1`,
+    );
+    noter(
+      "6g",
+      reglagesLot5.rows[0]?.h === 48,
+      "réglages : solde remboursé jusqu'à 48 heures avant l'arrivée",
+      JSON.stringify(reglagesLot5.rows[0]),
+    );
+    noter(
+      "6g",
+      reglagesLot5.rows[0]?.note === 497 && reglagesLot5.rows[0]?.nb === 46 && reglagesLot5.rows[0]?.pct === 100,
+      "réglages : avis 4,97/5, 46 avis, 100 % de recommandation",
+      JSON.stringify(reglagesLot5.rows[0]),
+    );
+    const sansDelais = await attendreErreur(
+      client, "sp_sans_delais",
+      `insert into reservations (gite_id, reference, date_arrivee, date_depart, taux_acompte, delai_solde_jours)
+       values ($1, $2, '2099-06-01', '2099-06-08', 30, 30)`, [giteId, `${reference}-C`],
+    );
+    noter("6g", codePg(sansDelais.erreur) === "23502", "réservation sans délais d'annulation et de virement refusée (aucune valeur par défaut)", codePg(sansDelais.erreur));
+    const heuresNeg = await attendreErreur(
+      client, "sp_heures_neg", `update reservations set delai_remboursement_solde_heures = -1 where id = $1`, [resaId],
+    );
+    noter("6g", codePg(heuresNeg.erreur) === "23514", "délai de remboursement négatif refusé", codePg(heuresNeg.erreur));
+    const noteSansNombre = await attendreErreur(
+      client, "sp_note_seule", `update reglages set avis_nombre = null where id = 1`, [],
+    );
+    noter("6g", codePg(noteSansNombre.erreur) === "23514", "note des avis sans nombre d'avis refusée", codePg(noteSansNombre.erreur));
+    const noteTropHaute = await attendreErreur(
+      client, "sp_note_haute", `update reglages set avis_note_centiemes = 501 where id = 1`, [],
+    );
+    noter("6g", codePg(noteTropHaute.erreur) === "23514", "note au-dessus de 5/5 refusée", codePg(noteTropHaute.erreur));
   } finally {
     await client.query("ROLLBACK");
   }

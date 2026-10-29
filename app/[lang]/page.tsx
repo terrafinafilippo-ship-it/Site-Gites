@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import ImageSlot from "@/components/ui/ImageSlot";
 import GiteCard from "@/components/ui/GiteCard";
 import { GITES, GITE_IDS, type GiteId } from "@/lib/data/gites";
-import { fmtPrix } from "@/lib/format";
+import { fmtNoteCentiemes, fmtPrix, fmtTaux } from "@/lib/format";
 import { capaciteTotale, chiffresDuGite, lireChiffresPublics } from "@/lib/gites-publics";
 import { langueDe, lien, type Bilingue } from "@/lib/i18n/langues";
 import { metadonnees } from "@/lib/i18n/metadonnees";
@@ -43,7 +43,7 @@ const TEXTES: Bilingue<{
   sousTitreHero: string;
   reserver: string;
   decouvrirGites: string;
-  noteAvis: ReactNode;
+  noteAvis: (note: string, nombre: number) => ReactNode;
   lieu: string;
   fourchette: (mini: string, maxi: string) => string;
   defiler: string;
@@ -88,7 +88,7 @@ const TEXTES: Bilingue<{
       "Patricia & Nicolas vous accueillent dans trois gîtes labellisés Gîtes de France. Spa privatif, linge fourni — le calme de la campagne, sans s'éloigner du nécessaire.",
     reserver: "Réserver un séjour",
     decouvrirGites: "Découvrir les gîtes",
-    noteAvis: <><strong>4,97/5</strong> sur 46 avis vérifiés Gîtes de France</>,
+    noteAvis: (note, nombre) => <><strong>{note}/5</strong> sur {nombre} avis vérifiés Gîtes de France</>,
     lieu: "Savas, 07430 — Ardèche verte",
     fourchette: (mini, maxi) => `De ${mini} à ${maxi} la semaine — selon le gîte`,
     defiler: "↓ Découvrir",
@@ -160,7 +160,7 @@ const TEXTES: Bilingue<{
       "Patricia & Nicolas welcome you to three gîtes with the Gîtes de France label. Private spa, linen provided — the calm of the countryside, without being far from everyday essentials.",
     reserver: "Book a stay",
     decouvrirGites: "Discover the gîtes",
-    noteAvis: <><strong>4.97/5</strong> from 46 verified Gîtes de France reviews</>,
+    noteAvis: (note, nombre) => <><strong>{note}/5</strong> from {nombre} verified Gîtes de France reviews</>,
     lieu: "Savas, 07430 — green Ardèche",
     fourchette: (mini, maxi) => `From ${mini} to ${maxi} per week — depending on the gîte`,
     defiler: "↓ Discover",
@@ -235,6 +235,8 @@ export default async function HomePage({ params }: { params: Promise<Params> }) 
   const l = (chemin: string) => lien(langue, chemin);
 
   const publics = await lireChiffresPublics();
+  // Note des avis : réglages (lot 5), masquée si elle n'est pas renseignée.
+  const avis = publics.avis;
   const total = capaciteTotale(publics);
   // Fourchette « De X à Y € » : les deux bornes viennent des mêmes planchers que
   // les cartes, donc le hero ne peut pas annoncer un prix qu'aucune carte ne
@@ -276,12 +278,14 @@ export default async function HomePage({ params }: { params: Promise<Params> }) 
               </div>
             </div>
             <div className={styles.heroMeta}>
-              <div className={styles.heroMetaRow}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <polygon points="12 2 15 9 22 9 17 14 19 21 12 17 5 21 7 14 2 9 9 9" />
-                </svg>
-                <span>{t.noteAvis}</span>
-              </div>
+              {avis && (
+                <div className={styles.heroMetaRow}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <polygon points="12 2 15 9 22 9 17 14 19 21 12 17 5 21 7 14 2 9 9 9" />
+                  </svg>
+                  <span>{t.noteAvis(fmtNoteCentiemes(avis.noteCentiemes, langue), avis.nombre)}</span>
+                </div>
+              )}
               <div className={styles.heroMetaRow}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <path d="M12 21s-7-4.5-7-11a7 7 0 0 1 14 0c0 6.5-7 11-7 11Z" />
@@ -390,18 +394,24 @@ export default async function HomePage({ params }: { params: Promise<Params> }) 
       <section className={styles.socialProof}>
         <div className={`wrap ${styles.socialProofInner}`}>
           <span className="eyebrow">{t.surtitreConfiance}</span>
-          <div className={styles.socialProofBig}>
-            {langue === "en" ? "4.97" : "4,97"}<sup>/5</sup>
-          </div>
+          {avis && (
+            <div className={styles.socialProofBig}>
+              {fmtNoteCentiemes(avis.noteCentiemes, langue)}<sup>/5</sup>
+            </div>
+          )}
           <div className={styles.socialProofStats}>
-            <div className={styles.socialProofStat}>
-              <strong>46</strong>
-              <span>{t.avisVerifies}</span>
-            </div>
-            <div className={styles.socialProofStat}>
-              <strong>{langue === "en" ? "100%" : "100 %"}</strong>
-              <span>{t.recommandation}</span>
-            </div>
+            {avis && (
+              <div className={styles.socialProofStat}>
+                <strong>{avis.nombre}</strong>
+                <span>{t.avisVerifies}</span>
+              </div>
+            )}
+            {avis && avis.recommandationPct !== null && (
+              <div className={styles.socialProofStat}>
+                <strong>{fmtTaux(avis.recommandationPct, langue)}</strong>
+                <span>{t.recommandation}</span>
+              </div>
+            )}
             <div className={styles.socialProofStat}>
               <strong>2018</strong>
               <span>{t.labellises}</span>

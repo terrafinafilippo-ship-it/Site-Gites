@@ -39,9 +39,9 @@ import {
   type ReglagesTunnel,
   type ResultatDevis,
 } from '../lib/devis';
-import { calculerMontants, libelleTaxeSejour, montantsDesPostes, type Reservation } from '../lib/montants';
+import { calculerMontants, libelleTaxeSejour, montantsDesPostes, retenueAnnulation, type Reservation } from '../lib/montants';
 import { carteEnregistree, choixComplet, texteAccordCarte, validerChoix } from '../lib/reglement';
-import { fmtDateLongue, fmtEuro, fmtPrix, fmtTaux, fmtTauxCentiemes, fmtTaxeSejour } from '../lib/format';
+import { fmtAvantArriveeFr, fmtDateLongue, fmtEuro, fmtNoteCentiemes, fmtPrix, fmtTaux, fmtTauxCentiemes, fmtTaxeSejour } from '../lib/format';
 import { cheminSansLangue, lien, type Langue } from '../lib/i18n/langues';
 
 let nbCas = 0;
@@ -450,6 +450,7 @@ const REGLAGES_TUNNEL: ReglagesTunnel = {
   tauxAcompte: 30,
   delaiSoldeJours: 30,
   delaiVirementCautionJours: 3,
+  delaiRemboursementSoldeHeures: 48,
 };
 const ARMU: GiteTunnel = { slug: 'armu', nom: "L'Armu", capaciteMax: 2, forfaitMenage: 8000, caution: 40000 };
 const LAPHINE: GiteTunnel = { slug: 'laphine', nom: 'LaPhine', capaciteMax: 4, forfaitMenage: 8000, caution: 50000 };
@@ -853,6 +854,42 @@ console.log('--- taxe de séjour affichée, paiement intégral');
     integral.totalTtc === 88870 && integral.acompte === 88870 && integral.solde === 0,
     'paiement intégral : acompte = total (888,70 €), solde 0, malgré le taux de 30 % recopié',
     integral,
+  );
+
+  // Annulation (art. 7.2, D-26) : l'acompte sans la taxe de séjour = 30 % de 860,00 € = 258,00 €.
+  noter(
+    retenueAnnulation(resa({}), partiel) === 25800,
+    'annulation après la date du solde : 258,00 € conservés (30 % de 860,00 € hors taxe de séjour)',
+    retenueAnnulation(resa({}), partiel),
+  );
+  noter(
+    retenueAnnulation(resa({ paiement_integral: true }), integral) === 25800,
+    'paiement intégral : même part conservée, 258,00 €, taxe de séjour remboursée',
+    retenueAnnulation(resa({ paiement_integral: true }), integral),
+  );
+  noter(
+    retenueAnnulation(resa({ prix_location: 10001, forfait_menage: 0 }), calculerMontants(resa({ prix_location: 10001, forfait_menage: 0 }))) === 3000,
+    'arrondi au centime : 30 % de 100,01 € = 30,00 € (30,003 arrondi)',
+  );
+  noter(
+    fmtAvantArriveeFr('2027-03-20', '18:00', 48) === '18 mars 2027 à 18 h 00',
+    'limite des 48 heures : arrivée le 20 mars 2027 à 18 h → « 18 mars 2027 à 18 h 00 »',
+    fmtAvantArriveeFr('2027-03-20', '18:00', 48),
+  );
+  noter(
+    fmtAvantArriveeFr('2027-03-01', '18:00:00', 50) === '27 février 2027 à 16 h 00',
+    'limite en heures non rondes, à travers un changement de mois : 50 h avant le 1er mars 18 h',
+    fmtAvantArriveeFr('2027-03-01', '18:00:00', 50),
+  );
+  noter(
+    fmtAvantArriveeFr('2027-03-28', '18:00', 48) === '26 mars 2027 à 18 h 00',
+    'passage à l\'heure d\'été (28 mars 2027) sans décalage : valeurs civiles',
+    fmtAvantArriveeFr('2027-03-28', '18:00', 48),
+  );
+  noter(
+    fmtNoteCentiemes(497) === '4,97' && fmtNoteCentiemes(497, 'en') === '4.97' && fmtNoteCentiemes(500) === '5',
+    'note des avis : 497 → « 4,97 » / « 4.97 », 500 → « 5 »',
+    [fmtNoteCentiemes(497), fmtNoteCentiemes(497, 'en'), fmtNoteCentiemes(500)],
   );
 }
 

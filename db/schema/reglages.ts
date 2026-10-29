@@ -39,6 +39,14 @@
 //     page jusqu'à 30 jours après le départ ; le formulaire « Retrouver ma
 //     réservation » envoie au plus 3 courriels par adresse et par 60 minutes
 //     (choix du gérant, 28 octobre 2026).
+//
+//   - annulation et accueil (lot 5, migration 0008, D-26) : le solde est
+//     remboursé si le client annule plus de 48 heures avant l'heure d'arrivée
+//     (choix du gérant, 29 octobre 2026, à confirmer avant le premier client),
+//     recopié sur chaque réservation comme le délai de virement de la caution ;
+//     note des avis affichée à l'accueil (4,97/5, 46 avis, 100 % de
+//     recommandation, valeurs du site au 29 octobre 2026). Note NULL = les
+//     chiffres des avis sont masqués.
 import { sql } from "drizzle-orm";
 import { check, integer, pgTable, text, time, timestamp, uuid } from "drizzle-orm/pg-core";
 
@@ -82,6 +90,12 @@ export const reglages = pgTable(
     suivi_validite_jours: integer().notNull().default(30),
     suivi_demandes_max: integer().notNull().default(3),
     suivi_demandes_minutes: integer().notNull().default(60),
+    // Annulation (lot 5, migration 0008, D-26) : en heures avant l'heure d'arrivée.
+    delai_remboursement_solde_heures: integer().notNull().default(48),
+    // Avis (lot 5) : note en CENTIÈMES (497 = 4,97/5), comme un taux de lib/decimaux.ts.
+    avis_note_centiemes: integer(),
+    avis_nombre: integer(),
+    avis_recommandation_pct: integer(),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -115,6 +129,15 @@ export const reglages = pgTable(
       "reglages_suivi_check",
       sql`${t.suivi_validite_jours} between 0 and 3650 and ${t.suivi_demandes_max} between 1 and 100
           and ${t.suivi_demandes_minutes} between 1 and 10080`,
+    ),
+    check("reglages_annulation_check", sql`${t.delai_remboursement_solde_heures} between 0 and 8760`),
+    // La note et le nombre d'avis vont ensemble : l'un sans l'autre ne s'affiche pas.
+    check(
+      "reglages_avis_check",
+      sql`(${t.avis_note_centiemes} is null) = (${t.avis_nombre} is null)
+          and (${t.avis_note_centiemes} is null or ${t.avis_note_centiemes} between 0 and 500)
+          and (${t.avis_nombre} is null or ${t.avis_nombre} >= 0)
+          and (${t.avis_recommandation_pct} is null or ${t.avis_recommandation_pct} between 0 and 100)`,
     ),
   ],
 );

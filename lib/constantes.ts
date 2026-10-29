@@ -40,7 +40,9 @@ export const CAUTION_DEFAUT = 50000; // centimes (500,00 €, non facturée)
 export const HEURE_ARRIVEE_DEFAUT = '18:00';
 export const HEURE_DEPART_DEFAUT = '09:00';
 export const HEURE_LIMITE_ARRIVEE_DEFAUT = '20:00';
-export const DELAI_TOLERANCE_COMMERCIALE_DEFAUT = 7; // jours
+// Les délais d'annulation ne sont pas ici : la date limite du solde
+// (reservations.delai_solde_jours) et le délai de remboursement du solde
+// (reservations.delai_remboursement_solde_heures), recopiés des réglages (D-26).
 
 // ─── Signature électronique simple (SES) ─────────────────────────────────────
 // Texte de consentement EXACT : affiché au signataire ET enregistré mot pour mot

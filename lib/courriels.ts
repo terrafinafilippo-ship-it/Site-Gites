@@ -1,8 +1,8 @@
 // INSCRIPTION des courriels du site (Phase 3, lot 4) dans le journal
 // `courriels`, DANS LA TRANSACTION de l'événement qui en est la cause :
-//   - paiement constaté (lib/paiement.ts) → confirmation au client, alerte
-//     « réservation », et pour un paiement intégral l'alerte « À TRAITER —
-//     contrat à envoyer à la main » (aucun contrat n'est émis, D-20) ;
+//   - paiement constaté (lib/paiement.ts) → confirmation au client (avec le
+//     contrat à signer, séjour payé en une fois compris depuis le lot 5) et
+//     alerte « réservation » ;
 //   - remboursement décidé (lib/paiement.ts) → courriel au client, alerte
 //     « À TRAITER » ;
 //   - contrat signé (POST /api/contrats/signer) → alerte « signature » ;
@@ -24,7 +24,6 @@ import type { Executeur } from "@/lib/reservations";
 /** Ce qu'une alerte « À TRAITER » signale. */
 export type GenreProbleme =
   | "remboursement"
-  | "contrat_a_la_main"
   | "contrat_non_cree"
   | "courriel_non_parti";
 
@@ -62,7 +61,7 @@ async function destinatairesAlerte(executeur: Executeur, type: TypeAlerte): Prom
 
 async function client(executeur: Executeur, reservationId: string) {
   const [r] = await executeur
-    .select({ email: reservations.client_email, langue: reservations.langue, integral: reservations.paiement_integral })
+    .select({ email: reservations.client_email, langue: reservations.langue })
     .from(reservations)
     .where(eq(reservations.id, reservationId));
   return r ?? null;
@@ -113,7 +112,6 @@ export async function inscrireApresPaiement(executeur: Executeur, reservationId:
     });
   }
   await alerter(executeur, "reservation", "alerte_reservation", reservationId, reservationId);
-  if (c.integral) await inscrireProbleme(executeur, "contrat_a_la_main", reservationId, reservationId);
 }
 
 /**

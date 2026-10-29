@@ -56,9 +56,9 @@ async function nettoyer(): Promise<void> {
 async function nouvelleReservation(giteId: string, nom: string, arrivee = A, depart = B): Promise<string> {
   const r = await db.execute<{ id: string }>(sql`
     insert into reservations (gite_id, reference, statut, date_arrivee, date_depart, client_nom, nb_adultes,
-                              taux_acompte, delai_solde_jours)
+                              taux_acompte, delai_solde_jours, delai_remboursement_solde_heures, delai_virement_caution_jours)
     values (${giteId}::uuid, ${PREFIXE + nom}, 'en_attente_paiement', ${arrivee}::date, ${depart}::date, ${nom}, 2,
-            30, 30)
+            30, 30, 48, 3)
     returning id`);
   return r.rows[0].id;
 }

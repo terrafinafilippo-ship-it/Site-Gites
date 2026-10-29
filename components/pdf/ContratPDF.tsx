@@ -446,8 +446,24 @@ export type ContratData = {
   montantSolde: number;
   delaiSolde: number;
   dateButoirSolde: string;
+  /** Réservé après la date limite du solde : total payé à la réservation, sans solde (D-20). */
+  paiementIntegral: boolean;
+  /** Règlement du solde choisi dans le tunnel ; null en paiement intégral ou saisie manuelle. */
+  modeSolde: 'prelevement' | 'lien' | null;
 
-  delaiToleranceCommerciale: number;
+  /** Moyen de la caution choisi dans le tunnel (D-19) ; null pour une saisie manuelle. */
+  moyenCaution: 'carte' | 'cheque' | 'virement' | null;
+  delaiVirementCaution: number;
+  dateLimiteVirementCaution: string;
+  /** Heures avant l'arrivée jusqu'auxquelles le solde est remboursé (art. 7.2, D-26). */
+  delaiRemboursementSolde: number;
+  /** « 18 mars 2027 à 18 h 00 ». */
+  limiteRemboursementSolde: string;
+  /** Somme conservée en cas d'annulation après la date limite du solde (lib/montants.ts, retenueAnnulation). */
+  retenueAnnulation: number;
+
+  /** Adresse de contact des réglages (courriel_reponse). */
+  contactEmail: string;
   contactArriveeTel: string;
 
   signatureSesId?: string; // identifiant technique de la signature SES (signatures.id)
@@ -455,6 +471,12 @@ export type ContratData = {
   adresseIpSignature?: string;
   documentHash?: string;
 };
+
+const LIBELLE_CAUTION = {
+  carte: 'carte bancaire',
+  cheque: 'chèque',
+  virement: 'virement',
+} as const;
 
 // ─── Sous-composants ────────────────────────────────
 function ArtHead({ data, logo }: { data: ContratData; logo: Buffer | null }) {
@@ -549,7 +571,7 @@ export function ContratPDF({
               RCS Annonay 831 170 782 — SIRET 831 170 782 00013{'\n'}
               Représentée par M. Nicolas TERRAFINA, gérant{'\n'}
               Tél. 06 79 33 23 51{'\n'}
-              nicolas.terrafina@wanadoo.fr{'\n'}
+              {data.contactEmail}{'\n'}
               Enseigne commerciale : Les Gîtes de Samoyas
             </Text>
           </View>
@@ -620,7 +642,10 @@ export function ContratPDF({
               </View>
               <View style={styles.recapRow}>
                 <Text style={styles.recapK}>Caution</Text>
-                <Text style={styles.recapV}>{fmtEuro(data.cautionMontant)}</Text>
+                <Text style={styles.recapV}>
+                  {fmtEuro(data.cautionMontant)}
+                  {data.moyenCaution ? ` (${LIBELLE_CAUTION[data.moyenCaution]})` : ''}
+                </Text>
               </View>
             </View>
           </View>
@@ -704,28 +729,44 @@ export function ContratPDF({
                 —
               </Text>
             </View>
-            <View style={styles.echRow}>
-              <Text style={[styles.echTd, styles.tblTdBold, { flex: 3 }]}>
-                (a) Acompte {data.tauxAcompte} %
-              </Text>
-              <Text style={[styles.echTd, { flex: 1.5, textAlign: 'right' }]}>
-                {fmtEuro(data.montantAcompte)}
-              </Text>
-              <Text style={[styles.echTd, { flex: 2.5, textAlign: 'right' }]}>
-                à la signature
-              </Text>
-            </View>
-            <View style={styles.echRow}>
-              <Text style={[styles.echTd, styles.tblTdBold, { flex: 3 }]}>
-                (b) Solde {data.tauxSolde} %
-              </Text>
-              <Text style={[styles.echTd, { flex: 1.5, textAlign: 'right' }]}>
-                {fmtEuro(data.montantSolde)}
-              </Text>
-              <Text style={[styles.echTd, { flex: 2.5, textAlign: 'right' }]}>
-                au plus tard le {data.dateButoirSolde}
-              </Text>
-            </View>
+            {data.paiementIntegral ? (
+              <View style={styles.echRow}>
+                <Text style={[styles.echTd, styles.tblTdBold, { flex: 3 }]}>
+                  Paiement intégral
+                </Text>
+                <Text style={[styles.echTd, { flex: 1.5, textAlign: 'right' }]}>
+                  {fmtEuro(data.totalTtc)}
+                </Text>
+                <Text style={[styles.echTd, { flex: 2.5, textAlign: 'right' }]}>
+                  à la réservation
+                </Text>
+              </View>
+            ) : (
+              <>
+                <View style={styles.echRow}>
+                  <Text style={[styles.echTd, styles.tblTdBold, { flex: 3 }]}>
+                    (a) Acompte {data.tauxAcompte} %
+                  </Text>
+                  <Text style={[styles.echTd, { flex: 1.5, textAlign: 'right' }]}>
+                    {fmtEuro(data.montantAcompte)}
+                  </Text>
+                  <Text style={[styles.echTd, { flex: 2.5, textAlign: 'right' }]}>
+                    à la réservation
+                  </Text>
+                </View>
+                <View style={styles.echRow}>
+                  <Text style={[styles.echTd, styles.tblTdBold, { flex: 3 }]}>
+                    (b) Solde {data.tauxSolde} %
+                  </Text>
+                  <Text style={[styles.echTd, { flex: 1.5, textAlign: 'right' }]}>
+                    {fmtEuro(data.montantSolde)}
+                  </Text>
+                  <Text style={[styles.echTd, { flex: 2.5, textAlign: 'right' }]}>
+                    au plus tard le {data.dateButoirSolde}
+                  </Text>
+                </View>
+              </>
+            )}
           </View>
         </View>
 
@@ -1088,10 +1129,13 @@ export function ContratPDF({
             <Text style={styles.artH3Num}>4.4 </Text>Taxe de séjour
           </Text>
           <Text style={styles.p}>
-            Collectée par le Bailleur pour le compte de la commune de Savas
-            (art. L.2333-26 et s. CGCT), elle n&apos;entre pas dans
-            l&apos;assiette des prestations du Bailleur et est intégralement
-            reversée à la commune.
+            Collectée par le Bailleur pour le compte d&apos;Annonay Rhône
+            Agglo (art. L.2333-26 et s. CGCT), taxe additionnelle
+            départementale comprise (art. L.3333-1 CGCT), elle n&apos;entre pas
+            dans l&apos;assiette des prestations du Bailleur et est
+            intégralement reversée à Annonay Rhône Agglo, qui reverse sa part
+            au Département de l&apos;Ardèche. Elle est remboursée en cas
+            d&apos;annulation (article 7.2).
           </Text>
 
           <Text style={styles.artH3}>
@@ -1122,37 +1166,80 @@ export function ContratPDF({
               <Text style={[styles.tblTh, { flex: 2 }]}>Date limite</Text>
               <Text style={[styles.tblTh, { flex: 1.5 }]}>Modalité</Text>
             </View>
-            <View style={styles.tblRow}>
-              <Text style={[styles.tblTd, { flex: 2.5 }]}>
-                (a) Acompte — {data.tauxAcompte} %
-              </Text>
-              <Text style={[styles.tblTd, { flex: 1.5, textAlign: 'right' }]}>
-                {fmtEuro(data.montantAcompte)}
-              </Text>
-              <Text style={[styles.tblTd, { flex: 2 }]}>à la signature</Text>
-              <Text style={[styles.tblTd, { flex: 1.5 }]}>CB en ligne</Text>
-            </View>
-            <View style={styles.tblRow}>
-              <Text style={[styles.tblTd, { flex: 2.5 }]}>
-                (b) Solde — {data.tauxSolde} %
-              </Text>
-              <Text style={[styles.tblTd, { flex: 1.5, textAlign: 'right' }]}>
-                {fmtEuro(data.montantSolde)}
-              </Text>
-              <Text style={[styles.tblTd, { flex: 2 }]}>
-                {data.dateButoirSolde}
-              </Text>
-              <Text style={[styles.tblTd, { flex: 1.5 }]}>
-                Au choix du Locataire
-              </Text>
-            </View>
+            {data.paiementIntegral ? (
+              <View style={styles.tblRow}>
+                <Text style={[styles.tblTd, { flex: 2.5 }]}>
+                  Paiement intégral — 100 %
+                </Text>
+                <Text style={[styles.tblTd, { flex: 1.5, textAlign: 'right' }]}>
+                  {fmtEuro(data.totalTtc)}
+                </Text>
+                <Text style={[styles.tblTd, { flex: 2 }]}>à la réservation</Text>
+                <Text style={[styles.tblTd, { flex: 1.5 }]}>CB en ligne</Text>
+              </View>
+            ) : (
+              <>
+                <View style={styles.tblRow}>
+                  <Text style={[styles.tblTd, { flex: 2.5 }]}>
+                    (a) Acompte — {data.tauxAcompte} %
+                  </Text>
+                  <Text style={[styles.tblTd, { flex: 1.5, textAlign: 'right' }]}>
+                    {fmtEuro(data.montantAcompte)}
+                  </Text>
+                  <Text style={[styles.tblTd, { flex: 2 }]}>à la réservation</Text>
+                  <Text style={[styles.tblTd, { flex: 1.5 }]}>CB en ligne</Text>
+                </View>
+                <View style={styles.tblRow}>
+                  <Text style={[styles.tblTd, { flex: 2.5 }]}>
+                    (b) Solde — {data.tauxSolde} %
+                  </Text>
+                  <Text style={[styles.tblTd, { flex: 1.5, textAlign: 'right' }]}>
+                    {fmtEuro(data.montantSolde)}
+                  </Text>
+                  <Text style={[styles.tblTd, { flex: 2 }]}>
+                    {data.dateButoirSolde}
+                  </Text>
+                  <Text style={[styles.tblTd, { flex: 1.5 }]}>
+                    {data.modeSolde === 'prelevement'
+                      ? 'Prélèvement automatique'
+                      : data.modeSolde === 'lien'
+                        ? 'CB en ligne'
+                        : 'Au choix du Locataire'}
+                  </Text>
+                </View>
+              </>
+            )}
           </View>
-          <Text style={styles.p}>
-            Le solde est réglé, au choix du Locataire exprimé lors de la
-            réservation : par prélèvement automatique sur la carte bancaire
-            enregistrée, à la date limite ; ou par paiement en ligne par carte
-            bancaire à son initiative, au plus tard à cette date.
-          </Text>
+          {data.paiementIntegral ? (
+            <Text style={styles.p}>
+              La réservation ayant été effectuée moins de {data.delaiSolde}{' '}
+              jours avant l&apos;arrivée, le prix total du séjour est réglé en
+              une fois, lors de la réservation.{' '}
+              <Text style={styles.pBold}>Il n&apos;y a pas de solde.</Text>{' '}
+              Pour l&apos;application de l&apos;article 7.2, la part de ce
+              paiement correspondant à l&apos;acompte s&apos;entend de{' '}
+              {data.tauxAcompte} % du prix total.
+            </Text>
+          ) : data.modeSolde === 'prelevement' ? (
+            <Text style={styles.p}>
+              Le Locataire a choisi, lors de la réservation, le règlement du
+              solde par prélèvement automatique sur la carte bancaire
+              enregistrée, à la date limite.
+            </Text>
+          ) : data.modeSolde === 'lien' ? (
+            <Text style={styles.p}>
+              Le Locataire a choisi, lors de la réservation, de régler le solde
+              lui-même, par paiement en ligne par carte bancaire, au plus tard
+              à la date limite.
+            </Text>
+          ) : (
+            <Text style={styles.p}>
+              Le solde est réglé, au choix du Locataire exprimé lors de la
+              réservation : par prélèvement automatique sur la carte bancaire
+              enregistrée, à la date limite ; ou par paiement en ligne par carte
+              bancaire à son initiative, au plus tard à cette date.
+            </Text>
+          )}
 
           <Text style={styles.artH3}>
             <Text style={styles.artH3Num}>5.2 </Text>Nature juridique de
@@ -1161,16 +1248,15 @@ export function ContratPDF({
           <View style={styles.callout}>
             <Text style={styles.calloutText}>
               <Text style={styles.pBold}>
-                Les parties conviennent expressément que les sommes versées au
-                titre de l&apos;acompte visé au 5.1 (a) constituent un ACOMPTE
-                au sens de l&apos;article 1590 du Code civil, à
-                l&apos;exclusion expresse de toute qualification d&apos;arrhes.
+                {data.paiementIntegral
+                  ? "Les parties conviennent expressément que les sommes versées lors de la réservation, visées au 5.1, constituent un paiement du prix, à l'exclusion expresse de toute qualification d'arrhes au sens de l'article 1590 du Code civil."
+                  : "Les parties conviennent expressément que les sommes versées au titre de l'acompte visé au 5.1 (a) constituent un ACOMPTE au sens de l'article 1590 du Code civil, à l'exclusion expresse de toute qualification d'arrhes."}
               </Text>{' '}
               En conséquence, la réservation engage fermement et
-              irrévocablement les deux parties dès le versement de
-              l&apos;acompte. Aucune des parties ne peut se dédire
-              unilatéralement par le simple renoncement à la somme versée ou à
-              son double.
+              irrévocablement les deux parties dès{' '}
+              {data.paiementIntegral ? 'ce versement' : "le versement de l'acompte"}.
+              Aucune des parties ne peut se dédire unilatéralement par le
+              simple renoncement à la somme versée ou à son double.
             </Text>
           </View>
           <Text style={styles.p}>
@@ -1182,16 +1268,22 @@ export function ContratPDF({
             <Text style={styles.artH3Num}>5.3 </Text>Conséquences du
             non-versement du solde
           </Text>
-          <Text style={styles.p}>
-            À défaut de versement du solde à la date limite, et après mise en
-            demeure par courriel restée sans effet pendant{' '}
-            <Text style={styles.pBold}>48 heures</Text>, le Bailleur est en
-            droit de considérer le contrat comme résilié de plein droit aux
-            torts exclusifs du Locataire. Dans ce cas : (i) l&apos;acompte
-            reste acquis au Bailleur à titre d&apos;indemnité forfaitaire ;
-            (ii) le Bailleur recouvre la libre disposition du gîte ; (iii) le
-            tout sans préjudice de toute action complémentaire en réparation.
-          </Text>
+          {data.paiementIntegral ? (
+            <Text style={styles.p}>
+              Sans objet : le prix total a été réglé lors de la réservation.
+            </Text>
+          ) : (
+            <Text style={styles.p}>
+              À défaut de versement du solde à la date limite, et après mise en
+              demeure par courriel restée sans effet pendant{' '}
+              <Text style={styles.pBold}>48 heures</Text>, le Bailleur est en
+              droit de considérer le contrat comme résilié de plein droit aux
+              torts exclusifs du Locataire. Dans ce cas : (i) l&apos;acompte
+              reste acquis au Bailleur à titre d&apos;indemnité forfaitaire ;
+              (ii) le Bailleur recouvre la libre disposition du gîte ; (iii) le
+              tout sans préjudice de toute action complémentaire en réparation.
+            </Text>
+          )}
         </View>
 
         <PageFooter data={data} />
@@ -1215,15 +1307,39 @@ export function ContratPDF({
             du séjour.
           </Text>
           <Text style={styles.artH3}>
-            <Text style={styles.artH3Num}>6.2 </Text>Modalité de constitution
+            <Text style={styles.artH3Num}>6.2 </Text>Moyen de constitution
           </Text>
           <Text style={styles.p}>
-            Lors du paiement de l&apos;acompte, le Locataire autorise le
-            Bailleur à conserver, via son prestataire de paiement Stripe, les
-            données de la carte bancaire utilisée, aux fins du dépôt de
-            garantie défini au présent article et, s&apos;il a opté pour le
-            prélèvement automatique, du règlement du solde (article 5.1). La
-            veille de la date de départ prévue, une{' '}
+            {data.moyenCaution ? (
+              <>
+                Lors de la réservation, le Locataire a choisi de constituer le
+                dépôt de garantie par{' '}
+                <Text style={styles.pBold}>
+                  {data.moyenCaution === 'carte'
+                    ? 'carte bancaire (préautorisation)'
+                    : data.moyenCaution === 'cheque'
+                      ? 'chèque'
+                      : 'virement bancaire'}
+                </Text>
+                . Les trois moyens proposés par le Bailleur sont décrits
+                ci-dessous ; seul celui choisi s&apos;applique, sous réserve du
+                6.6.
+              </>
+            ) : (
+              <>
+                Le dépôt de garantie est constitué par l&apos;un des trois
+                moyens ci-dessous, convenu entre les parties.
+              </>
+            )}
+          </Text>
+          <Text style={styles.p}>
+            <Text style={styles.pBold}>(a) Carte bancaire —</Text> Lors du
+            paiement à la réservation, le Locataire autorise le Bailleur à
+            conserver, via son prestataire de paiement Stripe, les données de
+            la carte bancaire utilisée, aux fins du dépôt de garantie défini au
+            présent article et, s&apos;il a opté pour le prélèvement
+            automatique, du règlement du solde (article 5.1). La veille de la
+            date de départ prévue, une{' '}
             <Text style={styles.pBold}>préautorisation</Text> d&apos;un montant
             égal au dépôt de garantie est effectuée automatiquement sur cette
             carte. Le Locataire en est informé par écrit le jour même. Si la
@@ -1231,9 +1347,23 @@ export function ContratPDF({
             à constituer le dépôt de garantie par un autre moyen avant son
             départ.
           </Text>
+          <Text style={styles.p}>
+            <Text style={styles.pBold}>(b) Chèque —</Text> Le Locataire remet
+            au Bailleur, à son arrivée, un chèque d&apos;un montant égal au
+            dépôt de garantie. Ce chèque est conservé par le Bailleur et{' '}
+            <Text style={styles.pBold}>n&apos;est pas encaissé</Text>, sauf
+            retenue dans les conditions du 6.4.
+          </Text>
+          <Text style={styles.p}>
+            <Text style={styles.pBold}>(c) Virement —</Text> Le Locataire
+            verse le dépôt de garantie par virement bancaire sur le compte du
+            Bailleur, de sorte qu&apos;il soit reçu au plus tard{' '}
+            {data.delaiVirementCaution} jours avant l&apos;arrivée, soit le{' '}
+            <Text style={styles.pBold}>{data.dateLimiteVirementCaution}</Text>.
+          </Text>
           <Text style={styles.artH3}>
             <Text style={styles.artH3Num}>6.3 </Text>Nature de la
-            préautorisation
+            préautorisation (carte bancaire)
           </Text>
           <View style={styles.callout}>
             <Text style={styles.calloutText}>
@@ -1248,10 +1378,10 @@ export function ContratPDF({
           </View>
           <Text style={styles.artH3}>
             <Text style={styles.artH3Num}>6.4 </Text>Conditions et modalités
-            de débit
+            de retenue
           </Text>
           <Text style={styles.p}>
-            Le Bailleur ne peut encaisser tout ou partie du dépôt de garantie
+            Le Bailleur ne peut retenir tout ou partie du dépôt de garantie
             que dans les cas suivants, dûment constatés à l&apos;EDL de sortie
             ou, au plus tard, dans les{' '}
             <Text style={styles.pBold}>3 jours</Text> suivant le départ du
@@ -1295,23 +1425,46 @@ export function ContratPDF({
             </View>
           </View>
           <Text style={styles.p}>
-            Le montant encaissé correspond strictement au coût réel de la
+            Le montant retenu correspond strictement au coût réel de la
             remise en état, justifié par l&apos;état des lieux, des
             photographies, un devis ou une facture. Le Locataire est informé
             par écrit du montant retenu et de ses justificatifs.
           </Text>
+          <Text style={styles.p}>
+            La retenue s&apos;opère, selon le moyen de constitution : par
+            encaissement de la préautorisation à hauteur du montant retenu
+            (carte bancaire) ; par encaissement du chèque, la différence étant
+            reversée au Locataire (chèque) ; par conservation du montant retenu
+            sur la somme reçue, le surplus étant restitué au Locataire
+            (virement).
+          </Text>
           <Text style={styles.artH3}>
-            <Text style={styles.artH3Num}>6.5 </Text>Mainlevée et suppression
-            des données de carte
+            <Text style={styles.artH3Num}>6.5 </Text>Restitution et
+            suppression des données de carte
           </Text>
           <Text style={styles.p}>
             À défaut de dommage constaté, ou à l&apos;issue de
-            l&apos;évaluation du préjudice, le Bailleur procède à la mainlevée
-            de la préautorisation dans un délai maximal de{' '}
+            l&apos;évaluation du préjudice, le Bailleur restitue le dépôt de
+            garantie, ou ce qu&apos;il en reste, dans un délai maximal de{' '}
             <Text style={styles.pBold}>3 jours</Text> suivant le départ du
-            Locataire. Les données de carte sont supprimées dès la mainlevée
-            ou l&apos;encaissement du dépôt de garantie, et au plus tard{' '}
+            Locataire : par mainlevée de la préautorisation (carte bancaire) ;
+            par restitution du chèque (chèque) ; par virement sur le compte
+            indiqué par le Locataire (virement). Les données de carte sont
+            supprimées dès la mainlevée ou l&apos;encaissement du dépôt de
+            garantie, et au plus tard{' '}
             <Text style={styles.pBold}>7 jours</Text> après le départ.
+          </Text>
+          <Text style={styles.artH3}>
+            <Text style={styles.artH3Num}>6.6 </Text>Dépôt de garantie non
+            constitué à l&apos;arrivée
+          </Text>
+          <Text style={styles.p}>
+            Si, à l&apos;arrivée du Locataire, le dépôt de garantie n&apos;a
+            pas été constitué selon le moyen choisi (chèque non remis, virement
+            non reçu), le Bailleur lui adresse un lien lui permettant
+            d&apos;enregistrer une carte bancaire. Le dépôt de garantie est
+            alors constitué par carte bancaire, dans les conditions du 6.2 (a)
+            et du 6.3.
           </Text>
         </View>
 
@@ -1345,30 +1498,56 @@ export function ContratPDF({
             notifiée par courriel ou courrier recommandé :
           </Text>
           <View style={styles.list}>
+            {!data.paiementIntegral && (
+              <View style={styles.listItem}>
+                <Text style={styles.listBullet}>•</Text>
+                <Text style={styles.listText}>
+                  <Text style={styles.pBold}>
+                    Jusqu&apos;au {data.dateButoirSolde} inclus
+                  </Text>{' '}
+                  (date limite du solde, {data.delaiSolde} jours avant
+                  l&apos;arrivée) : remboursement intégral des sommes versées.
+                </Text>
+              </View>
+            )}
             <View style={styles.listItem}>
               <Text style={styles.listBullet}>•</Text>
               <Text style={styles.listText}>
                 <Text style={styles.pBold}>
-                  Plus de {data.delaiToleranceCommerciale} jours avant
-                  l&apos;arrivée
+                  {data.paiementIntegral
+                    ? `Jusqu'au ${data.limiteRemboursementSolde}`
+                    : `Après le ${data.dateButoirSolde} et jusqu'au ${data.limiteRemboursementSolde}`}
                 </Text>{' '}
-                : remboursement intégral de l&apos;acompte. Cette tolérance
-                constitue une faveur commerciale et ne constitue en aucun cas
-                la reconnaissance d&apos;un droit au sens du régime des
-                arrhes (art. 1590 C. civ.).
+                ({data.delaiRemboursementSolde} heures avant l&apos;heure
+                d&apos;arrivée) : le Bailleur conserve{' '}
+                {data.paiementIntegral
+                  ? "la part du paiement correspondant à l'acompte (article 5.1), déduction faite de la taxe de séjour qu'elle comprend"
+                  : "l'acompte, déduction faite de la taxe de séjour qu'il comprend"}
+                , soit{' '}
+                <Text style={styles.pBold}>{fmtEuro(data.retenueAnnulation)}</Text>{' '}
+                ({data.tauxAcompte} % du prix du séjour hors taxe de séjour) ;
+                le surplus des sommes versées est remboursé.
               </Text>
             </View>
             <View style={styles.listItem}>
               <Text style={styles.listBullet}>•</Text>
               <Text style={styles.listText}>
                 <Text style={styles.pBold}>
-                  Entre la date limite ci-dessus et le jour de l&apos;arrivée
+                  Moins de {data.delaiRemboursementSolde} heures avant
+                  l&apos;heure d&apos;arrivée
                 </Text>{' '}
-                : l&apos;acompte reste acquis au Bailleur et le solde demeure
-                exigible dans son intégralité.
+                : les sommes versées restent acquises au Bailleur, à
+                l&apos;exception de la taxe de séjour, qui est remboursée.
               </Text>
             </View>
           </View>
+          <Text style={styles.p}>
+            La taxe de séjour n&apos;étant due qu&apos;en cas de séjour, elle
+            est remboursée dans tous les cas d&apos;annulation. Cette tolérance
+            constitue une faveur commerciale et ne constitue en aucun cas la
+            reconnaissance d&apos;un droit au sens du régime des arrhes (art.
+            1590 C. civ.).
+          </Text>
           <Text style={styles.artH3}>
             <Text style={styles.artH3Num}>7.3 </Text>Force majeure
           </Text>
@@ -1410,7 +1589,8 @@ export function ContratPDF({
               résilié de plein droit aux torts du Locataire
             </Text>
             . Le Bailleur recouvre la libre disposition du gîte et conserve
-            l&apos;intégralité des sommes déjà versées.
+            l&apos;intégralité des sommes déjà versées, à l&apos;exception
+            de la taxe de séjour, qui est remboursée.
           </Text>
           <Text style={styles.artH3}>
             <Text style={styles.artH3Num}>7.6 </Text>Départ anticipé
@@ -1497,9 +1677,9 @@ export function ContratPDF({
               10.4 Départ anticipé empêchant l&apos;EDL —
             </Text>{' '}
             L&apos;EDL peut être établi unilatéralement par le Bailleur. La
-            mainlevée de la caution intervient alors dans les conditions de
-            l&apos;article 6.5, le cas échéant après application des articles
-            6.3 et 6.4.
+            restitution de la caution intervient alors dans les conditions de
+            l&apos;article 6.5, le cas échéant après application de
+            l&apos;article 6.4.
           </Text>
         </View>
 
@@ -1657,7 +1837,7 @@ export function ContratPDF({
             <Text style={styles.pBold}>14.1 Responsable du traitement —</Text>{' '}
             La SARL DE LA VOUTE est responsable du traitement des données
             personnelles du Locataire et des occupants majeurs déclarés.
-            Contact : nicolas.terrafina@wanadoo.fr.
+            Contact : {data.contactEmail}.
           </Text>
           <Text style={styles.p}>
             <Text style={styles.pBold}>14.2 Données collectées —</Text>{' '}
@@ -1726,8 +1906,8 @@ export function ContratPDF({
           <Text style={styles.p}>
             <Text style={styles.pBold}>15.1 Réclamation directe —</Text>{' '}
             Toute réclamation relative à l&apos;exécution du présent contrat
-            doit être adressée au Bailleur par courriel à
-            nicolas.terrafina@wanadoo.fr ou par courrier postal au siège
+            doit être adressée au Bailleur par courriel à{' '}
+            {data.contactEmail} ou par courrier postal au siège
             social. Le Bailleur s&apos;engage à répondre dans un délai
             raisonnable n&apos;excédant pas{' '}
             <Text style={styles.pBold}>30 jours</Text>. S&apos;agissant

@@ -81,7 +81,7 @@ async function lireReglages(ex: Executeur): Promise<ReglagesSuivi> {
 // ─── La page ─────────────────────────────────────────────────────────────────
 
 export type ContratSuivi =
-  /** Pas encore créé, ou séjour payé en totalité (contrat envoyé à la main, D-20). */
+  /** Pas encore créé. */
   | { etat: "a_venir" }
   /** `jeton` : celui du lien de signature, null s'il a expiré. */
   | { etat: "a_signer"; numero: string; jeton: string | null }
@@ -102,7 +102,6 @@ export type Suivi =
 const INVALIDE: Suivi = { etat: "invalide" };
 
 async function contratDe(ex: Executeur, resa: ReservationAvecGite, maintenant: Date): Promise<ContratSuivi> {
-  if (resa.paiement_integral) return { etat: "a_venir" };
   const [doc] = await ex
     .select({
       numero: documents.numero,

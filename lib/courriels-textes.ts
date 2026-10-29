@@ -266,17 +266,15 @@ export function texteAlerteReservation(
   s: Sejour,
   c: FicheClient,
   faits: Recapitulatif,
-  contrat: { numero: string | null; aLaMain: boolean },
+  contrat: { numero: string | null },
 ): Contenu {
   const lignes = [faits.reference, `${faits.sejour} · ${faits.voyageurs}`, faits.paye];
   if (faits.solde) lignes.push(faits.solde);
   if (faits.caution) lignes.push(faits.caution);
   lignes.push(
-    contrat.aLaMain
-      ? "Contrat : à envoyer à la main (réservation payée en totalité, voir l'alerte « À TRAITER »)"
-      : contrat.numero
-        ? `Contrat : ${contrat.numero}, envoyé au client pour signature`
-        : "Contrat : pas encore créé (le site le crée et l'envoie au client)",
+    contrat.numero
+      ? `Contrat : ${contrat.numero}, envoyé au client pour signature`
+      : "Contrat : pas encore créé (le site le crée et l'envoie au client)",
   );
   return assembler(`Réservation ${s.reference} — ${c.nom} — ${s.gite}, ${plageDates(s.arrivee, s.depart, "fr")}`, [
     { p: "Une réservation vient d'être payée sur le site.", gras: true },
@@ -301,7 +299,6 @@ export type Probleme =
       /** null : paiement inconnu du site, l'état du remboursement se lit chez Stripe. */
       fait: boolean | null;
     }
-  | { genre: "contrat_a_la_main" }
   | { genre: "contrat_non_cree"; erreur: string }
   | { genre: "courriel_non_parti"; objet: string; destinataire: string; erreur: string };
 
@@ -334,13 +331,6 @@ export function texteAlerteProbleme(p: Probleme, s: Sejour | null, c: FicheClien
       faire = p.datesPrises
         ? "Appeler le client : ses dates ont été prises pendant son paiement. Son courriel lui propose les autres gîtes libres."
         : "Vérifier ce paiement dans le tableau de bord Stripe, puis contacter le client si besoin.";
-      break;
-    case "contrat_a_la_main":
-      titre = `contrat à envoyer à la main${qui ? `, ${qui}` : ""}`;
-      quoi =
-        "Réservation payée en totalité (arrivée à moins de 30 jours) : le contrat ne prévoit pas encore ce cas " +
-        "(articles à rédiger au lot 5). Le client a reçu sa confirmation, sans contrat.";
-      faire = "Lui envoyer un contrat adapté.";
       break;
     case "contrat_non_cree":
       titre = `contrat non créé${qui ? `, ${qui}` : ""}`;

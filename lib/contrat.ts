@@ -17,7 +17,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { and, eq, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { documents, reservations } from "@/db/schema";
+import { documents, reglages, reservations } from "@/db/schema";
 import { getStorage } from "@/lib/storage";
 import { calculerMontants, mapContratData } from "@/lib/montants";
 import { chargerReservationAvecGite, type Executeur } from "@/lib/reservations";
@@ -29,7 +29,12 @@ import { ContratPDF } from "@/components/pdf/ContratPDF";
 const DOCUMENT_TYPE = "contrat_location";
 // v2 (octobre 2026) : dépôt de garantie par préautorisation Stripe (art. 6),
 // solde au choix du Locataire (art. 5.1), destinataires RGPD (art. 14).
-const TEMPLATE_VERSION = "v2";
+// v3 (29 octobre 2026, lot 5, D-26) : séjour payé en une fois (art. 5),
+// caution par carte, chèque ou virement (art. 6), annulation selon la date
+// limite du solde et les 48 heures, taxe de séjour toujours remboursée
+// (art. 7.2, 7.5), taxe pour le compte d'Annonay Rhône Agglo (art. 4.4),
+// adresse de contact des réglages.
+const TEMPLATE_VERSION = "v3";
 // Le lien de signature reste valable 30 jours.
 const TOKEN_TTL_JOURS = 30;
 
@@ -69,17 +74,12 @@ export async function emettreContrat(reservationId: string): Promise<ResultatEmi
   // Réservation (source de vérité ; gîte joint par lib/reservations).
   const resa = await chargerReservationAvecGite(reservationId, db);
   if (!resa) return { ok: false, status: 404, message: `Réservation introuvable : ${reservationId}` };
-  // Paiement intégral (D-20) : le contrat ne prévoit pas ce cas (art. 5.1, 5.2,
-  // 5.3, 7.2). Les clauses sont à rédiger au lot 5 de la Phase 3 ; d'ici là,
-  // aucun contrat n'est émis, plutôt qu'un contrat faux et déjà numéroté.
-  if (resa.paiement_integral) {
-    return {
-      ok: false,
-      status: 409,
-      message:
-        "Réservation payée en totalité : le contrat ne prévoit pas encore ce cas " +
-        "(articles 5.1, 5.2, 5.3 et 7.2, à rédiger au lot 5). Aucun contrat n'est émis.",
-    };
+  // Paiement intégral (D-20) : le contrat le prévoit depuis la v3 (art. 5, 7.2).
+  let contactEmail: string;
+  try {
+    contactEmail = await adresseContact(db);
+  } catch (e) {
+    return { ok: false, status: 500, message: messageErreur(e) };
   }
 
   const logo = chargerLogo(); // null si illisible : le contrat sort sans logo
@@ -113,7 +113,7 @@ export async function emettreContrat(reservationId: string): Promise<ResultatEmi
 
       // Rendu du PDF NON signé.
       const montants = calculerMontants(resa);
-      const data = mapContratData(resa, montants, { numeroContrat: numero, dateEmission });
+      const data = mapContratData(resa, montants, { numeroContrat: numero, dateEmission, contactEmail });
 
       let pdfBuffer: Buffer;
       try {
@@ -158,6 +158,17 @@ export async function emettreContrat(reservationId: string): Promise<ResultatEmi
     }
     return { ok: false, status: 500, message: `Émission du contrat échouée : ${messageErreur(e)}` };
   }
+}
+
+/**
+ * Adresse de contact imprimée sur le contrat (en-tête, art. 14.1, 15.1) : celle
+ * des réglages (`courriel_reponse`), qui reçoit aussi les réponses aux courriels.
+ * Lève si la ligne de réglages manque : un contrat sans adresse n'est pas émis.
+ */
+export async function adresseContact(executeur: Executeur): Promise<string> {
+  const [r] = await executeur.select({ contact: reglages.courriel_reponse }).from(reglages).where(eq(reglages.id, 1));
+  if (!r) throw new Error("ligne de réglages absente (table reglages, id = 1) : adresse de contact inconnue");
+  return r.contact;
 }
 
 /** Le contrat de la réservation, s'il a déjà été émis. */
