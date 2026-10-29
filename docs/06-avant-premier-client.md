@@ -4,14 +4,14 @@
 > **seul** domicile de cette liste : elle ne doit être recopiée nulle part
 > ailleurs (voir `docs/05-protocole-phase.md`, règle 1).
 
-Quinze points à traiter **avant qu'un vrai client signe un vrai contrat**. Aucun
+Seize points à traiter **avant qu'un vrai client signe un vrai contrat**. Aucun
 n'empêche le logiciel de fonctionner : ils empêchent qu'il fonctionne
 **correctement le jour où il compte**.
 
 ## Qui peut lever un point
 
-Dix des quinze points **ne se résolvent pas, ou pas entièrement, dans le dépôt**
-(3, 6, 7, 9, 10, 11, 12, 13, 14 et 15). Sans cette
+Onze des seize points **ne se résolvent pas, ou pas entièrement, dans le dépôt**
+(3, 6, 7, 9, 10, 11, 12, 13, 14, 15 et 16). Sans cette
 précision, une session future les lira comme des tâches techniques et cherchera
 la réponse au mauvais endroit — dans le code, où elle n'est pas.
 
@@ -42,6 +42,7 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | 13 | Site en anglais : relire la traduction, faire valider l'anglais du juridique | **Les propriétaires** (relecture), **le juriste** (pages juridiques, bannière cookies) | Avant l'ouverture (Phase 6) |
 | 14 | Passer Stripe en mode réel et brancher l'avis de paiement | **Les propriétaires** (compte Stripe activé), puis développement | Au déploiement |
 | 15 | Brancher les courriels réels sur le serveur déployé | **Phase de déploiement**, puis les propriétaires (réception) | Au déploiement |
+| 16 | Annulation : confirmer le délai de remboursement du solde (48 heures) | **Arbitrage** | Avant l'ouverture |
 
 ---
 
@@ -132,14 +133,36 @@ réception n'est pas confirmée. À défaut, captures d'écran de l'historique.
 dans le même envoi au juriste :
 
 - la caution devient **au choix du client : carte, chèque ou virement**
-  (D-19) — l'article 6 est à réécrire en conséquence, y compris le cas du
-  client arrivé sans caution ;
+  (D-19) — l'article 6 est **réécrit** (contrat v3, lot 5, 29 octobre 2026), y
+  compris le cas du client arrivé sans caution (6.6) ;
 - une réservation faite **à moins de 30 jours** de l'arrivée se paie en totalité
-  (D-20) — les articles 5.1, 5.2, 5.3 et 7.2 ne prévoient pas ce cas (clauses
-  à rédiger au lot 5 ; d'ici là, aucun contrat n'est émis pour ce cas) ;
-- l'**article 4.4** dit la taxe de séjour collectée « pour le compte de la
-  commune de Savas » et « reversée à la commune » ; elle est votée par Annonay
-  Rhône Agglo, et une part va au département ;
+  (D-20) — les articles 5.1, 5.2, 5.3 et 7.2 prévoient ce cas depuis le
+  contrat v3, et le site émet ce contrat comme les autres ;
+- l'**article 7.2** suit la règle d'annulation du gérant (D-26) : tout est
+  remboursé jusqu'à la date limite du solde ; ensuite l'acompte est conservé,
+  hors taxe de séjour, et le solde remboursé jusqu'à 48 heures avant
+  l'arrivée ; la taxe de séjour est remboursée dans tous les cas (7.2, 7.5) ;
+- l'**article 4.4** dit désormais la taxe collectée pour le compte d'Annonay
+  Rhône Agglo, taxe additionnelle départementale comprise (vérification par les
+  propriétaires : point 10).
+
+**Rédigé par une session le 29 octobre 2026, validé par le gérant avant le
+commit, à faire relire au juriste** (`docs/contrat-template.md`, articles 4.4,
+5, 6, 7.2, 7.5 et 10.4). Cinq questions précises à lui poser :
+
+1. L'article 7.2 reste qualifié de « geste commercial unilatéral et
+   révocable » alors que la règle est désormais écrite au contrat : un bailleur
+   professionnel peut-il se réserver de la révoquer (art. R.212-1 C. conso.) ?
+2. Retenue sur une caution par **chèque** (6.4) : « encaissement du chèque,
+   la différence étant reversée au Locataire » (confirmé par le gérant le
+   29 octobre 2026). La rédaction convient-elle ?
+3. Client arrivé sans caution qui **refuse** aussi d'enregistrer une carte
+   (6.6) : le contrat ne dit pas ce qui se passe ensuite (refus de l'entrée ?).
+4. Non-versement du solde (5.3) et départ anticipé (7.6) : l'acompte, ou les
+   sommes versées, restent acquis **taxe de séjour comprise**, alors qu'elle est
+   remboursée en cas d'annulation. Aligner ?
+5. Séjour payé en une fois : la qualification « paiement du prix, à
+   l'exclusion des arrhes » (5.2) suffit-elle ?
 - le **texte d'accord pour l'enregistrement de la carte**, validé par le gérant
   le 14 octobre 2026, **et sa traduction anglaise** validée le 20 octobre 2026 :
   les deux textes sont dans `docs/phases/phase-3.md` (et en base, table
@@ -368,6 +391,14 @@ intercommunalité) · **Phase 3**
 >
 > Le calcul suit les réponses sans modification : le ménage et les bébés sont
 > deux réglages, les tarifs une ligne datée.
+>
+> **Ajout du 29 octobre 2026 (lot 5), à vérifier par les propriétaires.** Le
+> contrat (art. 4.4) dit la taxe collectée pour le compte d'**Annonay Rhône
+> Agglo**, taxe additionnelle départementale comprise. Recherche du 29 octobre :
+> l'agglomération collecte la taxe sur son territoire depuis 2017 et encaisse
+> la part du Département de l'Ardèche (10 %) ; aucune page trouvée ne cite
+> Savas nommément. Vérification : si les gîtes sont déclarés sur
+> `ardechegrandair.taxesejour.fr`, c'est confirmé.
 
 **Pourquoi c'est bloquant.** Cet argent n'est pas le nôtre : il est collecté
 pour le compte d'une collectivité. **Sous-collecté**, la différence reste due et
@@ -541,6 +572,27 @@ utilisée pour les essais est sur le poste de développement. Sur le serveur :
 avec une adresse Gmail et une adresse Orange : la confirmation arrive dans la
 boîte de réception, pas en indésirables ; son bouton ouvre la page de
 signature ; « Répondre » écrit à contact@ ; l'alerte arrive dans contact@.
+
+---
+
+## 16. Annulation : confirmer le délai de remboursement du solde
+
+**Qui peut lever :** **arbitrage** (le gérant et la personne qui décide avec
+lui) · **avant l'ouverture**
+
+**La raison.** Le 29 octobre 2026, le gérant a fixé la règle d'annulation
+(D-26) : l'acompte est remboursé jusqu'à la date limite du solde, gardé
+ensuite ; le solde est remboursé **jusqu'à 48 heures avant l'arrivée**. Il a
+précisé que ce délai « reste encore à voir » : il ne décide pas seul. Le contrat
+v3 l'écrit déjà (art. 7.2), avec le chiffre lu dans les réglages.
+
+**L'action.** Confirmer 48 heures, ou donner l'autre délai. Un autre délai se
+règle sans code : `reglages.delai_remboursement_solde_heures`. Il vaut pour les
+réservations faites ensuite ; celles déjà faites gardent le leur, recopié à la
+réservation.
+
+**Le contrôle.** Un contrat émis après le changement imprime le nouveau délai
+et la date limite qui en découle (art. 7.2).
 
 ---
 

@@ -11,8 +11,10 @@ d'octobre 2026, qui a fait entrer les saisons, la taxe de séjour et trois
 moyens de caution dans la phase. Découpage en cinq lots plus bas.
 **État :** cadrage clos le 14 octobre 2026 ; **lot 1 (prix) livré et commité
 le même jour** ; **lot 2 (calendrier et réservation) livré le 15 octobre
-2026** ; **lot 3 (paiement, Stripe en mode test) livré le 20 octobre 2026**.
-Lots 4 et 5 à faire.
+2026** ; **lot 3 (paiement, Stripe en mode test) livré le 20 octobre 2026** ;
+**lot 4 (courriels et suivi) livré le 28 octobre 2026** ; **lot 5 (contrat et
+pages) livré le 29 octobre 2026**. Les cinq lots sont livrés ; la clôture de la
+phase reste à prononcer.
 
 > **Point 9 tranché à l'ouverture (24 septembre 2026) : échéance décalée au
 > déploiement effectif.** La Phase 3 va produire des PDF sans sauvegarde de
@@ -160,7 +162,7 @@ fonctionnel et terminé (13 octobre 2026), back-office compris.
 | **2. Calendrier et réservation** | Disponibilités réelles, blocage de 20 minutes, refus si un prix manque, erreur sur un gîte inconnu, tunnel branché sur les vrais chiffres (âges, horaires, prix, taxe) | **Livré le 15 octobre 2026** — voir `docs/journal-phases.md` |
 | **3. Paiement** | Stripe en mode test : acompte ou total, carte conservée seulement si choisie, choix de la caution et du solde, paiement tardif, autres gîtes proposés | **Livré le 20 octobre 2026** (D-23) — voir `docs/journal-phases.md` ; parcours rejoué par Stripe en mode test le 22 octobre 2026 (11 étapes sur 11) ; restent la validation 3-D Secure à l'écran et l'avis signé |
 | **4. Courriels et suivi** | Brevo, contrat généré, lien de signature, page de suivi à lien secret, courriels aux propriétaires (dont le paiement remboursé, journalisé seulement au lot 3) ; **libellé de la taxe dans les PDF** (une réservation du tunnel n'a plus de taux unique : `taux_taxe_sejour` est vide, et les PDF impriment encore « (… %) ») ; **documents d'un paiement intégral** (`paiement_integral` : ni acompte ni solde, alors que `calculerMontants` applique le taux d'acompte) ; phrase « contrat à signer par courriel » sur la page de confirmation | En cours, en trois étapes : **1. documents justes livrée le 23 octobre 2026** (libellé de la taxe, paiement intégral) ; **2. après le paiement livrée le 27 octobre 2026** (contrat créé, courriels Brevo, alertes, D-24) ; **3. page « Ma réservation » livrée le 28 octobre 2026** (lien secret, formulaire, D-25) — lot clos |
-| **5. Contrat et pages** | Articles 5.1 et 6 du contrat, **clauses du paiement intégral** (5.1, 5.2, 5.3, 7.2), **article 4.4** (la taxe est votée par Annonay Rhône Agglo, une part va au département), pages qui décrivent la caution, horaires, boîte à clés retirée, documentation | À faire |
+| **5. Contrat et pages** | Articles 5.1 et 6 du contrat, **clauses du paiement intégral** (5.1, 5.2, 5.3, 7.2), **article 4.4** (la taxe est votée par Annonay Rhône Agglo, une part va au département), pages qui décrivent la caution, horaires, boîte à clés retirée, documentation | **Livré le 29 octobre 2026** (contrat v3, D-26) — voir `docs/journal-phases.md` ; textes à faire relire au juriste (point 3 de `docs/06-avant-premier-client.md`), 48 heures à confirmer (point 16) |
 
 **Points ouverts après le lot 2**, hors code :
 - les bébés comptent-ils parmi les **occupants** de la taxe de séjour, et le
@@ -243,9 +245,31 @@ client), ni la **phrase d'autorisation de Stripe**, doublon du texte d'accord
   change de destinataires dans la table `alertes`.
 - **Contrat** : créé tout de suite après le paiement. Échec : confirmation
   sans le lien, alerte, nouvelle tentative et courriel « contrat à signer ».
-- **À décider au lot 5** : faut-il imprimer contact@ au lieu de l'adresse
+- ~~**À décider au lot 5** : faut-il imprimer contact@ au lieu de l'adresse
   wanadoo sur le contrat, les factures et l'article sur les données
-  personnelles ?
+  personnelles ?~~ → oui, lue dans les réglages (lot 5). Les factures
+  n'impriment aucune adresse électronique.
+
+**Décisions du lot 5 (29 octobre 2026, D-26).**
+- **Article 6** : rédigé par la session et validé par le gérant, à faire
+  relire au juriste ; les trois moyens de caution, le client arrivé sans
+  caution (6.6).
+- **Annulation (7.2)** : tout est remboursé jusqu'à la date limite du solde ;
+  ensuite l'acompte est conservé et le solde remboursé jusqu'à 48 heures avant
+  l'arrivée (délai à confirmer, point 16) ; la date limite de l'acompte est
+  celle du solde ; un séjour payé en une fois suit la même règle ; la taxe de
+  séjour, qui s'ajoute au prix et se paie avec lui, est toujours remboursée.
+- **Caution par chèque** : en cas de dégât, le chèque est encaissé et la
+  différence rendue au client.
+- **Contact** : contact@ des réglages sur le contrat (en-tête, 14.1, 15.1).
+- **CGV** : erreurs de fait corrigées en reprenant le contrat (§ 02 à 04) ;
+  le reste en Phase 6 avec le juriste.
+- **Phrases du prototype** : « nous répondons toujours sous 24 heures » est
+  retirée ; la note des avis, le titre « Avis vérifiés » et la case de l'avis
+  Gîtes de France sont gardés par le gérant. La note (4,97/5, 46 avis, 100 %)
+  devient un réglage.
+- **Paiement intégral au choix du client** (même s'il réserve plus de 30 jours
+  avant) : accepté par le gérant, **dans une étape à part**, après ce lot.
 
 ---
 
@@ -402,7 +426,7 @@ l'écran de choix existera :
 | `ReserverFunnel.tsx`, étape 4 | ~~« le solde J-30 sera prélevé sur la même carte »~~ → retirée (lot 2) |
 | `ReserverFunnel.tsx`, écran de succès | ~~« Prélèvement automatique du solde… »~~ → reconstruit au lot 3 (`reserver/confirmation`) : le règlement choisi par le client |
 | ~~`app/suivi/[ref]/page.tsx`~~ | ~~« prélevés automatiquement sur la même carte »~~ → page reconstruite (lot 4) : le règlement choisi par le client |
-| `lib/data/legal.ts`, CGV § 02 | « Le solde du séjour est prélevé automatiquement à J-30 » — Phase 6 |
+| `lib/data/legal.ts`, CGV § 02 | ~~« Le solde du séjour est prélevé automatiquement à J-30 »~~ → le règlement choisi par le client (lot 5) |
 
 ### Phrases du site qui décrivent ce qui n'existe pas (cadrage du 13 octobre 2026)
 
@@ -424,3 +448,9 @@ reste sur la page Contact —,
 passe au second essai ») : leur liste exhaustive sera soumise aux
 propriétaires au lot 5. Ce qui n'est pas confirmé est retiré, pas reformulé
 (règle 3 du protocole).
+
+**Soumise au gérant le 29 octobre 2026 (lot 5).** « Sous 24 heures » (page
+Contact, deux fois) est **retirée** ; « 4,97/5 sur 46 avis vérifiés Gîtes de
+France », le titre « Avis vérifiés » et la case « J'accepte d'être
+recontacté(e)… pour publier un avis vérifié sur Gîtes de France » sont
+**gardés**. Les autres formules de la liste avaient déjà disparu.

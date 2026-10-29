@@ -1110,6 +1110,112 @@ Avec le gérant, le 28 octobre 2026 (D-25) :
 
 ---
 
+## Phase 3 — lot 5 : contrat v3 et pages (29 octobre 2026)
+
+Le contrat suit enfin ce que le site vend : trois moyens de caution, le séjour
+payé en une fois, la règle d'annulation du gérant. Décision D-26.
+
+### Ce qui a été décidé
+
+Choix du gérant (28 et 29 octobre 2026) :
+- **Article 6** : rédigé par la session sur les décisions déjà prises (D-16,
+  D-19), validé par le gérant, à faire relire au juriste.
+- **Annulation** : tout est remboursé jusqu'à la date limite du solde ;
+  ensuite l'acompte est conservé et le solde remboursé jusqu'à 48 heures
+  avant l'arrivée (délai à confirmer, le gérant ne décidant pas seul :
+  point 16) ; la date limite de l'acompte est celle du solde ; même règle pour
+  un séjour payé en une fois ; la taxe de séjour, qui s'ajoute au prix et se
+  paie avec lui, est toujours remboursée.
+- **Caution par chèque** : en cas de dégât, le chèque est encaissé et la
+  différence rendue au client (confirmé par le gérant).
+- **contact@** des réglages à la place de l'adresse wanadoo sur le contrat.
+- **CGV** : erreurs de fait corrigées maintenant, le reste en Phase 6.
+- **Phrases du prototype** : « sous 24 heures » retirée ; note des avis, titre
+  « Avis vérifiés » et case de l'avis Gîtes de France gardés ; la note devient
+  un réglage.
+- **Paiement intégral au choix du client** : accepté, dans une étape à part.
+
+### Ce qui a été fait
+
+- **Migration 0008** : `reglages.delai_remboursement_solde_heures` (48) et la
+  note des avis (497, 46, 100) ; `reservations.delai_remboursement_solde_heures`
+  et `delai_virement_caution_jours`, recopiés par le tunnel, sans valeur par
+  défaut (48 et 3 pour les réservations existantes).
+- **Contrat v3** (`components/pdf/ContratPDF.tsx`, `lib/contrat.ts`) :
+  art. 4.4 (Annonay Rhône Agglo), art. 5 en deux variantes, art. 6 (trois
+  moyens, 6.6 client arrivé sans caution), art. 7.2 (dates et somme conservée
+  imprimées), 7.5 et 10.4 ; « à la réservation » au lieu de « à la signature »
+  pour l'acompte ; contact@ en en-tête, 14.1 et 15.1.
+- **Calcul** : `retenueAnnulation` (`lib/montants.ts`) et `fmtAvantArriveeFr`
+  (`lib/format.ts`) ; le « 7 jours » écrit en dur disparaît de
+  `lib/constantes.ts`.
+- **Séjour payé en une fois** : contrat émis et envoyé comme les autres ;
+  l'alerte « contrat à envoyer à la main » et la phrase « votre contrat vous
+  sera envoyé » disparaissent. Les factures restent refusées (comptable).
+- **Pages** : CGV § 02 à 04 ; caution en trois moyens sur la fiche gîte ;
+  « sous 24 heures » retirée de la page Contact ; note des avis lue en base
+  (`lib/gites-publics.ts`), masquée si vide.
+- **Contrôles** : `verify:tarification` 181 cas ; `verify:courriels` (cas du
+  paiement intégral réécrit) ; `db:verify` 154 contrôles (section 6g) ;
+  contrôle des PDF : contact@, Annonay Rhône Agglo, trois moyens, somme
+  conservée, 11 pages.
+- **Documentation** : D-26 (et D-20 complétée), `docs/contrat-template.md`,
+  points 3, 10 et 16 de `docs/06-avant-premier-client.md`, fiche de la
+  phase 3, conformité, architecture, `db/README.md`.
+
+### Ce qui a été vérifié
+
+- `npm run lint`, `npx tsc --noEmit`, `npm run build` : passent.
+- Base PostgreSQL 16 jetable, migration 0008 appliquée : les deux réservations
+  existantes ont reçu 48 et 3, les colonnes n'ont plus de valeur par défaut.
+- `bash scripts/parcours/lancer.sh` : **quatorze étapes sur quatorze**, aucun
+  montant de référence n'a bougé. Le contrat passe de 10 à 11 pages : la liste
+  des annexes tient seule sur la dernière page.
+- Un contrat d'essai pour un séjour payé en une fois, caution par chèque
+  (émis par le serveur sur la base d'essai, puis supprimé) : « Paiement
+  intégral 715,40 € à la réservation », « Il n'y a pas de solde », « Sans
+  objet » au 5.3, caution « (chèque) », 210,00 € conservés jusqu'au
+  19 novembre 2026 à 18 h 00.
+- Sur le serveur d'essai : la note des avis lue en base sur l'accueil (français
+  et anglais), les nouvelles CGV et la page Contact sans « 24 heures »
+  (français).
+
+### Ce qui n'a PAS été vérifié
+
+- **La relecture juridique** des articles 4.4, 5, 6, 7.2 et 7.5 : questions au
+  point 3 de `docs/06-avant-premier-client.md`.
+- **Le rattachement de Savas** à Annonay Rhône Agglo pour la taxe de séjour :
+  aucune page trouvée ne cite la commune (point 10).
+
+### Écarts avec le plan annoncé
+
+- **`app/api/factures/route.ts`** n'a pas été modifié : le refus d'une
+  facture pour un séjour payé en une fois attend le comptable (D-20).
+- **Hors liste** : `app/api/contrats/signer/route.ts` (adresse de contact du
+  PDF signé), `lib/courriels.ts` et `lib/courriels-textes.ts` (alerte « à la
+  main » retirée), `lib/devis.ts`, `scripts/parcours/reinitialiser.ts`,
+  `scripts/verifier-blocage.ts` (deux délais obligatoires) ; article 10.4 du
+  contrat (renvoi aux nouveaux 6.3 et 6.4).
+- **CGV** : les dates, délais et taux renvoient au contrat au lieu d'être
+  recopiés, pour qu'un réglage changé ne les rende pas faux.
+
+### Points reportés
+
+- **Étape suivante** : paiement intégral au choix du client.
+- **Point 16** : confirmer les 48 heures.
+- **Phase 6** : identité de l'éditeur et médiateur des CGV (DO-01, DO-02),
+  politique de confidentialité (adresse contact@gites-samoyas.fr, durée de
+  conservation).
+- **Notes des fiches gîtes** (5,0/5 et 16 avis, etc., `lib/data/gites.ts`) :
+  encore écrites en dur.
+- **Le PDF signé est re-rendu à la signature** avec le code du moment : un
+  contrat émis en v2 et signé après le déploiement de la v3 sortirait signé
+  avec le texte v3, alors que l'empreinte est celle du PDF v2. Sans effet
+  tant qu'aucun client réel n'a de contrat en cours ; à traiter avant tout
+  changement de texte en production.
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

@@ -30,7 +30,7 @@ Immatriculée au RCS d'Annonay sous le numéro 831 170 782
 SIRET : 831 170 782 00013
 Représentée par Monsieur Nicolas TERRAFINA, en sa qualité de gérant
 Téléphone : 06 79 33 23 51
-Courriel : nicolas.terrafina@wanadoo.fr
+Courriel : {{contact_email}}
 
 Exploitant l'enseigne commerciale « Les Gîtes de Samoyas »
 
@@ -137,7 +137,9 @@ Le prix de la location s'entend toutes charges comprises : eau, électricité, c
 
 ### 4.4 — Taxe de séjour
 
-La taxe de séjour est collectée par le Bailleur pour le compte de la commune de Savas, conformément aux articles L.2333-26 et suivants du Code général des collectivités territoriales. Son montant n'entre pas dans l'assiette des prestations du Bailleur et est intégralement reversé à la commune.
+La taxe de séjour est collectée par le Bailleur pour le compte d'Annonay Rhône Agglo, conformément aux articles L.2333-26 et suivants du Code général des collectivités territoriales, taxe additionnelle départementale comprise (article L.3333-1 du même code). Son montant n'entre pas dans l'assiette des prestations du Bailleur et est intégralement reversé à Annonay Rhône Agglo, qui reverse sa part au Département de l'Ardèche. Elle est remboursée en cas d'annulation (article 7.2).
+
+> Contrat v3 (29 octobre 2026). Le rattachement de Savas à Annonay Rhône Agglo pour la taxe de séjour est à vérifier par les propriétaires (point 10 de `docs/06-avant-premier-client.md`).
 
 ### 4.5 — Forfait ménage
 
@@ -149,26 +151,43 @@ Le forfait ménage est **obligatoire** et ne peut être ni supprimé ni minoré,
 
 ### 5.1 — Échéancier
 
-Le règlement du prix total défini à l'article 4 est échelonné comme suit :
+> Contrat v3 (29 octobre 2026, D-26) : deux variantes, selon que la réservation est faite avant ou après la date limite du solde (D-20). Rédaction de session validée par le gérant, **à faire relire par le juriste**.
+
+**Variante A — acompte et solde.** Le règlement du prix total défini à l'article 4 est échelonné comme suit :
 
 | Échéance | Montant | Date limite | Modalité |
 |---|---|---|---|
-| **(a) Acompte** — {{taux_acompte}} % du total | {{montant_acompte}} € | À la signature du contrat | Paiement en ligne par carte bancaire |
-| **(b) Solde** — {{taux_solde}} % du total | {{montant_solde}} € | Au plus tard {{delai_solde}} jours avant l'arrivée, soit le {{date_butoir_solde}} | Au choix du Locataire |
+| **(a) Acompte** — {{taux_acompte}} % du total | {{montant_acompte}} € | À la réservation | Paiement en ligne par carte bancaire |
+| **(b) Solde** — {{taux_solde}} % du total | {{montant_solde}} € | Au plus tard {{delai_solde}} jours avant l'arrivée, soit le {{date_butoir_solde}} | Prélèvement automatique, ou carte en ligne, selon le choix du Locataire |
 
-Le solde est réglé, au choix du Locataire exprimé lors de la réservation : par prélèvement automatique sur la carte bancaire enregistrée, à la date limite ; ou par paiement en ligne par carte bancaire à son initiative, au plus tard à cette date.
+Selon le choix exprimé lors de la réservation (`mode_solde`) :
+- prélèvement : « Le Locataire a choisi, lors de la réservation, le règlement du solde par prélèvement automatique sur la carte bancaire enregistrée, à la date limite. »
+- lien : « Le Locataire a choisi, lors de la réservation, de régler le solde lui-même, par paiement en ligne par carte bancaire, au plus tard à la date limite. »
+- sans choix (réservation saisie à la main) : « Le solde est réglé, au choix du Locataire exprimé lors de la réservation : par prélèvement automatique sur la carte bancaire enregistrée, à la date limite ; ou par paiement en ligne par carte bancaire à son initiative, au plus tard à cette date. »
+
+**Variante B — paiement intégral.**
+
+| Échéance | Montant | Date limite | Modalité |
+|---|---|---|---|
+| **Paiement intégral** — 100 % | {{total_ttc}} € | À la réservation | Paiement en ligne par carte bancaire |
+
+La réservation ayant été effectuée moins de {{delai_solde}} jours avant l'arrivée, le prix total du séjour est réglé en une fois, lors de la réservation. **Il n'y a pas de solde.** Pour l'application de l'article 7.2, la part de ce paiement correspondant à l'acompte s'entend de {{taux_acompte}} % du prix total.
 
 ### 5.2 — Nature juridique de l'acompte
 
-**Les parties conviennent expressément que les sommes versées au titre de l'acompte visé au 5.1 (a) constituent un ACOMPTE au sens de l'article 1590 du Code civil, à l'exclusion expresse de toute qualification d'arrhes.**
+**Variante A.** **Les parties conviennent expressément que les sommes versées au titre de l'acompte visé au 5.1 (a) constituent un ACOMPTE au sens de l'article 1590 du Code civil, à l'exclusion expresse de toute qualification d'arrhes.**
 
-En conséquence, et conformément à la jurisprudence constante de la Cour de cassation, la réservation engage fermement et irrévocablement les deux parties dès le versement de l'acompte. Aucune des parties ne peut se dédire unilatéralement par le simple renoncement à la somme versée ou à son double.
+**Variante B.** **Les parties conviennent expressément que les sommes versées lors de la réservation, visées au 5.1, constituent un paiement du prix, à l'exclusion expresse de toute qualification d'arrhes au sens de l'article 1590 du Code civil.**
+
+En conséquence, et conformément à la jurisprudence constante de la Cour de cassation, la réservation engage fermement et irrévocablement les deux parties dès le versement de l'acompte (variante B : dès ce versement). Aucune des parties ne peut se dédire unilatéralement par le simple renoncement à la somme versée ou à son double.
 
 Les conditions d'annulation, qui obéissent aux principes ci-dessus, sont définies de manière exhaustive à l'**article 7** du présent contrat.
 
 ### 5.3 — Conséquences du non-versement du solde
 
-À défaut de versement du solde à la date limite fixée au 5.1 (b), et après mise en demeure adressée au Locataire par courriel restée sans effet pendant un délai de **quarante-huit (48) heures**, le Bailleur est en droit de considérer le contrat comme résilié de plein droit aux torts exclusifs du Locataire.
+**Variante B :** « Sans objet : le prix total a été réglé lors de la réservation. »
+
+**Variante A :** à défaut de versement du solde à la date limite fixée au 5.1 (b), et après mise en demeure adressée au Locataire par courriel restée sans effet pendant un délai de **quarante-huit (48) heures**, le Bailleur est en droit de considérer le contrat comme résilié de plein droit aux torts exclusifs du Locataire.
 
 Dans cette hypothèse :
 
@@ -180,33 +199,37 @@ Dans cette hypothèse :
 
 ## Article 6 — Dépôt de garantie (caution)
 
-> **À FAIRE RELIRE PAR UN JURISTE AVANT LE PREMIER CLIENT.** Rédaction
-> d'octobre 2026 : dépôt de garantie par préautorisation sur la carte
-> enregistrée, sans prestataire tiers (voir `docs/02-decisions.md`, D-16).
-> Les articles 5.1 (b), 14.2, 14.4 et 14.5 ont été modifiés dans le même
-> changement et relèvent de la même relecture.
+> **À FAIRE RELIRE PAR UN JURISTE AVANT LE PREMIER CLIENT.** Contrat v3
+> (29 octobre 2026) : trois moyens au choix du client (D-19), la carte par
+> préautorisation sans prestataire tiers (D-16). Rédaction de session validée
+> par le gérant. Les articles 5.1 (b), 14.2, 14.4 et 14.5 relèvent de la même
+> relecture. Questions précises : point 3 de `docs/06-avant-premier-client.md`.
 
 ### 6.1 — Montant et finalité
 
 Le Locataire constitue auprès du Bailleur un dépôt de garantie d'un montant de **{{caution_montant}} euros**, destiné à couvrir les éventuels dommages causés au gîte, à son mobilier, à ses équipements ou à ses dépendances pendant la durée du séjour.
 
-### 6.2 — Modalité de constitution
+### 6.2 — Moyen de constitution
 
-Lors du paiement de l'acompte, le Locataire autorise le Bailleur à conserver, via son prestataire de paiement Stripe, les données de la carte bancaire utilisée, aux fins du dépôt de garantie défini au présent article et, s'il a opté pour le prélèvement automatique, du règlement du solde (article 5.1).
+Lors de la réservation, le Locataire a choisi de constituer le dépôt de garantie par **{{moyen_caution}}** (carte bancaire (préautorisation), chèque ou virement bancaire). Les trois moyens proposés par le Bailleur sont décrits ci-dessous ; seul celui choisi s'applique, sous réserve du 6.6.
 
-La veille de la date de départ prévue, une **préautorisation** d'un montant égal au dépôt de garantie est effectuée automatiquement sur cette carte. Le Locataire en est informé par écrit le jour même.
+*(Réservation saisie à la main, sans choix enregistré : « Le dépôt de garantie est constitué par l'un des trois moyens ci-dessous, convenu entre les parties. »)*
 
-Si la préautorisation ne peut être réalisée, le Locataire s'engage à constituer le dépôt de garantie par un autre moyen avant son départ.
+**(a) Carte bancaire —** Lors du paiement à la réservation, le Locataire autorise le Bailleur à conserver, via son prestataire de paiement Stripe, les données de la carte bancaire utilisée, aux fins du dépôt de garantie défini au présent article et, s'il a opté pour le prélèvement automatique, du règlement du solde (article 5.1). La veille de la date de départ prévue, une **préautorisation** d'un montant égal au dépôt de garantie est effectuée automatiquement sur cette carte. Le Locataire en est informé par écrit le jour même. Si la préautorisation ne peut être réalisée, le Locataire s'engage à constituer le dépôt de garantie par un autre moyen avant son départ.
 
-### 6.3 — Nature de la préautorisation
+**(b) Chèque —** Le Locataire remet au Bailleur, à son arrivée, un chèque d'un montant égal au dépôt de garantie. Ce chèque est conservé par le Bailleur et **n'est pas encaissé**, sauf retenue dans les conditions du 6.4.
+
+**(c) Virement —** Le Locataire verse le dépôt de garantie par virement bancaire sur le compte du Bailleur, de sorte qu'il soit reçu au plus tard {{delai_virement_caution}} jours avant l'arrivée, soit le **{{date_limite_virement_caution}}**.
+
+### 6.3 — Nature de la préautorisation (carte bancaire)
 
 > **LA PRÉAUTORISATION NE CONSTITUE PAS UN ENCAISSEMENT.** Aucune somme n'est débitée du compte du Locataire au moment de sa mise en place.
 
 Le Bailleur dispose uniquement de la faculté de l'encaisser, en tout ou partie, dans les conditions limitativement définies au 6.4 ci-après.
 
-### 6.4 — Conditions et modalités de débit
+### 6.4 — Conditions et modalités de retenue
 
-Le Bailleur ne peut encaisser tout ou partie du dépôt de garantie que dans les cas suivants, dûment constatés à l'état des lieux de sortie ou, au plus tard, dans les **trois (3) jours** suivant le départ du Locataire :
+Le Bailleur ne peut retenir tout ou partie du dépôt de garantie que dans les cas suivants, dûment constatés à l'état des lieux de sortie ou, au plus tard, dans les **trois (3) jours** suivant le départ du Locataire :
 
 1. **Dégradations matérielles** du gîte, du mobilier ou des équipements ;
 2. **Manquements aux obligations d'entretien** définies à l'article 11 ;
@@ -214,13 +237,21 @@ Le Bailleur ne peut encaisser tout ou partie du dépôt de garantie que dans les
 4. **Frais de remise en état exceptionnels** (nettoyage non standard, traitement post-tabac, dépollution suite à présence d'animal non déclaré, etc.) ;
 5. **Dépassement non autorisé** de la capacité d'accueil constaté pendant le séjour.
 
-Le montant encaissé correspond strictement au coût réel de la remise en état, justifié par l'état des lieux, des photographies, un devis ou une facture. Le Locataire est informé par écrit du montant retenu et de ses justificatifs.
+Le montant retenu correspond strictement au coût réel de la remise en état, justifié par l'état des lieux, des photographies, un devis ou une facture. Le Locataire est informé par écrit du montant retenu et de ses justificatifs.
 
-### 6.5 — Mainlevée et suppression des données de carte
+La retenue s'opère, selon le moyen de constitution : par encaissement de la préautorisation à hauteur du montant retenu (carte bancaire) ; par encaissement du chèque, la différence étant reversée au Locataire (chèque) ; par conservation du montant retenu sur la somme reçue, le surplus étant restitué au Locataire (virement).
 
-À défaut de dommage constaté, ou à l'issue de l'évaluation du préjudice le cas échéant, le Bailleur procède à la mainlevée de la préautorisation dans un délai maximal de **trois (3) jours** suivant le départ du Locataire.
+> Modalité « chèque » confirmée par le gérant le 29 octobre 2026 : le chèque est encaissé et la différence rendue au client.
+
+### 6.5 — Restitution et suppression des données de carte
+
+À défaut de dommage constaté, ou à l'issue de l'évaluation du préjudice, le Bailleur restitue le dépôt de garantie, ou ce qu'il en reste, dans un délai maximal de **trois (3) jours** suivant le départ du Locataire : par mainlevée de la préautorisation (carte bancaire) ; par restitution du chèque (chèque) ; par virement sur le compte indiqué par le Locataire (virement).
 
 Les données de carte sont supprimées dès la mainlevée ou l'encaissement du dépôt de garantie, et au plus tard **sept (7) jours** après le départ.
+
+### 6.6 — Dépôt de garantie non constitué à l'arrivée
+
+Si, à l'arrivée du Locataire, le dépôt de garantie n'a pas été constitué selon le moyen choisi (chèque non remis, virement non reçu), le Bailleur lui adresse un lien lui permettant d'enregistrer une carte bancaire. Le dépôt de garantie est alors constitué par carte bancaire, dans les conditions du 6.2 (a) et du 6.3.
 
 ---
 
@@ -236,7 +267,10 @@ Les données de carte sont supprimées dès la mainlevée ou l'encaissement du d
 | `nb_adultes`, `nb_enfants`, `nb_bebes`, `liste_occupants_majeurs` | Composition du foyer | Formulaire |
 | `prix_location`, `forfait_menage`, `taux_taxe_sejour`, `montant_taxe_sejour`, `sous_total`, `total_ttc` | Calculs tarifaires | Computés depuis tarifs |
 | `taux_acompte`, `montant_acompte`, `taux_solde`, `montant_solde`, `delai_solde`, `date_butoir_solde`, `date_versement_acompte` | Échéancier paiement | Paramètres + computés |
+| `paiement_integral`, `mode_solde` | Variante de l'article 5 et règlement du solde choisi | Réservation |
 | `caution_montant` | Montant du dépôt de garantie | Table `gite` |
+| `moyen_caution`, `delai_virement_caution`, `date_limite_virement_caution` | Moyen de la caution et date limite d'un virement | Réservation (délai recopié des réglages) |
+| `contact_email` | Adresse de contact (en-tête, 14.1, 15.1) | Réglages (`courriel_reponse`) |
 
 ---
 
@@ -248,10 +282,15 @@ Conformément à la nature juridique d'acompte définie à l'article 5.2, la ré
 
 ### 7.2 — Tolérance commerciale du Bailleur
 
+> Contrat v3 (29 octobre 2026, D-26) : règle du gérant. Les 48 heures restent à confirmer (point 16 de `docs/06-avant-premier-client.md`) ; le qualificatif « révocable » est une question au juriste (point 3).
+
 À titre de **geste commercial unilatéral et révocable**, le Bailleur consent au Locataire les modalités suivantes en cas d'annulation à l'initiative de ce dernier, dûment notifiée par courriel ou courrier recommandé :
 
-- **Plus de {{delai_tolerance_commerciale}} jours avant la date d'arrivée** : remboursement intégral de l'acompte versé. Cette tolérance constitue une faveur commerciale du Bailleur et ne constitue en aucun cas la reconnaissance d'un droit au sens du régime des arrhes (article 1590 du Code civil).
-- **Entre la date limite ci-dessus et le jour de l'arrivée** : l'acompte reste acquis au Bailleur et le solde demeure exigible dans son intégralité.
+- **Jusqu'au {{date_butoir_solde}} inclus** (date limite du solde, {{delai_solde}} jours avant l'arrivée) : remboursement intégral des sommes versées. *(Absent en paiement intégral : cette date est déjà passée à la réservation.)*
+- **Après le {{date_butoir_solde}} et jusqu'au {{limite_remboursement_solde}}** ({{delai_remboursement_solde}} heures avant l'heure d'arrivée) : le Bailleur conserve l'acompte, déduction faite de la taxe de séjour qu'il comprend, soit **{{retenue_annulation}} €** ({{taux_acompte}} % du prix du séjour hors taxe de séjour) ; le surplus des sommes versées est remboursé. *(Paiement intégral : « Jusqu'au {{limite_remboursement_solde}} … le Bailleur conserve la part du paiement correspondant à l'acompte (article 5.1), déduction faite de la taxe de séjour qu'elle comprend ».)*
+- **Moins de {{delai_remboursement_solde}} heures avant l'heure d'arrivée** : les sommes versées restent acquises au Bailleur, à l'exception de la taxe de séjour, qui est remboursée.
+
+La taxe de séjour n'étant due qu'en cas de séjour, elle est remboursée dans tous les cas d'annulation. Cette tolérance constitue une faveur commerciale et ne constitue en aucun cas la reconnaissance d'un droit au sens du régime des arrhes (article 1590 du Code civil).
 
 ### 7.3 — Force majeure
 
@@ -265,7 +304,7 @@ En cas d'annulation à l'initiative du Bailleur, pour quelque motif que ce soit,
 
 ### 7.5 — Absence du Locataire à l'arrivée
 
-Si le Locataire ne se présente pas et n'a pas prévenu le Bailleur de son retard dans les vingt-quatre (24) heures suivant l'heure d'arrivée prévue à l'article 2, le présent contrat est considéré comme **résilié de plein droit aux torts du Locataire**. Le Bailleur recouvre la libre disposition du gîte et conserve l'intégralité des sommes déjà versées (acompte et solde).
+Si le Locataire ne se présente pas et n'a pas prévenu le Bailleur de son retard dans les vingt-quatre (24) heures suivant l'heure d'arrivée prévue à l'article 2, le présent contrat est considéré comme **résilié de plein droit aux torts du Locataire**. Le Bailleur recouvre la libre disposition du gîte et conserve l'intégralité des sommes déjà versées (acompte et solde), à l'exception de la taxe de séjour, qui est remboursée.
 
 ### 7.6 — Départ anticipé
 
@@ -318,7 +357,7 @@ Un état des lieux de sortie est établi contradictoirement le jour du départ, 
 
 ### 10.4 — Départ anticipé empêchant l'EDL
 
-En cas de départ anticipé du Locataire empêchant l'établissement de l'état des lieux le jour même, l'état des lieux peut être établi unilatéralement par le Bailleur. La mainlevée de la caution intervient alors dans les conditions prévues à l'article 6.5, le cas échéant après application des articles 6.3 et 6.4.
+En cas de départ anticipé du Locataire empêchant l'établissement de l'état des lieux le jour même, l'état des lieux peut être établi unilatéralement par le Bailleur. La restitution de la caution intervient alors dans les conditions prévues à l'article 6.5, le cas échéant après application de l'article 6.4.
 
 ---
 
@@ -421,7 +460,7 @@ Le Locataire est responsable de tous les dommages survenant de son fait, du fait
 
 La SARL DE LA VOUTE, identifiée en tête du présent contrat, est responsable du traitement des données personnelles du Locataire et des occupants majeurs déclarés.
 
-**Contact pour toute question relative aux données personnelles :** nicolas.terrafina@wanadoo.fr
+**Contact pour toute question relative aux données personnelles :** {{contact_email}}
 
 ### 14.2 — Données collectées
 
@@ -485,7 +524,7 @@ Ces droits s'exercent par courriel à l'adresse indiquée au 14.1, accompagné d
 
 ### 15.1 — Réclamation directe
 
-Toute réclamation relative à l'exécution du présent contrat doit être adressée au Bailleur, dans les meilleurs délais, par courriel à `nicolas.terrafina@wanadoo.fr` ou par courrier postal à l'adresse du siège social. Le Bailleur s'engage à apporter une réponse dans un délai raisonnable n'excédant pas trente (30) jours.
+Toute réclamation relative à l'exécution du présent contrat doit être adressée au Bailleur, dans les meilleurs délais, par courriel à `{{contact_email}}` ou par courrier postal à l'adresse du siège social. Le Bailleur s'engage à apporter une réponse dans un délai raisonnable n'excédant pas trente (30) jours.
 
 S'agissant spécifiquement de l'état du gîte ou de l'inventaire, l'article 10.2 prévoit un délai impératif de 24 heures.
 
@@ -629,7 +668,9 @@ Fait à distance, par signature électronique, le {{date_signature}}.
 
 | Variable | Description |
 |---|---|
-| `delai_tolerance_commerciale` | 30 jours (paramétrable, défaut = delai_solde) |
+| `delai_remboursement_solde` | 48 heures (réglage recopié sur la réservation, D-26) |
+| `limite_remboursement_solde` | Computé : jour et heure d'arrivée − ce délai (« 18 mars 2027 à 18 h 00 ») |
+| `retenue_annulation` | Computé : taux d'acompte × prix hors taxe de séjour, arrondi au centime (`retenueAnnulation`) |
 
 ### Variables caution
 

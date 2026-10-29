@@ -151,7 +151,7 @@ durées de conservation et de ses droits.
 
 **Où c'est implémenté.** Article 14 du contrat
 (`components/pdf/ContratPDF.tsx`, 14.1 à 14.6) :
-- **14.1** responsable : SARL DE LA VOUTE, contact `nicolas.terrafina@wanadoo.fr` ;
+- **14.1** responsable : SARL DE LA VOUTE, contact : l'adresse des réglages (`courriel_reponse`, contact@gitesdesamoyas.fr) depuis le contrat v3 ;
 - **14.2** données, y compris les **données de signature** (identifiant
   technique, horodatage, IP, empreinte SHA-256) — et la précision que les
   **données de carte** ne sont pas conservées par le Bailleur mais **par
@@ -257,7 +257,7 @@ Emplacements qui décrivent le mécanisme, à modifier **ensemble** s'il change 
 
 | Emplacement | Nature |
 |---|---|
-| `components/pdf/ContratPDF.tsx` art. 5.1, 6.2 à 6.5 | Clause contractuelle |
+| `components/pdf/ContratPDF.tsx` art. 5.1, 6.2 à 6.6 (trois moyens depuis le contrat v3, D-19) | Clause contractuelle |
 | `components/pdf/ContratPDF.tsx` ligne « Caution » du récapitulatif | Récapitulatif |
 | `components/pdf/ContratPDF.tsx` art. 14.2, 14.4, 14.5 | Information RGPD |
 | `app/gites/[slug]/page.tsx` | Page publique |
@@ -267,9 +267,9 @@ Emplacements qui décrivent le mécanisme, à modifier **ensemble** s'il change 
 | `docs/contrat-template.md`, `docs/facture-template.md` | Documents de rédaction |
 
 Toute modification du texte du contrat s'accompagne d'un changement de
-`TEMPLATE_VERSION` (`app/api/contrats/route.ts`), enregistrée sur chaque contrat
+`TEMPLATE_VERSION` (`lib/contrat.ts`), enregistrée sur chaque contrat
 émis : c'est elle qui dit quel client a signé quel texte. Version en cours :
-`v2`.
+`v3` (29 octobre 2026, D-26).
 
 **Écart E-1 (bloquant, Phase 6) — identité du professionnel.** Voir § 9.
 
@@ -432,11 +432,12 @@ collecté, exonérations.
 | Contrat et factures | Depuis le 23 octobre 2026 (lot 4) : « Taxe de séjour — 2 adultes × 7 nuits (mineurs exonérés) » (`libelleTaxeSejour`, `lib/montants.ts`). |
 
 **L'écart restant.** Les trois questions au service taxe de séjour (point 10
-de `docs/06-avant-premier-client.md`), et l'article 4.4 du contrat, qui dit la
-taxe collectée « pour le compte de la commune de Savas » et « reversée à la
-commune » : elle est votée par Annonay Rhône Agglo et une part va au
-département (lot 5, juriste). Le site
-ne sera pas mis en ligne avant la fin des lots.
+de `docs/06-avant-premier-client.md`). L'article 4.4 du contrat dit la taxe
+collectée pour le compte d'Annonay Rhône Agglo, taxe additionnelle
+départementale comprise, depuis le contrat v3 (lot 5) : rattachement de Savas
+à vérifier par les propriétaires (point 10), texte à relire par le juriste
+(point 3). La taxe est remboursée dans tous les cas d'annulation (art. 7.2,
+D-26).
 
 **Exemple.** 780 € de location pour 7 nuits, 2 adultes et 1 enfant : 111,43 €
 par nuit, 37,14 € par occupant, 1,86 € de taxe, 0,19 € de taxe additionnelle,

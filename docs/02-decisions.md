@@ -776,6 +776,10 @@ lot 5, avec la réécriture de l'article 5.1. D'ici là, `POST /api/contrats` et
 plutôt que d'émettre un document faux et déjà numéroté. `calculerMontants`
 donne acompte = total et solde = 0.
 
+**Contrat (lot 5, 29 octobre 2026, D-26).** Le contrat v3 prévoit ce cas
+(articles 5.1, 5.2, 5.3 et 7.2) : il est émis et envoyé comme les autres. Les
+factures restent refusées, en attendant le comptable.
+
 ---
 
 ## D-21 · Blocage des dates pendant le paiement : une ligne par nuit, sans tâche de nettoyage
@@ -1077,6 +1081,66 @@ limite empêchent de savoir qui a réservé et d'inonder la boîte d'un client.
 l'adresse et les montants de chaque client à qui devine une référence. Dire
 « aucune réservation pour cette adresse », c'est permettre de savoir qui
 séjourne aux gîtes.
+
+---
+
+## D-26 · Annulation : la date du solde, puis 48 heures ; la taxe de séjour toujours rendue
+
+**Date :** 29 octobre 2026 (Phase 3, lot 5). Choix du gérant :
+- l'acompte est **remboursé** si le client annule **avant la date limite du
+  solde** (30 jours avant l'arrivée), donc tant que le solde n'est pas payé ;
+  il est **conservé** ensuite ;
+- le solde est **remboursé jusqu'à 48 heures avant l'arrivée**. Ce délai
+  « reste à voir », le gérant ne décidant pas seul : point 16 de
+  `docs/06-avant-premier-client.md` ;
+- la date limite de l'acompte **est** celle du solde (pas un réglage à part) ;
+- un séjour payé en une fois suit la même règle : la part de l'acompte est
+  conservée, le reste remboursé jusqu'à 48 heures avant ;
+- la taxe de séjour **s'ajoute au prix du séjour** et se paie avec lui, à
+  la réservation (D-07 : l'acompte porte sur le total, taxe incluse) ; elle
+  est **remboursée dans tous les cas d'annulation** ;
+- une retenue sur une caution par chèque se fait en encaissant le chèque et
+  en rendant la différence au client (gérant, 29 octobre 2026).
+
+Même lot : article 6 réécrit pour les trois moyens de caution (D-19), contrat
+des séjours payés en une fois (D-20), contact@ des réglages à la place de
+l'adresse wanadoo, taxe collectée pour Annonay Rhône Agglo (art. 4.4).
+
+**Décision.**
+- **Contrat v3** (`lib/contrat.ts`, `TEMPLATE_VERSION`) : articles 4.4, 5
+  (deux variantes : acompte et solde, ou paiement intégral), 6, 7.2, 7.5 et
+  10.4. Le contrat d'un séjour payé en une fois est émis et envoyé comme les
+  autres : l'alerte « contrat à envoyer à la main » disparaît.
+- **Ce que le Bailleur conserve** après la date du solde : le taux d'acompte de
+  la réservation appliqué au prix **hors taxe de séjour**, arrondi au centime
+  (`retenueAnnulation`, `lib/montants.ts`). L'article 7.2 imprime ce montant.
+- **Deux délais recopiés sur chaque réservation**, comme le taux de l'acompte
+  (migration 0008) : `delai_remboursement_solde_heures` (48) et
+  `delai_virement_caution_jours` (3, D-19). Les changer dans les réglages ne
+  modifie aucun contrat déjà conclu.
+- **La date limite des 48 heures** se calcule sur les valeurs civiles de
+  l'arrivée (jour et heure), sans fuseau : « 18 mars 2027 à 18 h 00 ».
+- **Les factures d'un séjour payé en une fois restent refusées** (409) : la
+  facture à émettre attend le comptable (D-20, Phase 4).
+- **Les CGV du site** (§ 02 à 04) renvoient au contrat pour les dates et
+  montants, sans chiffre qui doublerait un réglage.
+- **La note des avis de l'accueil** (4,97/5, 46 avis, 100 %) devient un réglage
+  (`avis_note_centiemes`, `avis_nombre`, `avis_recommandation_pct`), masquée si
+  elle n'est pas renseignée.
+
+**Pourquoi.** Le « 7 jours » imprimé jusque-là contredisait l'échéancier : un
+client qui annulait 10 jours avant avait déjà payé le solde, et le contrat ne
+disait pas ce qu'il devenait. La taxe de séjour n'est due que si le séjour a
+lieu : la garder serait garder un argent qui n'est pas celui de la société.
+
+**Ce qui pourrait mal tourner.** Les textes des articles 5, 6 et 7.2 sont
+rédigés par une session, validés par le gérant, **pas encore relus par le
+juriste** ; cinq questions précises sont posées au point 3 de
+`docs/06-avant-premier-client.md`. Le site n'annule pas encore une réservation
+lui-même : un remboursement se fait à la main, depuis Stripe.
+
+**Si on revient dessus.** Changer la règle, c'est un contrat v4 et les CGV
+§ 03 dans le même commit. Un contrat déjà signé garde la règle qu'il imprime.
 
 ---
 
