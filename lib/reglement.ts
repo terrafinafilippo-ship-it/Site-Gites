@@ -5,10 +5,12 @@
 // sur le serveur (seul contrôle qui engage).
 //
 //   - Caution : carte, chèque ou virement. RIEN N'EST PRÉ-CHOISI.
-//   - Solde : prélèvement automatique ou paiement par lien. Rien n'est
-//     pré-choisi non plus ; le prélèvement n'existe qu'avec une carte
-//     enregistrée, donc une caution par carte. En paiement intégral (D-20),
-//     il n'y a pas de solde, donc pas de choix.
+//   - Solde : prélèvement automatique, paiement par lien, ou tout régler
+//     maintenant (« integral », D-27 : le client paie le total à la
+//     réservation, il n'y a plus de solde). Rien n'est pré-choisi non plus ;
+//     le prélèvement n'existe qu'avec une carte enregistrée, donc une caution
+//     par carte. En paiement intégral imposé (D-20, arrivée trop proche), il
+//     n'y a pas de solde, donc pas de choix.
 //   - La carte n'est enregistrée QUE pour une caution par carte : c'est alors
 //     que le client voit et accepte le texte d'accord (textes_accord).
 import type { ModeSolde, MoyenCaution } from "@/db/schema/reservations";
@@ -29,16 +31,24 @@ const LISTES_COMPLETES: [
 ] = [true, true];
 void LISTES_COMPLETES;
 
+/**
+ * Règlement choisi dans le tunnel : un mode de solde, ou « integral », tout
+ * régler maintenant (D-27). « integral » n'est jamais écrit en base : la
+ * réservation porte alors `paiement_integral = true` et `mode_solde` vide.
+ */
+export type ModeReglement = ModeSolde | "integral";
+export const MODES_REGLEMENT = [...MODES_SOLDE, "integral"] as const satisfies readonly ModeReglement[];
+
 export interface ChoixReglement {
   moyenCaution: MoyenCaution;
-  /** `null` en paiement intégral : pas de solde. */
-  modeSolde: ModeSolde | null;
+  /** `null` en paiement intégral imposé (D-20) : pas de solde, pas de choix. */
+  modeSolde: ModeReglement | null;
 }
 
 /** Choix en cours de saisie dans le tunnel : rien au départ. */
 export interface ChoixPartiel {
   moyenCaution: MoyenCaution | null;
-  modeSolde: ModeSolde | null;
+  modeSolde: ModeReglement | null;
 }
 
 export type ResultatChoix = { ok: true; choix: ChoixReglement } | { ok: false; message: string; detail: string };
@@ -60,8 +70,18 @@ function estMoyen(v: unknown): v is MoyenCaution {
   return typeof v === "string" && (MOYENS_CAUTION as readonly string[]).includes(v);
 }
 
-function estMode(v: unknown): v is ModeSolde {
-  return typeof v === "string" && (MODES_SOLDE as readonly string[]).includes(v);
+function estMode(v: unknown): v is ModeReglement {
+  return typeof v === "string" && (MODES_REGLEMENT as readonly string[]).includes(v);
+}
+
+/** Le client a-t-il choisi de tout régler maintenant (D-27) ? */
+export function toutReglerChoisi(choix: { modeSolde: ModeReglement | null }): boolean {
+  return choix.modeSolde === "integral";
+}
+
+/** Le mode de solde tel qu'il s'écrit en base : vide quand le client règle tout maintenant. */
+export function modeSoldeEnBase(choix: ChoixReglement): ModeSolde | null {
+  return choix.modeSolde === "integral" ? null : choix.modeSolde;
 }
 
 /** Le prélèvement automatique est-il proposé pour ce moyen de caution ? */

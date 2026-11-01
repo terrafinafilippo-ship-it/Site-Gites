@@ -23,6 +23,7 @@ import {
   HEURE_DEPART_DEFAUT,
   HEURE_LIMITE_ARRIVEE_DEFAUT,
 } from '@/lib/constantes';
+import { ajouterJours, aujourdhuiParis } from '@/lib/dates-civiles';
 import {
   fmtAvantArriveeFr,
   fmtDateFr,
@@ -153,6 +154,18 @@ export function montantsDesPostes(p: PostesSejour, tauxAcompte: number): Montant
 export function retenueAnnulation(resa: Reservation, montants: Montants): number {
   // Même conversion que l'acompte : le `/ 100` porte sur le TAUX, pas sur un montant.
   return Math.round(montants.base * (resa.taux_acompte / 100));
+}
+
+/**
+ * Séjour payé en une fois PAR CHOIX du client (D-27), et non parce que
+ * l'arrivée était trop proche (D-20) : la réservation a été faite AVANT la date
+ * limite du solde. Déduit des dates, sans colonne : le tunnel impose le
+ * paiement intégral exactement quand le jour de réservation atteint cette date
+ * (lib/devis.ts). Le délai du solde est celui recopié sur la réservation.
+ */
+export function integralChoisi(resa: Reservation): boolean {
+  if (!resa.paiement_integral || !resa.created_at || !resa.date_arrivee) return false;
+  return aujourdhuiParis(resa.created_at) < ajouterJours(resa.date_arrivee, -resa.delai_solde_jours);
 }
 
 // ─── Contexte de génération (fourni par la route après creer_facture) ─────────
@@ -357,6 +370,7 @@ export function mapContratData(
     delaiSolde: resa.delai_solde_jours,
     dateButoirSolde: minusDaysFr(dateArriveeIso, resa.delai_solde_jours),
     paiementIntegral: resa.paiement_integral,
+    integralChoisi: integralChoisi(resa),
     modeSolde: resa.mode_solde ?? null,
 
     // Caution (art. 6, D-19) et annulation (art. 7.2, D-26) : délais figés sur la réservation.

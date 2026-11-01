@@ -448,6 +448,8 @@ export type ContratData = {
   dateButoirSolde: string;
   /** Réservé après la date limite du solde : total payé à la réservation, sans solde (D-20). */
   paiementIntegral: boolean;
+  /** Paiement intégral choisi par le client avant la date limite du solde (D-27). */
+  integralChoisi: boolean;
   /** Règlement du solde choisi dans le tunnel ; null en paiement intégral ou saisie manuelle. */
   modeSolde: 'prelevement' | 'lien' | null;
 
@@ -1212,9 +1214,18 @@ export function ContratPDF({
           </View>
           {data.paiementIntegral ? (
             <Text style={styles.p}>
-              La réservation ayant été effectuée moins de {data.delaiSolde}{' '}
-              jours avant l&apos;arrivée, le prix total du séjour est réglé en
-              une fois, lors de la réservation.{' '}
+              {data.integralChoisi ? (
+                <>
+                  Le Locataire a choisi de régler le prix total du séjour en
+                  une fois, lors de la réservation.
+                </>
+              ) : (
+                <>
+                  La réservation ayant été effectuée moins de {data.delaiSolde}{' '}
+                  jours avant l&apos;arrivée, le prix total du séjour est réglé
+                  en une fois, lors de la réservation.
+                </>
+              )}{' '}
               <Text style={styles.pBold}>Il n&apos;y a pas de solde.</Text>{' '}
               Pour l&apos;application de l&apos;article 7.2, la part de ce
               paiement correspondant à l&apos;acompte s&apos;entend de{' '}
@@ -1498,7 +1509,7 @@ export function ContratPDF({
             notifiée par courriel ou courrier recommandé :
           </Text>
           <View style={styles.list}>
-            {!data.paiementIntegral && (
+            {(!data.paiementIntegral || data.integralChoisi) && (
               <View style={styles.listItem}>
                 <Text style={styles.listBullet}>•</Text>
                 <Text style={styles.listText}>
@@ -1514,7 +1525,7 @@ export function ContratPDF({
               <Text style={styles.listBullet}>•</Text>
               <Text style={styles.listText}>
                 <Text style={styles.pBold}>
-                  {data.paiementIntegral
+                  {data.paiementIntegral && !data.integralChoisi
                     ? `Jusqu'au ${data.limiteRemboursementSolde}`
                     : `Après le ${data.dateButoirSolde} et jusqu'au ${data.limiteRemboursementSolde}`}
                 </Text>{' '}

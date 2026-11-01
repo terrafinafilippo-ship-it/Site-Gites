@@ -32,6 +32,7 @@ import {
   datesPossibles,
   detailCalcul,
   devisSejour,
+  devisToutRegler,
   joursDuCalendrier,
   preparerDevis,
   type DonneesDevis,
@@ -39,8 +40,8 @@ import {
   type ReglagesTunnel,
   type ResultatDevis,
 } from '../lib/devis';
-import { calculerMontants, libelleTaxeSejour, montantsDesPostes, retenueAnnulation, type Reservation } from '../lib/montants';
-import { carteEnregistree, choixComplet, texteAccordCarte, validerChoix } from '../lib/reglement';
+import { calculerMontants, integralChoisi, libelleTaxeSejour, montantsDesPostes, retenueAnnulation, type Reservation } from '../lib/montants';
+import { carteEnregistree, choixComplet, modeSoldeEnBase, texteAccordCarte, toutReglerChoisi, validerChoix } from '../lib/reglement';
 import { fmtAvantArriveeFr, fmtDateLongue, fmtEuro, fmtNoteCentiemes, fmtPrix, fmtTaux, fmtTauxCentiemes, fmtTaxeSejour } from '../lib/format';
 import { cheminSansLangue, lien, type Langue } from '../lib/i18n/langues';
 
@@ -541,6 +542,16 @@ const SEMAINE = { arrivee: '2027-01-09', depart: '2027-01-16' };
   );
   const avant = devisSejour(contexte(ARMU, { aujourdhui: '2026-12-09' }), { ...SEMAINE, adultes: 2, enfants: 0, bebes: 0 });
   noter(avant.ok && !avant.devis.paiementIntegral && avant.devis.aRegler === 16643, 'réservé le 9 décembre : acompte seulement', avant.ok ? avant.devis.aRegler : avant.refus);
+  // D-27 : le client choisit de tout régler maintenant, bien avant la date du solde.
+  if (avant.ok) {
+    const tout = devisToutRegler(avant.devis);
+    noter(
+      tout.paiementIntegral && tout.aRegler === 55478 && tout.dateLimiteSolde === null &&
+        tout.montants.totalTtc === avant.devis.montants.totalTtc && tout.montants.acompte === 16643,
+      'tout régler maintenant : 554,78 € aujourd\'hui, plus de solde, même total, part de l\'acompte gardée (166,43 €)',
+      tout.aRegler,
+    );
+  }
 }
 {
   const prise = contexte(ARMU, { nuitsPrises: ['2027-01-12'] });
@@ -725,6 +736,20 @@ console.log("--- règlement : caution, solde, texte d'accord");
   noter(!sansSolde.ok && sansSolde.message === 'Choisissez comment régler le solde.', 'caution choisie sans le solde : refusé', sansSolde);
   const integral = validerChoix({ moyenCaution: 'cheque', modeSolde: 'prelevement' }, true);
   noter(integral.ok && integral.choix.modeSolde === null, 'paiement intégral : pas de solde, le choix reçu est ignoré', integral);
+  const toutRegler = validerChoix({ moyenCaution: 'cheque', modeSolde: 'integral' }, false);
+  noter(
+    toutRegler.ok && toutReglerChoisi(toutRegler.choix) && modeSoldeEnBase(toutRegler.choix) === null &&
+      !carteEnregistree(toutRegler.choix),
+    'tout régler maintenant avec un chèque : accepté, aucun solde en base, aucune carte enregistrée',
+    toutRegler,
+  );
+  const toutReglerImpose = validerChoix({ moyenCaution: 'carte', modeSolde: 'integral' }, true);
+  noter(
+    toutReglerImpose.ok && toutReglerImpose.choix.modeSolde === null,
+    'paiement intégral imposé : « tout régler » reçu est ignoré comme les autres choix',
+    toutReglerImpose,
+  );
+  noter(!validerChoix({ moyenCaution: 'carte', modeSolde: 'tout' }, false).ok, 'mode de règlement inconnu : refusé');
   noter(
     choixComplet({ moyenCaution: 'carte', modeSolde: null }, true) !== null &&
       choixComplet({ moyenCaution: 'carte', modeSolde: null }, false) === null,
@@ -870,6 +895,18 @@ console.log('--- taxe de séjour affichée, paiement intégral');
   noter(
     retenueAnnulation(resa({ prix_location: 10001, forfait_menage: 0 }), calculerMontants(resa({ prix_location: 10001, forfait_menage: 0 }))) === 3000,
     'arrondi au centime : 30 % de 100,01 € = 30,00 € (30,003 arrondi)',
+  );
+  // D-27 : payé en une fois PAR CHOIX (réservé avant la date du solde) ou parce que l'arrivée était proche.
+  const choisi = resa({ paiement_integral: true, delai_solde_jours: 30, created_at: new Date('2027-01-10T10:00:00Z') });
+  const impose = resa({ paiement_integral: true, delai_solde_jours: 30, created_at: new Date('2027-02-04T10:00:00Z') });
+  const partielDate = resa({ paiement_integral: false, delai_solde_jours: 30, created_at: new Date('2027-01-10T10:00:00Z') });
+  noter(
+    integralChoisi(choisi) && !integralChoisi(impose) && !integralChoisi(partielDate),
+    'contrat : intégral choisi le 10 janvier (avant le 4 février, date du solde), imposé le 4 février, rien sans paiement intégral',
+  );
+  noter(
+    !integralChoisi(resa({ paiement_integral: true, delai_solde_jours: 30, created_at: new Date('2027-02-03T23:30:00Z') })),
+    'jour de réservation lu à Paris : le 3 février à 23 h 30 UTC est déjà le 4 février, intégral imposé',
   );
   noter(
     fmtAvantArriveeFr('2027-03-20', '18:00', 48) === '18 mars 2027 à 18 h 00',

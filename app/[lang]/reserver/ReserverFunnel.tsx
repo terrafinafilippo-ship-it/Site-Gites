@@ -41,6 +41,7 @@ import {
   controlerOccupants,
   dateLongue,
   devisSejour,
+  devisToutRegler,
   preparerDevis,
   type Devis,
   type Occupants,
@@ -52,7 +53,7 @@ import {
   prelevementPossible,
   type ChoixPartiel,
   type ChoixReglement,
-  type ModeSolde,
+  type ModeReglement,
   type MoyenCaution,
 } from "@/lib/reglement";
 import type { Alternative, DonneesTunnel } from "@/lib/tunnel";
@@ -141,7 +142,9 @@ const TEXTES: Bilingue<{
   acompte: (taux: string) => string;
   aujourdhui: (montant: string) => string;
   cautionRecap: (moyen: MoyenCaution | null, montant: string, dateVirement: string) => string;
-  soldeRecap: (montant: string, date: string, mode: ModeSolde | null) => string;
+  soldeRecap: (montant: string, date: string, mode: ModeReglement | null) => string;
+  toutReglerRecap: string;
+  toutReglerCourt: string;
   arriveeProche: (jours: number) => string;
   arriveeProcheCourt: (jours: number) => string;
   etapes: [string, string, string, string];
@@ -202,6 +205,8 @@ const TEXTES: Bilingue<{
   soldePrelevementDetail: (date: string) => string;
   soldeLien: string;
   soldeLienDetail: (date: string) => string;
+  soldeIntegral: string;
+  soldeIntegralDetail: (total: string) => string;
   prelevementAvecCarte: string;
   choixRequis: (integral: boolean) => string;
   accordTitre: string;
@@ -300,6 +305,8 @@ const TEXTES: Bilingue<{
         : mode === "lien"
           ? `Solde de ${montant} à régler par lien au plus tard le ${date}.`
           : `Solde de ${montant} à régler au plus tard le ${date}.`,
+    toutReglerRecap: "Vous réglez la totalité aujourd'hui : il n'y a pas de solde.",
+    toutReglerCourt: "Totalité réglée aujourd'hui, sans solde.",
     arriveeProche: (jours) => `Arrivée à moins de ${jours} jours : le séjour se règle en totalité à la réservation.`,
     arriveeProcheCourt: (jours) => `Arrivée à moins de ${jours} jours : le séjour se règle en totalité.`,
     etapes: ["Dates & voyageurs", "Coordonnées", "Récapitulatif & règlement", "Paiement"],
@@ -366,6 +373,8 @@ const TEXTES: Bilingue<{
     soldePrelevementDetail: (date) => `Prélevé le ${date} sur la carte de ce paiement.`,
     soldeLien: "Paiement par lien",
     soldeLienDetail: (date) => `Vous le réglez vous-même, par un lien que nous vous enverrons, au plus tard le ${date}.`,
+    soldeIntegral: "Tout régler maintenant",
+    soldeIntegralDetail: (total) => `Vous payez ${total} aujourd'hui, il n'y a plus de solde.`,
     prelevementAvecCarte: "Proposé avec une caution par carte.",
     choixRequis: (integral) =>
       integral
@@ -473,6 +482,8 @@ const TEXTES: Bilingue<{
         : mode === "lien"
           ? `Balance of ${montant} to be paid by link by ${date} at the latest.`
           : `Balance of ${montant} to be paid by ${date} at the latest.`,
+    toutReglerRecap: "You pay the full stay today: there is no balance.",
+    toutReglerCourt: "Full stay paid today, no balance.",
     arriveeProche: (jours) => `Arrival in less than ${jours} days: the full stay is paid on booking.`,
     arriveeProcheCourt: (jours) => `Arrival in less than ${jours} days: the full stay is paid now.`,
     etapes: ["Dates & guests", "Your details", "Summary & payment terms", "Payment"],
@@ -539,6 +550,8 @@ const TEXTES: Bilingue<{
     soldePrelevementDetail: (date) => `Charged on ${date} to the card used for this payment.`,
     soldeLien: "Payment by link",
     soldeLienDetail: (date) => `You pay it yourself, through a link we will send you, by ${date} at the latest.`,
+    soldeIntegral: "Pay everything now",
+    soldeIntegralDetail: (total) => `You pay ${total} today; there is no balance left.`,
     prelevementAvecCarte: "Available with a security deposit by card.",
     choixRequis: (integral) =>
       integral
@@ -846,9 +859,18 @@ export default function ReserverFunnel({
   const devisClient = resultat?.ok ? resultat.devis : null;
   const refusDates = dates && !dates.ok ? dates.refus : resultat && !resultat.ok ? resultat.refus : null;
   // Une fois les dates bloquées, c'est le devis du SERVEUR qui s'affiche.
-  const devis = tentative?.devis ?? devisClient;
+  const devisBrut = tentative?.devis ?? devisClient;
+  // Tout régler maintenant (D-27) : le total à payer, plus de solde. Le devis du
+  // serveur l'applique déjà ; celui du navigateur l'applique ici, à l'affichage.
+  // Paiement intégral IMPOSÉ (D-20, arrivée trop proche) : pas de choix du solde,
+  // même si « tout régler » avait été choisi pour d'autres dates.
+  const integralImpose = devisClient?.paiementIntegral === true;
+  const toutRegler = !integralImpose && (tentative ? tentative.choix.modeSolde : reglement.modeSolde) === "integral";
+  const devis = devisBrut && toutRegler && !devisBrut.paiementIntegral ? devisToutRegler(devisBrut) : devisBrut;
+  // Le choix du solde dépend du devis AVANT ce choix : la date limite du solde existe-t-elle ?
+  const dateSoldeAuChoix = devisClient && !devisClient.paiementIntegral ? devisClient.dateLimiteSolde : null;
   const tauxAcompte = fmtTaux(devis?.tauxAcompte ?? reglages.tauxAcompte, langue);
-  const choixFait = devis ? choixComplet(reglement, devis.paiementIntegral) : null;
+  const choixFait = devisBrut ? choixComplet(reglement, integralImpose) : null;
   const choisirCaution = (moyenCaution: MoyenCaution) =>
     setReglement((r) => ({
       moyenCaution,
@@ -1067,7 +1089,9 @@ export default function ReserverFunnel({
                   date(devis.dateLimiteSolde),
                   tentative ? tentative.choix.modeSolde : reglement.modeSolde,
                 )
-              : t.arriveeProche(devis.delaiSoldeJours)}
+              : toutRegler
+                ? t.toutReglerRecap
+                : t.arriveeProche(devis.delaiSoldeJours)}
           </div>
         </>
       )}
@@ -1334,7 +1358,7 @@ export default function ReserverFunnel({
             <div className={styles.funnel}>
               <div className={styles.stepPane}>
                 <h1>{t.titre3}</h1>
-                <p className={styles.stepLead}>{t.intro3(devis.paiementIntegral)}</p>
+                <p className={styles.stepLead}>{t.intro3(integralImpose)}</p>
 
                 <div className={styles.fieldGroup}>
                   {bebes > 0 && (
@@ -1397,7 +1421,9 @@ export default function ReserverFunnel({
                       <small>
                         {devis.dateLimiteSolde
                           ? t.soldeRecap(euros(devis.montants.solde), date(devis.dateLimiteSolde), null)
-                          : t.arriveeProcheCourt(devis.delaiSoldeJours)}
+                          : toutRegler
+                            ? t.toutReglerCourt
+                            : t.arriveeProcheCourt(devis.delaiSoldeJours)}
                       </small>
                     </span>
                     <em>{euros(devis.aRegler)}</em>
@@ -1429,16 +1455,16 @@ export default function ReserverFunnel({
                   </div>
                 </div>
 
-                {devis.dateLimiteSolde && (
+                {dateSoldeAuChoix && (
                   <div className={styles.fieldGroup}>
                     <h3 id="titre-solde">{t.titreSolde}</h3>
                     <p className={styles.choixIntro}>
-                      {t.introSolde(euros(devis.montants.solde), date(devis.dateLimiteSolde))}
+                      {t.introSolde(euros(devis.montants.solde), date(dateSoldeAuChoix))}
                     </p>
                     <div role="radiogroup" aria-labelledby="titre-solde">
                       <CarteChoix
                         nom={t.soldePrelevement}
-                        detail={t.soldePrelevementDetail(date(devis.dateLimiteSolde))}
+                        detail={t.soldePrelevementDetail(date(dateSoldeAuChoix))}
                         choisie={reglement.modeSolde === "prelevement"}
                         inactive={reglement.moyenCaution !== null && !prelevementPossible(reglement.moyenCaution)}
                         note={t.prelevementAvecCarte}
@@ -1446,9 +1472,15 @@ export default function ReserverFunnel({
                       />
                       <CarteChoix
                         nom={t.soldeLien}
-                        detail={t.soldeLienDetail(date(devis.dateLimiteSolde))}
+                        detail={t.soldeLienDetail(date(dateSoldeAuChoix))}
                         choisie={reglement.modeSolde === "lien"}
                         onChoisir={() => setReglement((r) => ({ ...r, modeSolde: "lien" }))}
+                      />
+                      <CarteChoix
+                        nom={t.soldeIntegral}
+                        detail={t.soldeIntegralDetail(euros(devis.montants.totalTtc))}
+                        choisie={reglement.modeSolde === "integral"}
+                        onChoisir={() => setReglement((r) => ({ ...r, modeSolde: "integral" }))}
                       />
                     </div>
                   </div>
@@ -1456,7 +1488,7 @@ export default function ReserverFunnel({
 
                 {message && <div className={styles.avis}>{message}</div>}
                 <p className={styles.miniCalAide}>
-                  {choixFait ? t.blocageAVenir(reglages.dureeBlocageMinutes) : t.choixRequis(devis.paiementIntegral)}
+                  {choixFait ? t.blocageAVenir(reglages.dureeBlocageMinutes) : t.choixRequis(integralImpose)}
                 </p>
 
                 <div className={styles.stepActions}>

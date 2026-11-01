@@ -25,6 +25,7 @@ import { aujourdhuiParis, ajouterJours } from "@/lib/dates-civiles";
 import {
   detailCalcul,
   devisSejour,
+  devisToutRegler,
   preparerDevis,
   type DemandeDevis,
   type Devis,
@@ -35,7 +36,14 @@ import {
 import { leverBlocage, lireNuitsPrises, poserBlocage } from "@/lib/disponibilites";
 import { LANGUES, type Langue } from "@/lib/i18n/langues";
 import { annulerPaiementsOuverts, lireTexteAccord } from "@/lib/paiement";
-import { carteEnregistree, texteAccordCarte, validerChoix, type ChoixReglement } from "@/lib/reglement";
+import {
+  carteEnregistree,
+  modeSoldeEnBase,
+  texteAccordCarte,
+  toutReglerChoisi,
+  validerChoix,
+  type ChoixReglement,
+} from "@/lib/reglement";
 import { isUniqueViolation } from "@/lib/route-helpers";
 import type { Executeur } from "@/lib/reservations";
 import { chargerTarification } from "@/lib/tarifs";
@@ -250,16 +258,17 @@ export async function enregistrerTentative(
     }
     return { ok: false, raison: "REFUS", refus: resultat.refus };
   }
-  const devis = resultat.devis;
   const { locataire, colocataire } = coordonnees;
   const r = donnees.reglages;
 
-  const reglement = validerChoix(reglementBrut, devis.paiementIntegral, langue);
+  const reglement = validerChoix(reglementBrut, resultat.devis.paiementIntegral, langue);
   if (!reglement.ok) {
     console.warn(`[tunnel] règlement refusé (${slug}) : ${reglement.detail}`);
     return { ok: false, raison: "REGLEMENT", message: reglement.message };
   }
   const choix = reglement.choix;
+  // Tout régler maintenant (D-27) : le total à payer, plus de solde.
+  const devis = toutReglerChoisi(choix) ? devisToutRegler(resultat.devis) : resultat.devis;
   let accord: { id: string; texte: string } | null = null;
   if (carteEnregistree(choix)) {
     const modele = await lireTexteAccord(db, langue, donnees.aujourdhui);
@@ -323,7 +332,7 @@ export async function enregistrerTentative(
             delai_virement_caution_jours: r.delaiVirementCautionJours,
             paiement_integral: devis.paiementIntegral,
             moyen_caution: choix.moyenCaution,
-            mode_solde: choix.modeSolde,
+            mode_solde: modeSoldeEnBase(choix),
             langue,
             accord_carte_id: accord?.id ?? null,
             accord_carte_texte: accord?.texte ?? null,

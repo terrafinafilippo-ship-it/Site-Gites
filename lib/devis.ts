@@ -478,6 +478,15 @@ export function devisSejour(ctx: ContexteDevis, demande: DemandeDevis): Resultat
   };
 }
 
+/**
+ * Le client choisit de TOUT RÉGLER MAINTENANT (D-27) : même séjour, même prix,
+ * le total se paie à la réservation et il n'y a plus de solde. Les montants
+ * gardent l'acompte calculé : sa part sert à l'annulation (art. 7.2).
+ */
+export function devisToutRegler(devis: Devis): Devis {
+  return { ...devis, paiementIntegral: true, aRegler: devis.montants.totalTtc, dateLimiteSolde: null };
+}
+
 // ─── Calendrier ───────────────────────────────────────────────────────────────
 
 export interface EtatJour {

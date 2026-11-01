@@ -5,7 +5,7 @@
 // SIMULÉ : aucun réseau, aucune clé. Elle rejoue ce que Stripe peut répondre,
 // dans l'ordre qu'il veut :
 //   1. paiement ouvert « en attente », carte conservée seulement pour une
-//      caution par carte ;
+//      caution par carte ; tout régler maintenant, 40 jours avant (D-27) ;
 //   2. refus de la banque, puis paiement réussi : réservation confirmée, nuits
 //      vendues, constat répété sans effet (retour client ET avis de Stripe) ;
 //   3. paiement arrivé après la fin du blocage : nuits encore libres →
@@ -271,6 +271,27 @@ async function partieLogique(): Promise<void> {
     integral.devis.paiementIntegral && integral.choix.modeSolde === null && (await etatPaiement(piI))?.type === "total",
     "arrivée dans moins de 30 jours : paiement « total », pas de solde (le choix reçu est ignoré)",
     integral.choix,
+  );
+
+  // D-27 : arrivée dans 40 jours, le client choisit de tout régler maintenant.
+  const tout = await tenter("armu", samediDans(40), { moyenCaution: "cheque", modeSolde: "integral" });
+  const piT = await ouvrir(tout, p);
+  const pT = await etatPaiement(piT);
+  noter(
+    tout.devis.paiementIntegral && tout.devis.aRegler === tout.devis.montants.totalTtc && tout.devis.dateLimiteSolde === null &&
+      pT?.type === "total" && pT.montant === numericDepuisCentimes(tout.devis.montants.totalTtc),
+    `tout régler maintenant, 40 jours avant : paiement « total » de ${tout.devis.montants.totalTtc} centimes, plus de solde`,
+    pT,
+  );
+  p.regler(piT, "reussi");
+  noter((await constaterPaiement(piT, p)).issue === "CONFIRMEE", "tout régler maintenant : paiement constaté, réservation confirmée");
+  const rT = await ligne<{ integral: boolean; mode: string | null; customer: string | null }>(sql`
+    select paiement_integral as integral, mode_solde as mode, stripe_customer_id as customer
+      from reservations where id = ${tout.id}::uuid`);
+  noter(
+    rT?.integral === true && rT.mode === null && rT.customer === null,
+    "en base : payé en une fois, aucun mode de solde, aucune carte (caution par chèque)",
+    rT,
   );
 
   console.log("--- 2. refus, puis paiement réussi");

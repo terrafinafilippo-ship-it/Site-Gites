@@ -34,7 +34,9 @@ const DOCUMENT_TYPE = "contrat_location";
 // limite du solde et les 48 heures, taxe de séjour toujours remboursée
 // (art. 7.2, 7.5), taxe pour le compte d'Annonay Rhône Agglo (art. 4.4),
 // adresse de contact des réglages.
-const TEMPLATE_VERSION = "v3";
+// v4 (30 octobre 2026, D-27) : paiement intégral choisi par le client avant
+// la date limite du solde (art. 5.1 et 7.2).
+const TEMPLATE_VERSION = "v4";
 // Le lien de signature reste valable 30 jours.
 const TOKEN_TTL_JOURS = 30;
 
