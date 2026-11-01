@@ -13,8 +13,8 @@ moyens de caution dans la phase. Découpage en cinq lots plus bas.
 le même jour** ; **lot 2 (calendrier et réservation) livré le 15 octobre
 2026** ; **lot 3 (paiement, Stripe en mode test) livré le 20 octobre 2026** ;
 **lot 4 (courriels et suivi) livré le 28 octobre 2026** ; **lot 5 (contrat et
-pages) livré le 29 octobre 2026**. Les cinq lots sont livrés ; la clôture de la
-phase reste à prononcer.
+pages) livré le 29 octobre 2026** ; « tout régler maintenant » le 30 octobre.
+**Phase close le 1er novembre 2026** (bilan : `docs/journal-phases.md`).
 
 > **Point 9 tranché à l'ouverture (24 septembre 2026) : échéance décalée au
 > déploiement effectif.** La Phase 3 va produire des PDF sans sauvegarde de

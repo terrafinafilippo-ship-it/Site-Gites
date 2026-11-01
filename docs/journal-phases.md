@@ -1263,6 +1263,50 @@ aucune réduction ; l'annulation suit la règle habituelle (D-26).
 
 ---
 
+## Phase 3 — clôture (1er novembre 2026)
+
+La Phase 3 est close. Le site prend une réservation de bout en bout : prix et
+taxe de séjour calculés, dates bloquées pendant le paiement, acompte ou total
+payé par Stripe (mode test), contrat créé et envoyé, signé en ligne, page
+« Ma réservation ». Détail des lots dans les entrées ci-dessus.
+
+### Critères d'acceptation (`docs/phases/phase-3.md`)
+
+1. **Une réservation complète à l'écran, avec une carte de test, jusqu'au
+   contrat signé reçu par courriel** : faite par le gérant le 1er novembre
+   2026 sur le serveur d'essai (base jetable). Réservation SAM-2026-DDCF9
+   (arrivée le 27 novembre, donc paiement intégral imposé), caution par
+   carte, contrat CTR-2026-003 en v4 **signé** le 1er novembre à 18 h 48
+   (vérifié en base). Le courriel de confirmation est **réellement parti par
+   Brevo** vers l'adresse du gérant : premier envoi réel, reçu.
+2. **Deux tentatives simultanées** : la seconde est refusée, le blocage de la
+   première se libère seul (`verify:blocage`, 42 cas).
+3. **`bash scripts/parcours/lancer.sh`** : quatorze étapes sur quatorze, aucun
+   montant de référence n'a bougé.
+
+### Ce qui n'a PAS été vérifié à l'écran
+
+- La case « Tout régler maintenant » (arrivée à plus de 30 jours) : vérifiée
+  par les contrôles et un contrat d'essai, pas regardée à l'écran.
+- La carte 3-D Secure (`4000 0027 6000 3184`) dans le tunnel.
+
+### Ce qui reste ouvert, et où
+
+- **Avant le premier client** : `docs/06-avant-premier-client.md` (relecture
+  du juriste des articles 4.4, 5, 6, 7 ; 48 heures à confirmer ; taxe de
+  séjour de Savas ; Stripe et Brevo sur le serveur déployé ; etc.).
+- **Phase 4** : solde à J-30, caution la veille du départ, factures
+  automatiques (le paiement intégral attend le comptable), relances, tâches
+  planifiées.
+- **Le PDF signé est re-rendu à la signature** avec le texte du moment
+  (entrée du lot 5, points reportés) : à traiter avant tout changement de
+  texte en production.
+- **Base de test sur le serveur** (`gites_test`) : migrations 0002 à 0008 à
+  appliquer quand le tunnel SSH sera ouvert ; les essais de cette phase ont
+  tourné sur une base PostgreSQL jetable du poste.
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul
