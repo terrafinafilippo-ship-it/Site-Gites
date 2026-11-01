@@ -162,7 +162,9 @@ commit, à faire relire au juriste** (`docs/contrat-template.md`, articles 4.4,
    sommes versées, restent acquis **taxe de séjour comprise**, alors qu'elle est
    remboursée en cas d'annulation. Aligner ?
 5. Séjour payé en une fois : la qualification « paiement du prix, à
-   l'exclusion des arrhes » (5.2) suffit-elle ?
+   l'exclusion des arrhes » (5.2) suffit-elle ? Elle vaut aussi depuis le
+   contrat v4 pour le client qui **choisit** de tout régler à la réservation
+   (D-27, article 5.1).
 - le **texte d'accord pour l'enregistrement de la carte**, validé par le gérant
   le 14 octobre 2026, **et sa traduction anglaise** validée le 20 octobre 2026 :
   les deux textes sont dans `docs/phases/phase-3.md` (et en base, table

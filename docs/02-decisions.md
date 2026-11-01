@@ -1144,6 +1144,51 @@ lui-même : un remboursement se fait à la main, depuis Stripe.
 
 ---
 
+## D-27 · Tout régler maintenant, au choix du client
+
+**Date :** 30 octobre 2026 (Phase 3, après le lot 5). Choix du gérant :
+- le client qui réserve **avant** la date limite du solde peut tout payer à la
+  réservation : troisième possibilité du bloc « Le solde », **« Tout régler
+  maintenant »** (« Vous payez … aujourd'hui, il n'y a plus de solde. ») ;
+- **aucune réduction** : le même total, payé plus tôt ;
+- **l'annulation suit la règle habituelle (D-26)** : tout est remboursé
+  jusqu'à la date limite du solde ; ensuite la part de l'acompte, hors taxe de
+  séjour, est conservée et le reste remboursé jusqu'à 48 heures avant
+  l'arrivée ; passé ce délai, seule la taxe de séjour est remboursée.
+
+**Décision.**
+- **Aucune colonne nouvelle.** La réservation porte `paiement_integral = true`
+  et `mode_solde` vide, comme un paiement intégral imposé (D-20). Le choix
+  « integral » n'existe que dans le tunnel (`ModeReglement`, `lib/reglement.ts`).
+- **Choisi ou imposé se déduit des dates** (`integralChoisi`,
+  `lib/montants.ts`) : choisi si le jour de réservation (heure de Paris) est
+  antérieur à la date limite du solde recopiée sur la réservation ; le tunnel
+  impose le paiement intégral exactement à partir de ce jour (`lib/devis.ts`).
+- **Le devis du serveur fait foi** : `devisToutRegler` (`lib/devis.ts`) met le
+  total à payer et retire la date du solde ; les montants gardent l'acompte,
+  dont la part sert à l'annulation. Choisi avec une arrivée trop proche, il est
+  ignoré comme tout choix du solde (D-20).
+- **Contrat v4** : article 5.1 « Le Locataire a choisi de régler le prix total
+  du séjour en une fois, lors de la réservation. Il n'y a pas de solde. » ;
+  l'article 7.2 garde ses trois cas (avant la date du solde, jusqu'à
+  48 heures, ensuite).
+- La carte n'est enregistrée que pour une caution par carte, comme avant. Les
+  factures d'un séjour payé en une fois restent refusées (comptable, D-20).
+
+**Pourquoi.** Certains clients préfèrent tout payer d'un coup ; le site savait
+déjà encaisser le total et rédiger le contrat d'un séjour sans solde (D-26).
+
+**Ce qui pourrait mal tourner.** Une réservation enregistrée à minuit pile le
+jour de la date limite serait lue « imposée » alors que le client a vu
+« choisie » : seule la phrase de l'article 5.1 en dépend, pas les montants ni
+les dates de l'article 7.2.
+
+**Si on revient dessus.** Retirer le choix, c'est retirer la troisième case
+du tunnel ; les contrats déjà émis gardent leur texte. Ajouter une réduction,
+c'est un réglage, un calcul dans `lib/montants.ts` et un contrat v5.
+
+---
+
 ## Décisions ouvertes
 
 Elles ne sont **pas tranchées** et ne doivent pas l'être dans le code.

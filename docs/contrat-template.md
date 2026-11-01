@@ -171,7 +171,9 @@ Selon le choix exprimé lors de la réservation (`mode_solde`) :
 |---|---|---|---|
 | **Paiement intégral** — 100 % | {{total_ttc}} € | À la réservation | Paiement en ligne par carte bancaire |
 
-La réservation ayant été effectuée moins de {{delai_solde}} jours avant l'arrivée, le prix total du séjour est réglé en une fois, lors de la réservation. **Il n'y a pas de solde.** Pour l'application de l'article 7.2, la part de ce paiement correspondant à l'acompte s'entend de {{taux_acompte}} % du prix total.
+La réservation ayant été effectuée moins de {{delai_solde}} jours avant l'arrivée, le prix total du séjour est réglé en une fois, lors de la réservation. **Il n'y a pas de solde.**
+
+*(Contrat v4, D-27 : paiement intégral choisi par le client avant la date limite du solde — « Le Locataire a choisi de régler le prix total du séjour en une fois, lors de la réservation. **Il n'y a pas de solde.** » ; l'article 7.2 garde alors son premier cas, jusqu'à la date limite du solde.)* Pour l'application de l'article 7.2, la part de ce paiement correspondant à l'acompte s'entend de {{taux_acompte}} % du prix total.
 
 ### 5.2 — Nature juridique de l'acompte
 
@@ -286,7 +288,7 @@ Conformément à la nature juridique d'acompte définie à l'article 5.2, la ré
 
 À titre de **geste commercial unilatéral et révocable**, le Bailleur consent au Locataire les modalités suivantes en cas d'annulation à l'initiative de ce dernier, dûment notifiée par courriel ou courrier recommandé :
 
-- **Jusqu'au {{date_butoir_solde}} inclus** (date limite du solde, {{delai_solde}} jours avant l'arrivée) : remboursement intégral des sommes versées. *(Absent en paiement intégral : cette date est déjà passée à la réservation.)*
+- **Jusqu'au {{date_butoir_solde}} inclus** (date limite du solde, {{delai_solde}} jours avant l'arrivée) : remboursement intégral des sommes versées. *(Absent en paiement intégral imposé : cette date est déjà passée à la réservation. Présent en paiement intégral choisi, D-27.)*
 - **Après le {{date_butoir_solde}} et jusqu'au {{limite_remboursement_solde}}** ({{delai_remboursement_solde}} heures avant l'heure d'arrivée) : le Bailleur conserve l'acompte, déduction faite de la taxe de séjour qu'il comprend, soit **{{retenue_annulation}} €** ({{taux_acompte}} % du prix du séjour hors taxe de séjour) ; le surplus des sommes versées est remboursé. *(Paiement intégral : « Jusqu'au {{limite_remboursement_solde}} … le Bailleur conserve la part du paiement correspondant à l'acompte (article 5.1), déduction faite de la taxe de séjour qu'elle comprend ».)*
 - **Moins de {{delai_remboursement_solde}} heures avant l'heure d'arrivée** : les sommes versées restent acquises au Bailleur, à l'exception de la taxe de séjour, qui est remboursée.
 

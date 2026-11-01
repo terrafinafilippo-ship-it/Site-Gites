@@ -1216,6 +1216,53 @@ Choix du gérant (28 et 29 octobre 2026) :
 
 ---
 
+## Phase 3 — tout régler maintenant, au choix du client (30 octobre 2026)
+
+Le client qui réserve avant la date limite du solde peut tout payer à la
+réservation. Décision D-27, contrat v4.
+
+### Ce qui a été décidé
+
+Choix du gérant : troisième possibilité dans le bloc « Le solde » (« Tout
+régler maintenant — Vous payez … aujourd'hui, il n'y a plus de solde. ») ;
+aucune réduction ; l'annulation suit la règle habituelle (D-26).
+
+### Ce qui a été fait
+
+- **`lib/reglement.ts`** : le mode « integral », contrôlé par le serveur,
+  jamais écrit en base (`mode_solde` vide, `paiement_integral` vrai).
+- **`lib/devis.ts`, `lib/tunnel.ts`** : `devisToutRegler`, le total à payer
+  et plus de date du solde ; ignoré quand l'arrivée est trop proche (D-20).
+- **Tunnel** (`ReserverFunnel.tsx`) : la troisième case, le montant à payer et
+  le récapitulatif latéral, en français et en anglais.
+- **Contrat v4** : article 5.1 « Le Locataire a choisi de régler le prix total
+  du séjour en une fois, lors de la réservation. » ; l'article 7.2 garde son
+  premier cas. Choisi ou imposé se déduit des dates (`integralChoisi`).
+- **Contrôles** : `verify:tarification` 187 cas ; `verify:paiement` (réservation
+  40 jours avant, paiement « total », aucun solde en base, aucune carte).
+
+### Ce qui a été vérifié
+
+- `npm run lint`, `npx tsc --noEmit`, `npm run build` : passent.
+- `bash scripts/parcours/lancer.sh` : **quatorze étapes sur quatorze**, aucun
+  montant de référence n'a bougé.
+- Contrat d'essai émis par le serveur (arrivée le 20 mars 2027, réservé le
+  30 octobre 2026, puis supprimé) : « Le Locataire a choisi… », « Jusqu'au
+  18 février 2027 inclus : remboursement intégral », « Après le 18 février
+  2027 et jusqu'au 18 mars 2027 à 18 h 00 : … 210,00 € ».
+
+### Ce qui n'a PAS été vérifié
+
+- **L'écran du tunnel** avec la troisième case : aucun outil de navigateur
+  automatisé sur ce poste. Le code est contrôlé par les types et le build, la
+  logique par les contrôles ; l'écran est à regarder à la main.
+
+### Points reportés
+
+- La phrase de l'article 5.1 rejoint la relecture du juriste (point 3).
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

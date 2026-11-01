@@ -269,7 +269,9 @@ client), ni la **phrase d'autorisation de Stripe**, doublon du texte d'accord
   Gîtes de France sont gardés par le gérant. La note (4,97/5, 46 avis, 100 %)
   devient un réglage.
 - **Paiement intégral au choix du client** (même s'il réserve plus de 30 jours
-  avant) : accepté par le gérant, **dans une étape à part**, après ce lot.
+  avant) : accepté par le gérant, **dans une étape à part**, après ce lot →
+  livré le 30 octobre 2026 (D-27, contrat v4) : « Tout régler maintenant »,
+  sans réduction, annulation selon D-26.
 
 ---
 

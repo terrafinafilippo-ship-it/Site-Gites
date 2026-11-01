@@ -269,7 +269,7 @@ Emplacements qui décrivent le mécanisme, à modifier **ensemble** s'il change 
 Toute modification du texte du contrat s'accompagne d'un changement de
 `TEMPLATE_VERSION` (`lib/contrat.ts`), enregistrée sur chaque contrat
 émis : c'est elle qui dit quel client a signé quel texte. Version en cours :
-`v3` (29 octobre 2026, D-26).
+`v4` (30 octobre 2026, D-27).
 
 **Écart E-1 (bloquant, Phase 6) — identité du professionnel.** Voir § 9.
 
