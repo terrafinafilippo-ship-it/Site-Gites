@@ -13,6 +13,11 @@
 // par-dessus la page ; si la banque impose une redirection, le client revient
 // sur /reserver/confirmation, qui reprend le paiement en cours (et non la
 // saisie des coordonnées).
+//
+// Repris par « Ma réservation » (Phase 4) : le solde, la caution à valider
+// (préautorisation : le paiement aboutit « à encaisser », rien n'est débité)
+// et, mode « enregistrement », la carte enregistrée sans paiement pour la
+// caution (art. 6.6 du contrat).
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import { useState, type ReactNode } from "react";
@@ -67,10 +72,13 @@ export default function PaiementStripe({
   urlRetour,
   rendu,
   onEssai,
+  mode = "paiement",
 }: {
   clePublique: string;
   clientSecret: string;
   langue: Langue;
+  /** « enregistrement » : carte enregistrée sans paiement (SetupIntent). */
+  mode?: "paiement" | "enregistrement";
   /** Adresse absolue de /reserver/confirmation dans la langue du client. */
   urlRetour: string;
   /** Mise en page de l'étape : le champ de carte où il doit aller, et les boutons qui paient. */
@@ -82,7 +90,7 @@ export default function PaiementStripe({
       stripe={chargerStripe(clePublique)}
       options={{ clientSecret, locale: langue, appearance: APPARENCE }}
     >
-      <Formulaire clientSecret={clientSecret} urlRetour={urlRetour} rendu={rendu} onEssai={onEssai} />
+      <Formulaire clientSecret={clientSecret} urlRetour={urlRetour} rendu={rendu} onEssai={onEssai} mode={mode} />
     </Elements>
   );
 }
@@ -92,11 +100,13 @@ function Formulaire({
   urlRetour,
   rendu,
   onEssai,
+  mode,
 }: {
   clientSecret: string;
   urlRetour: string;
   rendu: Rendu;
   onEssai: (essai: EssaiPaiement) => void;
+  mode: "paiement" | "enregistrement";
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -106,7 +116,29 @@ function Formulaire({
   async function payer(): Promise<void> {
     if (!stripe || !elements || enCours) return;
     setEnCours(true);
+    const retour = (p: URLSearchParams) =>
+      onEssai({ type: "abouti", urlConfirmation: `${urlRetour}${urlRetour.includes("?") ? "&" : "?"}${p.toString()}` });
     try {
+      if (mode === "enregistrement") {
+        const { error, setupIntent } = await stripe.confirmSetup({
+          elements,
+          confirmParams: { return_url: urlRetour },
+          redirect: "if_required",
+        });
+        if (error) {
+          const message = error.message ?? null;
+          if (error.code === "setup_intent_authentication_failure") onEssai({ type: "authentification", message });
+          else if (error.type === "card_error") onEssai({ type: "refus", message });
+          else onEssai({ type: "erreur", message });
+          return;
+        }
+        if (setupIntent && (setupIntent.status === "succeeded" || setupIntent.status === "processing")) {
+          retour(new URLSearchParams({ setup_intent: setupIntent.id, setup_intent_client_secret: clientSecret }));
+          return;
+        }
+        onEssai({ type: "erreur", message: null });
+        return;
+      }
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: { return_url: urlRetour },
@@ -119,10 +151,13 @@ function Formulaire({
         else onEssai({ type: "erreur", message });
         return;
       }
-      if (paymentIntent && (paymentIntent.status === "succeeded" || paymentIntent.status === "processing")) {
+      // « requires_capture » : caution bloquée (préautorisation), rien n'est débité.
+      if (
+        paymentIntent &&
+        (paymentIntent.status === "succeeded" || paymentIntent.status === "processing" || paymentIntent.status === "requires_capture")
+      ) {
         // Même adresse que le retour d'une redirection bancaire : un seul chemin de confirmation.
-        const p = new URLSearchParams({ payment_intent: paymentIntent.id, payment_intent_client_secret: clientSecret });
-        onEssai({ type: "abouti", urlConfirmation: `${urlRetour}${urlRetour.includes("?") ? "&" : "?"}${p.toString()}` });
+        retour(new URLSearchParams({ payment_intent: paymentIntent.id, payment_intent_client_secret: clientSecret }));
         return;
       }
       onEssai({ type: "erreur", message: null });

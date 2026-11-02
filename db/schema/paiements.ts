@@ -23,6 +23,23 @@
 // deux prélèvements). Le paiement par LIEN naît quand le client ouvre le
 // formulaire (lib/solde.ts) ; un prélèvement refusé se paie ensuite par le
 // lien, sur le MÊME paiement chez le prestataire.
+//
+// CAUTION PAR CARTE (Phase 4, lot 2, migration 0010, D-16) : UNE ligne par
+// réservation (index unique), la préautorisation chez le prestataire. Elle
+// naît « en_attente » SANS `reference_externe` avant l'appel, la veille du
+// départ (même reprise sans double appel que le prélèvement du solde), puis :
+//   - 'bloque'  : fonds bloqués sur la carte, rien n'est débité ; `expire_at`
+//                 est la date limite de la banque pour encaisser (lue chez
+//                 Stripe, jamais recalculée) ;
+//   - 'echoue'  : refusée, ou authentification exigée : le client la valide
+//                 en ligne, sur le MÊME paiement (il redevient 'bloque') ;
+//   - 'libere'  : préautorisation levée (`date_liberation`), rien n'a été
+//                 débité ; aussi quand la banque la laisse expirer ;
+//   - 'retenu'  : encaissée en tout ou partie (`montant_retenu`, le reste est
+//                 libéré par la banque) — depuis l'écran de gestion (Phase 5)
+//                 ou le tableau de bord Stripe ;
+//   - 'annule'  : jamais bloquée (refusée puis close au moment de la levée).
+// `montant` est celui de la préautorisation, recopié de reservations.caution.
 import { sql } from "drizzle-orm";
 import {
   check,
@@ -40,7 +57,18 @@ import { reservations } from "./reservations";
 export const TYPES_PAIEMENT = ["acompte", "total", "solde", "caution"] as const;
 export type TypePaiement = (typeof TYPES_PAIEMENT)[number];
 
-export const STATUTS_PAIEMENT = ["en_attente", "reussi", "echoue", "annule", "a_rembourser", "rembourse"] as const;
+export const STATUTS_PAIEMENT = [
+  "en_attente",
+  "reussi",
+  "echoue",
+  "annule",
+  "a_rembourser",
+  "rembourse",
+  // Caution seulement (migration 0010).
+  "bloque",
+  "libere",
+  "retenu",
+] as const;
 export type StatutPaiement = (typeof STATUTS_PAIEMENT)[number];
 
 export const paiements = pgTable(
@@ -64,6 +92,12 @@ export const paiements = pgTable(
     motif_remboursement: text(),
     reference_remboursement: text(),
     date_remboursement: timestamp({ withTimezone: true }),
+    // Caution (migration 0010) : date limite de la banque pour encaisser la
+    // préautorisation (`capture_before` de Stripe) ; montant encaissé sur
+    // retenue ; levée de la préautorisation.
+    expire_at: timestamp({ withTimezone: true }),
+    montant_retenu: numeric({ precision: 10, scale: 2, mode: "string" }),
+    date_liberation: timestamp({ withTimezone: true }),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     // Entretenu par le trigger paiements_set_updated_at (migration 0005).
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -72,13 +106,26 @@ export const paiements = pgTable(
     index("paiements_reservation_id_idx").on(t.reservation_id),
     uniqueIndex("paiements_reference_externe_uidx").on(t.reference_externe),
     check("paiements_type_check", sql`${t.type} in ('acompte', 'total', 'solde', 'caution')`),
+    // Une seule caution par réservation : la même préautorisation sert du blocage à la levée.
+    uniqueIndex("paiements_caution_uidx").on(t.reservation_id).where(sql`${t.type} = 'caution'`),
     check(
       "paiements_statut_check",
-      sql`${t.statut} in ('en_attente', 'reussi', 'echoue', 'annule', 'a_rembourser', 'rembourse')`,
+      sql`${t.statut} in ('en_attente', 'reussi', 'echoue', 'annule', 'a_rembourser', 'rembourse', 'bloque', 'libere', 'retenu')`,
     ),
     check(
       "paiements_remboursement_check",
       sql`${t.statut} not in ('a_rembourser', 'rembourse') or ${t.motif_remboursement} is not null`,
+    ),
+    // États et colonnes de la caution : jamais sur un autre paiement.
+    check(
+      "paiements_caution_check",
+      sql`${t.type} = 'caution' or (${t.statut} not in ('bloque', 'libere', 'retenu')
+          and ${t.expire_at} is null and ${t.montant_retenu} is null and ${t.date_liberation} is null)`,
+    ),
+    check(
+      "paiements_retenue_check",
+      sql`(${t.statut} = 'retenu') = (${t.montant_retenu} is not null)
+          and (${t.montant_retenu} is null or (${t.montant_retenu} > 0 and ${t.montant_retenu} <= ${t.montant}))`,
     ),
   ],
 );

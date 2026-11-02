@@ -6,6 +6,7 @@ import { after } from "next/server";
 import { fmtDateAvecJour, fmtDateLongue, fmtEuro, fmtHeure } from "@/lib/format";
 import { langueDe, lien, type Bilingue, type Langue } from "@/lib/i18n/langues";
 import { NOM_SITE } from "@/lib/i18n/metadonnees";
+import { constaterRetourEnregistrement, type EtatCaution } from "@/lib/caution";
 import { traiterCourriels } from "@/lib/courriels-envoi";
 import { constaterRetour } from "@/lib/paiement";
 import { CONTACTS, LIBELLES_RECAP, recapitulatif } from "@/lib/recapitulatif";
@@ -15,6 +16,7 @@ import { chargerSuivi, type ContratSuivi } from "@/lib/suivi";
 import FormulaireLien from "../FormulaireLien";
 import styles from "../page.module.css";
 import PayerSolde from "./PayerSolde";
+import ValiderCaution from "./ValiderCaution";
 
 // PAGE « MA RÉSERVATION » (Phase 3, lot 4, étape 3, D-25), ouverte par le
 // lien secret du client : /suivi/{jeton}. Choix du gérant du 28 octobre 2026 :
@@ -32,6 +34,11 @@ import PayerSolde from "./PayerSolde";
 // régler avec le bouton de paiement, payé). Après un paiement, Stripe ramène
 // ici avec l'identifiant du paiement et son secret : la page le revérifie
 // (constaterRetour) avant d'en dire quoi que ce soit.
+//
+// Phase 4, lot 2 (D-16) : le bloc « Votre caution » (prévue la veille du
+// départ, bloquée, levée) ; le client y valide une préautorisation refusée,
+// ou y enregistre une carte quand la caution n'a pas été constituée à
+// l'arrivée (art. 6.6), sous le texte d'accord. Même retour revérifié.
 
 // Données personnelles derrière un jeton : jamais en cache, jamais indexée,
 // et l'adresse (qui porte le jeton) n'est pas transmise aux sites liés.
@@ -78,6 +85,18 @@ const TEXTES: Bilingue<{
   retourRecu: string;
   retourEnCours: string;
   retourEchec: string;
+  caution: string;
+  cautionEtat: Record<EtatCaution["etat"], string>;
+  cautionPrevue: (montant: string, date: string) => string;
+  cautionAValider: (montant: string) => string;
+  cautionAutreMoyen: string;
+  cautionCarte: (montant: string) => string;
+  cautionBloquee: (montant: string, date: string) => string;
+  cautionLevee: (montant: string, date: string | null) => string;
+  cautionRetenue: (montant: string, retenu: string, date: string | null) => string;
+  retourCaution: string;
+  retourCarte: string;
+  retourCautionEchec: string;
 }> = {
   fr: {
     titrePage: "Ma réservation",
@@ -120,6 +139,28 @@ const TEXTES: Bilingue<{
     retourRecu: "Paiement du solde reçu — merci ! Votre facture vous est envoyée par courriel.",
     retourEnCours: "Votre banque traite le paiement. Rechargez cette page dans quelques instants.",
     retourEchec: "Votre paiement n'a pas abouti : aucune somme n'a été prélevée.",
+    caution: "Votre caution",
+    cautionEtat: {
+      prevue: "Prévue",
+      a_valider: "À valider",
+      carte_a_enregistrer: "À constituer",
+      bloquee: "Bloquée",
+      levee: "Levée",
+      retenue: "Retenue",
+    },
+    cautionPrevue: (m, date) =>
+      `Caution de ${m} : préautorisation sur la carte enregistrée le ${date}, la veille de votre départ. Aucune somme n'est débitée, sauf dégât constaté.`,
+    cautionAValider: (m) => `La préautorisation de votre caution (${m}) n'a pas abouti. Validez-la avec la même carte ou une autre.`,
+    cautionAutreMoyen: "À défaut, la caution est à constituer par un autre moyen avant votre départ (article 6.2 du contrat).",
+    cautionCarte: (m) =>
+      `Votre caution de ${m} n'a pas été constituée à votre arrivée. Enregistrez une carte : la préautorisation sera faite la veille de votre départ (article 6.6 du contrat).`,
+    cautionBloquee: (m, date) =>
+      `Caution de ${m} bloquée sur votre carte : aucune somme n'est débitée. Elle sera levée au plus tard le ${date}, sauf dégât constaté.`,
+    cautionLevee: (m, date) => `Caution de ${m} levée${date ? ` le ${date}` : ""} : aucune somme n'a été débitée.`,
+    cautionRetenue: (m, r, date) => `Sur la caution de ${m}, ${r} ont été retenus${date ? ` le ${date}` : ""}.`,
+    retourCaution: "Votre caution est validée : elle est bloquée sur votre carte, aucune somme n'est débitée.",
+    retourCarte: "Votre carte est enregistrée pour la caution.",
+    retourCautionEchec: "La validation n'a pas abouti : rien n'a été bloqué sur votre carte.",
   },
   en: {
     titrePage: "My booking",
@@ -162,6 +203,28 @@ const TEXTES: Bilingue<{
     retourRecu: "Balance payment received — thank you! Your invoice is being sent to you by email.",
     retourEnCours: "Your bank is processing the payment. Reload this page in a few moments.",
     retourEchec: "Your payment did not go through: nothing has been charged.",
+    caution: "Your security deposit",
+    cautionEtat: {
+      prevue: "Scheduled",
+      a_valider: "To be confirmed",
+      carte_a_enregistrer: "To be provided",
+      bloquee: "Held",
+      levee: "Released",
+      retenue: "Retained",
+    },
+    cautionPrevue: (m, date) =>
+      `Security deposit of ${m}: pre-authorisation on the saved card on ${date}, the day before you leave. Nothing is charged unless damage is found.`,
+    cautionAValider: (m) => `The pre-authorisation of your security deposit (${m}) did not go through. Confirm it with the same card or another one.`,
+    cautionAutreMoyen: "Otherwise, the deposit must be provided by another means before you leave (article 6.2 of the contract).",
+    cautionCarte: (m) =>
+      `Your ${m} security deposit was not provided on arrival. Save a card: the pre-authorisation will be made the day before you leave (article 6.6 of the contract).`,
+    cautionBloquee: (m, date) =>
+      `Security deposit of ${m} held on your card: nothing is charged. It will be released by ${date} at the latest, unless damage is found.`,
+    cautionLevee: (m, date) => `Security deposit of ${m} released${date ? ` on ${date}` : ""}: nothing has been charged.`,
+    cautionRetenue: (m, r, date) => `Of the ${m} security deposit, ${r} was retained${date ? ` on ${date}` : ""}.`,
+    retourCaution: "Your security deposit is confirmed: it is held on your card, nothing is charged.",
+    retourCarte: "Your card is saved for the security deposit.",
+    retourCautionEchec: "The confirmation did not go through: nothing has been held on your card.",
   },
 };
 
@@ -271,6 +334,64 @@ function BlocSolde({ langue, jeton, solde }: { langue: Langue; jeton: string; so
   );
 }
 
+function BlocCaution({
+  langue,
+  jeton,
+  caution,
+  accord,
+}: {
+  langue: Langue;
+  jeton: string;
+  caution: EtatCaution;
+  accord: string | null;
+}) {
+  const t = TEXTES[langue];
+  const m = fmtEuro(caution.montant, langue);
+  const classe =
+    caution.etat === "a_valider" || caution.etat === "carte_a_enregistrer"
+      ? styles.aFaire
+      : caution.etat === "prevue"
+        ? styles.attente
+        : styles.fait;
+  return (
+    <div className={styles.bloc}>
+      <h2>{t.caution}</h2>
+      <span className={`${styles.etat} ${classe}`}>{t.cautionEtat[caution.etat]}</span>
+      {caution.etat === "prevue" && <p>{t.cautionPrevue(m, fmtDateAvecJour(caution.date, langue))}</p>}
+      {caution.etat === "bloquee" && <p>{t.cautionBloquee(m, fmtDateAvecJour(caution.levee, langue))}</p>}
+      {caution.etat === "levee" && (
+        <p>{t.cautionLevee(m, caution.date ? fmtDateLongue(jourParis(caution.date), langue) : null)}</p>
+      )}
+      {caution.etat === "retenue" && (
+        <p>
+          {t.cautionRetenue(m, fmtEuro(caution.retenu, langue), caution.date ? fmtDateLongue(jourParis(caution.date), langue) : null)}
+        </p>
+      )}
+      {caution.etat === "a_valider" && (
+        <>
+          <p>{t.cautionAValider(m)}</p>
+          <p className={styles.sous}>{t.cautionAutreMoyen}</p>
+          <ValiderCaution langue={langue} jeton={jeton} montant={caution.montant} enregistrement={false} />
+        </>
+      )}
+      {caution.etat === "carte_a_enregistrer" && (
+        <>
+          <p>{t.cautionCarte(m)}</p>
+          {/* Sans texte d'accord en vigueur, la carte n'est pas proposée (comme dans le tunnel). */}
+          {accord && (
+            <>
+              <p className={styles.sous} style={{ whiteSpace: "pre-line" }}>
+                {accord}
+              </p>
+              <ValiderCaution langue={langue} jeton={jeton} montant={caution.montant} enregistrement />
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 type Parametres = Record<string, string | string[] | undefined>;
 
 function texte(p: Parametres, cle: string): string | null {
@@ -302,19 +423,41 @@ export default async function SuiviPage({
       if (r && "reservationId" in r.issue && r.issue.reservationId === suivi.resa.id) {
         const issue = r.issue.issue;
         retour =
-          issue === "SOLDE_RECU"
-            ? t.retourRecu
-            : issue === "EN_COURS"
-              ? t.retourEnCours
-              : issue === "ECHOUE" || issue === "ANNULE" || issue === "EN_ATTENTE"
-                ? t.retourEchec
-                : null;
+          r.issue.issue === "CAUTION"
+            ? r.issue.statut === "bloque"
+              ? t.retourCaution
+              : t.retourCautionEchec
+            : issue === "SOLDE_RECU"
+              ? t.retourRecu
+              : issue === "EN_COURS"
+                ? t.retourEnCours
+                : issue === "ECHOUE" || issue === "ANNULE" || issue === "EN_ATTENTE"
+                  ? t.retourEchec
+                  : null;
         suivi = await chargerSuivi(jeton);
       }
     } catch (erreur) {
       console.error(`[suivi] vérification du paiement ${paiementId} impossible :`, erreur instanceof Error ? erreur.message : erreur);
       retour = t.retourEnCours;
     }
+  }
+  // Retour d'une carte enregistrée pour la caution (art. 6.6), revérifiée de même.
+  const enregistrementId = texte(p, "setup_intent");
+  const secretEnregistrement = texte(p, "setup_intent_client_secret");
+  if (suivi.etat === "ouvert" && enregistrementId && secretEnregistrement) {
+    try {
+      const r = await constaterRetourEnregistrement(enregistrementId, secretEnregistrement);
+      if (r && r.issue !== "INCONNU" && r.reservationId === suivi.resa.id) {
+        retour =
+          r.issue === "CARTE_ENREGISTREE" ? t.retourCarte : r.issue === "ECHOUE" ? t.retourCautionEchec : t.retourEnCours;
+        suivi = await chargerSuivi(jeton);
+      }
+    } catch (erreur) {
+      console.error(`[suivi] vérification de la carte ${enregistrementId} impossible :`, erreur instanceof Error ? erreur.message : erreur);
+      retour = t.retourEnCours;
+    }
+  }
+  if (suivi.etat === "ouvert" && ((paiementId && secret) || (enregistrementId && secretEnregistrement))) {
     const entetes = await headers();
     const origine =
       process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
@@ -398,11 +541,13 @@ export default async function SuiviPage({
             <li>{faits.paye}</li>
             {/* Le solde a son bloc, qui dit où il en est. */}
             {faits.solde && !suivi.solde && <li>{faits.solde}</li>}
-            {faits.caution && <li>{faits.caution}</li>}
+            {faits.caution && !suivi.caution && <li>{faits.caution}</li>}
           </ul>
         </div>
 
         {suivi.solde && <BlocSolde langue={langue} jeton={jeton} solde={suivi.solde} />}
+
+        {suivi.caution && <BlocCaution langue={langue} jeton={jeton} caution={suivi.caution} accord={suivi.accordCaution} />}
 
         <div className={styles.bloc}>
           <h2>{t.contrat}</h2>

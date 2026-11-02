@@ -28,6 +28,11 @@
 // remboursé, sans courriel au client (les propriétaires sont alertés) et sans
 // oublier la carte, qui sert encore à la caution.
 //
+// CAUTION (Phase 4, lot 2, D-16) : une préautorisation est constatée par
+// lib/caution.ts (constaterCaution) — bloquée, refusée, levée, retenue —, par
+// le même chemin (retour du client, avis de Stripe). Jamais remboursée ici :
+// une caution n'est pas un paiement de la réservation.
+//
 // MONTANTS EN CENTIMES ENTIERS.
 import { timingSafeEqual } from "node:crypto";
 
@@ -37,6 +42,7 @@ import { getDb } from "@/db";
 import { paiements, reservations, textes_accord, type StatutPaiement } from "@/db/schema";
 import { centimesDepuisNumeric, numericDepuisCentimes } from "@/lib/centimes";
 import { inscrireApresPaiement, inscrireFacture, inscrireProbleme, inscrireRemboursement } from "@/lib/courriels";
+import { constaterCaution, type IssueCaution } from "@/lib/caution";
 import { leverBlocage, vendreNuits } from "@/lib/disponibilites";
 import type { Langue } from "@/lib/i18n/langues";
 import type { ModeleAccord } from "@/lib/reglement";
@@ -155,6 +161,8 @@ export type IssuePaiement =
   | { issue: "EN_ATTENTE" | "EN_COURS" | "ECHOUE" | "ANNULE"; reservationId: string }
   /** Payé, mais la réservation ne peut pas être honorée : remboursé (ou à retenter). */
   | { issue: "REMBOURSEE"; reservationId: string; remboursementFait: boolean }
+  /** Caution par carte (Phase 4, lot 2) : son nouvel état. */
+  | IssueCaution
   /** Paiement inconnu du site. */
   | { issue: "INCONNU" };
 
@@ -172,6 +180,8 @@ const STATUT_EN_BASE: Record<Exclude<EtatPaiement["statut"], "reussi">, StatutPa
   en_cours: "en_attente",
   echoue: "echoue",
   annule: "annule",
+  // Préautorisation : n'arrive que pour une caution (constaterCaution).
+  bloque: "en_attente",
 };
 
 const ISSUE_EN_ATTENTE = {
@@ -179,6 +189,7 @@ const ISSUE_EN_ATTENTE = {
   en_cours: "EN_COURS",
   echoue: "ECHOUE",
   annule: "ANNULE",
+  bloque: "EN_ATTENTE",
 } as const;
 
 /**
@@ -206,11 +217,16 @@ export async function constaterPaiement(paiementId: string, p: Prestataire = pre
         if (etat.statut === "reussi" && etat.typePaiement === "solde" && etat.reservationId) {
           throw new Error(`solde ${paiementId} pas encore inscrit par les tâches : à reprendre`);
         }
+        // De même pour une préautorisation de caution : jamais remboursée.
+        if (etat.typePaiement === "caution" && etat.reservationId) {
+          throw new Error(`caution ${paiementId} pas encore inscrite par les tâches : à reprendre`);
+        }
         if (etat.statut === "reussi") throw new ARembourser("paiement reçu pour une réservation inconnue du site");
         return { issue: "INCONNU" } as const;
       }
       const reservationId = ligne.reservation_id;
       if (ligne.type === "solde") return constaterSolde(tx, ligne, etat);
+      if (ligne.type === "caution") return constaterCaution(tx, ligne, etat);
       if (ligne.statut === "reussi") return { issue: "CONFIRMEE", reservationId } as const;
       if (ligne.statut === "rembourse") return { issue: "REMBOURSEE", reservationId, remboursementFait: true } as const;
       if (ligne.statut === "a_rembourser") throw new ARembourser(ligne.motif_remboursement ?? "remboursement à retenter");

@@ -33,6 +33,7 @@ import { carteEnregistree } from "../lib/reglement";
 import {
   remplacerPrestataire,
   type AvisPaiement,
+  type EtatEnregistrement,
   type DemandePaiement,
   type EtatPaiement,
   type PaiementCree,
@@ -68,7 +69,7 @@ class PrestataireSimule implements Prestataire {
     this.paiements.set(id, {
       id, statut: "en_attente", montant: d.montant, devise: "eur",
       customerId: d.enregistrerCarte ? `cus_${this.n}` : null, paymentMethodId: null,
-      reservationId: d.reservationId, typePaiement: d.type, clientSecret: `${id}_secret`, dernierRefus: null,
+      reservationId: d.reservationId, typePaiement: d.type, clientSecret: `${id}_secret`, dernierRefus: null, expireLe: null, montantEncaisse: 0,
     });
     return { id, clientSecret: `${id}_secret`, customerId: d.enregistrerCarte ? `cus_${this.n}` : null };
   }
@@ -87,6 +88,15 @@ class PrestataireSimule implements Prestataire {
     return { id: `re_${id}` };
   }
   async oublierCarte(): Promise<void> {}
+  async bloquerCaution(): Promise<EtatPaiement> {
+    throw new Error("caution : hors de ce contrôle (scripts/verifier-caution.ts)");
+  }
+  async creerEnregistrement(): Promise<EtatEnregistrement> {
+    throw new Error("caution : hors de ce contrôle (scripts/verifier-caution.ts)");
+  }
+  async lireEnregistrement(): Promise<EtatEnregistrement> {
+    throw new Error("caution : hors de ce contrôle (scripts/verifier-caution.ts)");
+  }
   lireAvis(): AvisPaiement | null {
     return null;
   }

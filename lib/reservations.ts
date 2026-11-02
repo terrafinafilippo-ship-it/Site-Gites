@@ -3,9 +3,11 @@
 // L'ancien client REST imbriquait automatiquement le gîte dans `resa.gites`.
 // Drizzle n'a pas d'équivalent : la jointure est écrite explicitement ici et
 // l'objet est reconstruit sous la forme exacte qu'attendent calculerMontants
-// et mapContratData (lib/montants.ts). Sans le gîte joint, `gite?.caution`
-// vaudrait undefined et le contrat sortirait avec la caution par défaut au
-// lieu de celle de la base : un échec SILENCIEUX, testé explicitement.
+// et mapContratData (lib/montants.ts). Sans le gîte joint, le forfait ménage
+// du gîte vaudrait undefined et le contrat sortirait avec la valeur par
+// défaut au lieu de celle de la base : un échec SILENCIEUX, testé
+// explicitement. (La caution, elle, est figée sur la réservation depuis la
+// Phase 4, lot 2, sans valeur par défaut.)
 //
 // FRONTIÈRE BASE → MÉMOIRE DES MONTANTS : les colonnes numeric arrivent en
 // TEXTE ("457.30", mode "string" du schéma) et sont converties ICI en centimes
@@ -24,7 +26,7 @@ type ReservationRowDb = typeof reservations.$inferSelect;
 type GiteRowDb = typeof gites.$inferSelect;
 
 // Colonnes de MONTANT (pas les taux) converties en centimes à la lecture.
-const MONTANTS_RESERVATION = ['prix_location', 'forfait_menage', 'options', 'taxe_sejour'] as const;
+const MONTANTS_RESERVATION = ['prix_location', 'forfait_menage', 'options', 'taxe_sejour', 'caution'] as const;
 const MONTANTS_GITE = ['forfait_menage', 'caution', 'tarif_semaine_base', 'tarif_weekend'] as const;
 
 /** Colonnes K passées du texte numeric aux centimes entiers, nullabilité conservée. */

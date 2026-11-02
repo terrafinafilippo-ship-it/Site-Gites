@@ -33,7 +33,6 @@ export const MENTIONS = {
 // UNITÉS : tout MONTANT est un ENTIER DE CENTIMES (voir lib/centimes.ts) ;
 // un TAUX est un nombre décimal en pourcentage (un taux n'est pas de l'argent).
 export const FORFAIT_MENAGE_DEFAUT = 8000; // centimes (80,00 €)
-export const CAUTION_DEFAUT = 50000; // centimes (500,00 €, non facturée)
 
 // Paramètres opérationnels du contrat (valeurs par défaut ; surchargées par la
 // réservation ou le gîte en back-office quand la colonne est renseignée).

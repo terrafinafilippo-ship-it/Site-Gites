@@ -7,7 +7,8 @@
 // commerciale inventée ; dans sa langue ; le contrat reste en français
 // (D-22). Aux propriétaires : en français, l'objet d'un problème commence par
 // « À TRAITER — », et chaque alerte dit ce qu'il faut faire.
-import { fmtDateLongue, fmtEuro } from "@/lib/format";
+import { aujourdhuiParis, heureParis } from "@/lib/dates-civiles";
+import { fmtDateAvecJour, fmtDateLongue, fmtEuro, fmtHeure } from "@/lib/format";
 import type { Bilingue, Langue } from "@/lib/i18n/langues";
 import { CONTACTS, LIBELLES_RECAP, type Recapitulatif } from "@/lib/recapitulatif";
 
@@ -383,6 +384,149 @@ export function texteSoldeImpaye(
   ]);
 }
 
+// ─── Caution par carte (Phase 4, lot 2, D-16) ────────────────────────────────
+
+/** Un instant, à Paris : « mercredi 31 mars 2027 à 12 h 00 ». */
+function instantParis(d: Date, langue: Langue): string {
+  const jour = fmtDateAvecJour(aujourdhuiParis(d), langue);
+  const h = fmtHeure(heureParis(d), langue);
+  return langue === "en" ? `${jour} at ${h}` : `${jour} à ${h}`;
+}
+
+/** Caution bloquée sur la carte, la veille du départ : le courriel du jour même (art. 6.2). */
+export function texteCautionBloquee(
+  langue: Langue,
+  s: Sejour,
+  d: { montant: number; levee: string },
+  lienSuivi: string,
+  adresseContact: string,
+): Contenu {
+  const en = langue === "en";
+  const montant = fmtEuro(d.montant, langue);
+  const levee = fmtDateAvecJour(d.levee, langue);
+  const plage = plageDates(s.arrivee, s.depart, langue);
+  return assembler(
+    en
+      ? `Security deposit of ${montant} held on your card — booking ${s.reference}`
+      : `Caution de ${montant} bloquée sur votre carte — réservation ${s.reference}`,
+    [
+      { p: bonjour(langue, s.prenom) },
+      {
+        p: en
+          ? `The security deposit for your stay at ${s.gite}, ${plage}, has just been held on the card saved when you booked: ${montant}.`
+          : `La caution de votre séjour à ${s.gite}, du ${plage}, vient d'être bloquée sur la carte enregistrée lors de votre réservation : ${montant}.`,
+        gras: true,
+      },
+      {
+        p: en
+          ? `This is a pre-authorisation: nothing is charged. It will be released by ${levee} at the latest, unless damage is found at the check-out inspection.`
+          : `C'est une préautorisation : aucune somme n'est débitée. Elle sera levée au plus tard le ${levee}, sauf dégât constaté à l'état des lieux de sortie.`,
+      },
+      { bouton: BOUTON_SUIVI[langue], lien: lienSuivi },
+      ...piedClient(langue, s, adresseContact),
+    ],
+  );
+}
+
+/** Préautorisation refusée, ou authentification exigée par la banque : le lien pour la valider. */
+export function texteCautionAValider(
+  langue: Langue,
+  s: Sejour,
+  d: { montant: number; authentification: boolean },
+  lienSuivi: string,
+  adresseContact: string,
+): Contenu {
+  const en = langue === "en";
+  const montant = fmtEuro(d.montant, langue);
+  const quoi = d.authentification
+    ? en
+      ? `Your bank asks you to confirm the pre-authorisation of your security deposit (${montant}) on the card saved when you booked.`
+      : `Votre banque demande que vous confirmiez la préautorisation de votre caution (${montant}) sur la carte enregistrée lors de votre réservation.`
+    : en
+      ? `The pre-authorisation of your security deposit (${montant}) on the card saved when you booked was declined by your bank.`
+      : `La préautorisation de votre caution (${montant}) sur la carte enregistrée lors de votre réservation a été refusée par votre banque.`;
+  return assembler(
+    en ? `Your security deposit could not be held — booking ${s.reference}` : `Votre caution n'a pas pu être bloquée — réservation ${s.reference}`,
+    [
+      { p: bonjour(langue, s.prenom) },
+      { p: quoi, gras: true },
+      { p: en ? "You can confirm it online, with the same card or another one:" : "Vous pouvez la valider en ligne, avec la même carte ou une autre :" },
+      { bouton: en ? "Confirm my deposit" : "Valider ma caution", lien: lienSuivi },
+      {
+        note: en
+          ? "Otherwise, the deposit must be provided by another means before you leave, as set out in your contract (article 6.2)."
+          : "À défaut, la caution est à constituer par un autre moyen avant votre départ, comme le prévoit votre contrat (article 6.2).",
+      },
+      ...piedClient(langue, s, adresseContact),
+    ],
+  );
+}
+
+/** Préautorisation levée : rien n'a été débité ; la carte est supprimée si c'est déjà fait. */
+export function texteCautionLiberee(
+  langue: Langue,
+  s: Sejour,
+  d: { montant: number; date: string; carteEffacee: boolean },
+  adresseContact: string,
+): Contenu {
+  const en = langue === "en";
+  const montant = fmtEuro(d.montant, langue);
+  const date = fmtDateLongue(d.date, langue);
+  const blocs: Bloc[] = [
+    { p: bonjour(langue, s.prenom) },
+    {
+      p: en
+        ? `The pre-authorisation of your ${montant} security deposit was released on ${date}: nothing has been charged.`
+        : `La préautorisation de votre caution de ${montant} a été levée le ${date} : aucune somme n'a été débitée.`,
+      gras: true,
+    },
+    { p: en ? "When it disappears from your account depends on your bank." : "Le moment où elle disparaît de votre compte dépend de votre banque." },
+  ];
+  if (d.carteEffacee) blocs.push({ p: en ? "Your card details have been deleted." : "Les données de votre carte ont été supprimées." });
+  return assembler(
+    en ? `Security deposit released — booking ${s.reference}` : `Caution levée — réservation ${s.reference}`,
+    [...blocs, ...piedClient(langue, s, adresseContact)],
+  );
+}
+
+/** Caution non constituée à l'arrivée (art. 6.6) : le lien pour enregistrer une carte. */
+export function texteCarteCaution(
+  langue: Langue,
+  s: Sejour,
+  d: { montant: number; moyen: "carte" | "cheque" | "virement" | null },
+  lienSuivi: string,
+  adresseContact: string,
+): Contenu {
+  const en = langue === "en";
+  const montant = fmtEuro(d.montant, langue);
+  const quoi =
+    d.moyen === "cheque"
+      ? en
+        ? `The security deposit cheque (${montant}) was not handed over on arrival.`
+        : `Le chèque de caution (${montant}) n'a pas été remis à votre arrivée.`
+      : d.moyen === "virement"
+        ? en
+          ? `The security deposit transfer (${montant}) has not been received.`
+          : `Le virement de la caution (${montant}) n'a pas été reçu.`
+        : en
+          ? `Your security deposit (${montant}) has not been provided.`
+          : `Votre caution (${montant}) n'a pas été constituée.`;
+  return assembler(
+    en ? `Your security deposit: save a bank card — booking ${s.reference}` : `Votre caution : enregistrer une carte bancaire — réservation ${s.reference}`,
+    [
+      { p: bonjour(langue, s.prenom) },
+      { p: quoi, gras: true },
+      {
+        p: en
+          ? "As set out in your contract (article 6.6), it is then provided by card: you save a card, and the pre-authorisation is made the day before you leave. Nothing is charged unless damage is found."
+          : "Comme le prévoit votre contrat (article 6.6), elle est alors constituée par carte bancaire : vous enregistrez une carte, et la préautorisation est faite la veille de votre départ. Aucune somme n'est débitée, sauf dégât constaté.",
+      },
+      { bouton: en ? "Save my card" : "Enregistrer ma carte", lien: lienSuivi },
+      ...piedClient(langue, s, adresseContact),
+    ],
+  );
+}
+
 // ─── Aux propriétaires (en français) ─────────────────────────────────────────
 
 export interface FicheClient {
@@ -427,6 +571,56 @@ export function texteAlerteSignature(s: Sejour, c: FicheClient, numero: string):
   ]);
 }
 
+/** Alerte « caution » : bloquée, levée demain, carte enregistrée (art. 6.6). */
+export function texteAlerteCaution(
+  quoi: "bloquee" | "levee_demain" | "carte_enregistree",
+  s: Sejour,
+  c: FicheClient,
+  d: {
+    montant: number;
+    /** Date limite de la banque pour encaisser, si la caution est bloquée. */
+    expire: Date | null;
+    levee: string;
+    heureLevee: string;
+    veille: string;
+    heureBlocage: string;
+  },
+): Contenu {
+  const montant = fmtEuro(d.montant);
+  const levee = fmtDateAvecJour(d.levee, "fr");
+  const vers = fmtHeure(d.heureLevee, "fr");
+  const sejour = `${s.gite}, ${plageDates(s.arrivee, s.depart, "fr")}`;
+  const banque = d.expire ? [{ p: `La banque garde les fonds jusqu'au ${instantParis(d.expire, "fr")}.` }] : [];
+  const liste: Bloc = { liste: [`Réservation : ${s.reference}`, `${s.gite}, du ${plageDates(s.arrivee, s.depart, "fr")}`, ...lignesClient(c)] };
+  if (quoi === "bloquee") {
+    return assembler(`Caution bloquée — ${c.nom} — ${sejour}`, [
+      { p: `La caution de ${montant} est bloquée sur la carte de ${c.nom}.`, gras: true },
+      { p: `Levée automatique le ${levee} vers ${vers}, sauf retenue d'ici là.` },
+      ...banque,
+      liste,
+    ]);
+  }
+  if (quoi === "levee_demain") {
+    return assembler(`Caution levée demain — ${c.nom} — ${sejour}`, [
+      { p: `La caution de ${montant} de ${c.nom} sera levée automatiquement demain, ${levee}, vers ${vers}.`, gras: true },
+      {
+        p:
+          "Pour retenir une somme (dégât constaté à l'état des lieux de sortie), il faut le faire avant. En attendant " +
+          `l'écran de gestion, la retenue se fait dans le tableau de bord Stripe : encaisser le paiement « Caution ${s.reference} », ` +
+          "pour tout ou partie du montant.",
+      },
+      { p: "Une fois levée, plus aucune somme ne peut être prélevée (article 6.5 du contrat)." },
+      ...banque,
+      liste,
+    ]);
+  }
+  return assembler(`Carte enregistrée pour la caution — ${c.nom} — ${sejour}`, [
+    { p: `${c.nom} a enregistré une carte pour sa caution de ${montant} (article 6.6 du contrat).`, gras: true },
+    { p: `La préautorisation sera faite le ${fmtDateAvecJour(d.veille, "fr")} à partir de ${fmtHeure(d.heureBlocage, "fr")}.` },
+    liste,
+  ]);
+}
+
 export type Probleme =
   | {
       genre: "remboursement";
@@ -451,7 +645,24 @@ export type Probleme =
       jours: number | null;
     }
   | { genre: "solde_a_verifier"; montant: number; depuis: string }
-  | { genre: "facture_non_emise"; type: string; erreur: string };
+  | { genre: "facture_non_emise"; type: string; erreur: string }
+  | {
+      genre: "caution_refusee";
+      montant: number;
+      /** Code de la banque ; « authentication_required » : authentification exigée. */
+      refus: string | null;
+      depart: string;
+    }
+  | { genre: "caution_montant_absent" }
+  | { genre: "caution_a_verifier"; montant: number; depuis: string }
+  | {
+      genre: "contestation";
+      paiementId: string | null;
+      /** Sorte du paiement contesté (acompte, solde, caution…), si le site le connaît. */
+      type: string | null;
+      montant: number;
+      motif: string;
+    };
 
 const OBJETS_CLIENT: Record<string, string> = {
   confirmation: "la confirmation de réservation",
@@ -463,6 +674,10 @@ const OBJETS_CLIENT: Record<string, string> = {
   solde_lien: "le lien pour payer le solde",
   solde_rappel: "le rappel du solde à payer",
   solde_impaye: "l'avis de solde non réglé",
+  caution_bloquee: "l'avis de caution bloquée",
+  caution_a_valider: "le lien pour valider sa caution",
+  caution_liberee: "l'avis de caution levée",
+  caution_carte: "le lien pour enregistrer une carte pour sa caution",
 };
 
 export function texteAlerteProbleme(p: Probleme, s: Sejour | null, c: FicheClient | null): Contenu {
@@ -523,6 +738,38 @@ export function texteAlerteProbleme(p: Probleme, s: Sejour | null, c: FicheClien
       titre = `facture non émise${qui ? `, ${qui}` : ""}`;
       quoi = `La facture (${p.type}) n'a pas pu être émise : ${p.erreur} Aucun numéro n'a été utilisé, et le client ne l'a pas reçue.`;
       faire = "Prévenir le développeur.";
+      break;
+    case "caution_refusee":
+      titre = `caution non bloquée${qui ? `, ${qui}` : ""}`;
+      quoi =
+        (p.refus === "authentication_required"
+          ? `La préautorisation de la caution de ${fmtEuro(p.montant)} demande une authentification du client, exigée par sa banque.`
+          : `La préautorisation de la caution de ${fmtEuro(p.montant)} a été refusée par la banque du client${p.refus ? ` (code : ${p.refus})` : ""}.`) +
+        " Le client a reçu un courriel avec le lien pour la valider en ligne.";
+      faire =
+        `Appeler le client : il part le ${fmtDateAvecJour(p.depart, "fr")}. S'il ne la valide pas, la caution est à constituer ` +
+        "par un autre moyen avant son départ (chèque, article 6.2 du contrat). Le site ne réessaie pas tout seul.";
+      break;
+    case "caution_montant_absent":
+      titre = `caution non bloquée (montant absent)${qui ? `, ${qui}` : ""}`;
+      quoi = "Le montant de la caution n'est pas enregistré sur cette réservation : rien n'a été bloqué sur la carte du client.";
+      faire = "Demander au client un autre moyen de caution avant son départ (chèque), et prévenir le développeur.";
+      break;
+    case "caution_a_verifier":
+      titre = `caution à vérifier${qui ? `, ${qui}` : ""}`;
+      quoi = `La préautorisation de la caution de ${fmtEuro(p.montant)} a été demandée à Stripe, mais sa réponse n'a pas été enregistrée par le site.`;
+      faire =
+        "Vérifier dans le tableau de bord Stripe si la caution est bloquée (chercher la référence de la réservation), " +
+        "puis prévenir le développeur. Le site ne retente pas, pour ne jamais bloquer deux fois.";
+      break;
+    case "contestation":
+      titre = `paiement contesté${qui ? `, ${qui}` : ""}`;
+      quoi =
+        `Le client a contesté auprès de sa banque un paiement de ${fmtEuro(p.montant)}` +
+        `${p.type ? ` (${p.type})` : ""}${p.paiementId ? `, référence ${p.paiementId}` : ""} ; motif donné par la banque : ${p.motif}.`;
+      faire =
+        "Répondre à la contestation dans le tableau de bord Stripe (rubrique Litiges) avant la date limite qu'il indique : " +
+        "sans réponse, la somme est perdue. Prévenir le développeur si besoin.";
       break;
   }
   return assembler(`À TRAITER — ${titre}`, [

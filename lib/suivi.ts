@@ -20,15 +20,21 @@
 //
 // Phase 4, lot 1 (D-28) : la page dit où en est le SOLDE (prélèvement prévu,
 // à payer, payé) ; c'est là que le client le paie, par le lien de ses courriels.
+// Phase 4, lot 2 (D-16) : elle dit où en est la CAUTION par carte (prévue,
+// bloquée, levée) ; c'est là que le client la valide quand sa banque a refusé
+// la préautorisation, ou enregistre une carte (art. 6.6).
 import { randomUUID } from "node:crypto";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { courriels, documents, paiements, reglages, reservations } from "@/db/schema";
 import { centimesDepuisNumeric } from "@/lib/centimes";
+import { lireEtatCaution, type EtatCaution } from "@/lib/caution";
 import { inscrireLienSuivi } from "@/lib/courriels";
 import { ajouterJours, aujourdhuiParis } from "@/lib/dates-civiles";
 import { lien, type Langue } from "@/lib/i18n/langues";
+import { lireTexteAccord } from "@/lib/paiement";
+import { texteAccordCarte } from "@/lib/reglement";
 import { chargerReservationAvecGite, type Executeur, type ReservationAvecGite } from "@/lib/reservations";
 import { lireEtatSolde, type EtatSolde } from "@/lib/solde";
 import { cheminContratSigne } from "@/lib/storage";
@@ -101,6 +107,10 @@ export type Suivi =
       contrat: ContratSuivi;
       /** null : séjour payé en une fois. */
       solde: EtatSolde | null;
+      /** null : pas de caution par carte. */
+      caution: EtatCaution | null;
+      /** Texte d'accord affiché avant d'enregistrer une carte (art. 6.6), sinon null. */
+      accordCaution: string | null;
       finValidite: string;
       contact: string;
     };
@@ -161,12 +171,15 @@ export async function chargerSuivi(
 
   const recu = payes.find((p) => p.statut === "reussi");
   if (recu && (resa.statut === "confirmee" || resa.statut === "terminee")) {
+    const caution = await lireEtatCaution(ex, resa, aujourdhuiParis(maintenant));
     return {
       etat: "ouvert",
       resa,
       paiement: { montant: centimesDepuisNumeric(recu.montant), datePaiement: recu.date },
       contrat: await contratDe(ex, resa, maintenant),
       solde: await lireEtatSolde(ex, resa, aujourdhuiParis(maintenant)),
+      caution,
+      accordCaution: caution?.etat === "carte_a_enregistrer" ? ((await accordCarteCaution(ex, resa))?.texte ?? null) : null,
       finValidite: fin,
       contact: r.contact,
     };
@@ -182,6 +195,20 @@ export async function chargerSuivi(
     };
   }
   return INVALIDE;
+}
+
+/**
+ * Le texte d'accord pour enregistrer une carte pour la caution (art. 6.6),
+ * celui du tunnel, sans la ligne du solde ; `null` sans texte en vigueur ou
+ * sans montant de caution (la carte n'est alors pas proposée).
+ */
+export async function accordCarteCaution(
+  ex: Executeur,
+  resa: ReservationAvecGite,
+): Promise<{ id: string; texte: string } | null> {
+  if (resa.caution === null) return null;
+  const modele = await lireTexteAccord(ex, resa.langue === "en" ? "en" : "fr", aujourdhuiParis());
+  return modele ? { id: modele.id, texte: texteAccordCarte(modele, { caution: resa.caution, prelevement: null }) } : null;
 }
 
 // ─── Le formulaire « Retrouver ma réservation » ──────────────────────────────

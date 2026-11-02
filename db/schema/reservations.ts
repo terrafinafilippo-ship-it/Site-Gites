@@ -102,6 +102,12 @@ export const reservations = pgTable(
     forfait_menage: numeric({ precision: 10, scale: 2, mode: "string" }),
     options: numeric({ precision: 10, scale: 2, mode: "string" }),
     taxe_sejour: numeric({ precision: 10, scale: 2, mode: "string" }),
+    // Montant de la caution FIGÉ à la réservation (Phase 4, lot 2, migration
+    // 0010) : recopié du gîte par le tunnel, imprimé au contrat (art. 6.1) et
+    // bloqué sur la carte la veille du départ. Changer la caution d'un gîte ne
+    // change pas celle d'une réservation faite. NULL : montant inconnu (saisie
+    // à la main sans montant) — le contrat ne se crée pas et rien n'est bloqué.
+    caution: numeric({ precision: 10, scale: 2, mode: "string" }),
     // Taux en pourcentage (5.50 = 5,5 %) : un taux n'est pas de l'argent, il
     // reste un nombre décimal.
     taux_taxe_sejour: numeric({ precision: 5, scale: 2, mode: "number" }),
@@ -144,6 +150,11 @@ export const reservations = pgTable(
     // client (crochets remplacés), et la version dont il vient. Mot pour mot.
     accord_carte_id: uuid().references(() => textes_accord.id),
     accord_carte_texte: text(),
+    // Caution non constituée à l'arrivée (art. 6.6, Phase 4, lot 2) : instant
+    // où les propriétaires ont envoyé au client le lien pour enregistrer une
+    // carte. Tant qu'il est renseigné et qu'aucune carte n'est enregistrée, la
+    // page « Ma réservation » propose de l'enregistrer.
+    carte_caution_demandee_at: timestamp({ withTimezone: true }),
 
     // Paiement de l'acompte (données du prestataire)
     mode_paiement: text(),
@@ -171,6 +182,7 @@ export const reservations = pgTable(
       sql`${t.delai_remboursement_solde_heures} between 0 and 8760 and ${t.delai_virement_caution_jours} between 0 and 60`,
     ),
     check("reservations_langue_check", sql`${t.langue} in ('fr', 'en')`),
+    check("reservations_caution_check", sql`${t.caution} is null or ${t.caution} >= 0`),
     check(
       "reservations_moyen_caution_check",
       sql`${t.moyen_caution} is null or ${t.moyen_caution} in ('carte', 'cheque', 'virement')`,

@@ -37,10 +37,18 @@ export const OBJETS_COURRIEL = [
   "solde_lien",
   "solde_rappel",
   "solde_impaye",
+  // Phase 4, lot 2 (migration 0010, D-16) : caution bloquée sur la carte, à
+  // valider (préautorisation refusée), levée ; lien pour enregistrer une
+  // carte quand la caution n'a pas été constituée à l'arrivée (art. 6.6).
+  "caution_bloquee",
+  "caution_a_valider",
+  "caution_liberee",
+  "caution_carte",
   // Aux propriétaires, en français.
   "alerte_reservation",
   "alerte_signature",
   "alerte_probleme",
+  "alerte_caution",
 ] as const;
 export type ObjetCourriel = (typeof OBJETS_COURRIEL)[number];
 
@@ -81,7 +89,8 @@ export const courriels = pgTable(
     check(
       "courriels_objet_check",
       sql`${t.objet} in ('confirmation', 'contrat', 'remboursement', 'lien_suivi', 'facture', 'solde_preavis',
-          'solde_lien', 'solde_rappel', 'solde_impaye', 'alerte_reservation', 'alerte_signature', 'alerte_probleme')`,
+          'solde_lien', 'solde_rappel', 'solde_impaye', 'caution_bloquee', 'caution_a_valider', 'caution_liberee',
+          'caution_carte', 'alerte_reservation', 'alerte_signature', 'alerte_probleme', 'alerte_caution')`,
     ),
     check("courriels_statut_check", sql`${t.statut} in ('a_envoyer', 'envoye', 'echec')`),
     check("courriels_langue_check", sql`${t.langue} in ('fr', 'en')`),

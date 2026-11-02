@@ -19,7 +19,6 @@ import type { ContratData } from '@/components/pdf/ContratPDF';
 import type { GiteRow, ReservationAvecGite } from '@/lib/reservations';
 import {
   FORFAIT_MENAGE_DEFAUT,
-  CAUTION_DEFAUT,
   HEURE_ARRIVEE_DEFAUT,
   HEURE_DEPART_DEFAUT,
   HEURE_LIMITE_ARRIVEE_DEFAUT,
@@ -347,6 +346,12 @@ export function instantaneFacture(data: FactureData): Record<string, unknown> {
 }
 
 // ─── Mapping CONTRAT ───────────────────────────────────────────────────────────
+/** Montant de la caution de la réservation, en centimes. LÈVE s'il est absent. */
+export function cautionDe(resa: Reservation): number {
+  if (resa.caution === null) throw new Error(`montant de la caution absent sur la réservation ${resa.reference}`);
+  return resa.caution;
+}
+
 /**
  * Construit l'objet `ContratData` à partir de la réservation, du gîte joint, des
  * montants calculés et du numéro/date de contrat (fournis par la route).
@@ -377,7 +382,9 @@ export function mapContratData(
     giteCapaciteMax: gite?.capacite_max ?? 0,
     giteEquipementsSpecifiques: gite?.equipements_specifiques ?? '',
     giteASpa: gite?.a_spa ?? false,
-    cautionMontant: gite?.caution ?? CAUTION_DEFAUT,
+    // Montant FIGÉ sur la réservation (Phase 4, lot 2), jamais une valeur par
+    // défaut : lib/contrat.ts refuse de créer un contrat sans lui.
+    cautionMontant: cautionDe(resa),
 
     heureLimiteArrivee: fmtHeureFr(
       resa.heure_limite_arrivee ?? HEURE_LIMITE_ARRIVEE_DEFAUT,
@@ -429,6 +436,7 @@ export function mapContratData(
 //  - options : montant global reservations.options, sous l'intitulé générique
 //    « Options » (la table n'a pas de libellé ; à nommer en Phase 5) ; la
 //    ligne n'est affichée que si le montant est différent de zéro.
-//  - caution : gîte (base) > CAUTION_DEFAUT ; le gîte étant toujours joint,
-//    la valeur par défaut ne doit jamais apparaître dans un contrat réel.
+//  - caution : le montant figé sur la réservation (reservations.caution,
+//    Phase 4, lot 2). Plus de valeur par défaut : un montant absent arrête
+//    le contrat (lib/contrat.ts) et la préautorisation (lib/caution.ts).
 // ─────────────────────────────────────────────────────────────────────────────

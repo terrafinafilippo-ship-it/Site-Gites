@@ -11,16 +11,19 @@
 // est pris pour toute la durée du passage ; un second appel simultané repart
 // sans rien faire.
 //
-// Lot 1 : le solde (lib/solde.ts). Lots suivants : la caution, les virements,
-// l'effacement des réservations abandonnées.
+// Lot 1 : le solde (lib/solde.ts). Lot 2 : la caution par carte
+// (lib/caution.ts). Lot 3 : les virements, l'effacement des réservations
+// abandonnées.
 import { sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
+import { traiterCautions, type BilanCautions } from "@/lib/caution";
 import { traiterSoldes, type BilanSoldes } from "@/lib/solde";
 import { prestataire, type Prestataire } from "@/lib/stripe";
 
 export interface BilanTaches {
   soldes: BilanSoldes;
+  cautions: BilanCautions;
 }
 
 /** Un passage des tâches, ou `null` si un autre passage est déjà en cours. */
@@ -33,6 +36,6 @@ export async function executerTaches(
     if (!verrou.rows[0]?.pris) return null;
     // Le travail se fait sur d'autres connexions ; le verrou tient tant que
     // cette transaction reste ouverte.
-    return { soldes: await traiterSoldes(maintenant, p) };
+    return { soldes: await traiterSoldes(maintenant, p), cautions: await traiterCautions(maintenant, p) };
   });
 }

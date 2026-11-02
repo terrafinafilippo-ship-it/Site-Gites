@@ -70,13 +70,18 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     "client_civilite_conjoint", "client_nom_conjoint", "client_prenom_conjoint",
     "date_arrivee", "date_depart", "heure_arrivee", "heure_depart", "heure_limite_arrivee",
     "nb_adultes", "nb_enfants", "nb_bebes", "occupants_majeurs",
-    "prix_location", "forfait_menage", "options", "taxe_sejour", "taux_taxe_sejour",
+    "prix_location", "forfait_menage", "options", "taxe_sejour",
+    // Caution figée (Phase 4, lot 2, migration 0010).
+    "caution",
+    "taux_taxe_sejour",
     "detail_calcul",
     // Paiement (Phase 3, lot 3, migration 0005).
     "taux_acompte", "delai_solde_jours", "paiement_integral", "moyen_caution", "mode_solde", "langue",
     // Annulation et caution (Phase 3, lot 5, migration 0008).
     "delai_remboursement_solde_heures", "delai_virement_caution_jours",
     "stripe_customer_id", "stripe_payment_method_id", "accord_carte_id", "accord_carte_texte",
+    // Carte demandée pour la caution (art. 6.6, migration 0010).
+    "carte_caution_demandee_at",
     "mode_paiement", "reference_transaction", "date_paiement_acompte",
     "created_at", "updated_at",
   ],
@@ -97,6 +102,8 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
   paiements: [
     "id", "reservation_id", "type", "montant", "statut", "prestataire", "reference_externe",
     "date_paiement", "motif_remboursement", "reference_remboursement", "date_remboursement",
+    // Caution (Phase 4, lot 2, migration 0010).
+    "expire_at", "montant_retenu", "date_liberation",
     "created_at", "updated_at",
   ],
   disponibilites: [
@@ -128,6 +135,8 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     "delai_remboursement_solde_heures", "avis_note_centiemes", "avis_nombre", "avis_recommandation_pct",
     // Solde (Phase 4, lot 1, migration 0009).
     "solde_preavis_jours", "solde_lien_jours", "solde_rappel_jours", "solde_relance_jours",
+    // Caution par carte (Phase 4, lot 2, migration 0010).
+    "caution_heure_blocage", "caution_heure_alerte", "caution_heure_liberation",
     "updated_at",
   ],
   taxes_sejour: [
@@ -239,18 +248,19 @@ async function verifierSchema(client: PoolClient): Promise<void> {
     "disponibilites_gite_date_uidx",
     "paiements_reference_externe_uidx",
     "courriels_cle_uidx",
+    "paiements_caution_uidx",
   ]) {
     noter("1", idx.includes(nom), `index unique ${nom} présent`);
   }
   noter("1", idx.includes("disponibilites_reservation_id_idx"), "index disponibilites_reservation_id_idx présent");
 
-  // Courriels : les trois alertes existent (le code ne les crée jamais), et
+  // Courriels : les quatre alertes existent (le code ne les crée jamais), et
   // les adresses d'expédition et de réponse sont renseignées.
   const lignesAlertes = await client.query<{ type: string }>(`select type from alertes order by type`);
   noter(
     "1",
-    lignesAlertes.rows.map((r) => r.type).join(",") === "probleme,reservation,signature",
-    "alertes : les trois lignes (probleme, reservation, signature)",
+    lignesAlertes.rows.map((r) => r.type).join(",") === "caution,probleme,reservation,signature",
+    "alertes : les quatre lignes (caution, probleme, reservation, signature)",
     lignesAlertes.rows.map((r) => r.type).join(", "),
   );
   const adresses = await client.query<{ e: string; r: string }>(
@@ -858,6 +868,65 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
          values ($1, $2, $3, 'a@example.invalid', 'fr')`, [resaId, objet, `verify:${objet}`],
       );
       noter("6h", c.erreur === null, `courriel « ${objet} » accepté`, codePg(c.erreur));
+    }
+
+    // ── 6i. Caution par carte (Phase 4, lot 2, migration 0010, D-16) ──
+    titre("6i. Caution par carte");
+    const reglagesCaution = await client.query<{ b: string; a: string; l: string }>(
+      `select caution_heure_blocage::text as b, caution_heure_alerte::text as a, caution_heure_liberation::text as l
+         from reglages where id = 1`,
+    );
+    noter(
+      "6i",
+      reglagesCaution.rows[0]?.b === "18:00:00" && reglagesCaution.rows[0]?.a === "08:00:00" && reglagesCaution.rows[0]?.l === "08:00:00",
+      "réglages : préautorisation à 18 h, alerte et levée à 8 h",
+      JSON.stringify(reglagesCaution.rows[0]),
+    );
+    const leveeMidi = await attendreErreur(
+      client, "sp_levee_midi", `update reglages set caution_heure_liberation = '12:00' where id = 1`, [],
+    );
+    noter("6i", codePg(leveeMidi.erreur) === "23514", "levée à midi ou plus tard refusée (préautorisation Visa)", codePg(leveeMidi.erreur));
+    const cautionNeg = await attendreErreur(
+      client, "sp_caution_neg", `update reservations set caution = -1 where id = $1`, [resaId],
+    );
+    noter("6i", codePg(cautionNeg.erreur) === "23514", "caution négative refusée", codePg(cautionNeg.erreur));
+    const bloque = await attendreErreur(
+      client, "sp_caution_bloque",
+      `insert into paiements (reservation_id, type, montant, statut, expire_at)
+       values ($1, 'caution', 500.00, 'bloque', now() + interval '5 days')`, [resaId],
+    );
+    noter("6i", bloque.erreur === null, "caution bloquée enregistrée, avec sa date limite", codePg(bloque.erreur));
+    const deuxieme = await attendreErreur(
+      client, "sp_caution_bis",
+      `insert into paiements (reservation_id, type, montant, statut) values ($1, 'caution', 500.00, 'en_attente')`, [resaId],
+    );
+    noter("6i", codePg(deuxieme.erreur) === "23505", "seconde caution pour la même réservation refusée", codePg(deuxieme.erreur));
+    const acompteBloque = await attendreErreur(
+      client, "sp_acompte_bloque",
+      `insert into paiements (reservation_id, type, montant, statut) values ($1, 'acompte', 100.00, 'bloque')`, [resaId],
+    );
+    noter("6i", codePg(acompteBloque.erreur) === "23514", "état « bloqué » refusé pour un autre paiement que la caution", codePg(acompteBloque.erreur));
+    const retenueSansMontant = await attendreErreur(
+      client, "sp_retenue_sans", `update paiements set statut = 'retenu' where reservation_id = $1 and type = 'caution'`, [resaId],
+    );
+    noter("6i", codePg(retenueSansMontant.erreur) === "23514", "retenue sans montant retenu refusée", codePg(retenueSansMontant.erreur));
+    const retenueTrop = await attendreErreur(
+      client, "sp_retenue_trop",
+      `update paiements set statut = 'retenu', montant_retenu = 500.01 where reservation_id = $1 and type = 'caution'`, [resaId],
+    );
+    noter("6i", codePg(retenueTrop.erreur) === "23514", "retenue supérieure à la caution refusée", codePg(retenueTrop.erreur));
+    const retenue = await attendreErreur(
+      client, "sp_retenue",
+      `update paiements set statut = 'retenu', montant_retenu = 150.00 where reservation_id = $1 and type = 'caution'`, [resaId],
+    );
+    noter("6i", retenue.erreur === null, "retenue partielle acceptée", codePg(retenue.erreur));
+    for (const objet of ["caution_bloquee", "caution_a_valider", "caution_liberee", "caution_carte", "alerte_caution"]) {
+      const c = await attendreErreur(
+        client, `sp_${objet}`,
+        `insert into courriels (reservation_id, objet, cle, destinataire, langue)
+         values ($1, $2, $3, 'a@example.invalid', 'fr')`, [resaId, objet, `verify:${objet}`],
+      );
+      noter("6i", c.erreur === null, `courriel « ${objet} » accepté`, codePg(c.erreur));
     }
   } finally {
     await client.query("ROLLBACK");

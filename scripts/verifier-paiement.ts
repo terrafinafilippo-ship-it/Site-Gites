@@ -45,6 +45,7 @@ import { carteEnregistree } from "../lib/reglement";
 import {
   remplacerPrestataire,
   type AvisPaiement,
+  type EtatEnregistrement,
   type DemandePaiement,
   type EtatPaiement,
   type PaiementCree,
@@ -89,7 +90,7 @@ class PrestataireSimule implements Prestataire {
       paymentMethodId: null,
       reservationId: d.reservationId, typePaiement: d.type,
       clientSecret: `${id}_secret_ok`,
-      dernierRefus: null,
+      dernierRefus: null, expireLe: null, montantEncaisse: 0,
     });
     return { id, clientSecret: `${id}_secret_ok`, customerId };
   }
@@ -125,6 +126,15 @@ class PrestataireSimule implements Prestataire {
     this.cartesOubliees.push(paymentMethodId);
   }
 
+  async bloquerCaution(): Promise<EtatPaiement> {
+    throw new Error("caution : hors de ce contrôle (scripts/verifier-caution.ts)");
+  }
+  async creerEnregistrement(): Promise<EtatEnregistrement> {
+    throw new Error("caution : hors de ce contrôle (scripts/verifier-caution.ts)");
+  }
+  async lireEnregistrement(): Promise<EtatEnregistrement> {
+    throw new Error("caution : hors de ce contrôle (scripts/verifier-caution.ts)");
+  }
   lireAvis(): AvisPaiement | null {
     return null;
   }
@@ -146,7 +156,7 @@ class PrestataireSimule implements Prestataire {
     const id = `pi_orphelin_${Date.now()}`;
     this.paiements.set(id, {
       id, statut: "reussi", montant, devise: "eur", customerId: null, paymentMethodId: null,
-      reservationId: null, typePaiement: null, clientSecret: `${id}_secret_ok`, dernierRefus: null,
+      reservationId: null, typePaiement: null, clientSecret: `${id}_secret_ok`, dernierRefus: null, expireLe: null, montantEncaisse: 0,
     });
     return id;
   }

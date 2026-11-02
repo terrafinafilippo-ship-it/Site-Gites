@@ -107,7 +107,8 @@ d'essai, marquée « (essai) ». **`npm run db:seed` ne touche pas à ces tables
 - **courriels** : le journal des courriels du site, une ligne par courriel et
   par destinataire, inscrite avec l'événement puis envoyée (ou retentée).
   Clé unique : un événement constaté deux fois n'inscrit qu'un courriel.
-- **alertes** : les trois alertes aux propriétaires, chacune active ou non,
+- **alertes** : les alertes aux propriétaires (quatre depuis la migration
+  0010, avec `caution`), chacune active ou non,
   avec ses destinataires. Dans la base de test, la remise à zéro les dirige
   vers `proprietaires@example.invalid`, jamais envoyée.
 - Depuis la migration 0007 (D-25), chaque réservation porte un **jeton
@@ -117,6 +118,10 @@ d'essai, marquée « (essai) ». **`npm run db:seed` ne touche pas à ces tables
 - Depuis la migration 0009 (Phase 4, D-28, D-29) : la facture jointe en PDF
   (`facture`) et les courriels du solde (`solde_preavis`, `solde_lien`,
   `solde_rappel`, `solde_impaye`) ; leurs délais sont dans `reglages`.
+- Depuis la migration 0010 (Phase 4, lot 2, D-30) : la caution par carte —
+  montant figé sur la réservation (`reservations.caution`), préautorisation
+  dans `paiements` (une par réservation, états `bloque`, `libere`, `retenu`),
+  heures en réglages, courriels `caution_*` et alerte `alerte_caution`.
 
 **Tables provisoires** (structure minimale)
 
@@ -198,6 +203,25 @@ select reservation_id, type, count(*) from factures group by 1, 2 having count(*
 
 Aucune ligne : appliquer. Une ligne ou plus : **ne pas appliquer, ne rien
 supprimer** (une facture ne se supprime jamais) et prévenir le développeur.
+
+### Avant d'appliquer la migration 0010 sur une base existante
+
+La migration 0010 recopie sur chaque réservation existante le montant de sa
+caution : celui que le client a vu dans le tunnel (`detail_calcul`) ou, à
+défaut (réservation saisie à la main), **celui du gîte au moment de la
+migration**. Si la caution d'un gîte a changé depuis qu'un contrat a été
+émis, ce contrat imprime l'ancien montant. Vérifier d'abord (lecture seule) :
+
+```sql
+select r.reference, g.caution as caution_du_gite, d.numero as contrat
+  from reservations r join gites g on g.id = r.gite_id
+  left join documents d on d.reservation_id = r.id and d.type = 'contrat_location'
+ where r.detail_calcul is null or jsonb_typeof(r.detail_calcul->'caution') <> 'number';
+```
+
+Pour chaque ligne qui a un contrat : comparer avec le montant imprimé au
+contrat, et prévenir le développeur en cas d'écart (une migration de
+correction, jamais une modification de la 0010).
 
 ## Relancer le seed
 

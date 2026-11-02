@@ -9,13 +9,19 @@
 //   - 'signature'   : un client vient de signer son contrat ;
 //   - 'probleme'    : il faut intervenir (paiement remboursé, contrat non
 //                     créé ou à envoyer à la main, courriel client non parti).
+//   - 'caution'     : (Phase 4, lot 2, migration 0010) la caution d'un client
+//                     est bloquée sur sa carte (choix du gérant du 2 novembre
+//                     2026 : un court message de validation), elle sera levée
+//                     demain, ou une carte vient d'être enregistrée pour elle
+//                     (art. 6.6). Créée active, avec les destinataires de
+//                     'probleme'. Un refus de la banque est un 'probleme'.
 //
 // Les lignes sont créées par la migration : le code ne les crée jamais. Une
 // alerte absente ou coupée n'est simplement pas envoyée.
 import { sql } from "drizzle-orm";
 import { boolean, check, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
-export const TYPES_ALERTE = ["reservation", "signature", "probleme"] as const;
+export const TYPES_ALERTE = ["reservation", "signature", "probleme", "caution"] as const;
 export type TypeAlerte = (typeof TYPES_ALERTE)[number];
 
 export const alertes = pgTable(
@@ -27,7 +33,7 @@ export const alertes = pgTable(
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    check("alertes_type_check", sql`${t.type} in ('reservation', 'signature', 'probleme')`),
+    check("alertes_type_check", sql`${t.type} in ('reservation', 'signature', 'probleme', 'caution')`),
     check("alertes_destinataires_check", sql`not ${t.active} or cardinality(${t.destinataires}) > 0`),
   ],
 );

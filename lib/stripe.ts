@@ -1,6 +1,9 @@
 // Le PRESTATAIRE DE PAIEMENT, vu du site : créer un paiement, prélever le
 // solde sur la carte enregistrée (Phase 4), le lire, l'annuler, le rembourser,
-// oublier une carte, lire un avis de Stripe.
+// oublier une carte, lire un avis de Stripe ; et pour la caution (Phase 4,
+// lot 2, D-16) : bloquer le montant sur la carte enregistrée (préautorisation
+// à capture manuelle), la lever (annulation), enregistrer une carte sans
+// paiement (art. 6.6 du contrat).
 //
 // Tout le reste du code passe par l'interface `Prestataire` : la logique de
 // réservation (lib/paiement.ts) ne connaît pas Stripe, et le contrôle
@@ -45,6 +48,36 @@ export interface DemandePaiement {
   essai?: number;
 }
 
+/** Préautorisation de la caution sur la carte enregistrée, sans le client (D-16). */
+export interface DemandeCaution {
+  reservationId: string;
+  reference: string;
+  /** Centimes. */
+  montant: number;
+  customerId: string;
+  paymentMethodId: string;
+  description: string;
+}
+
+/** Enregistrement d'une carte sans paiement (caution non constituée à l'arrivée, art. 6.6). */
+export interface DemandeEnregistrement {
+  reservationId: string;
+  reference: string;
+  /** Client Stripe déjà créé pour la réservation, sinon un nouveau. */
+  customerId: string | null;
+  client: { email: string; nom: string };
+}
+
+/** Où en est un enregistrement de carte (SetupIntent). */
+export interface EtatEnregistrement {
+  id: string;
+  statut: "en_attente" | "en_cours" | "reussi" | "echoue" | "annule";
+  customerId: string | null;
+  paymentMethodId: string | null;
+  reservationId: string | null;
+  clientSecret: string | null;
+}
+
 /** Prélèvement du solde sur la carte enregistrée, sans le client (D-16, D-28). */
 export interface DemandePrelevement {
   reservationId: string;
@@ -69,9 +102,11 @@ export interface PaiementCree {
  *   - 'en_cours'   : la banque traite ;
  *   - 'reussi'     : argent reçu ;
  *   - 'echoue'     : dernier essai refusé (le client peut réessayer) ;
- *   - 'annule'     : annulé, ne peut plus aboutir.
+ *   - 'annule'     : annulé, ne peut plus aboutir ;
+ *   - 'bloque'     : caution seulement, montant bloqué sur la carte, à
+ *                    encaisser ou à lever (préautorisation, `requires_capture`).
  */
-export type StatutPrestataire = "en_attente" | "en_cours" | "reussi" | "echoue" | "annule";
+export type StatutPrestataire = "en_attente" | "en_cours" | "reussi" | "echoue" | "annule" | "bloque";
 
 export interface EtatPaiement {
   id: string;
@@ -88,13 +123,27 @@ export interface EtatPaiement {
   clientSecret: string | null;
   /** Code du dernier refus (« card_declined »…), pour le journal. */
   dernierRefus: string | null;
+  /** Caution bloquée : date limite de la banque pour l'encaisser (`capture_before`). */
+  expireLe: Date | null;
+  /** Centimes réellement encaissés (caution retenue en partie : le montant retenu). */
+  montantEncaisse: number;
 }
 
 /** Avis de Stripe reçu sur /api/stripe/webhook, signature vérifiée. */
-export interface AvisPaiement {
-  evenement: string;
-  paiementId: string;
-}
+export type AvisPaiement =
+  | { genre: "paiement"; evenement: string; paiementId: string }
+  /** Carte enregistrée sans paiement (art. 6.6). */
+  | { genre: "enregistrement"; evenement: string; enregistrementId: string }
+  /** Paiement contesté par le client auprès de sa banque. */
+  | {
+      genre: "contestation";
+      evenement: string;
+      contestationId: string;
+      paiementId: string | null;
+      /** Centimes. */
+      montant: number;
+      motif: string;
+    };
 
 export interface Prestataire {
   readonly nom: string;
@@ -106,8 +155,21 @@ export interface Prestataire {
    * renvoie le même paiement, il ne prélève jamais deux fois.
    */
   prelever(demande: DemandePrelevement): Promise<EtatPaiement>;
+  /**
+   * Bloque la caution sur la carte enregistrée (préautorisation), tout de
+   * suite, sans le client. Renvoie l'état obtenu : « bloque », ou refus de la
+   * banque (« echoue », authentification exigée comprise) ; LÈVE si le
+   * prestataire ne répond pas. Idempotent : une préautorisation par réservation.
+   */
+  bloquerCaution(demande: DemandeCaution): Promise<EtatPaiement>;
+  /** Enregistre une carte sans paiement : le client la saisit sur sa page. Idempotent par réservation. */
+  creerEnregistrement(demande: DemandeEnregistrement): Promise<EtatEnregistrement>;
+  lireEnregistrement(id: string): Promise<EtatEnregistrement>;
   lirePaiement(id: string): Promise<EtatPaiement>;
-  /** Annule si possible ; renvoie l'état obtenu (« reussi » si l'argent était déjà reçu). */
+  /**
+   * Annule si possible ; renvoie l'état obtenu (« reussi » si l'argent était
+   * déjà reçu). Une caution bloquée est LEVÉE : rien n'est débité.
+   */
   annulerPaiement(id: string): Promise<EtatPaiement>;
   /** Remboursement INTÉGRAL. Idempotent : un second appel ne rembourse pas deux fois. */
   rembourser(id: string, motif: string): Promise<{ id: string }>;
@@ -140,9 +202,11 @@ function statutStripe(pi: Stripe.PaymentIntent): StatutPrestataire {
       return "annule";
     case "requires_payment_method":
       return pi.last_payment_error ? "echoue" : "en_attente";
+    case "requires_capture":
+      // Préautorisation de la caution : seul paiement à capture manuelle.
+      return "bloque";
     default:
-      // requires_confirmation, requires_action ; requires_capture n'arrive pas
-      // (encaissement immédiat) et serait traité comme une attente.
+      // requires_confirmation, requires_action.
       return "en_attente";
   }
 }
@@ -150,6 +214,14 @@ function statutStripe(pi: Stripe.PaymentIntent): StatutPrestataire {
 function idDe(v: string | { id: string } | null | undefined): string | null {
   if (!v) return null;
   return typeof v === "string" ? v : v.id;
+}
+
+/** Date limite d'encaissement d'une préautorisation, lue sur la charge (jamais recalculée, D-16). */
+function expirationDe(pi: Stripe.PaymentIntent): Date | null {
+  const charge = pi.latest_charge;
+  if (!charge || typeof charge === "string") return null;
+  const avant = charge.payment_method_details?.card?.capture_before;
+  return typeof avant === "number" ? new Date(avant * 1000) : null;
 }
 
 function etatDe(pi: Stripe.PaymentIntent): EtatPaiement {
@@ -164,15 +236,44 @@ function etatDe(pi: Stripe.PaymentIntent): EtatPaiement {
     typePaiement: pi.metadata?.type ?? null,
     clientSecret: pi.client_secret,
     dernierRefus: pi.last_payment_error?.decline_code ?? pi.last_payment_error?.code ?? null,
+    expireLe: expirationDe(pi),
+    montantEncaisse: pi.amount_received ?? 0,
   };
 }
+
+function etatEnregistrementDe(si: Stripe.SetupIntent): EtatEnregistrement {
+  const statut: EtatEnregistrement["statut"] =
+    si.status === "succeeded"
+      ? "reussi"
+      : si.status === "processing"
+        ? "en_cours"
+        : si.status === "canceled"
+          ? "annule"
+          : si.status === "requires_payment_method" && si.last_setup_error
+            ? "echoue"
+            : "en_attente";
+  return {
+    id: si.id,
+    statut,
+    customerId: idDe(si.customer),
+    paymentMethodId: idDe(si.payment_method),
+    reservationId: si.metadata?.reservation_id ?? null,
+    clientSecret: si.client_secret,
+  };
+}
+
+/** La charge est lue avec le paiement : elle porte la date limite d'une préautorisation. */
+const AVEC_CHARGE = ["latest_charge"];
 
 const EVENEMENTS_SUIVIS = new Set([
   "payment_intent.succeeded",
   "payment_intent.payment_failed",
   "payment_intent.canceled",
   "payment_intent.processing",
+  // Caution bloquée (préautorisation confirmée, par les tâches ou par le client).
+  "payment_intent.amount_capturable_updated",
 ]);
+const EVENEMENTS_ENREGISTREMENT = new Set(["setup_intent.succeeded", "setup_intent.setup_failed"]);
 
 class PrestataireStripe implements Prestataire {
   readonly nom = "stripe";
@@ -261,21 +362,99 @@ class PrestataireStripe implements Prestataire {
     }
   }
 
+  async bloquerCaution(d: DemandeCaution): Promise<EtatPaiement> {
+    const stripe = this.stripe();
+    try {
+      const pi = await stripe.paymentIntents.create(
+        {
+          amount: d.montant,
+          currency: "eur",
+          customer: d.customerId,
+          payment_method: d.paymentMethodId,
+          payment_method_types: ["card"],
+          // Préautorisation : les fonds sont bloqués, rien n'est débité tant
+          // que la caution n'est pas retenue (D-16, art. 6.3 du contrat).
+          capture_method: "manual",
+          // Le client n'est pas là. Si sa banque exige qu'il s'authentifie, la
+          // préautorisation est refusée et il la valide sur sa page (lib/caution.ts).
+          off_session: true,
+          confirm: true,
+          description: d.description,
+          metadata: { reservation_id: d.reservationId, reference: d.reference, type: "caution" },
+          expand: AVEC_CHARGE,
+        },
+        // Une seule préautorisation par réservation : un nouvel appel reçoit la même réponse.
+        { idempotencyKey: `caution-${d.reservationId}` },
+      );
+      return etatDe(pi);
+    } catch (erreur) {
+      // Refus de la banque ou authentification exigée : Stripe renvoie la
+      // préautorisation créée, « à régler ». Ce n'est pas une panne.
+      if (erreur instanceof Stripe.errors.StripeError && erreur.payment_intent) {
+        return etatDe(erreur.payment_intent);
+      }
+      throw new PaiementIndisponible(
+        `préautorisation de la caution (${d.reference}) : ${erreur instanceof Error ? erreur.message : String(erreur)}`,
+        { cause: erreur },
+      );
+    }
+  }
+
+  async creerEnregistrement(d: DemandeEnregistrement): Promise<EtatEnregistrement> {
+    const stripe = this.stripe();
+    try {
+      const customerId =
+        d.customerId ??
+        (
+          await stripe.customers.create(
+            { email: d.client.email, name: d.client.nom, metadata: { reservation_id: d.reservationId, reference: d.reference } },
+            // Clé propre à la caution : celle de l'acompte (client-…) a pu servir avec d'autres paramètres.
+            { idempotencyKey: `client-caution-${d.reservationId}` },
+          )
+        ).id;
+      const si = await stripe.setupIntents.create(
+        {
+          customer: customerId,
+          payment_method_types: ["card"],
+          usage: "off_session",
+          description: `Caution ${d.reference}`,
+          metadata: { reservation_id: d.reservationId, reference: d.reference, type: "caution" },
+        },
+        { idempotencyKey: `enregistrement-${d.reservationId}` },
+      );
+      return etatEnregistrementDe(si);
+    } catch (erreur) {
+      throw new PaiementIndisponible(
+        `enregistrement de carte (${d.reference}) : ${erreur instanceof Error ? erreur.message : String(erreur)}`,
+        { cause: erreur },
+      );
+    }
+  }
+
+  async lireEnregistrement(id: string): Promise<EtatEnregistrement> {
+    return etatEnregistrementDe(await this.stripe().setupIntents.retrieve(id));
+  }
+
   async lirePaiement(id: string): Promise<EtatPaiement> {
-    return etatDe(await this.stripe().paymentIntents.retrieve(id));
+    return etatDe(await this.stripe().paymentIntents.retrieve(id, { expand: AVEC_CHARGE }));
   }
 
   async annulerPaiement(id: string): Promise<EtatPaiement> {
     const stripe = this.stripe();
-    const pi = await stripe.paymentIntents.retrieve(id);
-    const etat = etatDe(pi);
+    const etat = await this.lirePaiement(id);
     // Déjà reçu, en traitement ou déjà annulé : rien à annuler, on dit où il en est.
     if (etat.statut === "reussi" || etat.statut === "en_cours" || etat.statut === "annule") return etat;
     try {
-      return etatDe(await stripe.paymentIntents.cancel(id, { cancellation_reason: "abandoned" }));
+      // Une caution bloquée est levée : le client ne paie rien (D-16).
+      return etatDe(
+        await stripe.paymentIntents.cancel(id, {
+          cancellation_reason: etat.statut === "bloque" ? "requested_by_customer" : "abandoned",
+          expand: AVEC_CHARGE,
+        }),
+      );
     } catch (erreur) {
       // Le paiement a pu aboutir entre la lecture et l'annulation : l'état relu fait foi.
-      const relu = etatDe(await stripe.paymentIntents.retrieve(id));
+      const relu = await this.lirePaiement(id);
       if (relu.statut === "annule" || relu.statut === "reussi" || relu.statut === "en_cours") return relu;
       throw erreur;
     }
@@ -290,7 +469,13 @@ class PrestataireStripe implements Prestataire {
   }
 
   async oublierCarte(paymentMethodId: string): Promise<void> {
-    await this.stripe().paymentMethods.detach(paymentMethodId);
+    try {
+      await this.stripe().paymentMethods.detach(paymentMethodId);
+    } catch (erreur) {
+      // Déjà détachée (essai précédent dont la réponse s'est perdue) : le but est atteint.
+      if (erreur instanceof Stripe.errors.StripeInvalidRequestError && /not attached/i.test(erreur.message)) return;
+      throw erreur;
+    }
   }
 
   lireAvis(corps: string, signature: string | null): AvisPaiement | null {
@@ -298,10 +483,24 @@ class PrestataireStripe implements Prestataire {
     if (!secret) throw new PaiementIndisponible("STRIPE_WEBHOOK_SECRET absente : avis de Stripe refusé");
     if (!signature) throw new Error("avis sans signature");
     const evenement = this.stripe().webhooks.constructEvent(corps, signature, secret);
-    if (!EVENEMENTS_SUIVIS.has(evenement.type)) return null;
+    if (evenement.type === "charge.dispute.created") {
+      const litige = evenement.data.object;
+      return {
+        genre: "contestation",
+        evenement: evenement.type,
+        contestationId: litige.id,
+        paiementId: idDe(litige.payment_intent),
+        montant: litige.amount,
+        motif: litige.reason,
+      };
+    }
     const objet = evenement.data.object as { id?: unknown; object?: unknown };
-    if (objet.object !== "payment_intent" || typeof objet.id !== "string") return null;
-    return { evenement: evenement.type, paiementId: objet.id };
+    if (typeof objet.id !== "string") return null;
+    if (EVENEMENTS_ENREGISTREMENT.has(evenement.type) && objet.object === "setup_intent") {
+      return { genre: "enregistrement", evenement: evenement.type, enregistrementId: objet.id };
+    }
+    if (!EVENEMENTS_SUIVIS.has(evenement.type) || objet.object !== "payment_intent") return null;
+    return { genre: "paiement", evenement: evenement.type, paiementId: objet.id };
   }
 }
 

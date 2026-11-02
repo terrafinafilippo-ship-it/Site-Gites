@@ -9,7 +9,10 @@
 //   - lien « Ma réservation » redemandé (lib/suivi.ts) → courriel au client ;
 //   - Phase 4, lot 1 (D-28, D-29) : paiement constaté → la facture en PDF ;
 //     tâches automatiques (lib/solde.ts) → préavis du prélèvement, lien pour
-//     payer le solde, rappel, solde impayé (client et alerte « À TRAITER »).
+//     payer le solde, rappel, solde impayé (client et alerte « À TRAITER ») ;
+//   - Phase 4, lot 2 (D-16) : caution bloquée, à valider, levée (client),
+//     alerte « caution » et alertes « À TRAITER » (lib/caution.ts) ; lien
+//     pour enregistrer une carte (art. 6.6) ; paiement contesté (avis de Stripe).
 // L'ENVOI est ailleurs (lib/courriels-envoi.ts), après la réponse : ce module
 // ne fait qu'écrire, sans réseau, et reste léger (lib/paiement.ts l'importe).
 //
@@ -34,7 +37,14 @@ export type GenreProbleme =
   | "solde_impaye"
   | "solde_a_verifier"
   // Facture refusée à l'émission (aucun numéro frappé) : le client ne l'a pas reçue.
-  | "facture_non_emise";
+  | "facture_non_emise"
+  // Phase 4, lot 2 : préautorisation de la caution refusée (ou authentification
+  // exigée), montant de caution absent, préautorisation restée sans réponse ;
+  // paiement contesté par un client auprès de sa banque.
+  | "caution_refusee"
+  | "caution_montant_absent"
+  | "caution_a_verifier"
+  | "contestation";
 
 async function inscrire(
   executeur: Executeur,
@@ -192,6 +202,65 @@ export async function inscrireRelanceImpaye(
     relance: true,
     jours,
   });
+}
+
+// ─── Caution par carte (Phase 4, lot 2, D-16) ────────────────────────────────
+
+/** Courriel de la caution au client, un de chaque par réservation. */
+async function inscrireCautionClient(
+  executeur: Executeur,
+  reservationId: string,
+  objet: "caution_bloquee" | "caution_a_valider" | "caution_liberee" | "caution_carte",
+  donnees: Record<string, unknown> = {},
+): Promise<void> {
+  const c = await client(executeur, reservationId);
+  if (!c?.email) return;
+  await inscrire(executeur, {
+    objet,
+    cle: `${objet}:${reservationId}`,
+    reservationId,
+    destinataire: c.email,
+    langue: c.langue === "en" ? "en" : "fr",
+    donnees,
+  });
+}
+
+/** Ce que dit l'alerte « caution » aux propriétaires. */
+export type QuoiCaution = "bloquee" | "levee_demain" | "carte_enregistree";
+
+/** Alerte « caution » (choix du gérant du 2 novembre 2026), une de chaque par réservation. */
+export async function inscrireAlerteCaution(executeur: Executeur, reservationId: string, quoi: QuoiCaution): Promise<void> {
+  await alerter(executeur, "caution", "alerte_caution", `${quoi}:${reservationId}`, reservationId, { quoi });
+}
+
+/** Caution bloquée sur la carte : courriel au client (le jour même, art. 6.2) et court message aux propriétaires. */
+export async function inscrireCautionBloquee(executeur: Executeur, reservationId: string): Promise<void> {
+  await inscrireCautionClient(executeur, reservationId, "caution_bloquee");
+  await inscrireAlerteCaution(executeur, reservationId, "bloquee");
+}
+
+/**
+ * Préautorisation refusée, ou authentification exigée : lien au client pour
+ * la valider, alerte « À TRAITER » aux propriétaires. Une seule fois : le site
+ * ne réessaie pas tout seul (choix du gérant du 2 novembre 2026).
+ */
+export async function inscrireCautionAValider(
+  executeur: Executeur,
+  reservationId: string,
+  refus: string | null,
+): Promise<void> {
+  await inscrireCautionClient(executeur, reservationId, "caution_a_valider", { refus });
+  await inscrireProbleme(executeur, "caution_refusee", reservationId, reservationId, { refus });
+}
+
+/** Préautorisation levée : rien n'a été débité. */
+export async function inscrireCautionLiberee(executeur: Executeur, reservationId: string): Promise<void> {
+  await inscrireCautionClient(executeur, reservationId, "caution_liberee");
+}
+
+/** Caution non constituée à l'arrivée (art. 6.6) : le lien pour enregistrer une carte. */
+export async function inscrireCarteCaution(executeur: Executeur, reservationId: string): Promise<void> {
+  await inscrireCautionClient(executeur, reservationId, "caution_carte");
 }
 
 /**

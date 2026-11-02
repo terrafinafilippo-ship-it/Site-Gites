@@ -57,6 +57,16 @@ export function aujourdhuiParis(maintenant: Date = new Date()): string {
   }).format(maintenant);
 }
 
+/** Heure à Paris d'un instant, au format hh:mm (« 18:05 »), heure d'été comprise. */
+export function heureParis(maintenant: Date = new Date()): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(maintenant);
+}
+
 export const NOMS_JOURS_ISO = [
   "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche",
 ] as const;

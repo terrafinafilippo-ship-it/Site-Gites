@@ -320,6 +320,8 @@ export async function enregistrerTentative(
             forfait_menage: numericDepuisCentimes(devis.montants.forfaitMenage),
             options: numericDepuisCentimes(0),
             taxe_sejour: numericDepuisCentimes(devis.taxe.total),
+            // Figée : le contrat l'imprime et la carte la bloque, même si le gîte change de caution.
+            caution: numericDepuisCentimes(devis.caution),
             // La taxe n'est plus un taux unique (D-18) : son détail est dans
             // detail_calcul. Les PDF qui impriment ce taux sont à corriger
             // avant que le contrat ne soit généré depuis le tunnel (lot 4).

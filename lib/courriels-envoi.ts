@@ -24,16 +24,26 @@
 // (lib/factures.ts, idempotent) au moment de l'envoi et la joint en PDF ; les
 // courriels du solde relisent l'état du solde à l'envoi, et ne partent pas
 // s'il a été payé entre-temps.
+//
+// Phase 4, lot 2 (D-16) : les courriels de la caution relisent la
+// préautorisation à l'envoi, et ne partent pas si elle a changé d'état
+// entre-temps (validée par le client, levée, retenue).
 import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { courriels, paiements, reglages, TYPES_FACTURE, type TypeFacture } from "@/db/schema";
+import { jourBlocage, jourLevee, lireReglagesCaution } from "@/lib/caution";
 import { centimesDepuisNumeric } from "@/lib/centimes";
 import type { ContratEmis, ResultatEmission } from "@/lib/contrat";
 import { inscrireContratARelancer, inscrireProbleme } from "@/lib/courriels";
 import {
+  texteAlerteCaution,
   texteAlerteProbleme,
   texteAlerteReservation,
+  texteCarteCaution,
+  texteCautionAValider,
+  texteCautionBloquee,
+  texteCautionLiberee,
   texteAlerteSignature,
   texteConfirmation,
   texteContrat,
@@ -78,6 +88,10 @@ const OBJETS_CLIENT = new Set([
   "solde_lien",
   "solde_rappel",
   "solde_impaye",
+  "caution_bloquee",
+  "caution_a_valider",
+  "caution_liberee",
+  "caution_carte",
 ]);
 
 type Courriel = typeof courriels.$inferSelect;
@@ -288,6 +302,17 @@ async function paiementRecu(tx: Executeur, reservationId: string) {
   return p ? { montant: centimesDepuisNumeric(p.montant), datePaiement: p.date } : null;
 }
 
+/** La préautorisation de la caution d'une réservation (une au plus). */
+async function cautionDe(tx: Executeur, reservationId: string) {
+  const [p] = await tx
+    .select()
+    .from(paiements)
+    .where(and(eq(paiements.reservation_id, reservationId), eq(paiements.type, "caution")));
+  return p ?? null;
+}
+
+const enCours = (resa: ReservationAvecGite) => resa.statut === "confirmee" || resa.statut === "terminee";
+
 async function adresseReponse(tx: Executeur): Promise<string> {
   const [r] = await tx.select({ reponse: reglages.courriel_reponse }).from(reglages).where(eq(reglages.id, 1));
   if (!r) throw new Error("ligne de réglages absente");
@@ -488,9 +513,80 @@ async function preparer(tx: Executeur, c: Courriel, origine: string): Promise<Pr
       };
     }
 
+    case "caution_bloquee":
+    case "caution_a_valider":
+    case "caution_liberee": {
+      if (!resa) return { abandon: "réservation absente" };
+      if (!enCours(resa)) return { abandon: `réservation au statut « ${resa.statut} »` };
+      const caution = await cautionDe(tx, resa.id);
+      const attendu = { caution_bloquee: ["bloque"], caution_a_valider: ["echoue", "en_attente"], caution_liberee: ["libere"] }[c.objet];
+      if (!caution || !attendu.includes(caution.statut)) {
+        return { abandon: `caution ${caution ? `à l'état « ${caution.statut} »` : "absente"} au moment de l'envoi` };
+      }
+      const montant = centimesDepuisNumeric(caution.montant);
+      const contact = await adresseReponse(tx);
+      const suivi = lienSuivi(origine, langue, resa.jeton_suivi);
+      if (c.objet === "caution_bloquee") {
+        return { contenu: texteCautionBloquee(langue, sejour(resa), { montant, levee: jourLevee(resa.date_depart) }, suivi, contact) };
+      }
+      if (c.objet === "caution_a_valider") {
+        const authentification = d.refus === "authentication_required";
+        return { contenu: texteCautionAValider(langue, sejour(resa), { montant, authentification }, suivi, contact) };
+      }
+      const date = caution.date_liberation ? caution.date_liberation.toLocaleDateString("sv-SE", { timeZone: "Europe/Paris" }) : resa.date_depart;
+      return {
+        contenu: texteCautionLiberee(
+          langue,
+          sejour(resa),
+          { montant, date, carteEffacee: resa.stripe_payment_method_id === null },
+          contact,
+        ),
+      };
+    }
+
+    case "caution_carte": {
+      if (!resa) return { abandon: "réservation absente" };
+      if (resa.statut !== "confirmee") return { abandon: `réservation au statut « ${resa.statut} »` };
+      if (resa.stripe_payment_method_id) return { abandon: "carte enregistrée entre-temps" };
+      if (resa.caution === null) return { abandon: "montant de la caution absent" };
+      return {
+        contenu: texteCarteCaution(
+          langue,
+          sejour(resa),
+          { montant: resa.caution, moyen: resa.moyen_caution ?? null },
+          lienSuivi(origine, langue, resa.jeton_suivi),
+          await adresseReponse(tx),
+        ),
+      };
+    }
+
+    case "alerte_caution": {
+      if (!resa) return { abandon: "réservation absente" };
+      const quoi = d.quoi === "bloquee" || d.quoi === "levee_demain" || d.quoi === "carte_enregistree" ? d.quoi : null;
+      if (!quoi) return { abandon: `alerte de caution inconnue (${String(d.quoi)})` };
+      const caution = await cautionDe(tx, resa.id);
+      if (quoi === "levee_demain" && caution?.statut !== "bloque") return { abandon: "caution plus bloquée" };
+      const r = await lireReglagesCaution(tx);
+      const montant = caution ? centimesDepuisNumeric(caution.montant) : resa.caution;
+      if (montant === null) return { abandon: "montant de la caution absent" };
+      return {
+        contenu: texteAlerteCaution(quoi, sejour(resa), ficheClient(resa), {
+          montant,
+          expire: caution?.statut === "bloque" ? caution.expire_at : null,
+          levee: jourLevee(resa.date_depart),
+          heureLevee: r.liberation,
+          veille: jourBlocage(resa.date_depart),
+          heureBlocage: r.blocage,
+        }),
+      };
+    }
+
     case "alerte_probleme": {
       if (d.genre === "solde_impaye" && resa && (await lireEtatSolde(tx, resa))?.etat === "paye") {
         return { abandon: "solde payé entre-temps" };
+      }
+      if (d.genre === "caution_refusee" && resa && (await cautionDe(tx, resa.id))?.statut === "bloque") {
+        return { abandon: "caution validée par le client entre-temps" };
       }
       const probleme = await lireProbleme(tx, d, resa);
       if (!probleme) return { abandon: `alerte de genre inconnu (${String(d.genre)})` };
@@ -547,6 +643,28 @@ async function lireProbleme(
       return { genre: "solde_a_verifier", montant: Number(d.montant ?? 0), depuis: String(d.depuis ?? "") };
     case "facture_non_emise":
       return { genre: "facture_non_emise", type: String(d.type ?? ""), erreur: String(d.erreur ?? "") };
+    case "caution_refusee": {
+      if (!resa) return null;
+      const caution = await cautionDe(tx, resa.id);
+      return {
+        genre: "caution_refusee",
+        montant: caution ? centimesDepuisNumeric(caution.montant) : (resa.caution ?? 0),
+        refus: typeof d.refus === "string" ? d.refus : null,
+        depart: resa.date_depart,
+      };
+    }
+    case "caution_montant_absent":
+      return { genre: "caution_montant_absent" };
+    case "caution_a_verifier":
+      return { genre: "caution_a_verifier", montant: Number(d.montant ?? 0), depuis: String(d.depuis ?? "") };
+    case "contestation":
+      return {
+        genre: "contestation",
+        paiementId: typeof d.paiementId === "string" ? d.paiementId : null,
+        type: typeof d.type === "string" ? d.type : null,
+        montant: Number(d.montant ?? 0),
+        motif: String(d.motif ?? ""),
+      };
     default:
       return null;
   }

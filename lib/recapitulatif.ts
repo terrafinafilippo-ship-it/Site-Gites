@@ -80,7 +80,6 @@ function detail<T>(resa: ReservationAvecGite, cle: string, garde: (v: unknown) =
   const v = resa.detail_calcul?.[cle];
   return garde(v) ? v : null;
 }
-const estNombre = (v: unknown): v is number => typeof v === "number" && Number.isSafeInteger(v);
 const estDate = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
 export interface Recapitulatif {
@@ -110,7 +109,8 @@ export function recapitulatif(
     ? new Date(paiement.datePaiement).toLocaleDateString("sv-SE", { timeZone: "Europe/Paris" })
     : null;
   const payeAujourdhui = datePaiement === null || datePaiement === aujourdhuiParis();
-  const caution = detail(resa, "caution", estNombre) ?? resa.gites?.caution ?? null;
+  // Montant figé sur la réservation (Phase 4, lot 2) ; null pour une saisie sans montant.
+  const caution = resa.caution;
   const dateVirement = detail(resa, "dateLimiteVirementCaution", estDate);
   const total = resa.paiement_integral;
 

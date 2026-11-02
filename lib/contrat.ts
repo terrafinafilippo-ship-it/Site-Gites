@@ -76,6 +76,11 @@ export async function emettreContrat(reservationId: string): Promise<ResultatEmi
   // Réservation (source de vérité ; gîte joint par lib/reservations).
   const resa = await chargerReservationAvecGite(reservationId, db);
   if (!resa) return { ok: false, status: 404, message: `Réservation introuvable : ${reservationId}` };
+  // Caution figée sur la réservation (Phase 4, lot 2) : sans elle, pas de
+  // contrat — refusé ici, avant qu'un numéro ne soit tiré.
+  if (resa.caution === null) {
+    return { ok: false, status: 409, message: `Montant de la caution absent sur la réservation ${resa.reference}.` };
+  }
   // Paiement intégral (D-20) : le contrat le prévoit depuis la v3 (art. 5, 7.2).
   let contactEmail: string;
   try {

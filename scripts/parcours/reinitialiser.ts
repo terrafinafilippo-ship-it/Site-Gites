@@ -74,7 +74,8 @@ async function main(): Promise<void> {
            nb_adultes, nb_enfants, nb_bebes, occupants_majeurs,
            prix_location, forfait_menage, options, taxe_sejour, taux_taxe_sejour,
            mode_paiement, reference_transaction, date_paiement_acompte,
-           taux_acompte, delai_solde_jours, delai_remboursement_solde_heures, delai_virement_caution_jours
+           taux_acompte, delai_solde_jours, delai_remboursement_solde_heures, delai_virement_caution_jours,
+           caution
          ) values (
            $1, $2, 'confirmee',
            $3, $4, $5, $6, $7, $8, $9, $10, $11,
@@ -83,7 +84,8 @@ async function main(): Promise<void> {
            $20, $21, $22, $23,
            $24, $25, $26, $27, $28,
            $29, $30, $31,
-           $32, $33, 48, 3
+           $32, $33, 48, 3,
+           $34
          ) returning id`,
         [
           gite.id, resa.reference,
@@ -100,6 +102,8 @@ async function main(): Promise<void> {
           resa.tauxTaxeSejour,
           resa.modePaiement, resa.referenceTransaction, resa.datePaiementAcompte,
           resa.tauxAcompte, resa.delaiSoldeJours,
+          // Caution figée sur la réservation (Phase 4, lot 2), comme le fait le tunnel.
+          numericDepuisCentimes(resa.attendu.caution),
         ],
       );
       console.log(`Réservation ${resa.reference} créée : ${rows[0].id}`);

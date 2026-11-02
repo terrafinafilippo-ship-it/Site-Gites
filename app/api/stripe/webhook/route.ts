@@ -1,5 +1,7 @@
 // POST /api/stripe/webhook — AVIS DE STRIPE sur un paiement (réussi, refusé,
-// annulé, en traitement).
+// annulé, en traitement ; caution bloquée), sur une carte enregistrée pour la
+// caution (art. 6.6), et sur un paiement contesté par un client auprès de sa
+// banque (alerte « À TRAITER » aux propriétaires, Phase 4, lot 2).
 //
 // C'est le filet du retour client : il confirme la réservation même si le
 // client a fermé sa page après avoir payé. Le traitement est celui de la page
@@ -17,6 +19,12 @@
 // reprendre (Stripe renverra l'avis) · 503 secret absent.
 import { after, NextResponse } from "next/server";
 
+import { eq } from "drizzle-orm";
+
+import { getDb } from "@/db";
+import { paiements } from "@/db/schema";
+import { constaterEnregistrement } from "@/lib/caution";
+import { inscrireProbleme } from "@/lib/courriels";
 import { traiterCourriels } from "@/lib/courriels-envoi";
 import { constaterPaiement } from "@/lib/paiement";
 import { messageErreur, resolveSiteOrigin } from "@/lib/route-helpers";
@@ -37,12 +45,33 @@ export async function POST(request: Request) {
   }
   if (!avis) return NextResponse.json({ ok: true, ignore: true });
 
+  const objet = avis.genre === "enregistrement" ? avis.enregistrementId : avis.genre === "contestation" ? avis.contestationId : avis.paiementId;
   try {
-    const issue = await constaterPaiement(avis.paiementId);
+    let issue: string;
+    if (avis.genre === "paiement") {
+      issue = (await constaterPaiement(avis.paiementId)).issue;
+    } else if (avis.genre === "enregistrement") {
+      issue = (await constaterEnregistrement(avis.enregistrementId)).issue;
+    } else {
+      // Contestation : le site ne répond pas à la place des propriétaires ; il les prévient.
+      const [p] = avis.paiementId
+        ? await getDb()
+            .select({ reservationId: paiements.reservation_id, type: paiements.type })
+            .from(paiements)
+            .where(eq(paiements.reference_externe, avis.paiementId))
+        : [];
+      await inscrireProbleme(getDb(), "contestation", avis.contestationId, p?.reservationId ?? null, {
+        paiementId: avis.paiementId,
+        type: p?.type ?? null,
+        montant: avis.montant,
+        motif: avis.motif,
+      });
+      issue = "CONTESTATION";
+    }
     after(() => traiterCourriels(resolveSiteOrigin(request)));
-    return NextResponse.json({ ok: true, issue: issue.issue });
+    return NextResponse.json({ ok: true, issue });
   } catch (erreur) {
-    console.error(`[stripe/webhook] ${avis.evenement} ${avis.paiementId} à reprendre :`, messageErreur(erreur));
+    console.error(`[stripe/webhook] ${avis.evenement} ${objet} à reprendre :`, messageErreur(erreur));
     return NextResponse.json({ error: "Traitement à reprendre." }, { status: 500 });
   }
 }

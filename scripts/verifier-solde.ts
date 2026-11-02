@@ -47,6 +47,7 @@ import {
   PaiementIndisponible,
   remplacerPrestataire,
   type AvisPaiement,
+  type EtatEnregistrement,
   type DemandePaiement,
   type DemandePrelevement,
   type EtatPaiement,
@@ -90,7 +91,7 @@ class PrestataireSimule implements Prestataire {
     const id = `pi_solde_${this.n}_${Date.now()}`;
     const etat: EtatPaiement = {
       id, statut, montant, devise: "eur", customerId: null, paymentMethodId: null,
-      reservationId, typePaiement: type, clientSecret: `${id}_secret_ok`, dernierRefus: statut === "echoue" ? "card_declined" : null,
+      reservationId, typePaiement: type, clientSecret: `${id}_secret_ok`, dernierRefus: statut === "echoue" ? "card_declined" : null, expireLe: null, montantEncaisse: 0,
     };
     this.paiements.set(id, etat);
     return etat;
@@ -131,6 +132,15 @@ class PrestataireSimule implements Prestataire {
   }
   async oublierCarte(pm: string): Promise<void> {
     this.cartesOubliees.push(pm);
+  }
+  async bloquerCaution(): Promise<EtatPaiement> {
+    throw new Error("caution : hors de ce contrôle (scripts/verifier-caution.ts)");
+  }
+  async creerEnregistrement(): Promise<EtatEnregistrement> {
+    throw new Error("caution : hors de ce contrôle (scripts/verifier-caution.ts)");
+  }
+  async lireEnregistrement(): Promise<EtatEnregistrement> {
+    throw new Error("caution : hors de ce contrôle (scripts/verifier-caution.ts)");
   }
   lireAvis(): AvisPaiement | null {
     return null;

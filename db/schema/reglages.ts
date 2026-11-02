@@ -56,6 +56,15 @@
 //     2026. Lus à chaque passage des tâches automatiques : ce sont des
 //     délais de courriel, pas des conditions du contrat (la date limite du
 //     solde, elle, est figée sur la réservation).
+//
+//   - caution par carte (Phase 4, lot 2, migration 0010, D-16) : heure de la
+//     préautorisation la veille du départ (18 h), heure de l'alerte aux
+//     propriétaires la veille de la levée (8 h), heure de la levée
+//     automatique le troisième jour après le départ (8 h, le matin : une
+//     préautorisation Visa peut expirer vers midi ce jour-là). Choix du gérant
+//     du 2 novembre 2026. Les JOURS (veille du départ, levée à 3 jours,
+//     données de carte effacées à 7 jours) ne sont pas des réglages : ils sont
+//     écrits dans le contrat (art. 6.2, 6.4, 6.5) et le texte d'accord.
 import { sql } from "drizzle-orm";
 import { check, integer, pgTable, text, time, timestamp, uuid } from "drizzle-orm/pg-core";
 
@@ -110,6 +119,10 @@ export const reglages = pgTable(
     solde_lien_jours: integer().notNull().default(7),
     solde_rappel_jours: integer().notNull().default(1),
     solde_relance_jours: integer().notNull().default(3),
+    // Caution par carte (Phase 4, lot 2, migration 0010), heures de Paris.
+    caution_heure_blocage: time().notNull().default("18:00"),
+    caution_heure_alerte: time().notNull().default("08:00"),
+    caution_heure_liberation: time().notNull().default("08:00"),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -158,5 +171,7 @@ export const reglages = pgTable(
       sql`${t.solde_preavis_jours} between 0 and 60 and ${t.solde_lien_jours} between 0 and 60
           and ${t.solde_rappel_jours} between 0 and 60 and ${t.solde_relance_jours} between 1 and 60`,
     ),
+    // Levée avant midi : au-delà, une préautorisation Visa peut avoir expiré (D-16).
+    check("reglages_caution_check", sql`${t.caution_heure_liberation} < '12:00'`),
   ],
 );
