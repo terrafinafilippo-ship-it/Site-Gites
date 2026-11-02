@@ -757,7 +757,9 @@ le solde n'arriverait pas.
 
 **Ce que cette décision ne règle pas.** L'article 5.1 doit prévoir ce cas, et
 le juriste le relire. Le comptable doit dire quelle facture on émet pour un
-paiement intégral à la réservation (Phase 4, factures automatiques).
+paiement intégral à la réservation (Phase 4, factures automatiques) → réponse
+(a) du gérant le 1er novembre 2026, facture unique, à confirmer par le
+comptable : D-29.
 
 **Si on revient dessus.** Accepter un acompte avec un solde « sous 48 heures »
 crée une relance et un risque d'impayé à quelques jours de l'arrivée ; refuser
@@ -1186,6 +1188,112 @@ les dates de l'article 7.2.
 **Si on revient dessus.** Retirer le choix, c'est retirer la troisième case
 du tunnel ; les contrats déjà émis gardent leur texte. Ajouter une réduction,
 c'est un réglage, un calcul dans `lib/montants.ts` et un contrat v5.
+
+---
+
+## D-28 · Le solde, automatique
+
+**Date :** 1er novembre 2026 (Phase 4, lot 1). Choix du gérant au cadrage de la
+phase (réponses 1A, 2A, 3A, 7A) :
+- **prélèvement** : courriel de préavis 7 jours avant la date limite du solde,
+  prélèvement sur la carte enregistrée le jour de la date limite ;
+- **lien** : courriel avec le lien de paiement 7 jours avant, rappel la veille ;
+- **impayé** (prélèvement refusé, ou lendemain de la date limite pour le
+  lien) : courriel au client avec le lien, alerte « À TRAITER » aux
+  propriétaires ; seconde alerte 3 jours après si rien n'est payé. **La mise
+  en demeure et la résiliation (article 5.3) restent la décision des
+  propriétaires : le site ne résilie jamais tout seul** ;
+- **le réveil** : une tâche programmée de Coolify appelle le site toutes les
+  15 minutes, plutôt qu'une minuterie interne qui s'arrête à chaque redémarrage.
+
+**Décision.**
+- **Délais en réglages**, lus à chaque passage (`reglages.solde_preavis_jours`,
+  `solde_lien_jours`, `solde_rappel_jours`, `solde_relance_jours`, migration
+  0009) : ce sont des délais de courriel, pas des conditions du contrat. La date
+  limite du solde, elle, reste figée sur la réservation (`delai_solde_jours`).
+- **Le réveil** : `POST /api/taches`, protégée par `TACHES_SECRET` (en-tête
+  `x-taches-secret`), refusée sans secret ni `NEXT_PUBLIC_SITE_URL` (les liens
+  des courriels). Un seul passage à la fois (verrou de la base). Chaque passage
+  regarde **où en est chaque réservation**, pas l'heure : un passage manqué est
+  rattrapé par le suivant (`lib/taches.ts`, `lib/solde.ts`).
+- **Jamais deux prélèvements** : la ligne `paiements` du prélèvement est écrite
+  **avant** l'appel à Stripe, sans référence ; la clé d'idempotence
+  `prelevement-{réservation}` fait rejouer le même appel après une panne. Une
+  ligne restée sans réponse plus de 20 heures n'est plus rejouée (la clé de
+  Stripe dure 24 heures) : alerte « à vérifier dans Stripe ».
+- **Le lien mène à « Ma réservation »** (bloc « Votre solde », bouton « Payer
+  le solde », `POST /api/suivi/solde`), authentifiée par le jeton secret comme
+  la page. Le paiement ouvert est réutilisé à chaque clic ; un prélèvement
+  refusé se règle **sur le même paiement**, avec authentification de la banque.
+- **Le constat** (`lib/paiement.ts`) reconnaît le solde : inscrit, facturé,
+  sans toucher aux nuits ni au statut. Un avis de Stripe arrivé avant que le
+  prélèvement ait sa référence est « à reprendre » (500, Stripe renvoie), jamais
+  remboursé. Un solde reçu pour une réservation qui n'est plus confirmée est
+  remboursé, sans courriel au client (les propriétaires l'appellent) et **sans
+  oublier la carte**, qui sert à la caution.
+- **Une clé d'idempotence par sorte de paiement** (`paiement-…`, `solde-…-n`,
+  `prelevement-…`) : avec une seule clé par réservation, Stripe aurait renvoyé
+  l'acompte quand on lui demandait le solde.
+- Les courriels du solde relisent son état à l'envoi : payé entre-temps, ils
+  ne partent pas.
+
+**Pourquoi.** Un séjour doit se dérouler sans que les propriétaires y pensent
+(objectif de la Phase 4), et un impayé ne doit jamais être un silence.
+
+**Ce qui pourrait mal tourner.** Si la tâche programmée n'est pas créée au
+déploiement, **rien d'automatique ne se fait** : ni préavis, ni prélèvement, ni
+relance (point 18 de `docs/06-avant-premier-client.md`). Une banque qui exige
+l'authentification pour un prélèvement hors session le refuse : c'est le cas
+prévu, le client reçoit le lien.
+
+**Si on revient dessus.** Changer un délai : un réglage. Supprimer le
+prélèvement automatique : le contrat (article 5.1) et le tunnel le proposent ;
+il faudrait les modifier aussi.
+
+---
+
+## D-29 · Factures automatiques, et facture unique d'un séjour payé en une fois
+
+**Date :** 1er novembre 2026 (Phase 4, lot 1). Choix du gérant :
+- chaque facture est **émise au paiement et envoyée au client en PDF** par
+  courriel (réponse 4A) ;
+- un séjour payé en une fois à la réservation (D-20, D-27) reçoit **une seule
+  facture, émise le jour du paiement** : réponse (a) du gérant à la question
+  posée au comptable. **À confirmer par le comptable avant le premier client**
+  (point 17 de `docs/06-avant-premier-client.md`).
+
+**Décision.**
+- **`lib/factures.ts`** porte l'émission, déplacée de la route
+  `POST /api/factures` (qui l'appelle toujours, pour le même résultat). Le
+  courriel « facture » l'appelle à l'envoi et joint le PDF : la facture et son
+  courriel ne se perdent pas l'un sans l'autre, et une émission qui échoue se
+  retente pour **le même numéro**.
+- **Type `total`** dans `factures` (migration 0009) et PDF
+  `components/pdf/FactureTotalPDF.tsx` : titre « Facture », objet « Location
+  saisonnière en meublé de tourisme », montant « Prix total du séjour » ; les
+  autres phrases sont celles, validées, de la facture de solde. Textes validés
+  par le gérant le 1er novembre 2026.
+- **Une seule facture de chaque type par réservation** (index unique
+  `(reservation_id, type)`) : deux émissions simultanées ne frappent pas deux
+  numéros ; l'incrément du compteur s'annule avec l'insertion refusée.
+- La facture imprime **la date et la référence du paiement qu'elle constate**
+  (ligne `paiements`) ; avant, la facture de solde aurait repris la référence
+  de l'acompte. Sans ligne `paiements` (parcours de non-régression), rien ne
+  change.
+- Un refus métier à l'émission (aucun numéro frappé) produit l'alerte
+  « À TRAITER — facture non émise ».
+
+**Pourquoi.** Une facture se remet au client ; l'émettre à la main à chaque
+paiement serait oublié.
+
+**Ce qui pourrait mal tourner.** Si le comptable répond autre chose que (a),
+les factures « total » déjà émises restent (une facture ne se supprime pas) :
+il faudrait des avoirs. Le site n'étant pas en ligne, aucune facture réelle
+n'est émise avant sa réponse.
+
+**Si on revient dessus.** Une autre forme de facture pour le paiement en une
+fois : un autre type, un autre composant PDF, et `inscrireApresPaiement`
+(`lib/courriels.ts`) qui choisit le type.
 
 ---
 

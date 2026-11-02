@@ -45,7 +45,8 @@ commitée.
   `confirmee`, `annulee`, `terminee`) et une référence publique courte affichée
   au client (page de suivi).
 - **documents** : le registre des PDF émis pour une réservation : contrat,
-  facture d'acompte, facture de solde. Contient le chemin du fichier
+  facture d'acompte, facture de solde, facture unique d'un séjour payé en une
+  fois (Phase 4). Contient le chemin du fichier
   (`url_pdf`), le numéro, le statut (`genere` puis `signe`) et, pour les
   contrats, le jeton du lien de signature. **Un seul document par type et par
   réservation** : c'est ce qui empêche un double clic ou un webhook en double
@@ -55,9 +56,11 @@ commitée.
   l'empreinte du PDF signé. **Cette table ne se modifie ni ne se vide** : un
   trigger refuse toute modification ou suppression. Une seule signature par
   document.
-- **factures** : les factures d'acompte et de solde, avec leur numéro légal, le
-  montant, la date d'émission et une copie des données du PDF. Les lignes sont
-  créées uniquement par la fonction `creer_facture` (voir plus bas).
+- **factures** : les factures d'acompte et de solde, et depuis la Phase 4 la
+  facture unique (`total`) d'un séjour payé en une fois, avec leur numéro
+  légal, le montant, la date d'émission et une copie des données du PDF. Les
+  lignes sont créées uniquement par la fonction `creer_facture` (voir plus
+  bas) ; **une seule facture de chaque type par réservation** (migration 0009).
 - **compteurs_documents** : le compteur de numérotation, une ligne par série
   (`FAC`, `CTR`) et par année.
 
@@ -111,6 +114,9 @@ d'essai, marquée « (essai) ». **`npm run db:seed` ne touche pas à ces tables
   secret** (`jeton_suivi`) qui ouvre sa page « Ma réservation » ; le journal
   `courriels` accueille aussi le lien redemandé par le formulaire
   (`lien_suivi`), et la limite de demandes s'y compte.
+- Depuis la migration 0009 (Phase 4, D-28, D-29) : la facture jointe en PDF
+  (`facture`) et les courriels du solde (`solde_preavis`, `solde_lien`,
+  `solde_rappel`, `solde_impaye`) ; leurs délais sont dans `reglages`.
 
 **Tables provisoires** (structure minimale)
 
@@ -128,7 +134,7 @@ n'est plus utilisé.
 | `POST /api/contrats` | Émet le contrat d'une réservation : numéro `CTR-AAAA-NNN`, PDF non signé dans `contrats/{reservation_id}/{numero}.pdf`, ligne `documents` avec jeton de signature, recopie du numéro dans `reservations.numero_contrat`, le tout dans une transaction. Idempotent. En-tête `x-service-secret`. |
 | `GET /signer/{token}` | Page de signature : affiche le PDF, recueille nom et consentement. |
 | `POST /api/contrats/signer` | Enregistre la preuve de signature (`signatures`), écrit le PDF signé `{numero}-signe.pdf`, passe le document en `signe`. Publique : le jeton authentifie le signataire. |
-| `POST /api/factures` | Émet la facture d'acompte ou de solde via `creer_facture`, PDF dans `factures/{numero}.pdf`. En-tête `x-service-secret`. |
+| `POST /api/factures` | Émet la facture d'acompte, de solde ou unique (`total`) via `creer_facture`, PDF dans `factures/{numero}.pdf` (`lib/factures.ts`, aussi appelée par le courriel « facture » au paiement). En-tête `x-service-secret`. |
 | `GET /api/documents/{chemin}?token=…&expires=…` | Seul accès aux PDF, par lien signé à durée limitée. |
 
 Code correspondant : `app/api/contrats/`, `app/api/factures/`,
@@ -179,6 +185,19 @@ Pour une fonction, un trigger ou toute instruction que Drizzle ne génère pas :
 enregistré dans le journal, à remplir à la main.
 
 Ne jamais modifier une migration déjà appliquée : en écrire une nouvelle.
+
+### Avant d'appliquer la migration 0009 sur une base existante
+
+La migration 0009 crée un index unique `(reservation_id, type)` sur
+`factures`. Elle échoue si la base contient déjà deux factures du même type
+pour une réservation. Vérifier d'abord (lecture seule) :
+
+```sql
+select reservation_id, type, count(*) from factures group by 1, 2 having count(*) > 1;
+```
+
+Aucune ligne : appliquer. Une ligne ou plus : **ne pas appliquer, ne rien
+supprimer** (une facture ne se supprime jamais) et prévenir le développeur.
 
 ## Relancer le seed
 

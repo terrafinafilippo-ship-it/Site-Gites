@@ -30,6 +30,7 @@ DB_CIBLE=test npm run verify:blocage  # blocage des dates : deux clients simulta
 DB_CIBLE=test npm run verify:paiement # paiement, Stripe simulé (base de test) ; --http : Stripe en mode test
 DB_CIBLE=test npm run verify:courriels # courriels, envoi simulé : confirmation, contrat, alertes (base de test)
 DB_CIBLE=test npm run verify:suivi    # page « Ma réservation » : lien secret, validité, formulaire (base de test)
+DB_CIBLE=test npm run verify:solde    # solde et factures automatiques, temps simulé (base de test)
 
 bash scripts/parcours/lancer.sh   # non-régression complète (contrat, signature, factures)
 ```
@@ -74,7 +75,7 @@ Chaque règle est suivie de ce qui se passe si elle est violée.
 
 5. **L'entité légale est SARL DE LA VOUTE** (`lib/constantes.ts`, `EMETTEUR`) —
    « Les Gîtes de Samoyas » n'est qu'une enseigne. Attention : ces valeurs sont
-   aujourd'hui **recopiées en dur** dans les trois composants PDF, qui n'importent
+   aujourd'hui **recopiées en dur** dans les quatre composants PDF, qui n'importent
    pas `EMETTEUR` (écart E-7 de `docs/03-conformite.md`).
    *Violation : une facture émise sous une identité qui n'est pas celle du
    redevable n'est pas une facture régulière (art. L.441-9 C. com.).*

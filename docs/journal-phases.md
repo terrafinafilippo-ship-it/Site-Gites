@@ -1307,6 +1307,81 @@ payé par Stripe (mode test), contrat créé et envoyé, signé en ligne, page
 
 ---
 
+## Phase 4 — lot 1 : le réveil, le solde, les factures (1er novembre 2026)
+
+### Ce qui a été décidé
+
+Cadrage de la Phase 4 le 1er novembre 2026 (fiche de phase) ; décisions D-28
+(le solde) et D-29 (factures automatiques, facture unique d'un séjour payé en
+une fois, réponse (a) à confirmer par le comptable). Textes des courriels, de
+la page et de la facture unique validés par le gérant le même jour.
+
+### Défauts trouvés dans le code avant d'écrire
+
+- **Un paiement du solde aurait été remboursé** : le constat ne connaissait
+  qu'un paiement par réservation, celui de la réservation, et remboursait tout
+  paiement reçu pour une réservation déjà confirmée.
+- **Stripe aurait refusé le second paiement** : la clé d'idempotence était la
+  même pour tous les paiements d'une réservation.
+- Trouvé en écrivant les contrôles : **la facture de solde aurait imprimé la
+  référence de l'acompte** (celle de la réservation).
+
+### Ce qui a été fait
+
+- **Migration 0009** : délais des courriels du solde en réglages (7, 7, 1, 3
+  jours) ; courriels `facture`, `solde_preavis`, `solde_lien`, `solde_rappel`,
+  `solde_impaye` ; type de facture `total` ; une facture par type et par
+  réservation (index unique).
+- **`lib/solde.ts`, `lib/taches.ts`, `POST /api/taches`** : le réveil et ce que
+  chaque passage fait du solde (préavis, prélèvement, lien, rappel, impayé,
+  seconde alerte).
+- **`lib/stripe.ts`** : le prélèvement hors session (`prelever`), une clé
+  d'idempotence par sorte de paiement, le type inscrit sur le paiement.
+- **`lib/paiement.ts`** : le constat du solde (`SOLDE_RECU`) ; remboursement
+  d'un solde sans toucher à la réservation ni à la carte.
+- **`lib/factures.ts`** : l'émission des factures, déplacée de la route ;
+  `FactureTotalPDF.tsx` ; la date et la référence du paiement facturé.
+- **Courriels** : la facture jointe en PDF (`lib/messagerie.ts`), les courriels
+  du solde, les alertes « solde impayé », « prélèvement à vérifier », « facture
+  non émise » ; en français et en anglais.
+- **« Ma réservation »** : bloc « Votre solde », bouton « Payer le solde »
+  (`PayerSolde.tsx`, `POST /api/suivi/solde`), retour après paiement revérifié
+  chez Stripe.
+- **Contrôles** : `verify:solde` (62 cas, nouveau) ; `verify:paiement --http`
+  vérifie la vraie facture d'acompte émise par le serveur ; `verify:courriels`
+  compte la facture ; `db:verify` 164 contrôles (section 6h).
+
+### Ce qui a été vérifié
+
+- `npm run lint`, `npx tsc --noEmit`, `npm run build` : passent.
+- `bash scripts/parcours/lancer.sh` : **quinze étapes sur quinze**, aucun
+  montant de référence n'a bougé.
+- Essai par le serveur et Stripe en mode test (base jetable) : réservation
+  avec solde par lien, page « Ma réservation » (« Solde de 388,35 €, à régler
+  au plus tard le 3 décembre 2026 »), bouton, même paiement au second clic,
+  carte de test, retour « Paiement du solde reçu », facture de solde émise et
+  envoyée ; séjour payé en une fois, facture unique. Les trois PDF regardés.
+
+### Ce qui n'a PAS été vérifié
+
+- **L'écran** du bloc « Votre solde » et du champ de carte dans un navigateur
+  (la page a été lue par le serveur, pas regardée).
+- **Le prélèvement réel hors session chez Stripe** : la logique est contrôlée
+  avec un prestataire simulé ; le vrai appel le sera en mode test au lot 2,
+  avec la carte enregistrée de la caution.
+- **La tâche programmée de Coolify** : elle se crée au déploiement (point 18
+  de `docs/06-avant-premier-client.md`).
+
+### Points reportés
+
+- La facture unique attend la confirmation du comptable (point 17).
+- Le site écrit « le 1 novembre » au lieu de « le 1er novembre » (format des
+  dates, déjà le cas partout) : signalé au gérant.
+- `lancer.sh` vide la base de test : la réservation d'essai SAM-2026-DDCF9 de
+  la clôture de la Phase 3 n'y est plus (bilan déjà écrit).
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

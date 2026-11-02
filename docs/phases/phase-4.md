@@ -1,6 +1,9 @@
 # Phase 4 — Cycle de paiement complet
 
-> Fiche à **compléter à l'ouverture de la phase**. Ce qui suit est le cadre.
+**État :** ouverte le 1er novembre 2026. **Lot 1 (le réveil, le solde, les
+factures) livré le 1er novembre 2026** (D-28, D-29 ; bilan :
+`docs/journal-phases.md`). Restent le lot 2 (la caution par carte) et le lot 3
+(chèque et virement, réservations abandonnées, base en production).
 
 **Dépendances :** Phase 3 close — sans acompte réel, il n'y a pas de carte
 enregistrée sur laquelle agir.
@@ -43,6 +46,45 @@ qu'il y a à construire.
 >   en totalité. Il n'y a alors pas de solde : la tâche de J-30 doit l'ignorer,
 >   et **le comptable doit dire quelle facture on émet** pour un paiement
 >   intégral.
+
+---
+
+## Cadrage du 1er novembre 2026
+
+Réponses du gérant (exemple : Camille arrive le samedi 20 mars 2027, solde de
+700 € au plus tard le 18 février, caution de 500 €) :
+
+1. **Préavis du prélèvement** 7 jours avant la date limite, puis reçu (la
+   facture) — A.
+2. **Prélèvement refusé** : lien au client et alerte aux propriétaires tout de
+   suite, seconde alerte 3 jours après ; mise en demeure et résiliation restent
+   leur décision — A.
+3. **Solde par lien** : lien 7 jours avant, rappel la veille, impayé le
+   lendemain de la date limite — A.
+4. **Factures** créées au paiement et envoyées en PDF — A. **Séjour payé en une
+   fois : une facture unique, le jour du paiement** — réponse (a), à confirmer
+   par le comptable.
+5. **Retenir une partie de la caution avant l'écran de gestion** : sans objet.
+   Le site ne sera pas en ligne avant la fin du travail ; la retenue arrive
+   avec le back-office (Phase 5), avant la mise en ligne. Le lot 2 construit le
+   blocage et la libération automatique.
+6. **Caution par virement** : courriel 10 jours avant la date limite (elle-même
+   3 jours avant l'arrivée : le 17 mars pour Camille, courriel le 7 mars) avec
+   les coordonnées bancaires des propriétaires et la demande du RIB du client ;
+   alerte « vérifiez que le virement est arrivé » à la date limite. Chèque :
+   rien d'automatique — A.
+7. **Le réveil** : tâche programmée de Coolify toutes les 15 minutes — A.
+8. **Effacement des réservations abandonnées** construit, durée en réglage ;
+   vide, rien n'est effacé tant que le juriste n'a pas répondu — A.
+
+Choix annoncés sans objection (pour le lot 2) : la caution est enregistrée dans
+`paiements` (type `caution`) ; son montant est recopié sur la réservation au
+moment de la réservation ; `CAUTION_DEFAUT` n'est plus jamais utilisé (montant
+manquant → alerte, rien n'est bloqué).
+
+**Découpage :** lot 1 — le réveil, le solde, les factures ; lot 2 — la caution
+par carte ; lot 3 — chèque et virement, réservations abandonnées, base en
+production.
 
 ---
 
@@ -105,6 +147,9 @@ qu'il y a à construire.
 ---
 
 ## Décisions ouvertes, à trancher à l'ouverture
+
+> Tranchées au cadrage du 1er novembre 2026 (ci-dessus) : la caution dans
+> `paiements`, le montant figé à la réservation, plus de `CAUTION_DEFAUT`.
 
 - **Où vivent les données de caution** : colonnes de `reservations`, ou lignes
   de la table `paiements`, qui porte déjà un type `caution` ? Ne pas créer deux

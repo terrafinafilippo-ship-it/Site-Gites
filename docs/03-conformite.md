@@ -45,6 +45,11 @@ prouver le contraire.
   transaction** : un échec rend le numéro.
 - Côté contrats : `app/api/contrats/route.ts` appelle `prochain_numero('CTR', …)`
   à l'intérieur de la transaction qui insère la ligne `documents`.
+- Depuis la Phase 4 (migration 0009) : **une facture de chaque type par
+  réservation** (index unique `(reservation_id, type)`). Les factures émises
+  automatiquement au paiement (`lib/factures.ts`, D-29) ne peuvent donc pas
+  frapper deux numéros si l'émission est lancée deux fois ; la seconde
+  insertion échoue et son incrément du compteur s'annule avec elle.
 
 **Comment on vérifie.**
 - `npm run db:verify` contrôle l'existence des fonctions, l'unicité du numéro et
@@ -78,8 +83,9 @@ Les gîtes facturent des particuliers : l'obligation équivalente est la **note 
 prestation de services** (arrêté du 3 octobre 1983, obligatoire au-delà de
 25 € TTC). L'exigence pratique est **identique** : nommer ce qui a été vendu.
 
-**Où c'est implémenté.** `components/pdf/FactureAcomptePDF.tsx` et
-`FactureSoldePDF.tsx` : identité de l'émetteur (SARL DE LA VOUTE, capital, RCS,
+**Où c'est implémenté.** `components/pdf/FactureAcomptePDF.tsx`,
+`FactureSoldePDF.tsx` et, depuis la Phase 4, `FactureTotalPDF.tsx` (facture
+unique d'un séjour payé en une fois, D-29) : identité de l'émetteur (SARL DE LA VOUTE, capital, RCS,
 SIRET), identité du client, numéro et date issus de la ligne `factures`,
 détail des postes (location, forfait ménage, options, taxe de séjour), total TTC.
 
@@ -92,14 +98,14 @@ nécessaire : un PDF peut être exact et illisible.
 d'options mais **aucun libellé**. Les documents affichent l'intitulé générique
 « Options ». Une ligne « Options — 25,50 € » ne désigne pas ce qui a été vendu :
 ce n'est pas une dénomination précise. À lever en Phase 5 (ajout du libellé en
-base et affichage dans les trois composants PDF et la page de signature).
+base et affichage dans les quatre composants PDF et la page de signature).
 
 **Écart E-7 (faible, Phase 6).** `lib/constantes.ts` déclare `EMETTEUR` et
 `MENTIONS` (raison sociale, capital, RCS, SIRET, mention de TVA, médiateur),
-mais **aucun fichier ne les importe** : les trois composants PDF recopient ces
+mais **aucun fichier ne les importe** : les quatre composants PDF recopient ces
 valeurs en texte littéral. Conséquence : corriger `lib/constantes.ts` ne change
 **rien** aux documents produits. Toute correction d'identité doit aujourd'hui
-être faite aux quatre endroits. À traiter en même temps que E-1.
+être faite aux cinq endroits. À traiter en même temps que E-1.
 
 ---
 

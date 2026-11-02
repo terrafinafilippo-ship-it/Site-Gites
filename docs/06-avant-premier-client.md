@@ -43,6 +43,8 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | 14 | Passer Stripe en mode réel et brancher l'avis de paiement | **Les propriétaires** (compte Stripe activé), puis développement | Au déploiement |
 | 15 | Brancher les courriels réels sur le serveur déployé | **Phase de déploiement**, puis les propriétaires (réception) | Au déploiement |
 | 16 | Annulation : confirmer le délai de remboursement du solde (48 heures) | **Arbitrage** | Avant l'ouverture |
+| 17 | Séjour payé en une fois : faire confirmer la facture unique | **Le comptable** | Avant l'ouverture |
+| 18 | Programmer le réveil des tâches automatiques (solde, factures, relances) | **Phase de déploiement** | Au déploiement |
 
 ---
 
@@ -58,7 +60,7 @@ vendu. La dénomination précise des prestations facturées est obligatoire
 prestation de services, arrêté du 3 octobre 1983, pour un particulier).
 
 **L'action.** Ajouter le libellé en base (Phase 5, back-office), puis l'afficher
-à la place de l'intitulé générique dans les **trois composants PDF** et sur la
+à la place de l'intitulé générique dans les **quatre composants PDF** et sur la
 **page de signature**.
 
 ---
@@ -595,6 +597,53 @@ réservation.
 
 **Le contrôle.** Un contrat émis après le changement imprime le nouveau délai
 et la date limite qui en découle (art. 7.2).
+
+---
+
+## 17. Séjour payé en une fois : faire confirmer la facture unique
+
+**Qui peut lever :** **le comptable** · **avant l'ouverture**
+
+**La raison.** Un séjour payé en une fois à la réservation (D-20, D-27) ne
+reçoit ni facture d'acompte ni facture de solde. Le 1er novembre 2026, le
+gérant a choisi la réponse (a) : **une seule facture du séjour, émise le jour
+du paiement** (D-29). Le site l'émet ainsi depuis la Phase 4. Une facture émise
+ne se supprime pas : si le comptable voulait autre chose, il faudrait des
+avoirs. D'où la confirmation **avant** la première réservation réelle.
+
+**L'action.** Poser la question au comptable, avec un exemple de facture
+(type `total`, `components/pdf/FactureTotalPDF.tsx`) :
+> « Quand un client paie la totalité de son séjour en une seule fois à la
+> réservation, avant d'arriver : la SARL DE LA VOUTE émet une seule facture du
+> séjour, datée du jour du paiement. Est-ce la bonne facture ? »
+La poser avec la question de la caution reçue par virement (D-19).
+
+**Le contrôle.** Réponse écrite du comptable, conservée.
+
+---
+
+## 18. Programmer le réveil des tâches automatiques
+
+**Qui peut lever :** **phase de déploiement** · **au déploiement**
+
+**La raison.** Le préavis et le prélèvement du solde, le lien, les rappels,
+les impayés (D-28) — et en Phase 4 la caution — ne se font que si le site est
+réveillé toutes les 15 minutes. **Sans la tâche programmée, rien d'automatique
+ne se fait, et rien ne le signale.**
+
+**L'action.**
+1. Créer le secret `TACHES_SECRET` (32 octets aléatoires, comme
+   `STORAGE_SIGNING_SECRET`) dans les variables du site sur Coolify ; vérifier
+   que `NEXT_PUBLIC_SITE_URL` vaut l'adresse publique du site.
+2. Dans Coolify, onglet « Scheduled Tasks » du site : une tâche toutes les 15
+   minutes (`*/15 * * * *`) qui exécute, dans le conteneur :
+   `curl -fsS -X POST -H "x-taches-secret: $TACHES_SECRET" http://localhost:3000/api/taches`
+   (à vérifier ce jour-là : la présence de `curl` dans l'image et le port
+   interne ; à défaut de `curl`, la même requête par `node -e` et `fetch`).
+
+**Le contrôle.** Le journal de la tâche dans Coolify montre une réponse `200`
+avec un bilan (`soldes`, `courriels`) toutes les 15 minutes ; une réservation
+d'essai dont la date limite du solde est passée reçoit son courriel.
 
 ---
 

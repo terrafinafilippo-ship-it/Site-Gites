@@ -1,6 +1,6 @@
 # Facture / Quittance — Templates
 
-> **Modèle retenu** : Modèle B — **une facture par encaissement** (1 facture d'acompte + 1 facture de solde par séjour).
+> **Modèle retenu** : Modèle B — **une facture par encaissement** (1 facture d'acompte + 1 facture de solde par séjour). Séjour payé en une fois à la réservation : **une facture unique** (Template 3, D-29, à confirmer par le comptable).
 > **Numérotation** : `FAC-{{annee}}-{{seq}}`, série annuelle à partir de `FAC-2026-001` (rupture avec l'ancien système GdF).
 > **Régime TVA** : exonération de plein droit (art. 261 D 4° CGI) — aucune ligne TVA.
 
@@ -271,6 +271,28 @@ Exonération de TVA — article 261 D 4° du CGI
 
 ═══════════════════════════════════════════════════════════════════════════════
 ```
+
+---
+
+## Template 3 — FACTURE UNIQUE (séjour payé en une fois)
+
+> Émise le jour du paiement, quand le prix total est réglé à la réservation
+> (D-20 : arrivée à moins de 30 jours ; D-27 : « tout régler maintenant »).
+> Choix du gérant du 1er novembre 2026, à confirmer par le comptable (D-29).
+> Rendu : `components/pdf/FactureTotalPDF.tsx`, type `total` dans `factures`.
+
+Identique à la facture de solde (Template 2), sauf :
+
+- titre **« FACTURE »** ;
+- objet **« Location saisonnière en meublé de tourisme »** ;
+- pas de ligne « Acompte déjà facturé » : le récapitulatif s'arrête au
+  **TOTAL DU SÉJOUR** ;
+- montant facturé : **« Prix total du séjour »** = total du séjour ;
+- bloc de paiement intitulé « Paiement ».
+
+Mentions, note « Le séjour est désormais intégralement réglé » et phrase
+« La présente facture solde le contrat de location n° … » : celles de la
+facture de solde.
 
 ---
 
