@@ -126,6 +126,8 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     "suivi_validite_jours", "suivi_demandes_max", "suivi_demandes_minutes",
     // Annulation et avis (Phase 3, lot 5, migration 0008).
     "delai_remboursement_solde_heures", "avis_note_centiemes", "avis_nombre", "avis_recommandation_pct",
+    // Solde (Phase 4, lot 1, migration 0009).
+    "solde_preavis_jours", "solde_lien_jours", "solde_rappel_jours", "solde_relance_jours",
     "updated_at",
   ],
   taxes_sejour: [
@@ -817,6 +819,46 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
       client, "sp_note_haute", `update reglages set avis_note_centiemes = 501 where id = 1`, [],
     );
     noter("6g", codePg(noteTropHaute.erreur) === "23514", "note au-dessus de 5/5 refusée", codePg(noteTropHaute.erreur));
+
+    // ── 6h. Solde et factures automatiques (Phase 4, lot 1, migration 0009, D-28, D-29) ──
+    titre("6h. Solde et factures automatiques");
+    const reglagesSolde = await client.query<{ p: number; l: number; r: number; x: number }>(
+      `select solde_preavis_jours as p, solde_lien_jours as l, solde_rappel_jours as r, solde_relance_jours as x
+         from reglages where id = 1`,
+    );
+    noter(
+      "6h",
+      reglagesSolde.rows[0]?.p === 7 && reglagesSolde.rows[0]?.l === 7 && reglagesSolde.rows[0]?.r === 1 && reglagesSolde.rows[0]?.x === 3,
+      "réglages : préavis et lien 7 jours avant, rappel la veille, seconde alerte 3 jours après",
+      JSON.stringify(reglagesSolde.rows[0]),
+    );
+    const relanceZero = await attendreErreur(
+      client, "sp_relance_zero", `update reglages set solde_relance_jours = 0 where id = 1`, [],
+    );
+    noter("6h", codePg(relanceZero.erreur) === "23514", "seconde alerte le jour même refusée", codePg(relanceZero.erreur));
+    const total = await attendreErreur(
+      client, "sp_facture_total",
+      `select * from creer_facture($1::uuid, 'total', 1000.00, '{}'::jsonb, null)`, [resaId],
+    );
+    noter("6h", total.erreur === null, "facture de type « total » acceptée", codePg(total.erreur));
+    const totalBis = await attendreErreur(
+      client, "sp_facture_total_bis",
+      `select * from creer_facture($1::uuid, 'total', 1000.00, '{}'::jsonb, null)`, [resaId],
+    );
+    noter("6h", codePg(totalBis.erreur) === "23505", "seconde facture du même type pour la même réservation refusée", codePg(totalBis.erreur));
+    const typeInconnu = await attendreErreur(
+      client, "sp_facture_avoir",
+      `select * from creer_facture($1::uuid, 'avoir', 1000.00, '{}'::jsonb, null)`, [resaId],
+    );
+    noter("6h", codePg(typeInconnu.erreur) === "23514", "type de facture inconnu refusé", codePg(typeInconnu.erreur));
+    for (const objet of ["facture", "solde_preavis", "solde_lien", "solde_rappel", "solde_impaye"]) {
+      const c = await attendreErreur(
+        client, `sp_${objet}`,
+        `insert into courriels (reservation_id, objet, cle, destinataire, langue)
+         values ($1, $2, $3, 'a@example.invalid', 'fr')`, [resaId, objet, `verify:${objet}`],
+      );
+      noter("6h", c.erreur === null, `courriel « ${objet} » accepté`, codePg(c.erreur));
+    }
   } finally {
     await client.query("ROLLBACK");
   }

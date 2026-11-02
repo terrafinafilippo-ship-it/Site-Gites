@@ -68,9 +68,12 @@ class PrestataireSimule implements Prestataire {
     this.paiements.set(id, {
       id, statut: "en_attente", montant: d.montant, devise: "eur",
       customerId: d.enregistrerCarte ? `cus_${this.n}` : null, paymentMethodId: null,
-      reservationId: d.reservationId, clientSecret: `${id}_secret`, dernierRefus: null,
+      reservationId: d.reservationId, typePaiement: d.type, clientSecret: `${id}_secret`, dernierRefus: null,
     });
     return { id, clientSecret: `${id}_secret`, customerId: d.enregistrerCarte ? `cus_${this.n}` : null };
+  }
+  async prelever(): Promise<EtatPaiement> {
+    throw new Error("prélèvement non simulé ici (scripts/verifier-solde.ts)");
   }
   async lirePaiement(id: string): Promise<EtatPaiement> {
     const e = this.paiements.get(id);

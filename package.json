@@ -16,7 +16,8 @@
     "verify:blocage": "tsx scripts/verifier-blocage.ts",
     "verify:paiement": "tsx scripts/verifier-paiement.ts",
     "verify:courriels": "tsx scripts/verifier-courriels.ts",
-    "verify:suivi": "tsx scripts/verifier-suivi.ts"
+    "verify:suivi": "tsx scripts/verifier-suivi.ts",
+    "verify:solde": "tsx scripts/verifier-solde.ts"
   },
   "dependencies": {
     "@next/env": "^15.5.19",

@@ -43,7 +43,8 @@ etape "Blocage des dates et tunnel (deux clients simultanés)" env DB_CIBLE=test
 etape "Paiement (Stripe simulé, puis Stripe en mode test)" env DB_CIBLE=test npx tsx scripts/verifier-paiement.ts --http
 etape "Courriels (envoi simulé, contrat, alertes, remboursement)" env DB_CIBLE=test npx tsx scripts/verifier-courriels.ts
 etape "Page « Ma réservation » (lien secret, formulaire, limite)" env DB_CIBLE=test npx tsx scripts/verifier-suivi.ts
-# Le paiement par le serveur crée de vrais contrats (numéros légaux de la base
+etape "Solde et factures automatiques (prélèvement, lien, impayé)" env DB_CIBLE=test npx tsx scripts/verifier-solde.ts --http
+# Le paiement par le serveur crée de vrais contrats et de vraies factures (numéros légaux de la base
 # de test) : on repart de zéro pour que la numérotation contrôlée plus bas soit
 # celle des deux parcours seulement.
 etape "Remise à zéro avant les parcours" env DB_CIBLE=test npx tsx scripts/parcours/reinitialiser.ts

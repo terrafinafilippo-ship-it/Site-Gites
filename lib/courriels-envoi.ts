@@ -19,10 +19,15 @@
 // juste avant, et son lien de signature est dans le courriel. Si la création
 // échoue trois fois, la confirmation part sans le lien, les propriétaires
 // sont alertés, et un courriel « contrat à signer » retente la création.
+//
+// Phase 4, lot 1 (D-28, D-29) : le courriel « facture » ÉMET la facture
+// (lib/factures.ts, idempotent) au moment de l'envoi et la joint en PDF ; les
+// courriels du solde relisent l'état du solde à l'envoi, et ne partent pas
+// s'il a été payé entre-temps.
 import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { courriels, paiements, reglages } from "@/db/schema";
+import { courriels, paiements, reglages, TYPES_FACTURE, type TypeFacture } from "@/db/schema";
 import { centimesDepuisNumeric } from "@/lib/centimes";
 import type { ContratEmis, ResultatEmission } from "@/lib/contrat";
 import { inscrireContratARelancer, inscrireProbleme } from "@/lib/courriels";
@@ -32,19 +37,26 @@ import {
   texteAlerteSignature,
   texteConfirmation,
   texteContrat,
+  texteFacture,
   texteLienSuivi,
   texteRemboursement,
+  texteSoldeImpaye,
+  texteSoldeLien,
+  texteSoldePreavis,
   type Contenu,
   type FicheClient,
   type Probleme,
   type Sejour,
 } from "@/lib/courriels-textes";
 import { isGiteId } from "@/lib/data/gites";
+import { calculerMontants } from "@/lib/montants";
+import type { ResultatFacture } from "@/lib/factures";
 import { lien, type Langue } from "@/lib/i18n/langues";
 import { messagerie } from "@/lib/messagerie";
 import { recapitulatif } from "@/lib/recapitulatif";
 import { chargerReservationAvecGite, type Executeur, type ReservationAvecGite } from "@/lib/reservations";
 import { messageErreur } from "@/lib/route-helpers";
+import { dateLimiteSolde, lireEtatSolde } from "@/lib/solde";
 import { finValidite, lienOuvert, lienSuivi } from "@/lib/suivi";
 import { autresGitesLibres } from "@/lib/tunnel";
 
@@ -56,7 +68,17 @@ const ESSAIS_CONTRAT_AVANT_ENVOI = 2;
 /** Délai avant le courriel « contrat à signer » qui retente la création. */
 const RELANCE_CONTRAT_MINUTES = 30;
 
-const OBJETS_CLIENT = new Set(["confirmation", "contrat", "remboursement", "lien_suivi"]);
+const OBJETS_CLIENT = new Set([
+  "confirmation",
+  "contrat",
+  "remboursement",
+  "lien_suivi",
+  "facture",
+  "solde_preavis",
+  "solde_lien",
+  "solde_rappel",
+  "solde_impaye",
+]);
 
 type Courriel = typeof courriels.$inferSelect;
 
@@ -89,6 +111,30 @@ export function remplacerEmetteurContrat(e: EmetteurContrat): void {
   emetteurCourant = e;
 }
 
+// ─── Émission des factures (remplaçable pour les contrôles) ──────────────────
+
+export interface EmetteurFacture {
+  emettre(reservationId: string, type: TypeFacture): Promise<ResultatFacture>;
+  /** Le PDF d'une facture émise. */
+  pdf(chemin: string): Promise<Buffer>;
+}
+
+let emetteurFactureCourant: EmetteurFacture | null = null;
+
+/** lib/factures.ts tire le moteur PDF, comme lib/contrat.ts : chargé à la demande. */
+async function emetteurFacture(): Promise<EmetteurFacture> {
+  if (!emetteurFactureCourant) {
+    const m = await import("@/lib/factures");
+    emetteurFactureCourant = { emettre: m.emettreFacture, pdf: m.lirePdfFacture };
+  }
+  return emetteurFactureCourant;
+}
+
+/** POUR LES CONTRÔLES SEULEMENT (scripts/verifier-solde.ts, scripts/verifier-courriels.ts). */
+export function remplacerEmetteurFacture(e: EmetteurFacture): void {
+  emetteurFactureCourant = e;
+}
+
 // ─── Traitement ──────────────────────────────────────────────────────────────
 
 export interface BilanEnvoi {
@@ -115,8 +161,9 @@ export async function traiterCourriels(origine: string, limite = 20): Promise<Bi
 
 /** Ce que l'envoi d'un courriel demande : son texte, et ce qu'il faut inscrire une fois parti. */
 type Preparation =
-  | { contenu: Contenu; apres?: (tx: Executeur) => Promise<void> }
-  | { abandon: string };
+  | { contenu: Contenu; apres?: (tx: Executeur) => Promise<void>; piecesJointes?: { nom: string; contenu: Buffer }[] }
+  /** `alerte` : ce qu'il faut inscrire quand l'abandon doit être signalé aux propriétaires. */
+  | { abandon: string; alerte?: (tx: Executeur) => Promise<void> };
 
 async function traiterUn(origine: string, bilan: BilanEnvoi): Promise<boolean> {
   return getDb().transaction(async (tx) => {
@@ -142,6 +189,7 @@ async function traiterUn(origine: string, bilan: BilanEnvoi): Promise<boolean> {
             .update(courriels)
             .set({ statut: "echec", derniere_erreur: prep.abandon, tentatives: c.tentatives + 1 })
             .where(eq(courriels.id, c.id));
+          if (prep.alerte) await prep.alerte(sp);
           console.warn(`[courriels] ${c.objet} à ${c.destinataire} abandonné : ${prep.abandon}`);
           bilan.abandonnes += 1;
           return;
@@ -156,6 +204,7 @@ async function traiterUn(origine: string, bilan: BilanEnvoi): Promise<boolean> {
           html: prep.contenu.html,
           texte: prep.contenu.texte,
           etiquette: c.objet,
+          piecesJointes: prep.piecesJointes,
         });
         await sp
           .update(courriels)
@@ -386,8 +435,64 @@ async function preparer(tx: Executeur, c: Courriel, origine: string): Promise<Pr
       return { contenu: texteAlerteSignature(sejour(resa), ficheClient(resa), String(d.numero ?? "")) };
     }
 
+    case "facture": {
+      if (!resa) return { abandon: "réservation absente" };
+      const type = String(d.type ?? "");
+      if (!(TYPES_FACTURE as readonly string[]).includes(type)) return { abandon: `type de facture inconnu (${type})` };
+      const e = await emetteurFacture();
+      const r = await e.emettre(resa.id, type as TypeFacture);
+      if (!r.ok) {
+        // Erreur passagère (rendu, écriture) : retentée. Refus métier : rien
+        // n'est numéroté ; les propriétaires sont prévenus.
+        if (r.status >= 500) throw new Error(`facture non émise : ${r.message}`);
+        return {
+          abandon: `facture non émise : ${r.message}`,
+          alerte: (sp) => inscrireProbleme(sp, "facture_non_emise", `${resa.id}:${type}`, resa.id, { type, erreur: r.message }),
+        };
+      }
+      const f = r.facture;
+      return {
+        contenu: texteFacture(
+          langue,
+          sejour(resa),
+          { numero: f.numero, type: f.type, montant: f.montant },
+          lienSuivi(origine, langue, resa.jeton_suivi),
+          await adresseReponse(tx),
+        ),
+        piecesJointes: [{ nom: `${f.numero}.pdf`, contenu: await e.pdf(f.chemin) }],
+      };
+    }
+
+    case "solde_preavis":
+    case "solde_lien":
+    case "solde_rappel":
+    case "solde_impaye": {
+      if (!resa) return { abandon: "réservation absente" };
+      if (resa.statut !== "confirmee") return { abandon: `réservation au statut « ${resa.statut} »` };
+      const etat = await lireEtatSolde(tx, resa);
+      if (!etat) return { abandon: "aucun solde pour cette réservation" };
+      if (etat.etat === "paye") return { abandon: "solde payé entre-temps" };
+      if (c.objet === "solde_preavis" && etat.etat !== "prelevement_prevu") {
+        return { abandon: `prélèvement plus prévu (${etat.etat})` };
+      }
+      const faits = { montant: etat.montant, date: dateLimiteSolde(resa) };
+      const suivi = lienSuivi(origine, langue, resa.jeton_suivi);
+      const contact = await adresseReponse(tx);
+      if (c.objet === "solde_preavis") return { contenu: texteSoldePreavis(langue, sejour(resa), faits, suivi, contact) };
+      if (c.objet === "solde_impaye") {
+        const motif = d.motif === "refus" ? "refus" : "echeance";
+        return { contenu: texteSoldeImpaye(langue, sejour(resa), { ...faits, motif }, suivi, contact) };
+      }
+      return {
+        contenu: texteSoldeLien(langue, sejour(resa), { ...faits, rappel: c.objet === "solde_rappel" }, suivi, contact),
+      };
+    }
+
     case "alerte_probleme": {
-      const probleme = await lireProbleme(tx, d);
+      if (d.genre === "solde_impaye" && resa && (await lireEtatSolde(tx, resa))?.etat === "paye") {
+        return { abandon: "solde payé entre-temps" };
+      }
+      const probleme = await lireProbleme(tx, d, resa);
       if (!probleme) return { abandon: `alerte de genre inconnu (${String(d.genre)})` };
       return {
         contenu: texteAlerteProbleme(probleme, resa ? sejour(resa) : null, resa ? ficheClient(resa) : null),
@@ -396,7 +501,11 @@ async function preparer(tx: Executeur, c: Courriel, origine: string): Promise<Pr
   }
 }
 
-async function lireProbleme(tx: Executeur, d: Record<string, unknown>): Promise<Probleme | null> {
+async function lireProbleme(
+  tx: Executeur,
+  d: Record<string, unknown>,
+  resa: ReservationAvecGite | null,
+): Promise<Probleme | null> {
   switch (d.genre) {
     case "remboursement": {
       const paiementId = String(d.paiementId ?? "");
@@ -423,6 +532,21 @@ async function lireProbleme(tx: Executeur, d: Record<string, unknown>): Promise<
         destinataire: String(d.destinataire ?? ""),
         erreur: String(d.erreur ?? ""),
       };
+    case "solde_impaye":
+      if (!resa) return null;
+      return {
+        genre: "solde_impaye",
+        motif: d.motif === "refus" ? "refus" : "echeance",
+        refus: typeof d.refus === "string" ? d.refus : null,
+        montant: calculerMontants(resa).solde,
+        dateLimite: dateLimiteSolde(resa),
+        relance: d.relance === true,
+        jours: typeof d.jours === "number" ? d.jours : null,
+      };
+    case "solde_a_verifier":
+      return { genre: "solde_a_verifier", montant: Number(d.montant ?? 0), depuis: String(d.depuis ?? "") };
+    case "facture_non_emise":
+      return { genre: "facture_non_emise", type: String(d.type ?? ""), erreur: String(d.erreur ?? "") };
     default:
       return null;
   }

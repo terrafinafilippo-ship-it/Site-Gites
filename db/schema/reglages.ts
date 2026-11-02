@@ -47,6 +47,15 @@
 //     note des avis affichée à l'accueil (4,97/5, 46 avis, 100 % de
 //     recommandation, valeurs du site au 29 octobre 2026). Note NULL = les
 //     chiffres des avis sont masqués.
+//
+//   - solde (Phase 4, lot 1, migration 0009, D-28) : en jours avant la date
+//     limite du solde, le courriel de préavis d'un prélèvement (7) et le
+//     courriel portant le lien de paiement (7), le rappel du lien (1, la
+//     veille ; 0 = aucun rappel) ; en jours après le premier impayé, la
+//     seconde alerte aux propriétaires (3). Choix du gérant du 1er novembre
+//     2026. Lus à chaque passage des tâches automatiques : ce sont des
+//     délais de courriel, pas des conditions du contrat (la date limite du
+//     solde, elle, est figée sur la réservation).
 import { sql } from "drizzle-orm";
 import { check, integer, pgTable, text, time, timestamp, uuid } from "drizzle-orm/pg-core";
 
@@ -96,6 +105,11 @@ export const reglages = pgTable(
     avis_note_centiemes: integer(),
     avis_nombre: integer(),
     avis_recommandation_pct: integer(),
+    // Solde (Phase 4, lot 1, migration 0009, D-28), en jours.
+    solde_preavis_jours: integer().notNull().default(7),
+    solde_lien_jours: integer().notNull().default(7),
+    solde_rappel_jours: integer().notNull().default(1),
+    solde_relance_jours: integer().notNull().default(3),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -138,6 +152,11 @@ export const reglages = pgTable(
           and (${t.avis_note_centiemes} is null or ${t.avis_note_centiemes} between 0 and 500)
           and (${t.avis_nombre} is null or ${t.avis_nombre} >= 0)
           and (${t.avis_recommandation_pct} is null or ${t.avis_recommandation_pct} between 0 and 100)`,
+    ),
+    check(
+      "reglages_solde_check",
+      sql`${t.solde_preavis_jours} between 0 and 60 and ${t.solde_lien_jours} between 0 and 60
+          and ${t.solde_rappel_jours} between 0 and 60 and ${t.solde_relance_jours} between 1 and 60`,
     ),
   ],
 );

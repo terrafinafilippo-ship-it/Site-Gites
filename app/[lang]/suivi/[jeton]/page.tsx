@@ -1,14 +1,20 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
+import { after } from "next/server";
 
 import { fmtDateAvecJour, fmtDateLongue, fmtEuro, fmtHeure } from "@/lib/format";
 import { langueDe, lien, type Bilingue, type Langue } from "@/lib/i18n/langues";
 import { NOM_SITE } from "@/lib/i18n/metadonnees";
+import { traiterCourriels } from "@/lib/courriels-envoi";
+import { constaterRetour } from "@/lib/paiement";
 import { CONTACTS, LIBELLES_RECAP, recapitulatif } from "@/lib/recapitulatif";
+import type { EtatSolde } from "@/lib/solde";
 import { getStorage } from "@/lib/storage";
 import { chargerSuivi, type ContratSuivi } from "@/lib/suivi";
 import FormulaireLien from "../FormulaireLien";
 import styles from "../page.module.css";
+import PayerSolde from "./PayerSolde";
 
 // PAGE « MA RÉSERVATION » (Phase 3, lot 4, étape 3, D-25), ouverte par le
 // lien secret du client : /suivi/{jeton}. Choix du gérant du 28 octobre 2026 :
@@ -21,6 +27,11 @@ import styles from "../page.module.css";
 //     formulaire « Retrouver ma réservation » (seul endroit où il apparaît).
 // Rien n'est inventé : pas de code de boîte à clés, de wifi ni de consignes
 // d'accès, qui n'existent pas en base.
+//
+// Phase 4, lot 1 (D-28) : le bloc « Votre solde » (prélèvement prévu, à
+// régler avec le bouton de paiement, payé). Après un paiement, Stripe ramène
+// ici avec l'identifiant du paiement et son secret : la page le revérifie
+// (constaterRetour) avant d'en dire quoi que ce soit.
 
 // Données personnelles derrière un jeton : jamais en cache, jamais indexée,
 // et l'adresse (qui porte le jeton) n'est pas transmise aux sites liés.
@@ -57,6 +68,16 @@ const TEXTES: Bilingue<{
   rembourseFait: (montant: string) => string;
   rembourseEnCours: (montant: string) => string;
   autresDates: string;
+  solde: string;
+  soldeEtat: Record<EtatSolde["etat"], string>;
+  soldePaye: (montant: string, date: string | null) => string;
+  soldePrevu: (montant: string, date: string) => string;
+  soldeAPayer: (montant: string, date: string, passee: boolean) => string;
+  soldeRefuse: string;
+  soldeEnCours: string;
+  retourRecu: string;
+  retourEnCours: string;
+  retourEchec: string;
 }> = {
   fr: {
     titrePage: "Ma réservation",
@@ -88,6 +109,17 @@ const TEXTES: Bilingue<{
     rembourseFait: (montant) => `Votre paiement de ${montant} a été intégralement remboursé.`,
     rembourseEnCours: (montant) => `Le remboursement intégral de votre paiement de ${montant} est en cours.`,
     autresDates: "Choisir d'autres dates",
+    solde: "Votre solde",
+    soldeEtat: { paye: "Payé", a_payer: "À régler", prelevement_prevu: "Prévu", en_cours: "En cours" },
+    soldePaye: (m, date) => `Solde de ${m} payé${date ? ` le ${date}` : ""}.`,
+    soldePrevu: (m, date) => `Solde de ${m}, prélevé le ${date} sur la carte enregistrée lors de votre réservation.`,
+    soldeAPayer: (m, date, passee) =>
+      passee ? `Solde de ${m}, qui était à régler au plus tard le ${date}.` : `Solde de ${m}, à régler au plus tard le ${date}.`,
+    soldeRefuse: "Le prélèvement a été refusé par votre banque : vous pouvez régler le solde en ligne.",
+    soldeEnCours: "Votre banque traite le paiement du solde. Rechargez cette page dans quelques instants.",
+    retourRecu: "Paiement du solde reçu — merci ! Votre facture vous est envoyée par courriel.",
+    retourEnCours: "Votre banque traite le paiement. Rechargez cette page dans quelques instants.",
+    retourEchec: "Votre paiement n'a pas abouti : aucune somme n'a été prélevée.",
   },
   en: {
     titrePage: "My booking",
@@ -119,6 +151,17 @@ const TEXTES: Bilingue<{
     rembourseFait: (montant) => `Your payment of ${montant} has been refunded in full.`,
     rembourseEnCours: (montant) => `The full refund of your payment of ${montant} is in progress.`,
     autresDates: "Choose other dates",
+    solde: "Your balance",
+    soldeEtat: { paye: "Paid", a_payer: "To be paid", prelevement_prevu: "Scheduled", en_cours: "Processing" },
+    soldePaye: (m, date) => `Balance of ${m} paid${date ? ` on ${date}` : ""}.`,
+    soldePrevu: (m, date) => `Balance of ${m}, charged on ${date} to the card saved when you booked.`,
+    soldeAPayer: (m, date, passee) =>
+      passee ? `Balance of ${m}, which was due by ${date}.` : `Balance of ${m}, to be paid by ${date} at the latest.`,
+    soldeRefuse: "The charge was declined by your bank: you can pay the balance online.",
+    soldeEnCours: "Your bank is processing the balance payment. Reload this page in a few moments.",
+    retourRecu: "Balance payment received — thank you! Your invoice is being sent to you by email.",
+    retourEnCours: "Your bank is processing the payment. Reload this page in a few moments.",
+    retourEchec: "Your payment did not go through: nothing has been charged.",
   },
 };
 
@@ -204,11 +247,80 @@ async function BlocContrat({ langue, contrat }: { langue: Langue; contrat: Contr
   );
 }
 
-export default async function SuiviPage({ params }: { params: Promise<{ lang: string; jeton: string }> }) {
+function BlocSolde({ langue, jeton, solde }: { langue: Langue; jeton: string; solde: EtatSolde }) {
+  const t = TEXTES[langue];
+  const m = fmtEuro(solde.montant, langue);
+  const classe = solde.etat === "paye" ? styles.fait : solde.etat === "a_payer" ? styles.aFaire : styles.attente;
+  return (
+    <div className={styles.bloc}>
+      <h2>{t.solde}</h2>
+      <span className={`${styles.etat} ${classe}`}>{t.soldeEtat[solde.etat]}</span>
+      {solde.etat === "paye" && (
+        <p>{t.soldePaye(m, solde.date ? fmtDateLongue(jourParis(solde.date), langue) : null)}</p>
+      )}
+      {solde.etat === "prelevement_prevu" && <p>{t.soldePrevu(m, fmtDateLongue(solde.dateLimite, langue))}</p>}
+      {solde.etat === "en_cours" && <p>{t.soldeEnCours}</p>}
+      {solde.etat === "a_payer" && (
+        <>
+          <p>{t.soldeAPayer(m, fmtDateLongue(solde.dateLimite, langue), jourParis(new Date()) > solde.dateLimite)}</p>
+          {solde.refuse && <p className={styles.sous}>{t.soldeRefuse}</p>}
+          <PayerSolde langue={langue} jeton={jeton} montant={solde.montant} />
+        </>
+      )}
+    </div>
+  );
+}
+
+type Parametres = Record<string, string | string[] | undefined>;
+
+function texte(p: Parametres, cle: string): string | null {
+  const v = p[cle];
+  return typeof v === "string" && v.length > 0 ? v : null;
+}
+
+export default async function SuiviPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ lang: string; jeton: string }>;
+  searchParams: Promise<Parametres>;
+}) {
   const { lang, jeton } = await params;
   const langue = langueDe(lang);
   const t = TEXTES[langue];
-  const suivi = await chargerSuivi(jeton);
+  let suivi = await chargerSuivi(jeton);
+
+  // Retour d'un paiement du solde : revérifié chez Stripe, et seulement s'il
+  // concerne CETTE réservation. Les courriels (facture) partent après la réponse.
+  let retour: string | null = null;
+  const p = await searchParams;
+  const paiementId = texte(p, "payment_intent");
+  const secret = texte(p, "payment_intent_client_secret");
+  if (suivi.etat === "ouvert" && paiementId && secret) {
+    try {
+      const r = await constaterRetour(paiementId, secret);
+      if (r && "reservationId" in r.issue && r.issue.reservationId === suivi.resa.id) {
+        const issue = r.issue.issue;
+        retour =
+          issue === "SOLDE_RECU"
+            ? t.retourRecu
+            : issue === "EN_COURS"
+              ? t.retourEnCours
+              : issue === "ECHOUE" || issue === "ANNULE" || issue === "EN_ATTENTE"
+                ? t.retourEchec
+                : null;
+        suivi = await chargerSuivi(jeton);
+      }
+    } catch (erreur) {
+      console.error(`[suivi] vérification du paiement ${paiementId} impossible :`, erreur instanceof Error ? erreur.message : erreur);
+      retour = t.retourEnCours;
+    }
+    const entetes = await headers();
+    const origine =
+      process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+      `${entetes.get("x-forwarded-proto") ?? "http"}://${entetes.get("host") ?? "localhost"}`;
+    after(() => traiterCourriels(origine));
+  }
 
   if (suivi.etat === "invalide") {
     return (
@@ -268,6 +380,12 @@ export default async function SuiviPage({ params }: { params: Promise<{ lang: st
           <p className={styles.sous}>{plage}</p>
         </div>
 
+        {retour && (
+          <p className={styles.recu} role="status">
+            {retour}
+          </p>
+        )}
+
         <div className={styles.bloc}>
           <h2>{t.sejour}</h2>
           <ul className={styles.faits}>
@@ -278,10 +396,13 @@ export default async function SuiviPage({ params }: { params: Promise<{ lang: st
               {faits.sejour} · {faits.voyageurs}
             </li>
             <li>{faits.paye}</li>
-            {faits.solde && <li>{faits.solde}</li>}
+            {/* Le solde a son bloc, qui dit où il en est. */}
+            {faits.solde && !suivi.solde && <li>{faits.solde}</li>}
             {faits.caution && <li>{faits.caution}</li>}
           </ul>
         </div>
+
+        {suivi.solde && <BlocSolde langue={langue} jeton={jeton} solde={suivi.solde} />}
 
         <div className={styles.bloc}>
           <h2>{t.contrat}</h2>

@@ -6,7 +6,10 @@
 //   - remboursement décidé (lib/paiement.ts) → courriel au client, alerte
 //     « À TRAITER » ;
 //   - contrat signé (POST /api/contrats/signer) → alerte « signature » ;
-//   - lien « Ma réservation » redemandé (lib/suivi.ts) → courriel au client.
+//   - lien « Ma réservation » redemandé (lib/suivi.ts) → courriel au client ;
+//   - Phase 4, lot 1 (D-28, D-29) : paiement constaté → la facture en PDF ;
+//     tâches automatiques (lib/solde.ts) → préavis du prélèvement, lien pour
+//     payer le solde, rappel, solde impayé (client et alerte « À TRAITER »).
 // L'ENVOI est ailleurs (lib/courriels-envoi.ts), après la réponse : ce module
 // ne fait qu'écrire, sans réseau, et reste léger (lib/paiement.ts l'importe).
 //
@@ -18,14 +21,20 @@
 // réglés dans `alertes` (contact@ au départ), en français.
 import { eq } from "drizzle-orm";
 
-import { alertes, courriels, reservations, type ObjetCourriel, type TypeAlerte } from "@/db/schema";
+import { alertes, courriels, reservations, type ObjetCourriel, type TypeAlerte, type TypeFacture } from "@/db/schema";
 import type { Executeur } from "@/lib/reservations";
 
 /** Ce qu'une alerte « À TRAITER » signale. */
 export type GenreProbleme =
   | "remboursement"
   | "contrat_non_cree"
-  | "courriel_non_parti";
+  | "courriel_non_parti"
+  // Phase 4, lot 1 : solde impayé (prélèvement refusé ou date limite passée),
+  // prélèvement resté sans réponse du prestataire.
+  | "solde_impaye"
+  | "solde_a_verifier"
+  // Facture refusée à l'émission (aucun numéro frappé) : le client ne l'a pas reçue.
+  | "facture_non_emise";
 
 async function inscrire(
   executeur: Executeur,
@@ -61,7 +70,7 @@ async function destinatairesAlerte(executeur: Executeur, type: TypeAlerte): Prom
 
 async function client(executeur: Executeur, reservationId: string) {
   const [r] = await executeur
-    .select({ email: reservations.client_email, langue: reservations.langue })
+    .select({ email: reservations.client_email, langue: reservations.langue, integral: reservations.paiement_integral })
     .from(reservations)
     .where(eq(reservations.id, reservationId));
   return r ?? null;
@@ -112,6 +121,77 @@ export async function inscrireApresPaiement(executeur: Executeur, reservationId:
     });
   }
   await alerter(executeur, "reservation", "alerte_reservation", reservationId, reservationId);
+  // La facture de ce paiement (D-29) : unique pour un séjour payé en une fois.
+  await inscrireFacture(executeur, reservationId, c.integral ? "total" : "acompte");
+}
+
+/**
+ * Paiement constaté → sa facture, émise à l'envoi du courriel et jointe en
+ * PDF (lib/courriels-envoi.ts). Une par réservation et par type.
+ */
+export async function inscrireFacture(executeur: Executeur, reservationId: string, type: TypeFacture): Promise<void> {
+  const c = await client(executeur, reservationId);
+  if (!c?.email) return;
+  await inscrire(executeur, {
+    objet: "facture",
+    cle: `facture:${reservationId}:${type}`,
+    reservationId,
+    destinataire: c.email,
+    langue: c.langue === "en" ? "en" : "fr",
+    donnees: { type },
+  });
+}
+
+/** Courriels du solde au client, un de chaque par réservation (D-28). */
+export type ObjetSolde = "solde_preavis" | "solde_lien" | "solde_rappel";
+
+export async function inscrireSolde(executeur: Executeur, reservationId: string, objet: ObjetSolde): Promise<void> {
+  const c = await client(executeur, reservationId);
+  if (!c?.email) return;
+  await inscrire(executeur, {
+    objet,
+    cle: `${objet}:${reservationId}`,
+    reservationId,
+    destinataire: c.email,
+    langue: c.langue === "en" ? "en" : "fr",
+  });
+}
+
+/** Pourquoi le solde est impayé : prélèvement refusé (code de la banque), ou date limite passée. */
+export type MotifImpaye = { motif: "refus"; refus: string | null } | { motif: "echeance" };
+
+/**
+ * Solde impayé (D-28) : courriel au client avec le lien pour payer, et
+ * alerte « À TRAITER » aux propriétaires. Une seule fois par réservation ;
+ * la seconde alerte (`relance`) a sa propre clé.
+ */
+export async function inscrireImpaye(executeur: Executeur, reservationId: string, m: MotifImpaye): Promise<void> {
+  const c = await client(executeur, reservationId);
+  if (c?.email) {
+    await inscrire(executeur, {
+      objet: "solde_impaye",
+      cle: `solde_impaye:${reservationId}`,
+      reservationId,
+      destinataire: c.email,
+      langue: c.langue === "en" ? "en" : "fr",
+      donnees: { ...m },
+    });
+  }
+  await inscrireProbleme(executeur, "solde_impaye", reservationId, reservationId, { ...m, relance: false });
+}
+
+/** Seconde alerte : le solde n'est toujours pas payé `jours` jours après la première. */
+export async function inscrireRelanceImpaye(
+  executeur: Executeur,
+  reservationId: string,
+  m: MotifImpaye,
+  jours: number,
+): Promise<void> {
+  await inscrireProbleme(executeur, "solde_impaye", `${reservationId}:relance`, reservationId, {
+    ...m,
+    relance: true,
+    jours,
+  });
 }
 
 /**

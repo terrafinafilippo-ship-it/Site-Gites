@@ -16,7 +16,7 @@ import { fmtEuro } from '@/lib/format';
 // Polices natives react-pdf : Helvetica / Helvetica-Bold (corps), Times-Bold (titres).
 
 // Couleurs
-const C = {
+export const C = {
   ink: '#1a1a1a',
   inkSoft: '#444',
   inkMuted: '#777',
@@ -27,7 +27,7 @@ const C = {
   white: '#ffffff',
 };
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   page: {
     fontFamily: 'Helvetica',
     fontSize: 9,

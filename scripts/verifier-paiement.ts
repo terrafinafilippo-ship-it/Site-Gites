@@ -87,13 +87,16 @@ class PrestataireSimule implements Prestataire {
       devise: "eur",
       customerId,
       paymentMethodId: null,
-      reservationId: d.reservationId,
+      reservationId: d.reservationId, typePaiement: d.type,
       clientSecret: `${id}_secret_ok`,
       dernierRefus: null,
     });
     return { id, clientSecret: `${id}_secret_ok`, customerId };
   }
 
+  async prelever(): Promise<EtatPaiement> {
+    throw new Error("prélèvement non simulé ici (scripts/verifier-solde.ts)");
+  }
   async lirePaiement(id: string): Promise<EtatPaiement> {
     const etat = this.paiements.get(id);
     if (!etat) throw new Error(`paiement simulé inconnu : ${id}`);
@@ -143,7 +146,7 @@ class PrestataireSimule implements Prestataire {
     const id = `pi_orphelin_${Date.now()}`;
     this.paiements.set(id, {
       id, statut: "reussi", montant, devise: "eur", customerId: null, paymentMethodId: null,
-      reservationId: null, clientSecret: `${id}_secret_ok`, dernierRefus: null,
+      reservationId: null, typePaiement: null, clientSecret: `${id}_secret_ok`, dernierRefus: null,
     });
     return id;
   }
@@ -177,6 +180,8 @@ async function nettoyer(): Promise<void> {
   await db.execute(sql`delete from courriels where reservation_id in (${ids})
                          or (reservation_id is null and donnees->>'paiementId' like 'pi_orphelin_%')`);
   await db.execute(sql`delete from documents where reservation_id in (${ids})`);
+  // Factures émises par le serveur après le paiement (Phase 4, base de test seulement).
+  await db.execute(sql`delete from factures where reservation_id in (${ids})`);
   await db.execute(sql`delete from disponibilites where reservation_id in (${ids})`);
   await db.execute(sql`delete from paiements where reservation_id in (${ids})`);
   await db.execute(sql`delete from reservations where client_email = ${EMAIL_ESSAI}`);
@@ -473,6 +478,18 @@ async function partieHttp(): Promise<void> {
     envoyes.some((c) => c.objet === "alerte_reservation" && c.statut === "envoye" && (c.corps ?? "").includes(contrat?.numero ?? "?")),
     "alerte « réservation » envoyée, avec le numéro du contrat",
     envoyes.map((c) => `${c.objet} ${c.statut}`),
+  );
+  // Phase 4, lot 1 : la facture d'acompte, émise par le serveur (vrai PDF, numéro légal) et jointe.
+  const fac = envoyes.find((c) => c.objet === "facture");
+  const ligneFac = await ligne<{ numero: string; type: string; pdf: string | null; montant: string }>(sql`
+    select numero, type, pdf_url as pdf, montant_ttc::text as montant
+      from factures where reservation_id = ${String(ok.corps.id)}::uuid`);
+  noter(
+    fac?.statut === "envoye" && !!ligneFac && ligneFac.type === "acompte" && /^FAC-\d{4}-\d{3,}$/.test(ligneFac.numero) &&
+      ligneFac.pdf === `factures/${ligneFac.numero}.pdf` && (fac.sujet ?? "").startsWith(`Votre facture ${ligneFac.numero} — `) &&
+      ligneFac.montant === numericDepuisCentimes((ok.corps.devis as { aRegler: number }).aRegler),
+    "facture d'acompte émise par le serveur (numéro légal, PDF, montant payé) et envoyée",
+    { fac: fac?.sujet, ligneFac },
   );
   noter((await page(`/reserver/confirmation?payment_intent=${pi}&payment_intent_client_secret=faux`)).status === 404, "retour avec un faux secret : 404");
 

@@ -21,6 +21,13 @@
 // remboursement (lib/courriels.ts), envoyés ensuite (lib/courriels-envoi.ts).
 // Un constat répété n'inscrit rien de plus.
 //
+// SOLDE (Phase 4, lot 1, D-28) : le même constat sert au paiement du solde
+// (prélèvement ou lien, lib/solde.ts). Il ne touche pas aux nuits ni au statut
+// de la réservation, déjà confirmée : il inscrit le paiement reçu et sa
+// facture. Un solde reçu pour une réservation qui n'est plus confirmée est
+// remboursé, sans courriel au client (les propriétaires sont alertés) et sans
+// oublier la carte, qui sert encore à la caution.
+//
 // MONTANTS EN CENTIMES ENTIERS.
 import { timingSafeEqual } from "node:crypto";
 
@@ -29,7 +36,7 @@ import { and, desc, eq, inArray, lte } from "drizzle-orm";
 import { getDb } from "@/db";
 import { paiements, reservations, textes_accord, type StatutPaiement } from "@/db/schema";
 import { centimesDepuisNumeric, numericDepuisCentimes } from "@/lib/centimes";
-import { inscrireApresPaiement, inscrireRemboursement } from "@/lib/courriels";
+import { inscrireApresPaiement, inscrireFacture, inscrireProbleme, inscrireRemboursement } from "@/lib/courriels";
 import { leverBlocage, vendreNuits } from "@/lib/disponibilites";
 import type { Langue } from "@/lib/i18n/langues";
 import type { ModeleAccord } from "@/lib/reglement";
@@ -142,6 +149,8 @@ export async function annulerPaiementsOuverts(
 export type IssuePaiement =
   /** Payé, nuits vendues : la réservation est confirmée. */
   | { issue: "CONFIRMEE"; reservationId: string }
+  /** Solde payé (Phase 4) : inscrit, sa facture suit par courriel. */
+  | { issue: "SOLDE_RECU"; reservationId: string }
   /** Pas encore payé (carte à saisir, authentification, refus) : rien n'est engagé. */
   | { issue: "EN_ATTENTE" | "EN_COURS" | "ECHOUE" | "ANNULE"; reservationId: string }
   /** Payé, mais la réservation ne peut pas être honorée : remboursé (ou à retenter). */
@@ -191,10 +200,17 @@ export async function constaterPaiement(paiementId: string, p: Prestataire = pre
         .where(eq(paiements.reference_externe, paiementId))
         .for("update");
       if (!ligne) {
+        // Prélèvement du solde dont l'avis de Stripe arrive avant que les
+        // tâches aient inscrit sa référence (lib/solde.ts) : à reprendre (la
+        // route de l'avis répond 500, Stripe le renverra), jamais remboursé.
+        if (etat.statut === "reussi" && etat.typePaiement === "solde" && etat.reservationId) {
+          throw new Error(`solde ${paiementId} pas encore inscrit par les tâches : à reprendre`);
+        }
         if (etat.statut === "reussi") throw new ARembourser("paiement reçu pour une réservation inconnue du site");
         return { issue: "INCONNU" } as const;
       }
       const reservationId = ligne.reservation_id;
+      if (ligne.type === "solde") return constaterSolde(tx, ligne, etat);
       if (ligne.statut === "reussi") return { issue: "CONFIRMEE", reservationId } as const;
       if (ligne.statut === "rembourse") return { issue: "REMBOURSEE", reservationId, remboursementFait: true } as const;
       if (ligne.statut === "a_rembourser") throw new ARembourser(ligne.motif_remboursement ?? "remboursement à retenter");
@@ -258,6 +274,43 @@ export async function constaterPaiement(paiementId: string, p: Prestataire = pre
   return issue;
 }
 
+type LignePaiement = typeof paiements.$inferSelect;
+
+/**
+ * Constat d'un paiement du SOLDE (ligne verrouillée par l'appelant). Payé :
+ * inscrit, et sa facture. La réservation doit être confirmée (ou terminée) ;
+ * sinon remboursement intégral.
+ */
+async function constaterSolde(tx: Executeur, ligne: LignePaiement, etat: EtatPaiement): Promise<IssuePaiement> {
+  const reservationId = ligne.reservation_id;
+  if (ligne.statut === "reussi") return { issue: "SOLDE_RECU", reservationId };
+  if (ligne.statut === "rembourse") return { issue: "REMBOURSEE", reservationId, remboursementFait: true };
+  if (ligne.statut === "a_rembourser") throw new ARembourser(ligne.motif_remboursement ?? "remboursement à retenter");
+
+  if (etat.statut !== "reussi") {
+    const statut = STATUT_EN_BASE[etat.statut];
+    if (statut !== ligne.statut) await tx.update(paiements).set({ statut }).where(eq(paiements.id, ligne.id));
+    return { issue: ISSUE_EN_ATTENTE[etat.statut], reservationId };
+  }
+
+  const attendu = centimesDepuisNumeric(ligne.montant);
+  if (etat.montant !== attendu || etat.devise !== "eur") {
+    throw new ARembourser(`solde : montant reçu ${etat.montant} ${etat.devise}, attendu ${attendu} eur`);
+  }
+  const [resa] = await tx
+    .select({ statut: reservations.statut })
+    .from(reservations)
+    .where(eq(reservations.id, reservationId))
+    .for("update");
+  if (!resa || (resa.statut !== "confirmee" && resa.statut !== "terminee")) {
+    throw new ARembourser(`solde reçu pour une réservation au statut « ${resa?.statut ?? "absente"} »`);
+  }
+  await tx.update(paiements).set({ statut: "reussi", date_paiement: new Date() }).where(eq(paiements.id, ligne.id));
+  await inscrireFacture(tx, reservationId, "solde");
+  console.info(`[paiement] solde reçu (${etat.id})`);
+  return { issue: "SOLDE_RECU", reservationId };
+}
+
 /**
  * Remboursement intégral d'un paiement reçu qui ne peut pas être honoré.
  * L'intention est écrite AVANT d'appeler le prestataire ('a_rembourser') ; le
@@ -273,6 +326,7 @@ async function rembourser(
   const db = getDb();
   console.error(`[paiement] PROBLÈME À TRAITER — remboursement intégral de ${paiementId} : ${motif}`);
 
+  let solde = false;
   const reservationId = await db.transaction(async (tx) => {
     const [ligne] = await tx
       .select()
@@ -290,7 +344,16 @@ async function rembourser(
       await inscrireRemboursement(tx, { reservationId: null, ...courriel });
       return null;
     }
-    if (ligne.statut !== "a_rembourser" && ligne.statut !== "rembourse") {
+    solde = ligne.type === "solde";
+    if (solde && ligne.statut !== "a_rembourser" && ligne.statut !== "rembourse") {
+      // Solde : la réservation n'est pas touchée (elle n'était déjà plus
+      // confirmée) ; les propriétaires appellent le client.
+      await tx
+        .update(paiements)
+        .set({ statut: "a_rembourser", motif_remboursement: motif })
+        .where(eq(paiements.id, ligne.id));
+      await inscrireProbleme(tx, "remboursement", paiementId, ligne.reservation_id, courriel);
+    } else if (ligne.statut !== "a_rembourser" && ligne.statut !== "rembourse") {
       await tx
         .update(paiements)
         .set({ statut: "a_rembourser", motif_remboursement: motif })
@@ -326,7 +389,8 @@ async function rembourser(
 
   // La carte n'a plus de raison d'être conservée. Un échec ici ne coûte rien
   // au client (aucune opération ne sera faite dessus) : journalisé seulement.
-  if (etat.paymentMethodId && etat.customerId) {
+  // Sauf pour un solde : la carte enregistrée sert encore à la caution.
+  if (!solde && etat.paymentMethodId && etat.customerId) {
     try {
       await p.oublierCarte(etat.paymentMethodId);
     } catch (erreur) {

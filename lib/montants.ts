@@ -14,6 +14,7 @@
 
 import type { FactureAcompteData } from '@/components/pdf/FactureAcomptePDF';
 import type { FactureSoldeData } from '@/components/pdf/FactureSoldePDF';
+import type { FactureTotalData } from '@/components/pdf/FactureTotalPDF';
 import type { ContratData } from '@/components/pdf/ContratPDF';
 import type { GiteRow, ReservationAvecGite } from '@/lib/reservations';
 import {
@@ -170,11 +171,16 @@ export function integralChoisi(resa: Reservation): boolean {
 
 // ─── Contexte de génération (fourni par la route après creer_facture) ─────────
 export interface FactureContext {
-  type: 'acompte' | 'solde';
+  // 'total' : facture unique d'un séjour payé en une fois (D-29).
+  type: 'acompte' | 'solde' | 'total';
   // numéro + date d'émission AUTORITAIRES, issus de la ligne `factures`
   numeroFacture: string;
   dateEmission: string; // déjà formaté FR
-  datePaiement: string; // date/heure d'encaissement formatée
+  datePaiement: string; // date d'encaissement formatée
+  // Paiement facturé (Phase 4) : référence chez le prestataire du paiement
+  // lui-même. Absente : celle inscrite sur la réservation (paiement de la
+  // réservation, ou réservation saisie sans ligne `paiements`).
+  referenceTransaction?: string;
   // rappel de la facture d'acompte (obligatoire pour le solde)
   factureAcompte?: {
     numero: string;
@@ -183,19 +189,22 @@ export interface FactureContext {
   };
 }
 
+/** Données d'une facture, selon son type. */
+export type FactureData = FactureAcompteData | FactureSoldeData | FactureTotalData;
+
 /**
- * Construit l'objet de données du PDF (forme exacte de FactureAcompteData ou
- * FactureSoldeData) à partir de la réservation, du gîte joint, des montants
- * calculés et du contexte (numéro/date issus de creer_facture).
+ * Construit l'objet de données du PDF (forme exacte de FactureAcompteData,
+ * FactureSoldeData ou FactureTotalData) à partir de la réservation, du gîte
+ * joint, des montants calculés et du contexte (numéro/date issus de creer_facture).
  */
 export function mapFactureData(
   resa: Reservation,
   montants: Montants,
   ctx: FactureContext,
-): FactureAcompteData | FactureSoldeData {
-  return ctx.type === 'acompte'
-    ? mapAcompteData(resa, montants, ctx)
-    : mapSoldeData(resa, montants, ctx);
+): FactureData {
+  if (ctx.type === 'acompte') return mapAcompteData(resa, montants, ctx);
+  if (ctx.type === 'total') return mapTotalData(resa, montants, ctx);
+  return mapSoldeData(resa, montants, ctx);
 }
 
 // Champs partagés client + gîte + séjour.
@@ -262,7 +271,29 @@ function mapAcompteData(
 
     modePaiement: resa.mode_paiement ?? '',
     datePaiement: ctx.datePaiement,
-    referenceTransaction: resa.reference_transaction ?? '',
+    referenceTransaction: ctx.referenceTransaction ?? resa.reference_transaction ?? '',
+  };
+}
+
+function mapTotalData(
+  resa: Reservation,
+  m: Montants,
+  ctx: FactureContext,
+): FactureTotalData {
+  return {
+    ...champsCommuns(resa),
+    numeroFacture: ctx.numeroFacture,
+    dateEmission: ctx.dateEmission,
+
+    forfaitMenage: m.forfaitMenage,
+    montantOptions: m.options,
+    sousTotal: m.base,
+    montantTaxeSejour: m.taxeSejour,
+    totalTtc: m.totalTtc,
+
+    modePaiement: resa.mode_paiement ?? '',
+    datePaiement: ctx.datePaiement,
+    referenceTransaction: ctx.referenceTransaction ?? resa.reference_transaction ?? '',
   };
 }
 
@@ -290,7 +321,7 @@ function mapSoldeData(
 
     modePaiement: resa.mode_paiement ?? '',
     datePaiement: ctx.datePaiement,
-    referenceTransaction: resa.reference_transaction ?? '',
+    referenceTransaction: ctx.referenceTransaction ?? resa.reference_transaction ?? '',
   };
 }
 
@@ -311,9 +342,7 @@ export const INSTANTANE_FORMAT_VERSION = 3;
  * se tromper d'unité. La ligne en base est le document légal ; cet instantané
  * doit suffire à le reconstituer (numéro et date d'émission réels compris).
  */
-export function instantaneFacture(
-  data: FactureAcompteData | FactureSoldeData,
-): Record<string, unknown> {
+export function instantaneFacture(data: FactureData): Record<string, unknown> {
   return { ...data, unite: 'centimes', formatVersion: INSTANTANE_FORMAT_VERSION };
 }
 

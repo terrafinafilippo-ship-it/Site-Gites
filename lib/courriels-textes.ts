@@ -245,6 +245,144 @@ export function texteRemboursement(
   return assembler(sujet, blocs);
 }
 
+// ─── Facture et solde (Phase 4, lot 1, D-28, D-29) ───────────────────────────
+
+const BOUTON_SOLDE: Bilingue<string> = { fr: "Payer le solde", en: "Pay the balance" };
+
+function piedClient(langue: Langue, s: Sejour, adresseContact: string): Bloc[] {
+  return [
+    { note: LIBELLES_RECAP[langue].reference(s.reference) },
+    { note: contact(langue, adresseContact) },
+    { note: SIGNATURE[langue] },
+  ];
+}
+
+/** La facture d'un paiement, en pièce jointe (PDF, en français comme le contrat, D-22). */
+export function texteFacture(
+  langue: Langue,
+  s: Sejour,
+  f: { numero: string; type: "acompte" | "solde" | "total"; montant: number },
+  lienSuivi: string,
+  adresseContact: string,
+): Contenu {
+  const en = langue === "en";
+  const montant = fmtEuro(f.montant, langue);
+  const quoi =
+    f.type === "solde"
+      ? en
+        ? `We have received the balance for your stay: ${montant}.`
+        : `Nous avons bien reçu le solde de votre séjour : ${montant}.`
+      : f.type === "total"
+        ? en
+          ? `Here is the invoice for your stay, paid in full: ${montant}.`
+          : `Voici la facture de votre séjour, réglé en totalité : ${montant}.`
+        : en
+          ? `Here is the invoice for your down payment: ${montant}.`
+          : `Voici la facture de votre acompte : ${montant}.`;
+  return assembler(en ? `Your invoice ${f.numero} — booking ${s.reference}` : `Votre facture ${f.numero} — réservation ${s.reference}`, [
+    { p: bonjour(langue, s.prenom) },
+    { p: quoi, gras: true },
+    {
+      p: en
+        ? `Invoice ${f.numero} is attached (PDF, in French). ${s.gite}, ${plageDates(s.arrivee, s.depart, langue)}.`
+        : `La facture n° ${f.numero} est jointe à ce courriel (PDF). ${s.gite}, du ${plageDates(s.arrivee, s.depart, langue)}.`,
+    },
+    { bouton: BOUTON_SUIVI[langue], lien: lienSuivi },
+    ...piedClient(langue, s, adresseContact),
+  ]);
+}
+
+/** Préavis : le solde sera prélevé sur la carte enregistrée, à la date limite. */
+export function texteSoldePreavis(
+  langue: Langue,
+  s: Sejour,
+  d: { montant: number; date: string },
+  lienSuivi: string,
+  adresseContact: string,
+): Contenu {
+  const en = langue === "en";
+  const date = fmtDateLongue(d.date, langue);
+  const montant = fmtEuro(d.montant, langue);
+  const plage = plageDates(s.arrivee, s.depart, langue);
+  return assembler(
+    en ? `Balance payment on ${date} — booking ${s.reference}` : `Prélèvement du solde le ${date} — réservation ${s.reference}`,
+    [
+      { p: bonjour(langue, s.prenom) },
+      {
+        p: en
+          ? `The balance for your stay at ${s.gite}, ${plage}, will be charged on ${date} to the card saved when you booked: ${montant}.`
+          : `Le solde de votre séjour à ${s.gite}, du ${plage}, sera prélevé le ${date} sur la carte enregistrée lors de votre réservation : ${montant}.`,
+        gras: true,
+      },
+      { p: en ? "There is nothing you need to do." : "Vous n'avez rien à faire." },
+      { bouton: BOUTON_SUIVI[langue], lien: lienSuivi },
+      ...piedClient(langue, s, adresseContact),
+    ],
+  );
+}
+
+/** Le lien pour payer le solde (et, `rappel`, son rappel la veille). */
+export function texteSoldeLien(
+  langue: Langue,
+  s: Sejour,
+  d: { montant: number; date: string; rappel: boolean },
+  lienSuivi: string,
+  adresseContact: string,
+): Contenu {
+  const en = langue === "en";
+  const date = fmtDateLongue(d.date, langue);
+  const montant = fmtEuro(d.montant, langue);
+  const plage = plageDates(s.arrivee, s.depart, langue);
+  const sujet = en
+    ? `${d.rappel ? "Reminder: balance" : "Balance"} to pay by ${date} — booking ${s.reference}`
+    : `${d.rappel ? "Rappel : solde" : "Solde"} à régler au plus tard le ${date} — réservation ${s.reference}`;
+  return assembler(sujet, [
+    { p: bonjour(langue, s.prenom) },
+    {
+      p: en
+        ? `The balance for your stay at ${s.gite}, ${plage}, is ${montant}, to be paid by ${date} at the latest.`
+        : `Le solde de votre séjour à ${s.gite}, du ${plage}, est de ${montant}, à régler au plus tard le ${date}.`,
+      gras: true,
+    },
+    { p: en ? "You can pay it online, by card:" : "Vous pouvez le régler en ligne, par carte bancaire :" },
+    { bouton: BOUTON_SOLDE[langue], lien: lienSuivi },
+    ...piedClient(langue, s, adresseContact),
+  ]);
+}
+
+/** Solde impayé : prélèvement refusé, ou date limite passée. */
+export function texteSoldeImpaye(
+  langue: Langue,
+  s: Sejour,
+  d: { montant: number; date: string; motif: "refus" | "echeance" },
+  lienSuivi: string,
+  adresseContact: string,
+): Contenu {
+  const en = langue === "en";
+  const date = fmtDateLongue(d.date, langue);
+  const montant = fmtEuro(d.montant, langue);
+  const quoi =
+    d.motif === "refus"
+      ? en
+        ? `The charge for the balance of your stay, ${montant}, due on ${date}, was declined by your bank.`
+        : `Le prélèvement du solde de votre séjour, ${montant}, prévu le ${date}, a été refusé par votre banque.`
+      : en
+        ? `The balance of your stay, ${montant}, was due by ${date}: we have not received it.`
+        : `Le solde de votre séjour, ${montant}, était à régler au plus tard le ${date} : nous ne l'avons pas reçu.`;
+  return assembler(en ? `Balance not paid — booking ${s.reference}` : `Solde non réglé — réservation ${s.reference}`, [
+    { p: bonjour(langue, s.prenom) },
+    { p: quoi, gras: true },
+    { p: en ? "You can pay it online, by card:" : "Vous pouvez le régler en ligne, par carte bancaire :" },
+    { bouton: BOUTON_SOLDE[langue], lien: lienSuivi },
+    {
+      note: en
+        ? "If you have paid it in the meantime, you can ignore this email."
+        : "Si vous l'avez réglé entre-temps, vous pouvez ignorer ce courriel.",
+    },
+    ...piedClient(langue, s, adresseContact),
+  ]);
+}
+
 // ─── Aux propriétaires (en français) ─────────────────────────────────────────
 
 export interface FicheClient {
@@ -300,13 +438,31 @@ export type Probleme =
       fait: boolean | null;
     }
   | { genre: "contrat_non_cree"; erreur: string }
-  | { genre: "courriel_non_parti"; objet: string; destinataire: string; erreur: string };
+  | { genre: "courriel_non_parti"; objet: string; destinataire: string; erreur: string }
+  | {
+      genre: "solde_impaye";
+      motif: "refus" | "echeance";
+      /** Code de refus de la banque, s'il est connu. */
+      refus: string | null;
+      montant: number;
+      dateLimite: string;
+      /** Seconde alerte, `jours` jours après la première. */
+      relance: boolean;
+      jours: number | null;
+    }
+  | { genre: "solde_a_verifier"; montant: number; depuis: string }
+  | { genre: "facture_non_emise"; type: string; erreur: string };
 
 const OBJETS_CLIENT: Record<string, string> = {
   confirmation: "la confirmation de réservation",
   contrat: "le lien du contrat à signer",
   remboursement: "l'avis de remboursement",
   lien_suivi: "le lien « Ma réservation » qu'il a redemandé",
+  facture: "sa facture",
+  solde_preavis: "le préavis du prélèvement du solde",
+  solde_lien: "le lien pour payer le solde",
+  solde_rappel: "le rappel du solde à payer",
+  solde_impaye: "l'avis de solde non réglé",
 };
 
 export function texteAlerteProbleme(p: Probleme, s: Sejour | null, c: FicheClient | null): Contenu {
@@ -341,6 +497,32 @@ export function texteAlerteProbleme(p: Probleme, s: Sejour | null, c: FicheClien
       titre = `courriel non parti, ${p.destinataire}`;
       quoi = `Le courriel au client (${OBJETS_CLIENT[p.objet] ?? p.objet}) n'a pas pu être envoyé à ${p.destinataire}, après plusieurs essais : ${p.erreur}.`;
       faire = "Prévenir le client par téléphone et vérifier son adresse.";
+      break;
+    case "solde_impaye": {
+      const date = fmtDateLongue(p.dateLimite, "fr");
+      titre = `solde ${p.relance ? "toujours " : ""}impayé${qui ? `, ${qui}` : ""}`;
+      quoi =
+        (p.motif === "refus"
+          ? `Le prélèvement du solde de ${fmtEuro(p.montant)} (date limite du ${date}) a été refusé par la banque du client${p.refus ? ` (code : ${p.refus})` : ""}.`
+          : `Le solde de ${fmtEuro(p.montant)} n'a pas été payé à la date limite du ${date}.`) +
+        (p.relance && p.jours ? ` Il n'est toujours pas payé, ${p.jours} jours après la première alerte.` : "") +
+        " Le client a reçu un courriel avec le lien pour le payer en ligne.";
+      faire =
+        "Appeler le client. S'il ne paie pas, l'article 5.3 du contrat prévoit une mise en demeure par courriel, " +
+        "puis 48 heures d'attente avant de pouvoir résilier : c'est votre décision, le site ne résilie jamais tout seul.";
+      break;
+    }
+    case "solde_a_verifier":
+      titre = `prélèvement du solde à vérifier${qui ? `, ${qui}` : ""}`;
+      quoi = `Le prélèvement du solde de ${fmtEuro(p.montant)} a été demandé à Stripe, mais sa réponse n'a pas été enregistrée par le site.`;
+      faire =
+        "Vérifier dans le tableau de bord Stripe si le paiement a eu lieu (chercher la référence de la réservation), " +
+        "puis prévenir le développeur. Le site ne retente pas, pour ne jamais prélever deux fois.";
+      break;
+    case "facture_non_emise":
+      titre = `facture non émise${qui ? `, ${qui}` : ""}`;
+      quoi = `La facture (${p.type}) n'a pas pu être émise : ${p.erreur} Aucun numéro n'a été utilisé, et le client ne l'a pas reçue.`;
+      faire = "Prévenir le développeur.";
       break;
   }
   return assembler(`À TRAITER — ${titre}`, [

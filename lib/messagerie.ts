@@ -23,6 +23,8 @@ export interface Message {
   texte: string;
   /** Étiquette visible dans le tableau de bord Brevo (l'objet du courriel). */
   etiquette: string;
+  /** Pièces jointes (la facture en PDF, Phase 4). */
+  piecesJointes?: { nom: string; contenu: Buffer }[];
 }
 
 export interface Envoi {
@@ -59,6 +61,10 @@ export class MessagerieFichier implements Messagerie {
       `Objet : ${m.sujet}`,
     ].join("\n");
     await writeFile(chemin, `<!--\n${entete.replace(/--/g, "- -")}\n-->\n${m.html}`, "utf8");
+    // Chaque pièce jointe à côté, préfixée du nom du courriel.
+    for (const pj of m.piecesJointes ?? []) {
+      await writeFile(`${chemin.replace(/\.html$/, "")}-${pj.nom.replace(/[^a-z0-9._-]/gi, "_")}`, pj.contenu);
+    }
     return { voie: "fichier", reference: chemin };
   }
 }
@@ -79,6 +85,9 @@ export class MessagerieBrevo implements Messagerie {
         htmlContent: m.html,
         textContent: m.texte,
         tags: [m.etiquette],
+        ...(m.piecesJointes?.length
+          ? { attachment: m.piecesJointes.map((pj) => ({ name: pj.nom, content: pj.contenu.toString("base64") })) }
+          : {}),
       }),
       signal: AbortSignal.timeout(15_000),
     });

@@ -17,6 +17,9 @@
 // répond toujours la même phrase, que l'adresse ait réservé ou non. Au plus
 // `suivi_demandes_max` demandes par adresse et par `suivi_demandes_minutes`,
 // comptées dans le journal des courriels : une adresse inconnue n'écrit rien.
+//
+// Phase 4, lot 1 (D-28) : la page dit où en est le SOLDE (prélèvement prévu,
+// à payer, payé) ; c'est là que le client le paie, par le lien de ses courriels.
 import { randomUUID } from "node:crypto";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
@@ -27,6 +30,7 @@ import { inscrireLienSuivi } from "@/lib/courriels";
 import { ajouterJours, aujourdhuiParis } from "@/lib/dates-civiles";
 import { lien, type Langue } from "@/lib/i18n/langues";
 import { chargerReservationAvecGite, type Executeur, type ReservationAvecGite } from "@/lib/reservations";
+import { lireEtatSolde, type EtatSolde } from "@/lib/solde";
 import { cheminContratSigne } from "@/lib/storage";
 
 /** Forme d'un jeton émis par la base (deux UUID sans tirets). */
@@ -95,6 +99,8 @@ export type Suivi =
       resa: ReservationAvecGite;
       paiement: { montant: number; datePaiement: Date | null };
       contrat: ContratSuivi;
+      /** null : séjour payé en une fois. */
+      solde: EtatSolde | null;
       finValidite: string;
       contact: string;
     };
@@ -160,6 +166,7 @@ export async function chargerSuivi(
       resa,
       paiement: { montant: centimesDepuisNumeric(recu.montant), datePaiement: recu.date },
       contrat: await contratDe(ex, resa, maintenant),
+      solde: await lireEtatSolde(ex, resa, aujourdhuiParis(maintenant)),
       finValidite: fin,
       contact: r.contact,
     };

@@ -1,5 +1,6 @@
-// Le PRESTATAIRE DE PAIEMENT, vu du site : créer un paiement, le lire,
-// l'annuler, le rembourser, oublier une carte, lire un avis de Stripe.
+// Le PRESTATAIRE DE PAIEMENT, vu du site : créer un paiement, prélever le
+// solde sur la carte enregistrée (Phase 4), le lire, l'annuler, le rembourser,
+// oublier une carte, lire un avis de Stripe.
 //
 // Tout le reste du code passe par l'interface `Prestataire` : la logique de
 // réservation (lib/paiement.ts) ne connaît pas Stripe, et le contrôle
@@ -31,10 +32,28 @@ export interface DemandePaiement {
   reference: string;
   /** Centimes. */
   montant: number;
-  type: "acompte" | "total";
+  type: "acompte" | "total" | "solde";
   /** Caution par carte : la carte est enregistrée pour la caution et, si choisi, le solde (D-16). */
   enregistrerCarte: boolean;
   client: { email: string; nom: string };
+  description: string;
+  /**
+   * Solde payé par le lien (Phase 4) : rang du paiement du solde de la
+   * réservation (1, puis 2 si le premier a été annulé…), dans la clé
+   * d'idempotence. Sans objet pour l'acompte et le total.
+   */
+  essai?: number;
+}
+
+/** Prélèvement du solde sur la carte enregistrée, sans le client (D-16, D-28). */
+export interface DemandePrelevement {
+  reservationId: string;
+  reference: string;
+  /** Centimes. */
+  montant: number;
+  customerId: string;
+  paymentMethodId: string;
+  email: string;
   description: string;
 }
 
@@ -64,6 +83,8 @@ export interface EtatPaiement {
   paymentMethodId: string | null;
   /** Réservation inscrite à la création (métadonnée). */
   reservationId: string | null;
+  /** Type inscrit à la création (métadonnée) : « acompte », « total » ou « solde ». */
+  typePaiement: string | null;
   clientSecret: string | null;
   /** Code du dernier refus (« card_declined »…), pour le journal. */
   dernierRefus: string | null;
@@ -78,6 +99,13 @@ export interface AvisPaiement {
 export interface Prestataire {
   readonly nom: string;
   creerPaiement(demande: DemandePaiement): Promise<PaiementCree>;
+  /**
+   * Prélève le solde sur la carte enregistrée, tout de suite. Renvoie l'état
+   * obtenu, refus de la banque compris (« echoue ») ; LÈVE si le prestataire
+   * ne répond pas. Idempotent : un nouvel appel pour la même réservation
+   * renvoie le même paiement, il ne prélève jamais deux fois.
+   */
+  prelever(demande: DemandePrelevement): Promise<EtatPaiement>;
   lirePaiement(id: string): Promise<EtatPaiement>;
   /** Annule si possible ; renvoie l'état obtenu (« reussi » si l'argent était déjà reçu). */
   annulerPaiement(id: string): Promise<EtatPaiement>;
@@ -133,6 +161,7 @@ function etatDe(pi: Stripe.PaymentIntent): EtatPaiement {
     customerId: idDe(pi.customer),
     paymentMethodId: idDe(pi.payment_method),
     reservationId: pi.metadata?.reservation_id ?? null,
+    typePaiement: pi.metadata?.type ?? null,
     clientSecret: pi.client_secret,
     dernierRefus: pi.last_payment_error?.decline_code ?? pi.last_payment_error?.code ?? null,
   };
@@ -158,8 +187,10 @@ class PrestataireStripe implements Prestataire {
     const stripe = this.stripe();
     try {
       // Un Customer seulement si la carte est conservée : c'est à lui qu'elle
-      // est rattachée. Clé d'idempotence = réservation : un nouvel essai réseau
-      // ne crée ni un second client ni un second paiement.
+      // est rattachée. Clé d'idempotence = réservation (et, pour le solde,
+      // son rang) : un nouvel essai réseau ne crée ni un second client ni un
+      // second paiement. Une clé PAR SORTE de paiement : sinon Stripe
+      // renverrait l'acompte quand on lui demande le solde.
       const customer = d.enregistrerCarte
         ? await stripe.customers.create(
             { email: d.client.email, name: d.client.nom, metadata: { reservation_id: d.reservationId, reference: d.reference } },
@@ -177,13 +208,54 @@ class PrestataireStripe implements Prestataire {
           receipt_email: d.client.email,
           metadata: { reservation_id: d.reservationId, reference: d.reference, type: d.type },
         },
-        { idempotencyKey: `paiement-${d.reservationId}` },
+        {
+          idempotencyKey:
+            d.type === "solde" ? `solde-${d.reservationId}-${d.essai ?? 1}` : `paiement-${d.reservationId}`,
+        },
       );
       if (!pi.client_secret) throw new Error(`paiement ${pi.id} sans client_secret`);
       return { id: pi.id, clientSecret: pi.client_secret, customerId: customer?.id ?? null };
     } catch (erreur) {
       throw new PaiementIndisponible(
         `création du paiement Stripe (${d.reference}) : ${erreur instanceof Error ? erreur.message : String(erreur)}`,
+        { cause: erreur },
+      );
+    }
+  }
+
+  async prelever(d: DemandePrelevement): Promise<EtatPaiement> {
+    const stripe = this.stripe();
+    try {
+      const pi = await stripe.paymentIntents.create(
+        {
+          amount: d.montant,
+          currency: "eur",
+          customer: d.customerId,
+          payment_method: d.paymentMethodId,
+          payment_method_types: ["card"],
+          // Le client n'est pas là : sa banque ne peut pas lui demander de
+          // s'authentifier. Si elle l'exige, le prélèvement est refusé et le
+          // client reçoit le lien (lib/solde.ts) : le même paiement se règle
+          // alors en ligne, avec authentification.
+          off_session: true,
+          confirm: true,
+          description: d.description,
+          receipt_email: d.email,
+          metadata: { reservation_id: d.reservationId, reference: d.reference, type: "solde" },
+        },
+        // Un seul prélèvement par réservation : un nouvel appel (panne entre
+        // la réponse et l'écriture en base) reçoit la même réponse.
+        { idempotencyKey: `prelevement-${d.reservationId}` },
+      );
+      return etatDe(pi);
+    } catch (erreur) {
+      // Refus de la banque (carte refusée, authentification exigée) : Stripe
+      // renvoie le paiement créé, dans l'état « à régler ». Ce n'est pas une panne.
+      if (erreur instanceof Stripe.errors.StripeError && erreur.payment_intent) {
+        return etatDe(erreur.payment_intent);
+      }
+      throw new PaiementIndisponible(
+        `prélèvement du solde (${d.reference}) : ${erreur instanceof Error ? erreur.message : String(erreur)}`,
         { cause: erreur },
       );
     }

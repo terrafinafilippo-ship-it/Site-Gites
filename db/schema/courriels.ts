@@ -29,6 +29,14 @@ export const OBJETS_COURRIEL = [
   "remboursement",
   // Lien « Ma réservation » redemandé par le formulaire (D-25).
   "lien_suivi",
+  // Phase 4, lot 1 (migration 0009, D-28) : la facture en PDF (acompte,
+  // total ou solde), le préavis d'un prélèvement du solde, le lien pour payer
+  // le solde, son rappel, le solde impayé.
+  "facture",
+  "solde_preavis",
+  "solde_lien",
+  "solde_rappel",
+  "solde_impaye",
   // Aux propriétaires, en français.
   "alerte_reservation",
   "alerte_signature",
@@ -72,7 +80,8 @@ export const courriels = pgTable(
     index("courriels_a_envoyer_idx").on(t.prochain_essai_at).where(sql`${t.statut} = 'a_envoyer'`),
     check(
       "courriels_objet_check",
-      sql`${t.objet} in ('confirmation', 'contrat', 'remboursement', 'lien_suivi', 'alerte_reservation', 'alerte_signature', 'alerte_probleme')`,
+      sql`${t.objet} in ('confirmation', 'contrat', 'remboursement', 'lien_suivi', 'facture', 'solde_preavis',
+          'solde_lien', 'solde_rappel', 'solde_impaye', 'alerte_reservation', 'alerte_signature', 'alerte_probleme')`,
     ),
     check("courriels_statut_check", sql`${t.statut} in ('a_envoyer', 'envoye', 'echec')`),
     check("courriels_langue_check", sql`${t.langue} in ('fr', 'en')`),

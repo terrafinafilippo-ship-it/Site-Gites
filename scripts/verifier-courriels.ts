@@ -20,6 +20,8 @@
 //      alerte ; paiement inconnu du site : alerte seule ;
 //   8. alerte « contrat signé » ; alerte coupée : rien n'est inscrit ;
 //   9. garde des adresses de test et texte échappé dans le HTML.
+// Depuis la Phase 4 (lot 1), chaque paiement inscrit aussi sa facture
+// (émission simulée ici, contrôlée par scripts/verifier-solde.ts).
 //
 // REFUSE de s'exécuter si DB_CIBLE ne vaut pas "test". Les lignes créées sont
 // supprimées au début et à la fin ; les alertes de la base de test sont
@@ -37,7 +39,7 @@ import { sql } from "drizzle-orm";
 import { closeDb, getDb } from "../db";
 import type { ContratEmis, ResultatEmission } from "../lib/contrat";
 import { inscrireSignature } from "../lib/courriels";
-import { remplacerEmetteurContrat, traiterCourriels } from "../lib/courriels-envoi";
+import { remplacerEmetteurContrat, remplacerEmetteurFacture, traiterCourriels } from "../lib/courriels-envoi";
 import { texteConfirmation } from "../lib/courriels-textes";
 import type { Coordonnees } from "../lib/coordonnees";
 import { ajouterJours, aujourdhuiParis, jourSemaineIso } from "../lib/dates-civiles";
@@ -89,9 +91,12 @@ class PrestataireSimule implements Prestataire {
     this.paiements.set(id, {
       id, statut: "en_attente", montant: d.montant, devise: "eur",
       customerId: d.enregistrerCarte ? `cus_${this.n}` : null, paymentMethodId: null,
-      reservationId: d.reservationId, clientSecret: `${id}_secret`, dernierRefus: null,
+      reservationId: d.reservationId, typePaiement: d.type, clientSecret: `${id}_secret`, dernierRefus: null,
     });
     return { id, clientSecret: `${id}_secret`, customerId: d.enregistrerCarte ? `cus_${this.n}` : null };
+  }
+  async prelever(): Promise<EtatPaiement> {
+    throw new Error("prélèvement non simulé ici (scripts/verifier-solde.ts)");
   }
   async lirePaiement(id: string): Promise<EtatPaiement> {
     const e = this.paiements.get(id);
@@ -117,7 +122,7 @@ class PrestataireSimule implements Prestataire {
     const id = `pi_courriel_orphelin_${Date.now()}`;
     this.paiements.set(id, {
       id, statut: "reussi", montant, devise: "eur", customerId: null, paymentMethodId: null,
-      reservationId: null, clientSecret: `${id}_secret`, dernierRefus: null,
+      reservationId: null, typePaiement: null, clientSecret: `${id}_secret`, dernierRefus: null,
     });
     return id;
   }
@@ -260,6 +265,13 @@ async function controles(): Promise<void> {
   remplacerPrestataire(p);
   remplacerMessagerie(m);
   remplacerEmetteurContrat(e);
+  remplacerEmetteurFacture({
+    emettre: async (_id, type) => ({
+      ok: true,
+      facture: { numero: "FAC-SIMULE-001", type, montant: 0, chemin: "factures/FAC-SIMULE-001.pdf" },
+    }),
+    pdf: async () => Buffer.from("%PDF-simule"),
+  });
 
   console.log("--- 1. paiement constaté : inscription");
   const a = await tenter("armu", samediDans(30), { moyenCaution: "carte", modeSolde: "prelevement" });
@@ -270,8 +282,9 @@ async function controles(): Promise<void> {
   noter(
     inscrits.filter((c) => c.objet === "confirmation").length === 1 &&
       inscrits.filter((c) => c.objet === "alerte_reservation").length === 1 &&
-      inscrits.length === 2,
-    "paiement constaté quatre fois : une confirmation et une alerte « réservation », pas plus",
+      inscrits.filter((c) => c.objet === "facture").length === 1 &&
+      inscrits.length === 3,
+    "paiement constaté quatre fois : une confirmation, une alerte « réservation » et une facture, pas plus",
     inscrits.map((c) => c.objet),
   );
   noter(
@@ -285,9 +298,13 @@ async function controles(): Promise<void> {
   console.log("--- 2. envoi : contrat, lien, faits, adresses");
   const bilan = await traiterCourriels(ORIGINE);
   const envoyes = m.vider();
-  const conf = envoyes.find((x) => x.destinataire === EMAIL_ESSAI);
+  const conf = envoyes.find((x) => x.destinataire === EMAIL_ESSAI && x.etiquette === "confirmation");
   const alerte = envoyes.find((x) => x.destinataire === PROPRIETAIRES);
-  noter(bilan.envoyes === 2 && envoyes.length === 2 && e.emis === 1, "deux courriels envoyés, un contrat créé", { bilan, emis: e.emis });
+  noter(
+    bilan.envoyes === 3 && envoyes.length === 3 && envoyes.some((x) => x.etiquette === "facture") && e.emis === 1,
+    "trois courriels envoyés (confirmation, alerte, facture), un contrat créé",
+    { bilan, emis: e.emis },
+  );
   noter(
     conf?.sujet.startsWith(`Réservation ${a.reference} confirmée — L'Armu, `) === true,
     "sujet : « Réservation … confirmée — L'Armu, dates »",
@@ -374,7 +391,11 @@ async function controles(): Promise<void> {
   );
   const avant = m.envoyes.length;
   await traiterCourriels(ORIGINE);
-  noter(m.envoyes.filter((x) => x.destinataire === EMAIL_ESSAI).length === 0 && m.envoyes.length === avant, "pas de nouvel essai avant le délai (1 minute)");
+  noter(
+    m.envoyes.filter((x) => x.destinataire === EMAIL_ESSAI && x.etiquette === "confirmation").length === 0,
+    "pas de nouvel essai avant le délai (1 minute)",
+    { avant, apres: m.envoyes.length },
+  );
   await rendreDus();
   await traiterCourriels(ORIGINE);
   const auDelai = m.vider();
@@ -399,7 +420,9 @@ async function controles(): Promise<void> {
     lignesPerdu,
   );
   await traiterCourriels(ORIGINE);
-  const alerteNonParti = m.vider().find((x) => x.sujet.startsWith("À TRAITER — courriel non parti"));
+  const alerteNonParti = m
+    .vider()
+    .find((x) => x.sujet.startsWith("À TRAITER — courriel non parti") && x.texte.includes("la confirmation de réservation"));
   noter(
     alerteNonParti?.destinataire === PROPRIETAIRES &&
       alerteNonParti.texte.includes("la confirmation de réservation") &&
@@ -415,11 +438,11 @@ async function controles(): Promise<void> {
   await traiterCourriels(ORIGINE);
   await rendreDus();
   await traiterCourriels(ORIGINE);
-  noter(!m.envoyes.some((x) => x.destinataire === EMAIL_ESSAI), "deux échecs du contrat : la confirmation attend");
+  noter(!m.envoyes.some((x) => x.etiquette === "confirmation"), "deux échecs du contrat : la confirmation attend");
   await rendreDus();
   await traiterCourriels(ORIGINE);
   const sansLien = m.vider();
-  const confSansLien = sansLien.find((x) => x.destinataire === EMAIL_ESSAI);
+  const confSansLien = sansLien.find((x) => x.etiquette === "confirmation");
   noter(
     confSansLien?.texte.includes("Votre contrat vous sera envoyé par courriel.") === true && !confSansLien.texte.includes("/signer/"),
     "troisième échec : la confirmation part sans le lien, contrat annoncé",
@@ -452,8 +475,8 @@ async function controles(): Promise<void> {
   await payer(integral, p);
   const objetsIntegral = (await courrielsDe(integral.id)).map((c) => `${c.objet}${c.genre ? `:${c.genre}` : ""}`).sort();
   noter(
-    JSON.stringify(objetsIntegral) === JSON.stringify(["alerte_reservation", "confirmation"]),
-    "inscrits : confirmation et alerte « réservation », plus d'alerte « contrat à envoyer à la main » (lot 5)",
+    JSON.stringify(objetsIntegral) === JSON.stringify(["alerte_reservation", "confirmation", "facture"]),
+    "inscrits : confirmation, alerte « réservation » et facture, plus d'alerte « contrat à envoyer à la main » (lot 5)",
     objetsIntegral,
   );
   await traiterCourriels(ORIGINE);
@@ -536,8 +559,8 @@ async function controles(): Promise<void> {
   await payer(coupe, p);
   await db.execute(sql`update alertes set active = true where type = 'reservation'`);
   noter(
-    (await courrielsDe(coupe.id)).map((c) => c.objet).join() === "confirmation",
-    "alerte « réservation » coupée : seule la confirmation est inscrite",
+    (await courrielsDe(coupe.id)).map((c) => c.objet).sort().join() === "confirmation,facture",
+    "alerte « réservation » coupée : seules la confirmation et la facture sont inscrites",
     (await courrielsDe(coupe.id)).map((c) => c.objet),
   );
   await traiterCourriels(ORIGINE);

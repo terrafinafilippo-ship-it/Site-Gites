@@ -14,6 +14,15 @@
 // Le passage par 'a_rembourser' est écrit AVANT d'appeler le prestataire : une
 // panne entre les deux laisse une trace, et le traitement suivant (retour du
 // client ou avis de Stripe) termine le remboursement.
+//
+// SOLDE (Phase 4, lot 1, D-28) : une ligne par paiement du solde chez le
+// prestataire. Le PRÉLÈVEMENT automatique naît « en_attente » SANS
+// `reference_externe`, AVANT l'appel au prestataire, puis reçoit sa référence
+// à la réponse : une panne entre les deux laisse une trace, et le passage
+// suivant des tâches rejoue l'appel avec la même clé d'idempotence (jamais
+// deux prélèvements). Le paiement par LIEN naît quand le client ouvre le
+// formulaire (lib/solde.ts) ; un prélèvement refusé se paie ensuite par le
+// lien, sur le MÊME paiement chez le prestataire.
 import { sql } from "drizzle-orm";
 import {
   check,
