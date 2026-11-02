@@ -1297,6 +1297,78 @@ fois : un autre type, un autre composant PDF, et `inscrireApresPaiement`
 
 ---
 
+## D-30 · La caution par carte, construite
+
+**Date :** 2 novembre 2026 (Phase 4, lot 2). Met en œuvre D-16. Choix du
+gérant (exemple : Camille quitte L'Armu le samedi 27 mars 2027, caution de
+500 €) :
+- **préautorisation refusée** le vendredi 26 à 18 h : courriel tout de suite au
+  client avec un lien pour la valider (même carte ou une autre), alerte « À
+  TRAITER » aux propriétaires ; **le site ne réessaie pas tout seul** (1A) ;
+- la validation se fait sur **« Ma réservation »**, bloc « Votre caution » (2A) ;
+- **alerte le lundi 29 à 8 h, levée le mardi 30 à 8 h**, heures en réglages (3A) ;
+- **caution non constituée à l'arrivée** (art. 6.6) : le lien et la page sont
+  construits ; le bouton « envoyer le lien au client » arrive avec l'écran de
+  gestion (Phase 5), puisque ce sont les propriétaires qui voient s'il manque
+  le chèque (4A) ;
+- **un court message aux propriétaires** quand la caution est bloquée (5).
+
+Choix annoncés au cadrage du 1er novembre, sans objection : la caution est
+une ligne `paiements` de type `caution` ; son montant est figé sur la
+réservation ; plus de `CAUTION_DEFAUT`.
+
+**Décision.**
+- **Montant figé** : `reservations.caution` (migration 0010), recopié du gîte
+  par le tunnel ; le contrat l'imprime, la carte le bloque. Une réservation
+  sans montant n'a **ni contrat** (refusé avant qu'un numéro soit tiré) **ni
+  préautorisation** (alerte « À TRAITER »). `CAUTION_DEFAUT` est supprimé.
+- **Une préautorisation par réservation** (`paiements`, index unique ; clé
+  d'idempotence `caution-{réservation}`), écrite **avant** l'appel à Stripe
+  comme le prélèvement du solde (rejouée moins de 20 heures après, alerte
+  au-delà). États : `bloque`, `echoue`, `libere`, `retenu`, `annule` ; la
+  date limite de la banque (`capture_before`) est lue sur la charge et
+  enregistrée (`expire_at`), jamais recalculée.
+- **Le calendrier** (`lib/caution.ts`, appelé par le réveil) : préautorisation
+  la veille du départ à partir de `caution_heure_blocage` (rattrapée le jour
+  du départ si le passage du soir a manqué) ; alerte la veille de la levée à
+  `caution_heure_alerte` ; levée au troisième jour à `caution_heure_liberation`
+  (avant midi, imposé par la base) ; la réservation passe « terminée » ; la
+  carte est supprimée chez Stripe (`detach`) dès la levée ou la retenue, au
+  plus tard 7 jours après le départ, tout de suite pour une réservation
+  annulée. Les **jours** (veille, 3, 7) sont ceux du contrat et du texte
+  d'accord : des constantes, pas des réglages.
+- **Valider sa caution** : le client confirme la **même** préautorisation sur
+  sa page (`POST /api/suivi/caution`), avec authentification de sa banque.
+  **Article 6.6** : la page enregistre une carte sans paiement (SetupIntent),
+  sous le texte d'accord du tunnel, recopié sur la réservation ;
+  `demanderCarteCaution` (pour le bouton de la Phase 5) envoie le lien.
+- **Retenue** : construite en Phase 5. D'ici là, une retenue faite dans le
+  tableau de bord Stripe est constatée par l'avis de Stripe et enregistrée
+  (`retenu`, `montant_retenu`).
+- **Avis de Stripe** : en plus, `payment_intent.amount_capturable_updated`
+  (caution bloquée), `setup_intent.succeeded` / `setup_failed` (carte
+  enregistrée), `charge.dispute.created` (paiement contesté → alerte « À
+  TRAITER »). Une préautorisation n'est **jamais remboursée** par le constat.
+- **Alertes** : nouvelle sorte `caution` (bloquée, levée demain, carte
+  enregistrée), activable à part ; un refus est un « problème ».
+
+**Pourquoi.** Le délai contractuel de restitution (3 jours) doit tenir même
+si personne n'y pense, et un refus de la banque la veille du départ doit
+laisser aux propriétaires le temps d'agir (le client est encore sur place).
+
+**Ce qui pourrait mal tourner.** Sans la tâche programmée (point 18), rien
+n'est bloqué ni levé. Sans les nouveaux événements déclarés chez Stripe
+(point 14), une caution validée par le client ou une contestation ne sont
+vues qu'au passage suivant, ou pas du tout pour la contestation. Une carte
+dont la banque fixe une date limite antérieure au troisième jour est levée
+par la banque elle-même : le site le constate.
+
+**Si on revient dessus.** Changer une heure : un réglage. Changer un nombre
+de jours : le contrat (art. 6.2, 6.4, 6.5), le texte d'accord et
+`lib/caution.ts`, ensemble (D-16, « Si on revient dessus »).
+
+---
+
 ## Décisions ouvertes
 
 Elles ne sont **pas tranchées** et ne doivent pas l'être dans le code.

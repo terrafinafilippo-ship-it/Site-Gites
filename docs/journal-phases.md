@@ -1382,6 +1382,88 @@ la page et de la facture unique validés par le gérant le même jour.
 
 ---
 
+## Phase 4 — lot 2 : la caution par carte (2 novembre 2026)
+
+### Ce qui a été décidé
+
+Cadrage du lot le 2 novembre 2026 (fiche de phase, réponses 1A, 2A, 3A, 4A,
+et un court message de validation pour la question 5) ; décision D-30. Textes
+des courriels et du bloc « Votre caution » présentés au gérant le même jour.
+
+### Défauts trouvés dans le code avant d'écrire
+
+- **Le contrat lisait la caution dans la fiche du gîte** au moment de sa
+  création : changer la caution d'un gîte aurait pu faire bloquer un autre
+  montant que celui du contrat signé.
+- **`CAUTION_DEFAUT`** (500 €) sortait sans rien dire si le montant manquait.
+- **Rien n'effaçait les cartes enregistrées**, ni pour les séjours finis ni
+  pour les réservations annulées.
+- Trouvé en écrivant : **une caution encaissée depuis le tableau de bord
+  Stripe aurait été remboursée** par le constat (paiement reçu, réservation
+  déjà confirmée) ; et une préautorisation (`requires_capture`) était lue
+  comme « en attente ».
+
+### Ce qui a été fait
+
+- **Migration 0010** : `reservations.caution` (rempli pour les réservations
+  existantes), `carte_caution_demandee_at` ; états et colonnes de la caution
+  dans `paiements`, une caution par réservation ; heures en réglages ;
+  alerte `caution` ; courriels `caution_bloquee`, `caution_a_valider`,
+  `caution_liberee`, `caution_carte`, `alerte_caution`.
+- **`lib/caution.ts`** : préautorisation la veille du départ, alerte la veille
+  de la levée, levée au troisième jour, effacement des cartes ; validation par
+  le client ; article 6.6 (`demanderCarteCaution`, enregistrement de carte).
+- **`lib/stripe.ts`** : `bloquerCaution` (capture manuelle, hors session),
+  levée par annulation, date limite lue sur la charge, enregistrement de carte
+  (SetupIntent), avis `amount_capturable_updated`, `setup_intent.*`,
+  `charge.dispute.created` ; une carte déjà détachée n'est pas une erreur.
+- **`lib/paiement.ts`** : la caution passe par `constaterCaution`, jamais par
+  le remboursement.
+- **Montant figé** : tunnel, contrat (refusé sans montant), récapitulatif ;
+  `CAUTION_DEFAUT` supprimé.
+- **« Ma réservation »** : bloc « Votre caution », `ValiderCaution.tsx`,
+  `POST /api/suivi/caution` ; le champ de carte accepte la préautorisation et
+  l'enregistrement d'une carte.
+- **Courriels** : quatre au client, en français et en anglais ; l'alerte
+  « caution » (bloquée, levée demain, carte enregistrée) ; « À TRAITER » pour
+  un refus, un montant absent, une préautorisation à vérifier, un paiement
+  contesté.
+- **Contrôles** : `verify:caution` (67 cas simulés, 15 avec Stripe en mode
+  test, 4 par le serveur), nouvelle étape de `lancer.sh` ; `db:verify`
+  179 contrôles (section 6i).
+
+### Ce qui a été vérifié
+
+- `npm run lint`, `npx tsc --noEmit`, `npm run build` : passent.
+- `bash scripts/parcours/lancer.sh` : **seize étapes sur seize**, aucun montant
+  de référence n'a bougé (la caution des deux contrats de référence vient
+  désormais de la réservation : 400 € et 500 €, inchangés).
+- **Stripe en mode test, trois cartes** : carte normale (préautorisation
+  « à encaisser », rien de débité, date limite lue, levée, carte détachée) ;
+  4000 0027 6000 3184 (refusée hors session, lien et alerte, validée par le
+  client sur la même préautorisation, levée) ; carte refusée (code enregistré,
+  close à la levée, carte détachée). C'est aussi le premier essai réel d'un
+  appel hors session sur la carte enregistrée, laissé ouvert au lot 1.
+
+### Ce qui n'a PAS été vérifié
+
+- **L'écran** du bloc « Votre caution » et du champ de carte dans un navigateur,
+  et la **fenêtre 3-D Secure** de la validation : le contrôle valide avec une
+  autre carte, côté serveur.
+- **Les avis de Stripe réels** pour la caution et les contestations : la
+  route les lit, mais aucun avis signé n'a été reçu (point 14).
+- **La tâche programmée de Coolify** (point 18).
+
+### Points reportés
+
+- **La retenue** (encaissement partiel, courriel avec justificatifs) : Phase 5.
+  Une réservation dont la caution a été retenue reste « confirmée » ; la
+  Phase 5 la fermera avec la retenue.
+- Les jours (veille, 3, 7) sont des constantes liées au contrat ; les rendre
+  réglables demanderait que le contrat les lise.
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

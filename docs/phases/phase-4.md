@@ -1,9 +1,10 @@
 # Phase 4 — Cycle de paiement complet
 
 **État :** ouverte le 1er novembre 2026. **Lot 1 (le réveil, le solde, les
-factures) livré le 1er novembre 2026** (D-28, D-29 ; bilan :
-`docs/journal-phases.md`). Restent le lot 2 (la caution par carte) et le lot 3
-(chèque et virement, réservations abandonnées, base en production).
+factures) livré le 1er novembre 2026** (D-28, D-29). **Lot 2 (la caution par
+carte) livré le 2 novembre 2026** (D-30). Bilans : `docs/journal-phases.md`.
+Reste le lot 3 (chèque et virement, réservations abandonnées, base en
+production).
 
 **Dépendances :** Phase 3 close — sans acompte réel, il n'y a pas de carte
 enregistrée sur laquelle agir.
@@ -85,6 +86,27 @@ manquant → alerte, rien n'est bloqué).
 **Découpage :** lot 1 — le réveil, le solde, les factures ; lot 2 — la caution
 par carte ; lot 3 — chèque et virement, réservations abandonnées, base en
 production.
+
+## Cadrage du lot 2, 2 novembre 2026
+
+Réponses du gérant (exemple : Camille quitte L'Armu le samedi 27 mars 2027,
+caution de 500 € ; préautorisation le vendredi 26 à 18 h, alerte le lundi 29,
+levée le mardi 30 au matin) :
+
+1. **Préautorisation refusée** : courriel tout de suite au client avec un lien
+   pour la valider, alerte « À TRAITER » aux propriétaires, pas de nouvel
+   essai automatique — A.
+2. **Validation** sur « Ma réservation », bloc « Votre caution » — A.
+3. **Alerte le lundi à 8 h, levée le mardi à 8 h**, heures en réglages — A.
+4. **Article 6.6** : le lien et la page construits maintenant ; le bouton
+   « envoyer le lien au client » avec l'écran de gestion (Phase 5) — A.
+5. **Un court message de validation** aux propriétaires quand la caution est
+   bloquée.
+
+Le détail de ce qui est construit : D-30. Les **états** de la caution
+(point 9 ci-dessous) sont ceux de `paiements` : `bloque`, `echoue`, `libere`
+(expirée comprise), `retenu`, `annule` ; « carte enregistrée » se lit sur la
+réservation.
 
 ---
 

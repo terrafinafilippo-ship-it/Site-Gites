@@ -270,7 +270,7 @@ Si, à l'arrivée du Locataire, le dépôt de garantie n'a pas été constitué 
 | `prix_location`, `forfait_menage`, `taux_taxe_sejour`, `montant_taxe_sejour`, `sous_total`, `total_ttc` | Calculs tarifaires | Computés depuis tarifs |
 | `taux_acompte`, `montant_acompte`, `taux_solde`, `montant_solde`, `delai_solde`, `date_butoir_solde`, `date_versement_acompte` | Échéancier paiement | Paramètres + computés |
 | `paiement_integral`, `mode_solde` | Variante de l'article 5 et règlement du solde choisi | Réservation |
-| `caution_montant` | Montant du dépôt de garantie | Table `gite` |
+| `caution_montant` | Montant du dépôt de garantie | Réservation : figé à la réservation depuis le gîte (Phase 4, D-30) ; sans montant, pas de contrat |
 | `moyen_caution`, `delai_virement_caution`, `date_limite_virement_caution` | Moyen de la caution et date limite d'un virement | Réservation (délai recopié des réglages) |
 | `contact_email` | Adresse de contact (en-tête, 14.1, 15.1) | Réglages (`courriel_reponse`) |
 

@@ -253,11 +253,16 @@ ont été retirées**.
 
 Le contrat et le site décrivent désormais le mécanisme retenu : une
 **préautorisation Stripe** sur la carte de l'acompte, faite la veille du départ,
-levée au plus tard 3 jours après, sans débit sauf dégât constaté. **L'écart
-change de nature mais ne se ferme pas** : ce mécanisme n'est pas développé
-(Phase 4). Signer un contrat aujourd'hui, ce serait encore promettre par écrit
-un dispositif qui n'existe pas. Il se ferme quand les quatre conditions du
-point 3 de `docs/06-avant-premier-client.md` sont réunies.
+levée au plus tard 3 jours après, sans débit sauf dégât constaté. Depuis le
+2 novembre 2026 (Phase 4, lot 2, D-30), **ce mécanisme est développé** :
+préautorisation la veille du départ, levée automatique au troisième jour,
+données de carte supprimées dès la levée et au plus tard 7 jours après le
+départ, montant figé à la réservation (celui du contrat), lien de
+l'article 6.6. Contrôlé avec Stripe en mode test (`verify:caution --stripe`).
+**L'écart ne se ferme pas pour autant** : la **retenue** (encaissement
+partiel, art. 6.4) arrive avec l'écran de gestion (Phase 5), et les autres
+conditions du point 3 de `docs/06-avant-premier-client.md` (relecture du
+juriste, trace écrite des réponses de Stripe) restent à réunir.
 
 Emplacements qui décrivent le mécanisme, à modifier **ensemble** s'il change :
 
@@ -268,7 +273,8 @@ Emplacements qui décrivent le mécanisme, à modifier **ensemble** s'il change 
 | `components/pdf/ContratPDF.tsx` art. 14.2, 14.4, 14.5 | Information RGPD |
 | `app/gites/[slug]/page.tsx` | Page publique |
 | `app/reserver/ReserverFunnel.tsx` (4 endroits) | Page publique |
-| `app/[lang]/suivi/[jeton]/page.tsx` (ligne « Caution » des faits, `lib/recapitulatif.ts`) | Page publique |
+| `app/[lang]/suivi/[jeton]/page.tsx` (ligne « Caution » des faits, `lib/recapitulatif.ts` ; bloc « Votre caution » depuis D-30) | Page publique |
+| `lib/courriels-textes.ts` — courriels de la caution (bloquée, à valider, levée, carte à enregistrer) | Courriels au client |
 | `lib/data/legal.ts` — CGV et politique cookies | Pages publiques `/legal/cgv` et `/legal/cookies` |
 | `docs/contrat-template.md`, `docs/facture-template.md` | Documents de rédaction |
 

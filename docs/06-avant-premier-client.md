@@ -94,9 +94,16 @@ puis développement · **Phase 4**
 **La raison.** Le contrat (article 6) et cinq pages du site décrivent une
 caution par **préautorisation Stripe** sur la carte de l'acompte, faite la
 veille du départ et levée au plus tard 3 jours après (`docs/02-decisions.md`,
-D-16). **Ce mécanisme n'est pas développé.** Signer un contrat avant qu'il le
-soit, c'est promettre par écrit un dispositif qui n'existe pas — pratique
-commerciale trompeuse (art. L.121-2 C. conso.).
+D-16). Signer un contrat avant qu'il soit développé, relu et confirmé, c'est
+promettre par écrit un dispositif qui n'existe pas — pratique commerciale
+trompeuse (art. L.121-2 C. conso.).
+
+**Condition 4 remplie le 2 novembre 2026** (Phase 4, lot 2, D-30) :
+préautorisation, levée, validation par le client et article 6.6 développés,
+testés en mode test avec les trois cartes (`verify:caution --stripe`). Seule
+la **retenue** (encaissement partiel) attend l'écran de gestion (Phase 5),
+qui doit être livré avant le premier client. Restent les conditions 1 et 2
+(trace écrite) et 3 (juriste).
 
 L'arbitrage prévu ici a été rendu le 9 octobre 2026 : le prestataire spécialisé
 annoncé jusque-là est écarté et toutes ses mentions ont été retirées. Le point
@@ -531,7 +538,10 @@ Stripe, **en mode test seulement** : le site refuse toute clé réelle
 **L'action.**
 1. Les propriétaires activent le compte Stripe et créent l'avis de paiement
    (événements `payment_intent.succeeded`, `payment_intent.payment_failed`,
-   `payment_intent.canceled`, `payment_intent.processing`). Ils règlent aussi
+   `payment_intent.canceled`, `payment_intent.processing` ; depuis la Phase 4,
+   lot 2, D-30 : `payment_intent.amount_capturable_updated`,
+   `setup_intent.succeeded`, `setup_intent.setup_failed`,
+   `charge.dispute.created`). Ils règlent aussi
    le **nom public** du compte et le **libellé sur le relevé bancaire** : le
    compte de test affiche aujourd'hui « LES GITES DE SAMOYAS », que le client
    voit pendant la validation bancaire et sur son relevé.

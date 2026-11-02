@@ -31,6 +31,7 @@ DB_CIBLE=test npm run verify:paiement # paiement, Stripe simulé (base de test) 
 DB_CIBLE=test npm run verify:courriels # courriels, envoi simulé : confirmation, contrat, alertes (base de test)
 DB_CIBLE=test npm run verify:suivi    # page « Ma réservation » : lien secret, validité, formulaire (base de test)
 DB_CIBLE=test npm run verify:solde    # solde et factures automatiques, temps simulé (base de test)
+DB_CIBLE=test npm run verify:caution  # caution par carte, temps simulé ; --stripe : trois cartes de test (base de test)
 
 bash scripts/parcours/lancer.sh   # non-régression complète (contrat, signature, factures)
 ```
