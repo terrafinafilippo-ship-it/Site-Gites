@@ -111,6 +111,7 @@ class PrestataireSimule implements Prestataire {
     return { id: `re_${id}` };
   }
   async oublierCarte(): Promise<void> {}
+  async oublierClient(): Promise<void> {}
   async bloquerCaution(): Promise<EtatPaiement> {
     throw new Error("caution : hors de ce contrôle (scripts/verifier-caution.ts)");
   }

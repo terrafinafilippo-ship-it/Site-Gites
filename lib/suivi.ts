@@ -30,6 +30,7 @@ import { getDb } from "@/db";
 import { courriels, documents, paiements, reglages, reservations } from "@/db/schema";
 import { centimesDepuisNumeric } from "@/lib/centimes";
 import { lireEtatCaution, type EtatCaution } from "@/lib/caution";
+import { lireEtatVirement } from "@/lib/virement";
 import { inscrireLienSuivi } from "@/lib/courriels";
 import { ajouterJours, aujourdhuiParis } from "@/lib/dates-civiles";
 import { lien, type Langue } from "@/lib/i18n/langues";
@@ -171,7 +172,10 @@ export async function chargerSuivi(
 
   const recu = payes.find((p) => p.statut === "reussi");
   if (recu && (resa.statut === "confirmee" || resa.statut === "terminee")) {
-    const caution = await lireEtatCaution(ex, resa, aujourdhuiParis(maintenant));
+    // Par carte (lot 2), ou par virement : ses coordonnées, du jour du courriel à la date limite (lot 3).
+    const caution =
+      (await lireEtatCaution(ex, resa, aujourdhuiParis(maintenant))) ??
+      (await lireEtatVirement(ex, resa, aujourdhuiParis(maintenant)));
     return {
       etat: "ouvert",
       resa,

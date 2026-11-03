@@ -137,6 +137,12 @@ export interface Devis {
   caution: number;
   /** Date limite de réception d'une caution par virement (aaaa-mm-jj). */
   dateLimiteVirementCaution: string;
+  /**
+   * Le virement est-il encore proposé ? Non quand sa date limite est déjà
+   * passée le jour de la réservation (Phase 4, lot 3, choix du gérant du
+   * 3 novembre 2026) : le contrat imprimerait une date impossible à tenir.
+   */
+  virementPossible: boolean;
   /** Plus de bébés que de lits bébé : signalé au client, sans refus. */
   litsBebeInsuffisants: boolean;
 }
@@ -454,6 +460,7 @@ export function devisSejour(ctx: ContexteDevis, demande: DemandeDevis): Resultat
   // D-20 : la date limite du solde atteinte, le client paie le total.
   const dateLimite = ajouterJours(demande.arrivee, -reglages.delaiSoldeJours);
   const paiementIntegral = aujourdhui >= dateLimite;
+  const dateLimiteVirement = ajouterJours(demande.arrivee, -reglages.delaiVirementCautionJours);
 
   return {
     ok: true,
@@ -472,7 +479,8 @@ export function devisSejour(ctx: ContexteDevis, demande: DemandeDevis): Resultat
       aRegler: paiementIntegral ? montants.totalTtc : montants.acompte,
       dateLimiteSolde: paiementIntegral ? null : dateLimite,
       caution: gite.caution,
-      dateLimiteVirementCaution: ajouterJours(demande.arrivee, -reglages.delaiVirementCautionJours),
+      dateLimiteVirementCaution: dateLimiteVirement,
+      virementPossible: aujourdhui <= dateLimiteVirement,
       litsBebeInsuffisants: occupants.bebes > reglages.litsBebe,
     },
   };

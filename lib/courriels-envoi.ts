@@ -28,14 +28,19 @@
 // Phase 4, lot 2 (D-16) : les courriels de la caution relisent la
 // préautorisation à l'envoi, et ne partent pas si elle a changé d'état
 // entre-temps (validée par le client, levée, retenue).
+//
+// Phase 4, lot 3 (D-31) : le courriel des coordonnées bancaires relit le
+// compte et la date limite à l'envoi ; sans compte, il est abandonné et les
+// propriétaires sont alertés.
 import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { courriels, paiements, reglages, TYPES_FACTURE, type TypeFacture } from "@/db/schema";
 import { jourBlocage, jourLevee, lireReglagesCaution } from "@/lib/caution";
 import { centimesDepuisNumeric } from "@/lib/centimes";
+import { aujourdhuiParis } from "@/lib/dates-civiles";
 import type { ContratEmis, ResultatEmission } from "@/lib/contrat";
-import { inscrireContratARelancer, inscrireProbleme } from "@/lib/courriels";
+import { inscrireContratARelancer, inscrireProbleme, QUOI_CAUTION, type QuoiCaution } from "@/lib/courriels";
 import {
   texteAlerteCaution,
   texteAlerteProbleme,
@@ -44,6 +49,7 @@ import {
   texteCautionAValider,
   texteCautionBloquee,
   texteCautionLiberee,
+  texteCautionVirement,
   texteAlerteSignature,
   texteConfirmation,
   texteContrat,
@@ -69,6 +75,7 @@ import { messageErreur } from "@/lib/route-helpers";
 import { dateLimiteSolde, lireEtatSolde } from "@/lib/solde";
 import { finValidite, lienOuvert, lienSuivi } from "@/lib/suivi";
 import { autresGitesLibres } from "@/lib/tunnel";
+import { dateLimiteVirement, lireCompteVirement } from "@/lib/virement";
 
 /** Délais avant chaque nouvel essai, en minutes ; au-delà, le courriel est abandonné. */
 const DELAIS_MINUTES = [1, 5, 15, 60, 240];
@@ -92,6 +99,7 @@ const OBJETS_CLIENT = new Set([
   "caution_a_valider",
   "caution_liberee",
   "caution_carte",
+  "caution_virement",
 ]);
 
 type Courriel = typeof courriels.$inferSelect;
@@ -560,12 +568,42 @@ async function preparer(tx: Executeur, c: Courriel, origine: string): Promise<Pr
       };
     }
 
+    case "caution_virement": {
+      if (!resa) return { abandon: "réservation absente" };
+      if (resa.statut !== "confirmee") return { abandon: `réservation au statut « ${resa.statut} »` };
+      if (resa.moyen_caution !== "virement") return { abandon: `caution par ${resa.moyen_caution ?? "un moyen inconnu"}` };
+      if (resa.caution === null || resa.caution <= 0) return { abandon: "montant de la caution absent" };
+      const dateLimite = dateLimiteVirement(resa);
+      if (aujourdhuiParis() > dateLimite) return { abandon: "date limite du virement passée avant l'envoi" };
+      const compte = await lireCompteVirement(tx);
+      if (!compte) {
+        return {
+          abandon: "compte de la caution par virement absent des réglages",
+          alerte: (sp) => inscrireProbleme(sp, "virement_coordonnees_absentes", resa.id, resa.id),
+        };
+      }
+      return {
+        contenu: texteCautionVirement(
+          langue,
+          sejour(resa),
+          { montant: resa.caution, dateLimite, restitution: jourLevee(resa.date_depart), compte },
+          lienSuivi(origine, langue, resa.jeton_suivi),
+          await adresseReponse(tx),
+        ),
+      };
+    }
+
     case "alerte_caution": {
       if (!resa) return { abandon: "réservation absente" };
-      const quoi = d.quoi === "bloquee" || d.quoi === "levee_demain" || d.quoi === "carte_enregistree" ? d.quoi : null;
+      const quoi = (QUOI_CAUTION as readonly unknown[]).includes(d.quoi) ? (d.quoi as QuoiCaution) : null;
       if (!quoi) return { abandon: `alerte de caution inconnue (${String(d.quoi)})` };
       const caution = await cautionDe(tx, resa.id);
       if (quoi === "levee_demain" && caution?.statut !== "bloque") return { abandon: "caution plus bloquée" };
+      if ((quoi === "virement_a_verifier" || quoi === "virement_a_rendre") && resa.moyen_caution !== "virement") {
+        return { abandon: `caution par ${resa.moyen_caution ?? "un moyen inconnu"}` };
+      }
+      if (quoi === "virement_a_verifier" && resa.statut !== "confirmee") return { abandon: `réservation au statut « ${resa.statut} »` };
+      if (quoi === "virement_a_rendre" && !enCours(resa)) return { abandon: `réservation au statut « ${resa.statut} »` };
       const r = await lireReglagesCaution(tx);
       const montant = caution ? centimesDepuisNumeric(caution.montant) : resa.caution;
       if (montant === null) return { abandon: "montant de la caution absent" };
@@ -577,6 +615,7 @@ async function preparer(tx: Executeur, c: Courriel, origine: string): Promise<Pr
           heureLevee: r.liberation,
           veille: jourBlocage(resa.date_depart),
           heureBlocage: r.blocage,
+          dateLimiteVirement: dateLimiteVirement(resa),
         }),
       };
     }
@@ -657,6 +696,9 @@ async function lireProbleme(
       return { genre: "caution_montant_absent" };
     case "caution_a_verifier":
       return { genre: "caution_a_verifier", montant: Number(d.montant ?? 0), depuis: String(d.depuis ?? "") };
+    case "virement_coordonnees_absentes":
+      if (!resa) return null;
+      return { genre: "virement_coordonnees_absentes", montant: resa.caution ?? 0, dateLimite: dateLimiteVirement(resa) };
     case "contestation":
       return {
         genre: "contestation",

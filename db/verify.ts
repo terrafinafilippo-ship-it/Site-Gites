@@ -137,6 +137,7 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     "solde_preavis_jours", "solde_lien_jours", "solde_rappel_jours", "solde_relance_jours",
     // Caution par carte (Phase 4, lot 2, migration 0010).
     "caution_heure_blocage", "caution_heure_alerte", "caution_heure_liberation",
+    "virement_titulaire", "virement_iban", "virement_bic", "virement_courriel_jours", "abandon_conservation_jours",
     "updated_at",
   ],
   taxes_sejour: [
@@ -928,6 +929,44 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
       );
       noter("6i", c.erreur === null, `courriel « ${objet} » accepté`, codePg(c.erreur));
     }
+
+    // ── 6j. Caution par virement, tentatives abandonnées (Phase 4, lot 3, migration 0011, D-31) ──
+    titre("6j. Caution par virement, tentatives abandonnées");
+    const reglagesVirement = await client.query<{ j: number }>(
+      `select virement_courriel_jours as j from reglages where id = 1`,
+    );
+    noter("6j", reglagesVirement.rows[0]?.j === 10, "réglages : courriel des coordonnées 10 jours avant la date limite", JSON.stringify(reglagesVirement.rows[0]));
+    await client.query("savepoint sp_compte_vide");
+    await client.query(
+      `update reglages set virement_titulaire = null, virement_iban = null, virement_bic = null, abandon_conservation_jours = null where id = 1`,
+    );
+    noter("6j", true, "compte et durée de conservation vides acceptés (rien n'est envoyé ni effacé)");
+    await client.query("rollback to savepoint sp_compte_vide");
+    for (const [nom, sqlTexte, quoi] of [
+      ["sp_titulaire_seul", `update reglages set virement_titulaire = 'SARL ESSAI', virement_iban = null where id = 1`, "titulaire sans IBAN refusé"],
+      ["sp_iban_seul", `update reglages set virement_titulaire = null, virement_iban = 'FR7630006000011234567890189' where id = 1`, "IBAN sans titulaire refusé"],
+      ["sp_iban_espaces", `update reglages set virement_titulaire = 'SARL ESSAI', virement_iban = 'FR76 3000 6000 0112 3456 7890 189' where id = 1`, "IBAN avec espaces refusé (écrit sans espaces)"],
+      ["sp_iban_minuscules", `update reglages set virement_titulaire = 'SARL ESSAI', virement_iban = 'fr7630006000011234567890189' where id = 1`, "IBAN en minuscules refusé"],
+      ["sp_bic_faux", `update reglages set virement_titulaire = 'SARL ESSAI', virement_iban = 'FR7630006000011234567890189', virement_bic = 'AGRI' where id = 1`, "BIC mal formé refusé"],
+      ["sp_titulaire_vide", `update reglages set virement_titulaire = '  ', virement_iban = 'FR7630006000011234567890189' where id = 1`, "titulaire vide refusé"],
+      ["sp_courriel_jours", `update reglages set virement_courriel_jours = 61 where id = 1`, "courriel plus de 60 jours avant refusé"],
+      ["sp_abandon_zero", `update reglages set abandon_conservation_jours = 0 where id = 1`, "durée de conservation de 0 jour refusée"],
+    ] as const) {
+      const e = await attendreErreur(client, nom, sqlTexte, []);
+      noter("6j", codePg(e.erreur) === "23514", quoi, codePg(e.erreur));
+    }
+    const compteOk = await attendreErreur(
+      client, "sp_compte_ok",
+      `update reglages set virement_titulaire = 'SARL ESSAI', virement_iban = 'FR7630006000011234567890189',
+              virement_bic = 'AGRIFRPP882', abandon_conservation_jours = 7 where id = 1`, [],
+    );
+    noter("6j", compteOk.erreur === null, "compte complet et durée de 7 jours acceptés", codePg(compteOk.erreur));
+    const courrielVirement = await attendreErreur(
+      client, "sp_caution_virement",
+      `insert into courriels (reservation_id, objet, cle, destinataire, langue)
+       values ($1, 'caution_virement', 'verify:caution_virement', 'a@example.invalid', 'fr')`, [resaId],
+    );
+    noter("6j", courrielVirement.erreur === null, "courriel « caution_virement » accepté", codePg(courrielVirement.erreur));
   } finally {
     await client.query("ROLLBACK");
   }

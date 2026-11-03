@@ -8,6 +8,7 @@ import { langueDe, lien, type Bilingue, type Langue } from "@/lib/i18n/langues";
 import { NOM_SITE } from "@/lib/i18n/metadonnees";
 import { constaterRetourEnregistrement, type EtatCaution } from "@/lib/caution";
 import { traiterCourriels } from "@/lib/courriels-envoi";
+import { lignesVirement } from "@/lib/courriels-textes";
 import { constaterRetour } from "@/lib/paiement";
 import { CONTACTS, LIBELLES_RECAP, recapitulatif } from "@/lib/recapitulatif";
 import type { EtatSolde } from "@/lib/solde";
@@ -39,6 +40,9 @@ import ValiderCaution from "./ValiderCaution";
 // départ, bloquée, levée) ; le client y valide une préautorisation refusée,
 // ou y enregistre une carte quand la caution n'a pas été constituée à
 // l'arrivée (art. 6.6), sous le texte d'accord. Même retour revérifié.
+//
+// Phase 4, lot 3 (D-31) : pour une caution par virement, le même bloc montre
+// les coordonnées du compte, du jour du courriel à la date limite incluse.
 
 // Données personnelles derrière un jeton : jamais en cache, jamais indexée,
 // et l'adresse (qui porte le jeton) n'est pas transmise aux sites liés.
@@ -94,6 +98,8 @@ const TEXTES: Bilingue<{
   cautionBloquee: (montant: string, date: string) => string;
   cautionLevee: (montant: string, date: string | null) => string;
   cautionRetenue: (montant: string, retenu: string, date: string | null) => string;
+  cautionVirement: (montant: string, date: string) => string;
+  cautionVirementRib: string;
   retourCaution: string;
   retourCarte: string;
   retourCautionEchec: string;
@@ -147,6 +153,7 @@ const TEXTES: Bilingue<{
       bloquee: "Bloquée",
       levee: "Levée",
       retenue: "Retenue",
+      virement: "Par virement",
     },
     cautionPrevue: (m, date) =>
       `Caution de ${m} : préautorisation sur la carte enregistrée le ${date}, la veille de votre départ. Aucune somme n'est débitée, sauf dégât constaté.`,
@@ -158,6 +165,9 @@ const TEXTES: Bilingue<{
       `Caution de ${m} bloquée sur votre carte : aucune somme n'est débitée. Elle sera levée au plus tard le ${date}, sauf dégât constaté.`,
     cautionLevee: (m, date) => `Caution de ${m} levée${date ? ` le ${date}` : ""} : aucune somme n'a été débitée.`,
     cautionRetenue: (m, r, date) => `Sur la caution de ${m}, ${r} ont été retenus${date ? ` le ${date}` : ""}.`,
+    cautionVirement: (m, date) => `Caution de ${m} par virement, à recevoir au plus tard le ${date}, sur le compte :`,
+    cautionVirementRib:
+      "Pour vous la restituer, nous avons besoin de vos coordonnées bancaires : envoyez-nous votre RIB en réponse au courriel des coordonnées, ou à l'adresse ci-dessous.",
     retourCaution: "Votre caution est validée : elle est bloquée sur votre carte, aucune somme n'est débitée.",
     retourCarte: "Votre carte est enregistrée pour la caution.",
     retourCautionEchec: "La validation n'a pas abouti : rien n'a été bloqué sur votre carte.",
@@ -211,6 +221,7 @@ const TEXTES: Bilingue<{
       bloquee: "Held",
       levee: "Released",
       retenue: "Retained",
+      virement: "By bank transfer",
     },
     cautionPrevue: (m, date) =>
       `Security deposit of ${m}: pre-authorisation on the saved card on ${date}, the day before you leave. Nothing is charged unless damage is found.`,
@@ -222,6 +233,9 @@ const TEXTES: Bilingue<{
       `Security deposit of ${m} held on your card: nothing is charged. It will be released by ${date} at the latest, unless damage is found.`,
     cautionLevee: (m, date) => `Security deposit of ${m} released${date ? ` on ${date}` : ""}: nothing has been charged.`,
     cautionRetenue: (m, r, date) => `Of the ${m} security deposit, ${r} was retained${date ? ` on ${date}` : ""}.`,
+    cautionVirement: (m, date) => `Security deposit of ${m} by bank transfer, to be received by ${date} at the latest, on the account:`,
+    cautionVirementRib:
+      "To return it to you, we need your bank details: send us your IBAN in reply to the account details email, or to the address below.",
     retourCaution: "Your security deposit is confirmed: it is held on your card, nothing is charged.",
     retourCarte: "Your card is saved for the security deposit.",
     retourCautionEchec: "The confirmation did not go through: nothing has been held on your card.",
@@ -350,7 +364,7 @@ function BlocCaution({
   const classe =
     caution.etat === "a_valider" || caution.etat === "carte_a_enregistrer"
       ? styles.aFaire
-      : caution.etat === "prevue"
+      : caution.etat === "prevue" || caution.etat === "virement"
         ? styles.attente
         : styles.fait;
   return (
@@ -366,6 +380,17 @@ function BlocCaution({
         <p>
           {t.cautionRetenue(m, fmtEuro(caution.retenu, langue), caution.date ? fmtDateLongue(jourParis(caution.date), langue) : null)}
         </p>
+      )}
+      {caution.etat === "virement" && (
+        <>
+          <p>{t.cautionVirement(m, fmtDateAvecJour(caution.dateLimite, langue))}</p>
+          <ul className={styles.faits}>
+            {lignesVirement(langue, caution.compte, caution.montant, caution.reference).map((l) => (
+              <li key={l}>{l}</li>
+            ))}
+          </ul>
+          <p className={styles.sous}>{t.cautionVirementRib}</p>
+        </>
       )}
       {caution.etat === "a_valider" && (
         <>

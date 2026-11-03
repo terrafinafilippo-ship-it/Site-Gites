@@ -65,6 +65,19 @@
 //     du 2 novembre 2026. Les JOURS (veille du départ, levée à 3 jours,
 //     données de carte effacées à 7 jours) ne sont pas des réglages : ils sont
 //     écrits dans le contrat (art. 6.2, 6.4, 6.5) et le texte d'accord.
+//
+//   - caution par virement (Phase 4, lot 3, migration 0011, D-31) : le compte
+//     de la SARL DE LA VOUTE qui reçoit la caution (titulaire, IBAN sans
+//     espaces, BIC facultatif), VIDE jusqu'à la saisie par les propriétaires :
+//     sans lui, le courriel n'est pas envoyé et une alerte « À TRAITER » le
+//     signale ; le courriel portant ces coordonnées part 10 jours avant la
+//     date limite du virement (choix du gérant du 1er novembre 2026). La date
+//     limite elle-même est figée sur la réservation (`delai_virement_caution_jours`).
+//
+//   - tentatives abandonnées (Phase 4, lot 3, migration 0011, D-31) : une
+//     réservation restée « en attente de paiement » est effacée ce nombre de
+//     jours après sa création. NULL : rien n'est effacé — la durée attend la
+//     réponse du juriste (docs/06-avant-premier-client.md, point 12).
 import { sql } from "drizzle-orm";
 import { check, integer, pgTable, text, time, timestamp, uuid } from "drizzle-orm/pg-core";
 
@@ -123,6 +136,13 @@ export const reglages = pgTable(
     caution_heure_blocage: time().notNull().default("18:00"),
     caution_heure_alerte: time().notNull().default("08:00"),
     caution_heure_liberation: time().notNull().default("08:00"),
+    // Caution par virement (Phase 4, lot 3, migration 0011).
+    virement_titulaire: text(),
+    virement_iban: text(),
+    virement_bic: text(),
+    virement_courriel_jours: integer().notNull().default(10),
+    // Tentatives abandonnées (Phase 4, lot 3, migration 0011), en jours ; NULL = rien n'est effacé.
+    abandon_conservation_jours: integer(),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -173,5 +193,19 @@ export const reglages = pgTable(
     ),
     // Levée avant midi : au-delà, une préautorisation Visa peut avoir expiré (D-16).
     check("reglages_caution_check", sql`${t.caution_heure_liberation} < '12:00'`),
+    // Titulaire et IBAN vont ensemble ; l'IBAN est écrit sans espaces, en
+    // majuscules (sa clé de contrôle est vérifiée par le site, lib/virement.ts).
+    check(
+      "reglages_virement_check",
+      sql`(${t.virement_titulaire} is null) = (${t.virement_iban} is null)
+          and (${t.virement_titulaire} is null or length(trim(${t.virement_titulaire})) > 0)
+          and (${t.virement_iban} is null or ${t.virement_iban} ~ '^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$')
+          and (${t.virement_bic} is null or ${t.virement_bic} ~ '^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$')
+          and ${t.virement_courriel_jours} between 0 and 60`,
+    ),
+    check(
+      "reglages_abandon_check",
+      sql`${t.abandon_conservation_jours} is null or ${t.abandon_conservation_jours} between 1 and 365`,
+    ),
   ],
 );

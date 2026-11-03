@@ -4,7 +4,9 @@
 // Module PUR, exécuté dans le navigateur (affichage, bouton actif ou non) et
 // sur le serveur (seul contrôle qui engage).
 //
-//   - Caution : carte, chèque ou virement. RIEN N'EST PRÉ-CHOISI.
+//   - Caution : carte, chèque ou virement. RIEN N'EST PRÉ-CHOISI. Le
+//     virement n'est plus proposé quand sa date limite est passée (Phase 4,
+//     lot 3 : `virementPossible` du devis).
 //   - Solde : prélèvement automatique, paiement par lien, ou tout régler
 //     maintenant (« integral », D-27 : le client paie le total à la
 //     réservation, il n'y a plus de solde). Rien n'est pré-choisi non plus ;
@@ -53,16 +55,18 @@ export interface ChoixPartiel {
 
 export type ResultatChoix = { ok: true; choix: ChoixReglement } | { ok: false; message: string; detail: string };
 
-const MESSAGES: Bilingue<{ caution: string; solde: string; prelevementSansCarte: string }> = {
+const MESSAGES: Bilingue<{ caution: string; solde: string; prelevementSansCarte: string; virementTropTard: string }> = {
   fr: {
     caution: "Choisissez le moyen de votre caution.",
     solde: "Choisissez comment régler le solde.",
     prelevementSansCarte: "Le prélèvement automatique du solde demande une caution par carte.",
+    virementTropTard: "La caution par virement n'est plus possible pour ces dates : choisissez la carte ou le chèque.",
   },
   en: {
     caution: "Choose how you will provide the security deposit.",
     solde: "Choose how you will pay the balance.",
     prelevementSansCarte: "Automatic payment of the balance requires a security deposit by card.",
+    virementTropTard: "A security deposit by bank transfer is no longer possible for these dates: choose card or cheque.",
   },
 };
 
@@ -93,11 +97,19 @@ export function prelevementPossible(moyenCaution: MoyenCaution | null): boolean 
  * Contrôle des choix reçus. `paiementIntegral` vient du devis du SERVEUR :
  * un solde choisi pour un séjour réglé en totalité est simplement ignoré.
  */
-export function validerChoix(brut: unknown, paiementIntegral: boolean, langue: Langue = "fr"): ResultatChoix {
+export function validerChoix(
+  brut: unknown,
+  paiementIntegral: boolean,
+  langue: Langue = "fr",
+  virementPossible = true,
+): ResultatChoix {
   const m = MESSAGES[langue];
   const objet = brut && typeof brut === "object" ? (brut as Record<string, unknown>) : {};
   const moyen = objet.moyenCaution;
   if (!estMoyen(moyen)) return { ok: false, message: m.caution, detail: `moyen de caution reçu : ${String(moyen)}` };
+  if (moyen === "virement" && !virementPossible) {
+    return { ok: false, message: m.virementTropTard, detail: "virement demandé après sa date limite" };
+  }
   if (paiementIntegral) return { ok: true, choix: { moyenCaution: moyen, modeSolde: null } };
 
   const mode = objet.modeSolde;
@@ -109,8 +121,12 @@ export function validerChoix(brut: unknown, paiementIntegral: boolean, langue: L
 }
 
 /** Choix complet pour l'affichage du tunnel, ou `null` tant qu'il manque quelque chose. */
-export function choixComplet(partiel: ChoixPartiel, paiementIntegral: boolean): ChoixReglement | null {
-  const r = validerChoix(partiel, paiementIntegral);
+export function choixComplet(
+  partiel: ChoixPartiel,
+  paiementIntegral: boolean,
+  virementPossible = true,
+): ChoixReglement | null {
+  const r = validerChoix(partiel, paiementIntegral, "fr", virementPossible);
   return r.ok ? r.choix : null;
 }
 

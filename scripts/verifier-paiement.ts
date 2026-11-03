@@ -126,6 +126,12 @@ class PrestataireSimule implements Prestataire {
     this.cartesOubliees.push(paymentMethodId);
   }
 
+  /** Fiches client supprimées (tentative abandonnée, lot 3 de la Phase 4). */
+  readonly clientsOublies: string[] = [];
+  async oublierClient(customerId: string): Promise<void> {
+    this.clientsOublies.push(customerId);
+  }
+
   async bloquerCaution(): Promise<EtatPaiement> {
     throw new Error("caution : hors de ce contrôle (scripts/verifier-caution.ts)");
   }
@@ -393,10 +399,19 @@ async function partieLogique(): Promise<void> {
   noter((await abandonnerTentative(retour.id)) === "ABANDONNEE", "abandon : accepté");
   noter(p.annulations === annulationsAvant + 1 && (await p.lirePaiement(piRetour)).statut === "annule", "le paiement est annulé chez le prestataire avant la suppression");
   noter((await etatPaiement(piRetour)) === undefined && (await etatResa(retour.id)) === undefined, "tentative et paiement supprimés, avec les coordonnées");
-  const paye = await tenter("laphine", samediDans(18), { moyenCaution: "cheque", modeSolde: "lien" });
+  const clientRetour = (await p.lirePaiement(piRetour)).customerId;
+  noter(
+    clientRetour !== null && p.clientsOublies.includes(clientRetour),
+    "caution par carte : la fiche client (nom, courriel) est supprimée chez le prestataire",
+    { clientRetour, oublies: p.clientsOublies },
+  );
+  const oubliesAvant = p.clientsOublies.length;
+  // Caution par carte : une fiche client existe, et ne doit pas être supprimée.
+  const paye = await tenter("laphine", samediDans(18), { moyenCaution: "carte", modeSolde: "lien" });
   const piPaye = await ouvrir(paye, p);
   p.regler(piPaye, "reussi");
   noter((await abandonnerTentative(paye.id)) === "ENGAGEE", "paiement abouti mais pas encore constaté : l'abandon est refusé");
+  noter(p.clientsOublies.length === oubliesAvant, "… et aucune fiche client n'est supprimée");
   noter((await constaterPaiement(piPaye, p)).issue === "CONFIRMEE", "… et le constat suivant confirme la réservation");
 
   console.log("--- 7. page de retour");

@@ -173,6 +173,7 @@ class PrestataireSimule implements Prestataire {
   async oublierCarte(pm: string): Promise<void> {
     this.cartesOubliees.push(pm);
   }
+  async oublierClient(): Promise<void> {}
   lireAvis(): AvisPaiement | null {
     return null;
   }

@@ -9,6 +9,7 @@
 // « À TRAITER — », et chaque alerte dit ce qu'il faut faire.
 import { aujourdhuiParis, heureParis } from "@/lib/dates-civiles";
 import { fmtDateAvecJour, fmtDateLongue, fmtEuro, fmtHeure } from "@/lib/format";
+import { ibanLisible, type CompteVirement } from "@/lib/iban";
 import type { Bilingue, Langue } from "@/lib/i18n/langues";
 import { CONTACTS, LIBELLES_RECAP, type Recapitulatif } from "@/lib/recapitulatif";
 
@@ -527,6 +528,75 @@ export function texteCarteCaution(
   );
 }
 
+/** Les lignes des coordonnées bancaires, communes au courriel et à la page « Ma réservation ». */
+export function lignesVirement(langue: Langue, c: CompteVirement, montant: number, reference: string): string[] {
+  const en = langue === "en";
+  return [
+    en ? `Account holder: ${c.titulaire}` : `Titulaire : ${c.titulaire}`,
+    en ? `IBAN: ${ibanLisible(c.iban)}` : `IBAN : ${ibanLisible(c.iban)}`,
+    ...(c.bic ? [en ? `BIC: ${c.bic}` : `BIC : ${c.bic}`] : []),
+    en ? `Amount: ${fmtEuro(montant, langue)}` : `Montant : ${fmtEuro(montant, langue)}`,
+    en ? `Reference to give: ${reference}` : `Référence à indiquer : ${reference}`,
+  ];
+}
+
+/**
+ * Caution par virement (Phase 4, lot 3, art. 6.2 (c)) : les coordonnées du
+ * compte, la date limite, et la demande du RIB pour la restitution (le
+ * client répond au courriel, D-31).
+ */
+export function texteCautionVirement(
+  langue: Langue,
+  s: Sejour,
+  d: { montant: number; dateLimite: string; restitution: string; compte: CompteVirement },
+  lienSuivi: string,
+  adresseContact: string,
+): Contenu {
+  const en = langue === "en";
+  const montant = fmtEuro(d.montant, langue);
+  const limite = fmtDateAvecJour(d.dateLimite, langue);
+  const restitution = fmtDateAvecJour(d.restitution, langue);
+  const plage = plageDates(s.arrivee, s.depart, langue);
+  return assembler(
+    en
+      ? `Your security deposit by bank transfer: account details — booking ${s.reference}`
+      : `Votre caution par virement : coordonnées bancaires — réservation ${s.reference}`,
+    [
+      { p: bonjour(langue, s.prenom) },
+      {
+        p: en
+          ? `As you chose, the security deposit for your stay at ${s.gite}, ${plage}, is paid by bank transfer: ${montant}, to be received by ${limite} at the latest.`
+          : `Comme vous l'avez choisi, la caution de votre séjour à ${s.gite}, du ${plage}, se règle par virement : ${montant}, à recevoir au plus tard le ${limite}.`,
+        gras: true,
+      },
+      { p: en ? "Account details:" : "Coordonnées du compte :" },
+      { liste: lignesVirement(langue, d.compte, d.montant, s.reference) },
+      // Contre les faux RIB envoyés au nom du bailleur (phrase validée par le
+      // gérant le 3 novembre 2026).
+      {
+        p: en
+          ? "Our bank details do not change: if in doubt, check them on your booking page."
+          : "Nos coordonnées bancaires ne changent pas : en cas de doute, vérifiez-les sur votre page de réservation.",
+      },
+      {
+        p: en
+          ? "To return it to you, we need your bank details: please reply to this email with your bank details (IBAN)."
+          : "Pour vous la restituer, nous avons besoin de vos coordonnées bancaires : merci de répondre à ce courriel en joignant votre RIB.",
+      },
+      {
+        p: en
+          ? `The deposit is returned to you by bank transfer by ${restitution} at the latest, unless damage is found at the check-out inspection (article 6.5 of your contract).`
+          : `La caution vous est restituée par virement au plus tard le ${restitution}, sauf dégât constaté à l'état des lieux de sortie (article 6.5 de votre contrat).`,
+      },
+      {
+        p: en ? "These details are also on your booking page:" : "Ces coordonnées figurent aussi sur votre page de réservation :",
+      },
+      { bouton: BOUTON_SUIVI[langue], lien: lienSuivi },
+      ...piedClient(langue, s, adresseContact),
+    ],
+  );
+}
+
 // ─── Aux propriétaires (en français) ─────────────────────────────────────────
 
 export interface FicheClient {
@@ -571,9 +641,13 @@ export function texteAlerteSignature(s: Sejour, c: FicheClient, numero: string):
   ]);
 }
 
-/** Alerte « caution » : bloquée, levée demain, carte enregistrée (art. 6.6). */
+/**
+ * Alerte « caution » : bloquée, levée demain, carte enregistrée (art. 6.6) ;
+ * par virement (lot 3) : à vérifier le lendemain de sa date limite, à rendre
+ * la veille du délai de restitution.
+ */
 export function texteAlerteCaution(
-  quoi: "bloquee" | "levee_demain" | "carte_enregistree",
+  quoi: "bloquee" | "levee_demain" | "carte_enregistree" | "virement_a_verifier" | "virement_a_rendre",
   s: Sejour,
   c: FicheClient,
   d: {
@@ -584,6 +658,8 @@ export function texteAlerteCaution(
     heureLevee: string;
     veille: string;
     heureBlocage: string;
+    /** Date limite de réception du virement (aaaa-mm-jj). */
+    dateLimiteVirement: string;
   },
 ): Contenu {
   const montant = fmtEuro(d.montant);
@@ -611,6 +687,40 @@ export function texteAlerteCaution(
       },
       { p: "Une fois levée, plus aucune somme ne peut être prélevée (article 6.5 du contrat)." },
       ...banque,
+      liste,
+    ]);
+  }
+  if (quoi === "virement_a_verifier") {
+    return assembler(`Caution par virement à vérifier — ${c.nom} — ${sejour}`, [
+      {
+        p: `La caution de ${montant} de ${c.nom} devait être reçue par virement au plus tard le ${fmtDateAvecJour(d.dateLimiteVirement, "fr")}.`,
+        gras: true,
+      },
+      {
+        p:
+          `Vérifiez sur le compte de la société que le virement est arrivé (référence ${s.reference}). ` +
+          "Le site ne voit pas le compte bancaire : ce message est un rappel.",
+      },
+      {
+        p:
+          `S'il n'est pas arrivé, appelez le client : il arrive le ${fmtDateAvecJour(s.arrivee, "fr")}. ` +
+          "À défaut de caution à son arrivée, l'article 6.6 du contrat prévoit qu'il enregistre une carte bancaire : " +
+          "en attendant l'écran de gestion, prévenez le développeur pour lui envoyer le lien.",
+      },
+      liste,
+    ]);
+  }
+  if (quoi === "virement_a_rendre") {
+    return assembler(`Caution par virement à rendre — ${c.nom} — ${sejour}`, [
+      {
+        p: `La caution de ${montant} de ${c.nom}, versée par virement, est à lui rendre au plus tard demain, ${levee} (article 6.5 du contrat).`,
+        gras: true,
+      },
+      {
+        p:
+          "Faites le virement sur le compte indiqué par le client (le RIB qu'il a envoyé en réponse au courriel des coordonnées bancaires). " +
+          "En cas de dégât constaté, rendez ce qu'il reste après la retenue, et envoyez-lui le montant retenu et ses justificatifs (article 6.4).",
+      },
       liste,
     ]);
   }
@@ -655,6 +765,7 @@ export type Probleme =
     }
   | { genre: "caution_montant_absent" }
   | { genre: "caution_a_verifier"; montant: number; depuis: string }
+  | { genre: "virement_coordonnees_absentes"; montant: number; dateLimite: string }
   | {
       genre: "contestation";
       paiementId: string | null;
@@ -678,6 +789,7 @@ const OBJETS_CLIENT: Record<string, string> = {
   caution_a_valider: "le lien pour valider sa caution",
   caution_liberee: "l'avis de caution levée",
   caution_carte: "le lien pour enregistrer une carte pour sa caution",
+  caution_virement: "les coordonnées bancaires pour sa caution par virement",
 };
 
 export function texteAlerteProbleme(p: Probleme, s: Sejour | null, c: FicheClient | null): Contenu {
@@ -761,6 +873,15 @@ export function texteAlerteProbleme(p: Probleme, s: Sejour | null, c: FicheClien
       faire =
         "Vérifier dans le tableau de bord Stripe si la caution est bloquée (chercher la référence de la réservation), " +
         "puis prévenir le développeur. Le site ne retente pas, pour ne jamais bloquer deux fois.";
+      break;
+    case "virement_coordonnees_absentes":
+      titre = `coordonnées bancaires absentes${qui ? `, ${qui}` : ""}`;
+      quoi =
+        `Le client a choisi la caution par virement (${fmtEuro(p.montant)}, à recevoir au plus tard le ${fmtDateAvecJour(p.dateLimite, "fr")}), ` +
+        "mais le compte qui doit la recevoir n'est pas saisi dans les réglages du site, ou son IBAN est faux : il n'a pas reçu les coordonnées bancaires.";
+      faire =
+        "Faire saisir le titulaire et l'IBAN du compte de la société dans les réglages (prévenir le développeur en attendant l'écran de gestion) : " +
+        "le courriel partira tout seul au passage suivant, jusqu'à la date limite. Sinon, envoyer vous-même les coordonnées au client.";
       break;
     case "contestation":
       titre = `paiement contesté${qui ? `, ${qui}` : ""}`;

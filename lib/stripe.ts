@@ -175,6 +175,11 @@ export interface Prestataire {
   rembourser(id: string, motif: string): Promise<{ id: string }>;
   /** La carte n'est plus conservée (réservation non honorée). */
   oublierCarte(paymentMethodId: string): Promise<void>;
+  /**
+   * Supprime la fiche client (nom, courriel) d'une tentative abandonnée
+   * (Phase 4, lot 3, D-31). Une fiche déjà supprimée n'est pas une erreur.
+   */
+  oublierClient(customerId: string): Promise<void>;
   /** Avis signé de Stripe, ou `null` s'il ne concerne pas un paiement. LÈVE si la signature est fausse. */
   lireAvis(corps: string, signature: string | null): AvisPaiement | null;
 }
@@ -474,6 +479,16 @@ class PrestataireStripe implements Prestataire {
     } catch (erreur) {
       // Déjà détachée (essai précédent dont la réponse s'est perdue) : le but est atteint.
       if (erreur instanceof Stripe.errors.StripeInvalidRequestError && /not attached/i.test(erreur.message)) return;
+      throw erreur;
+    }
+  }
+
+  async oublierClient(customerId: string): Promise<void> {
+    try {
+      await this.stripe().customers.del(customerId);
+    } catch (erreur) {
+      // Déjà supprimée : le but est atteint.
+      if (erreur instanceof Stripe.errors.StripeInvalidRequestError && erreur.code === "resource_missing") return;
       throw erreur;
     }
   }

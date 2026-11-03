@@ -18,6 +18,9 @@
 //   - la carte est supprimée chez Stripe dès la levée ou la retenue, et au
 //     plus tard 7 jours après le départ (art. 6.5) ; tout de suite pour une
 //     réservation annulée.
+// Un séjour SANS préautorisation (chèque, virement, sans caution) passe
+// « terminé » au même moment que la levée : mardi 30 mars à 8 h (Phase 4,
+// lot 3, choix du gérant du 3 novembre 2026).
 // La RETENUE (encaissement d'une partie) arrive avec l'écran de gestion
 // (Phase 5) ; une retenue faite d'ici là dans le tableau de bord Stripe est
 // constatée (avis de Stripe) et enregistrée.
@@ -56,6 +59,7 @@ import {
   inscrireProbleme,
 } from "@/lib/courriels";
 import { ajouterJours, aujourdhuiParis, heureParis } from "@/lib/dates-civiles";
+import type { CompteVirement } from "@/lib/iban";
 import { chargerReservationAvecGite, type Executeur, type ReservationAvecGite } from "@/lib/reservations";
 import { messageErreur } from "@/lib/route-helpers";
 import { prestataire, type EtatPaiement, type Prestataire } from "@/lib/stripe";
@@ -97,7 +101,7 @@ export const jourAlerte = (depart: string) => ajouterJours(depart, LEVEE_JOURS -
 export const jourLevee = (depart: string) => ajouterJours(depart, LEVEE_JOURS);
 
 /** Le moment `jour` à `heure` (hh:mm, Paris) est-il atteint ? */
-function atteint(aujourdhui: string, heure: string, jour: string, heureCible: string): boolean {
+export function atteint(aujourdhui: string, heure: string, jour: string, heureCible: string): boolean {
   return aujourdhui > jour || (aujourdhui === jour && heure >= heureCible);
 }
 
@@ -123,7 +127,13 @@ export type EtatCaution =
   /** Fonds bloqués, levés au plus tard le `levee`. */
   | { etat: "bloquee"; montant: number; levee: string }
   | { etat: "levee"; montant: number; date: Date | null }
-  | { etat: "retenue"; montant: number; retenu: number; date: Date | null };
+  | { etat: "retenue"; montant: number; retenu: number; date: Date | null }
+  /**
+   * Caution par virement (Phase 4, lot 3, lib/virement.ts) : les coordonnées
+   * du compte, montrées du jour du courriel à la date limite incluse.
+   */
+  | { etat: "virement"; montant: number; dateLimite: string; reference: string; compte: CompteVirement };
+
 
 /** L'état de la caution par carte d'une réservation, ou `null` s'il n'y en a pas (ou plus rien à en dire). */
 export async function lireEtatCaution(
@@ -370,6 +380,8 @@ export interface BilanCautions {
   refusees: number;
   levees: number;
   cartesEffacees: number;
+  /** Séjours sans préautorisation passés « terminés » (lot 3). */
+  terminees: number;
   erreurs: number;
 }
 
@@ -381,7 +393,7 @@ export interface BilanCautions {
  */
 export async function traiterCautions(maintenant: Date = new Date(), p: Prestataire = prestataire()): Promise<BilanCautions> {
   const db = getDb();
-  const bilan: BilanCautions = { bloquees: 0, refusees: 0, levees: 0, cartesEffacees: 0, erreurs: 0 };
+  const bilan: BilanCautions = { bloquees: 0, refusees: 0, levees: 0, cartesEffacees: 0, terminees: 0, erreurs: 0 };
   const aujourdhui = aujourdhuiParis(maintenant);
   const heure = heureParis(maintenant);
   const r = await lireReglagesCaution(db);
@@ -451,6 +463,29 @@ export async function traiterCautions(maintenant: Date = new Date(), p: Prestata
         .where(and(eq(reservations.id, id), eq(reservations.stripe_payment_method_id, pm!)));
       bilan.cartesEffacees += 1;
     });
+  }
+
+  // 5. Séjours sans préautorisation ouverte (chèque, virement, sans caution) :
+  //    « terminés » au jour et à l'heure de la levée. Une préautorisation
+  //    ouverte est levée ci-dessus, qui termine elle-même le séjour.
+  const dernierDepart = ajouterJours(aujourdhui, heure >= r.liberation ? -LEVEE_JOURS : -LEVEE_JOURS - 1);
+  try {
+    const finis = await db
+      .update(reservations)
+      .set({ statut: "terminee" })
+      .where(
+        and(
+          eq(reservations.statut, "confirmee"),
+          sql`${reservations.date_depart} <= ${dernierDepart}::date`,
+          sql`not exists (select 1 from ${paiements} where ${paiements.reservation_id} = ${reservations.id}
+                and ${paiements.type} = 'caution' and ${paiements.statut} in ('bloque', 'echoue', 'en_attente'))`,
+        ),
+      )
+      .returning({ id: reservations.id });
+    bilan.terminees = finis.length;
+  } catch (erreur) {
+    bilan.erreurs += 1;
+    console.error(`[caution] fin des séjours : ${messageErreur(erreur)}`);
   }
   return bilan;
 }

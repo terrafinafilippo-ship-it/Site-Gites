@@ -17,7 +17,7 @@ import { randomInt } from "node:crypto";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { gites, paiements, reglages, reservations } from "@/db/schema";
+import { audit_logs, gites, paiements, reglages, reservations } from "@/db/schema";
 import { centimesDepuisNumeric, numericDepuisCentimes } from "@/lib/centimes";
 import { occupantsMajeurs, type Coordonnees } from "@/lib/coordonnees";
 import { GITE_IDS, type GiteId } from "@/lib/data/gites";
@@ -44,8 +44,9 @@ import {
   validerChoix,
   type ChoixReglement,
 } from "@/lib/reglement";
-import { isUniqueViolation } from "@/lib/route-helpers";
+import { isUniqueViolation, messageErreur } from "@/lib/route-helpers";
 import type { Executeur } from "@/lib/reservations";
+import { prestataire, type Prestataire } from "@/lib/stripe";
 import { chargerTarification } from "@/lib/tarifs";
 
 /** Sans période tarifaire, le calendrier s'étend tout de même sur un an. */
@@ -261,7 +262,7 @@ export async function enregistrerTentative(
   const { locataire, colocataire } = coordonnees;
   const r = donnees.reglages;
 
-  const reglement = validerChoix(reglementBrut, resultat.devis.paiementIntegral, langue);
+  const reglement = validerChoix(reglementBrut, resultat.devis.paiementIntegral, langue, resultat.devis.virementPossible);
   if (!reglement.ok) {
     console.warn(`[tunnel] règlement refusé (${slug}) : ${reglement.detail}`);
     return { ok: false, raison: "REGLEMENT", message: reglement.message };
@@ -383,24 +384,49 @@ export async function enregistrerTentative(
 export type ResultatAbandon = "ABANDONNEE" | "ABSENTE" | "ENGAGEE";
 
 /**
- * Abandon d'une tentative (le client revient en arrière depuis le paiement) :
- * son paiement encore ouvert est ANNULÉ chez le prestataire, puis le blocage
- * est levé et la réservation SUPPRIMÉE, avec les coordonnées du client — rien
- * n'a été payé ni émis, et garder ces données n'aurait aucune raison. Une
- * réservation engagée (payée ou en cours de paiement, contrat émis, autre
- * statut) est refusée : elle ne se supprime jamais.
+ * Abandon d'une tentative : son paiement encore ouvert est ANNULÉ chez le
+ * prestataire, puis le blocage est levé et la réservation SUPPRIMÉE, avec les
+ * coordonnées du client — rien n'a été payé ni émis, et garder ces données
+ * n'aurait aucune raison. Une réservation engagée (payée ou en cours de
+ * paiement, contrat émis, autre statut) est refusée : elle ne se supprime
+ * jamais.
+ *
+ * Deux appelants : le client qui revient en arrière depuis le paiement, et
+ * l'effacement automatique des tentatives abandonnées (lib/abandons.ts, qui
+ * passe `trace` : une ligne `audit_logs`, référence et dates seulement, est
+ * écrite dans la même transaction que l'effacement).
+ *
+ * Phase 4, lot 3 (D-31) : la fiche client créée chez le prestataire pour une
+ * caution par carte (nom, courriel) est supprimée elle aussi, APRÈS
+ * l'effacement — jamais avant : un paiement constaté entre-temps rendrait la
+ * réservation engagée, et sa carte est rattachée à cette fiche. Si cette
+ * suppression échoue, l'abandon reste fait : l'échec est journalisé (et,
+ * avec `trace`, l'identifiant de la fiche est dans la ligne `audit_logs`).
  */
-export async function abandonnerTentative(reservationId: string): Promise<ResultatAbandon> {
+export async function abandonnerTentative(
+  reservationId: string,
+  options: { p?: Prestataire; trace?: { acteur: string; motif: string } } = {},
+): Promise<ResultatAbandon> {
+  const p = options.p ?? prestataire();
   // Hors transaction : un appel au prestataire ne doit pas tenir un verrou de base.
-  if (!(await annulerPaiementsOuverts(getDb(), reservationId))) return "ENGAGEE";
-  return getDb().transaction(async (tx) => {
+  if (!(await annulerPaiementsOuverts(getDb(), reservationId, p))) return "ENGAGEE";
+  const issue = await getDb().transaction(async (tx) => {
     const [resa] = await tx
-      .select({ statut: reservations.statut, paye: reservations.date_paiement_acompte, contrat: reservations.numero_contrat })
+      .select({
+        statut: reservations.statut,
+        paye: reservations.date_paiement_acompte,
+        contrat: reservations.numero_contrat,
+        reference: reservations.reference,
+        creee: reservations.created_at,
+        client: reservations.stripe_customer_id,
+      })
       .from(reservations)
       .where(eq(reservations.id, reservationId))
       .for("update");
-    if (!resa) return "ABSENTE";
-    if (resa.statut !== "en_attente_paiement" || resa.paye !== null || resa.contrat !== null) return "ENGAGEE";
+    if (!resa) return { resultat: "ABSENTE" as const, client: null };
+    if (resa.statut !== "en_attente_paiement" || resa.paye !== null || resa.contrat !== null) {
+      return { resultat: "ENGAGEE" as const, client: null };
+    }
 
     // Un paiement constaté entre l'annulation et ce verrou : la réservation est engagée.
     const payes = await tx
@@ -412,7 +438,7 @@ export async function abandonnerTentative(reservationId: string): Promise<Result
           inArray(paiements.statut, ["reussi", "a_rembourser", "rembourse"]),
         ),
       );
-    if (payes.length > 0) return "ENGAGEE";
+    if (payes.length > 0) return { resultat: "ENGAGEE" as const, client: null };
     await tx.delete(paiements).where(eq(paiements.reservation_id, reservationId));
     await leverBlocage(tx, reservationId);
     await tx
@@ -424,8 +450,31 @@ export async function abandonnerTentative(reservationId: string): Promise<Result
           isNull(reservations.date_paiement_acompte),
         ),
       );
-    return "ABANDONNEE";
+    if (options.trace) {
+      await tx.insert(audit_logs).values({
+        table_cible: "reservations",
+        ligne_id: reservationId,
+        action: "effacement_tentative",
+        acteur: options.trace.acteur,
+        details: {
+          reference: resa.reference,
+          creee_le: resa.creee.toISOString(),
+          motif: options.trace.motif,
+          client_stripe: resa.client,
+        },
+      });
+    }
+    return { resultat: "ABANDONNEE" as const, client: resa.client };
   });
+
+  if (issue.client) {
+    try {
+      await p.oublierClient(issue.client);
+    } catch (erreur) {
+      console.error(`[tunnel] fiche client ${issue.client} non supprimée chez le prestataire : ${messageErreur(erreur)}`);
+    }
+  }
+  return issue.resultat;
 }
 
 /** Contrôle de cohérence pour les tests : nuits bloquées par une réservation. */

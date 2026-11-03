@@ -208,6 +208,7 @@ const TEXTES: Bilingue<{
   soldeIntegral: string;
   soldeIntegralDetail: (total: string) => string;
   prelevementAvecCarte: string;
+  virementTropTard: (date: string) => string;
   choixRequis: (integral: boolean) => string;
   accordTitre: string;
   reponseBanque: (message: string) => string;
@@ -376,6 +377,7 @@ const TEXTES: Bilingue<{
     soldeIntegral: "Tout régler maintenant",
     soldeIntegralDetail: (total) => `Vous payez ${total} aujourd'hui, il n'y a plus de solde.`,
     prelevementAvecCarte: "Proposé avec une caution par carte.",
+    virementTropTard: (date) => `Plus possible pour ces dates : le virement devait être reçu au plus tard le ${date}.`,
     choixRequis: (integral) =>
       integral
         ? "Choisissez le moyen de votre caution pour continuer."
@@ -553,6 +555,7 @@ const TEXTES: Bilingue<{
     soldeIntegral: "Pay everything now",
     soldeIntegralDetail: (total) => `You pay ${total} today; there is no balance left.`,
     prelevementAvecCarte: "Available with a security deposit by card.",
+    virementTropTard: (date) => `No longer possible for these dates: the transfer had to be received by ${date}.`,
     choixRequis: (integral) =>
       integral
         ? "Choose how you will provide the security deposit to continue."
@@ -870,7 +873,9 @@ export default function ReserverFunnel({
   // Le choix du solde dépend du devis AVANT ce choix : la date limite du solde existe-t-elle ?
   const dateSoldeAuChoix = devisClient && !devisClient.paiementIntegral ? devisClient.dateLimiteSolde : null;
   const tauxAcompte = fmtTaux(devis?.tauxAcompte ?? reglages.tauxAcompte, langue);
-  const choixFait = devisBrut ? choixComplet(reglement, integralImpose) : null;
+  // Virement : plus proposé quand sa date limite est passée (Phase 4, lot 3).
+  const virementPossible = devisClient?.virementPossible !== false;
+  const choixFait = devisBrut ? choixComplet(reglement, integralImpose, virementPossible) : null;
   const choisirCaution = (moyenCaution: MoyenCaution) =>
     setReglement((r) => ({
       moyenCaution,
@@ -964,7 +969,7 @@ export default function ReserverFunnel({
 
   async function bloquer() {
     if (!devisClient || !arrivee || !depart) return;
-    if (!choixComplet(reglement, devisClient.paiementIntegral)) return;
+    if (!choixComplet(reglement, devisClient.paiementIntegral, devisClient.virementPossible)) return;
     setEnvoi(true);
     setMessage(null);
     try {
@@ -1449,7 +1454,9 @@ export default function ReserverFunnel({
                     <CarteChoix
                       nom={t.cautionVirement}
                       detail={t.cautionVirementDetail(fmtPrix(devis.caution, langue), date(devis.dateLimiteVirementCaution))}
-                      choisie={reglement.moyenCaution === "virement"}
+                      choisie={virementPossible && reglement.moyenCaution === "virement"}
+                      inactive={!virementPossible}
+                      note={virementPossible ? undefined : t.virementTropTard(date(devis.dateLimiteVirementCaution))}
                       onChoisir={() => choisirCaution("virement")}
                     />
                   </div>

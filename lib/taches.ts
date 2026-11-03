@@ -12,18 +12,23 @@
 // sans rien faire.
 //
 // Lot 1 : le solde (lib/solde.ts). Lot 2 : la caution par carte
-// (lib/caution.ts). Lot 3 : les virements, l'effacement des réservations
-// abandonnées.
+// (lib/caution.ts). Lot 3 : la caution par virement (lib/virement.ts, avant
+// la caution : l'alerte « à rendre » précède la fin du séjour), l'effacement
+// des tentatives abandonnées (lib/abandons.ts).
 import { sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
+import { effacerAbandons, type BilanAbandons } from "@/lib/abandons";
 import { traiterCautions, type BilanCautions } from "@/lib/caution";
 import { traiterSoldes, type BilanSoldes } from "@/lib/solde";
 import { prestataire, type Prestataire } from "@/lib/stripe";
+import { traiterVirements, type BilanVirements } from "@/lib/virement";
 
 export interface BilanTaches {
   soldes: BilanSoldes;
+  virements: BilanVirements;
   cautions: BilanCautions;
+  abandons: BilanAbandons;
 }
 
 /** Un passage des tâches, ou `null` si un autre passage est déjà en cours. */
@@ -36,6 +41,11 @@ export async function executerTaches(
     if (!verrou.rows[0]?.pris) return null;
     // Le travail se fait sur d'autres connexions ; le verrou tient tant que
     // cette transaction reste ouverte.
-    return { soldes: await traiterSoldes(maintenant, p), cautions: await traiterCautions(maintenant, p) };
+    return {
+      soldes: await traiterSoldes(maintenant, p),
+      virements: await traiterVirements(maintenant),
+      cautions: await traiterCautions(maintenant, p),
+      abandons: await effacerAbandons(maintenant, p),
+    };
   });
 }

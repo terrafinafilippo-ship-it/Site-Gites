@@ -13,6 +13,9 @@
 //   - Phase 4, lot 2 (D-16) : caution bloquée, à valider, levée (client),
 //     alerte « caution » et alertes « À TRAITER » (lib/caution.ts) ; lien
 //     pour enregistrer une carte (art. 6.6) ; paiement contesté (avis de Stripe).
+//   - Phase 4, lot 3 (D-31) : caution par virement (lib/virement.ts) — les
+//     coordonnées bancaires au client, les alertes « virement à vérifier » et
+//     « virement à rendre », l'alerte « coordonnées bancaires absentes ».
 // L'ENVOI est ailleurs (lib/courriels-envoi.ts), après la réponse : ce module
 // ne fait qu'écrire, sans réseau, et reste léger (lib/paiement.ts l'importe).
 //
@@ -44,7 +47,10 @@ export type GenreProbleme =
   | "caution_refusee"
   | "caution_montant_absent"
   | "caution_a_verifier"
-  | "contestation";
+  | "contestation"
+  // Phase 4, lot 3 : le compte qui reçoit la caution par virement n'est pas
+  // saisi (ou son IBAN est faux) — le client n'a pas reçu les coordonnées.
+  | "virement_coordonnees_absentes";
 
 async function inscrire(
   executeur: Executeur,
@@ -210,7 +216,7 @@ export async function inscrireRelanceImpaye(
 async function inscrireCautionClient(
   executeur: Executeur,
   reservationId: string,
-  objet: "caution_bloquee" | "caution_a_valider" | "caution_liberee" | "caution_carte",
+  objet: "caution_bloquee" | "caution_a_valider" | "caution_liberee" | "caution_carte" | "caution_virement",
   donnees: Record<string, unknown> = {},
 ): Promise<void> {
   const c = await client(executeur, reservationId);
@@ -225,10 +231,15 @@ async function inscrireCautionClient(
   });
 }
 
-/** Ce que dit l'alerte « caution » aux propriétaires. */
-export type QuoiCaution = "bloquee" | "levee_demain" | "carte_enregistree";
+/**
+ * Ce que dit l'alerte « caution » aux propriétaires. Par virement (Phase 4,
+ * lot 3) : vérifier qu'il est arrivé, le lendemain de sa date limite ; le
+ * rendre, la veille du délai de restitution.
+ */
+export const QUOI_CAUTION = ["bloquee", "levee_demain", "carte_enregistree", "virement_a_verifier", "virement_a_rendre"] as const;
+export type QuoiCaution = (typeof QUOI_CAUTION)[number];
 
-/** Alerte « caution » (choix du gérant du 2 novembre 2026), une de chaque par réservation. */
+/** Alerte « caution » (choix du gérant des 2 et 3 novembre 2026), une de chaque par réservation. */
 export async function inscrireAlerteCaution(executeur: Executeur, reservationId: string, quoi: QuoiCaution): Promise<void> {
   await alerter(executeur, "caution", "alerte_caution", `${quoi}:${reservationId}`, reservationId, { quoi });
 }
@@ -261,6 +272,11 @@ export async function inscrireCautionLiberee(executeur: Executeur, reservationId
 /** Caution non constituée à l'arrivée (art. 6.6) : le lien pour enregistrer une carte. */
 export async function inscrireCarteCaution(executeur: Executeur, reservationId: string): Promise<void> {
   await inscrireCautionClient(executeur, reservationId, "caution_carte");
+}
+
+/** Caution par virement : les coordonnées bancaires et la demande du RIB du client (D-31). */
+export async function inscrireCautionVirement(executeur: Executeur, reservationId: string): Promise<void> {
+  await inscrireCautionClient(executeur, reservationId, "caution_virement");
 }
 
 /**

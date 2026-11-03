@@ -627,6 +627,19 @@ const SEMAINE = { arrivee: '2027-01-09', depart: '2027-01-16' };
     'caution par virement reçue au plus tard le 6 janvier (3 jours avant le 9)',
     r.ok ? r.devis.dateLimiteVirementCaution : r.refus,
   );
+  // Phase 4, lot 3 : le virement n'est plus proposé une fois sa date limite passée.
+  const leSix = devisSejour(contexte(ARMU, { aujourdhui: '2027-01-06' }), { ...SEMAINE, adultes: 2, enfants: 0, bebes: 0 });
+  const leSept = devisSejour(contexte(ARMU, { aujourdhui: '2027-01-07' }), { ...SEMAINE, adultes: 2, enfants: 0, bebes: 0 });
+  noter(
+    r.ok && r.devis.virementPossible && leSix.ok && leSix.devis.virementPossible,
+    "virement proposé jusqu'au jour de sa date limite (réservé le 6 janvier pour le 9)",
+    leSix.ok ? leSix.devis.virementPossible : leSix.refus,
+  );
+  noter(
+    leSept.ok && !leSept.devis.virementPossible,
+    'virement plus proposé le lendemain de sa date limite (réservé le 7 janvier pour le 9)',
+    leSept.ok ? leSept.devis.virementPossible : leSept.refus,
+  );
 }
 
 // ─── 9. Coordonnées du client (lib/coordonnees.ts) ────────────────────────────
@@ -750,6 +763,20 @@ console.log("--- règlement : caution, solde, texte d'accord");
     toutReglerImpose,
   );
   noter(!validerChoix({ moyenCaution: 'carte', modeSolde: 'tout' }, false).ok, 'mode de règlement inconnu : refusé');
+  const virementTard = validerChoix({ moyenCaution: 'virement', modeSolde: null }, true, 'fr', false);
+  noter(
+    !virementTard.ok && virementTard.message.startsWith("La caution par virement n'est plus possible"),
+    'virement après sa date limite : refusé par le serveur, avec la raison',
+    virementTard,
+  );
+  const virementTardEn = validerChoix({ moyenCaution: 'virement', modeSolde: null }, true, 'en', false);
+  noter(!virementTardEn.ok && virementTardEn.message.startsWith('A security deposit by bank transfer'), '… en anglais', virementTardEn);
+  noter(
+    validerChoix({ moyenCaution: 'cheque', modeSolde: null }, true, 'fr', false).ok &&
+      choixComplet({ moyenCaution: 'virement', modeSolde: null }, true, false) === null &&
+      choixComplet({ moyenCaution: 'virement', modeSolde: null }, true, true) !== null,
+    'virement trop tard : le chèque reste possible, le bouton du tunnel reste inactif',
+  );
   noter(
     choixComplet({ moyenCaution: 'carte', modeSolde: null }, true) !== null &&
       choixComplet({ moyenCaution: 'carte', modeSolde: null }, false) === null,

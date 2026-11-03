@@ -51,6 +51,15 @@ async function main(): Promise<void> {
     await pool.query("update alertes set destinataires = array['proprietaires@example.invalid']");
     console.log("Alertes de la base de test : proprietaires@example.invalid (jamais envoyée).");
 
+    // Caution par virement (Phase 4, lot 3) : un compte d'EXEMPLE, l'IBAN des
+    // documentations bancaires, jamais celui de la société. La base réelle,
+    // elle, reste vide jusqu'à la saisie par les propriétaires.
+    await pool.query(
+      `update reglages set virement_titulaire = 'COMPTE D''ESSAI', virement_iban = 'FR7630006000011234567890189',
+              virement_bic = null where id = 1`,
+    );
+    console.log("Compte de la caution par virement : compte d'essai.");
+
     // Les PDF de test sont écrits sous STORAGE_PATH ; on repart d'un stockage vide
     // pour que les contrôles de non-régression ne voient que les fichiers du jour.
     const stockage = process.env.STORAGE_PATH ?? "./.data/documents-test";

@@ -45,6 +45,8 @@ etape "Courriels (envoi simulé, contrat, alertes, remboursement)" env DB_CIBLE=
 etape "Page « Ma réservation » (lien secret, formulaire, limite)" env DB_CIBLE=test npx tsx scripts/verifier-suivi.ts
 etape "Solde et factures automatiques (prélèvement, lien, impayé)" env DB_CIBLE=test npx tsx scripts/verifier-solde.ts --http
 etape "Caution par carte (préautorisation, levée, trois cartes Stripe)" env DB_CIBLE=test npx tsx scripts/verifier-caution.ts --stripe --http
+etape "Caution par virement et fin des séjours (coordonnées, alertes)" env DB_CIBLE=test npx tsx scripts/verifier-virement.ts
+etape "Effacement des tentatives abandonnées" env DB_CIBLE=test npx tsx scripts/verifier-abandons.ts
 # Le paiement par le serveur crée de vrais contrats et de vraies factures (numéros légaux de la base
 # de test) : on repart de zéro pour que la numérotation contrôlée plus bas soit
 # celle des deux parcours seulement.

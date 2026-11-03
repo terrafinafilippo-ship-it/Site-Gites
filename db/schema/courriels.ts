@@ -44,6 +44,9 @@ export const OBJETS_COURRIEL = [
   "caution_a_valider",
   "caution_liberee",
   "caution_carte",
+  // Phase 4, lot 3 (migration 0011, D-31) : caution par virement — les
+  // coordonnées bancaires et la demande du RIB du client.
+  "caution_virement",
   // Aux propriétaires, en français.
   "alerte_reservation",
   "alerte_signature",
@@ -90,7 +93,7 @@ export const courriels = pgTable(
       "courriels_objet_check",
       sql`${t.objet} in ('confirmation', 'contrat', 'remboursement', 'lien_suivi', 'facture', 'solde_preavis',
           'solde_lien', 'solde_rappel', 'solde_impaye', 'caution_bloquee', 'caution_a_valider', 'caution_liberee',
-          'caution_carte', 'alerte_reservation', 'alerte_signature', 'alerte_probleme', 'alerte_caution')`,
+          'caution_carte', 'caution_virement', 'alerte_reservation', 'alerte_signature', 'alerte_probleme', 'alerte_caution')`,
     ),
     check("courriels_statut_check", sql`${t.statut} in ('a_envoyer', 'envoye', 'echec')`),
     check("courriels_langue_check", sql`${t.langue} in ('fr', 'en')`),
