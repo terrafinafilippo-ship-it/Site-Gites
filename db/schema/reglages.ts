@@ -71,7 +71,7 @@
 //     espaces, BIC facultatif), VIDE jusqu'à la saisie par les propriétaires :
 //     sans lui, le courriel n'est pas envoyé et une alerte « À TRAITER » le
 //     signale ; le courriel portant ces coordonnées part 10 jours avant la
-//     date limite du virement (choix du gérant du 1er novembre 2026). La date
+//     date limite du virement (choix du gérant du 2 novembre 2026). La date
 //     limite elle-même est figée sur la réservation (`delai_virement_caution_jours`).
 //
 //   - tentatives abandonnées (Phase 4, lot 3, migration 0011, D-31) : une

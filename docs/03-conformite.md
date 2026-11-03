@@ -209,7 +209,20 @@ SNCF) ; sans elle, le contrat imprime le nom seul (`lib/coordonnees.ts`). Ces
 données entrent en base à l'arrivée sur l'écran de paiement : une tentative
 abandonnée par un retour en arrière est **supprimée sur-le-champ** ; une
 tentative laissée à l'abandon (page fermée) attend une durée de conservation
-et un effacement automatique — point 12 de `docs/06-avant-premier-client.md`.
+— point 12 de `docs/06-avant-premier-client.md`. **L'effacement automatique
+est construit depuis le 2 novembre 2026** (Phase 4, lot 3, D-31,
+`lib/abandons.ts`) : passé `reglages.abandon_conservation_jours` jours, la
+tentative, ses paiements non aboutis, ses nuits et la fiche client chez Stripe
+sont effacés ; une ligne `audit_logs` n'en garde que la référence et les dates,
+ni nom ni courriel. **La durée est vide : rien n'est effacé** tant que le
+juriste ne l'a pas fixée. Contrôle : `verify:abandons`.
+
+**Caution par virement (Phase 4, lot 3, D-31).** Le RIB du client, demandé
+pour lui rendre sa caution, arrive en réponse au courriel des coordonnées
+bancaires : **le site ne le stocke pas**. Il reste dans la boîte contact@,
+dont la durée de conservation relève de la même question (point 12) ; il
+n'est pas cité à l'article 14.2 du contrat, à signaler au juriste avec
+l'article 6.
 
 **Page « Ma réservation » (Phase 3, lot 4, D-25).** Les données d'un séjour
 (adresse du gîte, dates, montants, contrat signé) sont montrées à qui détient
@@ -259,6 +272,10 @@ préautorisation la veille du départ, levée automatique au troisième jour,
 données de carte supprimées dès la levée et au plus tard 7 jours après le
 départ, montant figé à la réservation (celui du contrat), lien de
 l'article 6.6. Contrôlé avec Stripe en mode test (`verify:caution --stripe`).
+Depuis le lot 3 (D-31), le **virement** (coordonnées envoyées et affichées,
+alertes « à vérifier » et « à rendre ») et le **chèque** (séjour terminé au
+troisième jour) suivent aussi les délais de l'article 6 ; contrôle :
+`verify:virement`.
 **L'écart ne se ferme pas pour autant** : la **retenue** (encaissement
 partiel, art. 6.4) arrive avec l'écran de gestion (Phase 5), et les autres
 conditions du point 3 de `docs/06-avant-premier-client.md` (relecture du
@@ -274,7 +291,8 @@ Emplacements qui décrivent le mécanisme, à modifier **ensemble** s'il change 
 | `app/gites/[slug]/page.tsx` | Page publique |
 | `app/reserver/ReserverFunnel.tsx` (4 endroits) | Page publique |
 | `app/[lang]/suivi/[jeton]/page.tsx` (ligne « Caution » des faits, `lib/recapitulatif.ts` ; bloc « Votre caution » depuis D-30) | Page publique |
-| `lib/courriels-textes.ts` — courriels de la caution (bloquée, à valider, levée, carte à enregistrer) | Courriels au client |
+| `lib/courriels-textes.ts` — courriels de la caution (bloquée, à valider, levée, carte à enregistrer, coordonnées du virement depuis D-31) | Courriels au client |
+| `app/[lang]/suivi/[jeton]/page.tsx` — coordonnées du virement dans « Votre caution » (D-31) ; `app/[lang]/reserver/ReserverFunnel.tsx` — virement grisé après sa date limite | Pages publiques |
 | `lib/data/legal.ts` — CGV et politique cookies | Pages publiques `/legal/cgv` et `/legal/cookies` |
 | `docs/contrat-template.md`, `docs/facture-template.md` | Documents de rédaction |
 

@@ -10,7 +10,7 @@
 //
 // La durée est un réglage (`reglages.abandon_conservation_jours`), compté en
 // jours depuis la création de la tentative. VIDE : RIEN N'EST EFFACÉ — elle
-// attend la réponse du juriste (choix du gérant du 1er novembre 2026).
+// attend la réponse du juriste (choix du gérant du 2 novembre 2026).
 //
 // L'effacement est celui du retour en arrière (lib/tunnel.ts,
 // abandonnerTentative) : paiement ouvert annulé chez Stripe, paiements non

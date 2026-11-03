@@ -707,6 +707,11 @@ la collectivité, sur un argent qui n'est pas le nôtre.
 œuvre : choix enregistré au lot 3 de la Phase 3, circuits en Phase 4, suivi
 manuel au back-office en Phase 5.
 
+> **Virement et chèque construits le 3 novembre 2026 (D-31)** : compte de la
+> société en réglages, courriel des coordonnées, alertes « à vérifier » et « à
+> rendre » ; le RIB du client est demandé en réponse au courriel, jamais
+> stocké.
+
 **Décision.** À la réservation, le client choisit le moyen de sa caution :
 
 | Moyen | Fonctionnement |
@@ -816,7 +821,8 @@ utiliseront aussi ; une seule table répond à « cette nuit est-elle prise ? »
   de paiement devra donc vérifier que les nuits sont **toujours au nom de sa
   réservation**, pas seulement que le paiement a abouti.
 - Les tentatives abandonnées sans retour en arrière (page fermée) gardent leurs
-  coordonnées : durée de conservation à fixer, effacement en Phase 4
+  coordonnées : durée de conservation à fixer, effacement construit en
+  Phase 4 (D-31), inactif tant que la durée est vide
   (`docs/06-avant-premier-client.md`, point 12).
 - La limite anti-abus (5 blocages par adresse en 10 minutes) lit l'adresse
   écrite par le proxy. Si le proxy cessait de l'écrire, tous les clients
@@ -1366,6 +1372,86 @@ par la banque elle-même : le site le constate.
 **Si on revient dessus.** Changer une heure : un réglage. Changer un nombre
 de jours : le contrat (art. 6.2, 6.4, 6.5), le texte d'accord et
 `lib/caution.ts`, ensemble (D-16, « Si on revient dessus »).
+
+---
+
+## D-31 · Caution par virement, fin des séjours sans carte, effacement des tentatives
+
+**Date :** 2 novembre 2026 (cadrage du lot 3 de la Phase 4), textes validés
+le 3 novembre. Met en œuvre D-19 pour le virement et le chèque, et D-21 pour
+les tentatives abandonnées. Choix du gérant, sur l'exemple de Camille (L'Armu, du samedi 20 au samedi 27 mars 2027,
+caution de 500 € par virement, date limite le mercredi 17 mars) :
+- le virement arrive sur le **compte de la SARL DE LA VOUTE**, que le gérant
+  saisit lui-même dans les réglages (1A) ;
+- pour la restitution, **le client répond au courriel avec son RIB** : le site
+  ne stocke aucune coordonnée bancaire du client (2A) ;
+- le tunnel **ne propose plus le virement** une fois sa date limite passée (3A) ;
+- les coordonnées du compte sont envoyées **par courriel le dimanche 7 mars**
+  (10 jours avant la date limite, réglage) et affichées sur **« Ma
+  réservation » du 7 au 17 mars** (4C) ;
+- alerte **« vérifiez le virement » le jeudi 18 mars à 8 h** : un rappel, le
+  site ne voit pas le compte bancaire (5C) ;
+- alerte **« rendez la caution » le lundi 29 mars à 8 h** (6A) ;
+- un séjour sans caution par carte (chèque, virement) passe **« terminé » le
+  mardi 30 mars à 8 h** (7A) ;
+- tentatives abandonnées : la **fiche client Stripe est supprimée** aussi
+  (8a A), une trace `audit_logs` ne garde que la référence et les dates
+  (8b A), la durée est un nombre de jours en réglage, **vide = rien n'est
+  effacé** (8c A) ;
+- une **mise en garde contre les faux RIB** dans le courriel, validée le
+  3 novembre 2026 : « Nos coordonnées bancaires ne changent pas : en cas de
+  doute, vérifiez-les sur votre page de réservation. »
+
+**Décision.**
+- **Le compte** : `reglages.virement_titulaire`, `virement_iban`, `virement_bic`
+  (migration 0011). La base impose le titulaire et l'IBAN ensemble et leur
+  forme ; le site refuse en plus un IBAN dont la clé est fausse (ISO 13616,
+  `lib/iban.ts`). Sans compte valable : **aucun courriel, une alerte « À
+  TRAITER »** ; le courriel part au premier passage après la saisie, jusqu'à la
+  date limite. Il est revérifié à l'envoi (compte, moyen, montant, date).
+- **Le calendrier** (`lib/virement.ts`, appelé par le réveil avant la caution
+  par carte) : courriel `virement_courriel_jours` jours avant la date limite
+  (`delai_virement_caution_jours` avant l'arrivée, recopié sur la
+  réservation) ; alerte « à vérifier » le
+  lendemain de la date limite à `caution_heure_alerte`, tant que le client
+  n'est pas arrivé ; alerte « à rendre » à départ + 2 à la même heure. Chaque
+  tâche regarde l'état de chaque réservation : un passage manqué est rattrapé.
+- **Fin du séjour** (`lib/caution.ts`) : une réservation confirmée sans caution
+  ouverte sur carte passe « terminée » au troisième jour après le départ, à
+  `caution_heure_liberation`.
+- **Le tunnel** : le devis dit si le virement est encore possible ; le choix est
+  grisé, et le serveur le refuse s'il arrive quand même.
+- **Effacement** (`lib/abandons.ts`) : `reglages.abandon_conservation_jours`,
+  compté depuis la création de la tentative. Il reprend l'effacement du retour
+  en arrière (`abandonnerTentative`) : paiement ouvert annulé chez Stripe,
+  paiements, nuits, réservation, puis la fiche client Stripe (un échec est
+  journalisé, l'effacement reste fait, l'identifiant reste dans la trace). Une
+  tentative engagée (payée, en cours de paiement, contrat émis) n'est jamais
+  touchée ; une tentative **payée en retard puis remboursée** n'est pas
+  examinée (question au juriste, avec le journal des courriels). Aucun
+  courriel. 50 au plus par passage.
+- **Vérification de la base réelle** (`npm run verify:production`) : en lecture
+  seule, avant d'appliquer ses migrations (réponse 11B : le gérant ouvre le
+  tunnel et applique les migrations lui-même).
+
+**Pourquoi.** Les délais du contrat (art. 6.2 (c), 6.5) doivent tenir sans
+qu'on y pense, alors que le site ne voit pas le compte bancaire : il ne peut
+que rappeler, au bon moment. Stocker l'IBAN du client aurait ajouté une donnée
+bancaire à protéger pour un usage de quelques jours.
+
+**Ce qui pourrait mal tourner.**
+- Un faux courriel envoyé au client avec un autre IBAN : la mise en garde le
+  renvoie à sa page, qui ne montre que les coordonnées des réglages.
+- Sans la tâche programmée (point 18), ni courriel ni alerte.
+- Tant que la durée de conservation est vide, rien n'est effacé (point 12).
+- Une caution reçue par virement arrive sur le compte de la société :
+  l'enregistrement comptable reste une question au comptable (D-19).
+
+**Si on revient dessus.** Changer le compte, le nombre de jours du courriel
+ou la durée de conservation : un réglage. Changer le délai du virement (3 jours
+avant l'arrivée) ou de restitution : le contrat (art. 6.2, 6.5) et
+`lib/virement.ts`, ensemble. Stocker le RIB du client : une colonne chiffrée et
+une durée de conservation, à décider avec le juriste.
 
 ---
 

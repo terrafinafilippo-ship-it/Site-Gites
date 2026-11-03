@@ -4,14 +4,14 @@
 > **seul** domicile de cette liste : elle ne doit être recopiée nulle part
 > ailleurs (voir `docs/05-protocole-phase.md`, règle 1).
 
-Seize points à traiter **avant qu'un vrai client signe un vrai contrat**. Aucun
+Dix-huit points à traiter **avant qu'un vrai client signe un vrai contrat**. Aucun
 n'empêche le logiciel de fonctionner : ils empêchent qu'il fonctionne
 **correctement le jour où il compte**.
 
 ## Qui peut lever un point
 
-Onze des seize points **ne se résolvent pas, ou pas entièrement, dans le dépôt**
-(3, 6, 7, 9, 10, 11, 12, 13, 14, 15 et 16). Sans cette
+Quatorze des dix-huit points **ne se résolvent pas, ou pas entièrement, dans le
+dépôt** (3, 4, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17 et 18). Sans cette
 précision, une session future les lira comme des tâches techniques et cherchera
 la réponse au mauvais endroit — dans le code, où elle n'est pas.
 
@@ -30,7 +30,7 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | 1 | Nommer les options sur les documents | Développement | Phase 5 |
 | 2 | Rendre l'adresse IP du signataire non falsifiable | Développement | Au déploiement |
 | 3 | Caution (carte, chèque, virement) et paiement : confirmés par Stripe, contrat et texte d'accord relus par un juriste, développés et testés | **Les propriétaires** (Stripe, juriste), puis développement | Phases 3 et 4 |
-| 4 | Passer la base en configuration de production | Développement | Phase 4 |
+| 4 | Passer la base en configuration de production | Développement (vérification), puis **le gérant** (migrations, compte du virement) | Avant l'ouverture |
 | 5 | Vérifier le logo sur un PDF généré **après** déploiement | Développement | Au déploiement |
 | 6 | Qui est le bailleur juridique des trois gîtes | **Le comptable** | Phase 6 |
 | 7 | Médiateur de la consommation : lequel, et adhésion en cours | **Les propriétaires** | Phase 6 |
@@ -38,10 +38,10 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | 9 | Sauvegarder le volume des PDF, et tester une restauration | **Phase de déploiement** | Au déploiement effectif — échéance tranchée le 24 septembre 2026 |
 | 10 | Taxe de séjour : régime et taux **vérifiés** ; restent l'assiette (ménage), les bébés et les tarifs 2027 | **Le service taxe de séjour** (Ardèche Grand Air) | Phase 3 |
 | 11 | Saisir les vrais tarifs, périodes, barème et réglages de taxe | **Les propriétaires**, au back-office | Avant l'ouverture (Phase 5) |
-| 12 | Durée de conservation des tentatives de réservation abandonnées | **Les propriétaires** (juriste), puis développement | Phase 4 |
+| 12 | Durée de conservation des tentatives de réservation abandonnées | **Les propriétaires** (juriste) — l'effacement est construit | Avant l'ouverture |
 | 13 | Site en anglais : relire la traduction, faire valider l'anglais du juridique | **Les propriétaires** (relecture), **le juriste** (pages juridiques, bannière cookies) | Avant l'ouverture (Phase 6) |
 | 14 | Passer Stripe en mode réel et brancher l'avis de paiement | **Les propriétaires** (compte Stripe activé), puis développement | Au déploiement |
-| 15 | Brancher les courriels réels sur le serveur déployé | **Phase de déploiement**, puis les propriétaires (réception) | Au déploiement |
+| 15 | Brancher les courriels réels sur le serveur déployé, DMARC en « quarantaine » | **Phase de déploiement**, puis les propriétaires (réception) | Au déploiement |
 | 16 | Annulation : confirmer le délai de remboursement du solde (48 heures) | **Arbitrage** | Avant l'ouverture |
 | 17 | Séjour payé en une fois : faire confirmer la facture unique | **Le comptable** | Avant l'ouverture |
 | 18 | Programmer le réveil des tâches automatiques (solde, factures, relances) | **Phase de déploiement** | Au déploiement |
@@ -191,7 +191,9 @@ tenue dans `docs/03-conformite.md`, § 5, écart E-4.
 
 ## 4. Passer la base en configuration de production
 
-**Qui peut lever :** développement · **Phase 4**
+**Qui peut lever :** développement (la vérification), puis **le gérant**
+(appliquer les migrations, saisir le compte du virement) · **avant
+l'ouverture**
 
 **La raison.** La base a servi jusqu'ici en configuration de développement.
 Avant le premier client, elle doit être en configuration d'exploitation : c'est
@@ -211,6 +213,35 @@ inclure :
   Phase 3 ;
 - **sauvegarde du volume de PDF**, distincte de celle de la base — traitée
   au point 9, **plus tôt** que cette phase.
+
+**La liste établie au lot 3 de la Phase 4 (2 novembre 2026).**
+
+1. **Vérifier la base réelle avant de la migrer** : `npm run verify:production`
+   (sans `DB_CIBLE`), par le tunnel SSH ouvert par le gérant. Le script
+   travaille dans une transaction en **lecture seule** : il n'écrit rien. Il
+   dit quelles migrations manquent, refait les vérifications préalables aux
+   migrations 0009 et 0010 (`db/README.md`), compare les compteurs de
+   numérotation aux numéros déjà émis, compte ce que contient la base, et lit
+   les réglages (alertes, cautions des gîtes, compte du virement, durée de
+   conservation, tarification). Chaque ligne est OK, INFO, A VOIR ou
+   BLOQUANT ; un point BLOQUANT interdit de migrer. Au 2 novembre 2026, la base
+   réelle et `gites_test` du serveur sont à la migration **0001**.
+2. **Appliquer les migrations 0002 à 0011** : **le gérant** les applique
+   lui-même (`npm run db:migrate`), après une sauvegarde, sur la base réelle
+   puis sur `gites_test` du serveur (réponse 11B).
+3. **Saisir le compte du virement** (titulaire et IBAN de la SARL DE LA VOUTE,
+   BIC facultatif) dans `reglages` : **le gérant**, en attendant l'écran de
+   gestion (Phase 5). Sans lui, aucun client ne reçoit les coordonnées et une
+   alerte « À TRAITER » le signale.
+4. `DATABASE_URL` (hôte interne), `STORAGE_PATH` (volume), `DB_CIBLE`
+   absente : à vérifier au déploiement (les trois premières puces ci-dessus).
+5. **Séparation des rôles PostgreSQL** : reportée par le gérant le 2 novembre
+   2026 (« une seule clé pour l'instant, on s'en occupera quand tout sera
+   fini ») ; elle reste à faire avant l'ouverture.
+
+**Le contrôle.** `verify:production` ne signale aucun point BLOQUANT avant les
+migrations, puis toutes les migrations sont appliquées et la ligne du compte du
+virement est OK.
 
 ---
 
@@ -464,9 +495,9 @@ CALÉE », ni « BARÈME » ; un séjour de test se chiffre dans le tunnel.
 
 ## 12. Durée de conservation des tentatives de réservation abandonnées
 
-**Qui peut lever :** **les propriétaires**, avec leur juriste (la durée), puis
-développement · **Phase 4**
-(l'effacement automatique, avec les tâches planifiées)
+**Qui peut lever :** **les propriétaires**, avec leur juriste (la durée) ·
+**avant l'ouverture** — l'effacement automatique est construit (Phase 4,
+lot 3, D-31)
 
 **La raison.** Depuis le lot 2 de la Phase 3 (D-21), le tunnel enregistre la
 réservation, avec le nom, l'adresse, le courriel et le téléphone du client, **à
@@ -483,8 +514,17 @@ pour traiter un paiement tardif, lot 3), puis effacer automatiquement les
 tentatives expirées au-delà (Phase 4), et l'écrire dans la politique de
 confidentialité (Phase 6).
 
+**Construit le 2 novembre 2026** (`lib/abandons.ts`, à chaque réveil) :
+au-delà de `reglages.abandon_conservation_jours` jours après sa création, une
+tentative est effacée avec ses paiements non aboutis, ses nuits et la fiche
+client chez Stripe ; une ligne `audit_logs` n'en garde que la référence et les
+dates. **La durée est vide : rien n'est effacé** tant qu'elle n'est pas saisie.
+Restent hors de l'effacement, pour la même question au juriste : la tentative
+payée en retard puis remboursée, et le journal des courriels.
+
 **Le contrôle.** Une tentative expirée plus ancienne que la durée fixée
-n'existe plus en base ; la politique de confidentialité annonce la même durée.
+n'existe plus en base (`verify:abandons`) ; la politique de confidentialité
+annonce la même durée.
 
 ---
 
@@ -578,14 +618,20 @@ utilisée pour les essais est sur le poste de développement. Sur le serveur :
    `NEXT_PUBLIC_SITE_URL` (l'adresse publique, sans barre oblique finale).
 2. Vérifier dans la base réelle la table `alertes` : les trois alertes vers
    contact@gitesdesamoyas.fr (valeurs de la migration 0006).
-3. Facultatif, quelques semaines après l'ouverture : durcir la règle DMARC du
-   domaine (« observer seulement » aujourd'hui) une fois les rapports de Brevo
-   propres.
+3. **Avant l'ouverture** (choix du gérant du 2 novembre 2026) : passer la
+   règle DMARC du domaine en **« quarantaine »** (`p=quarantine`, « observer
+   seulement » aujourd'hui). Raison : le courriel de la caution par virement
+   porte l'IBAN de la société ; avec « observer seulement », un faux courriel
+   au nom de gitesdesamoyas.fr, avec un autre IBAN, arrive quand même dans la
+   boîte du client. Où : la zone DNS du domaine chez OVH, enregistrement TXT
+   `_dmarc`. Vérifier d'abord, dans les rapports DMARC, que les envois de
+   Brevo passent.
 
 **Le contrôle.** Une réservation réelle (ou de test sur le serveur déployé)
 avec une adresse Gmail et une adresse Orange : la confirmation arrive dans la
 boîte de réception, pas en indésirables ; son bouton ouvre la page de
-signature ; « Répondre » écrit à contact@ ; l'alerte arrive dans contact@.
+signature ; « Répondre » écrit à contact@ ; l'alerte arrive dans contact@ ;
+l'enregistrement `_dmarc` lu dans le DNS dit `p=quarantine`.
 
 ---
 
@@ -637,7 +683,9 @@ La poser avec la question de la caution reçue par virement (D-19).
 **Qui peut lever :** **phase de déploiement** · **au déploiement**
 
 **La raison.** Le préavis et le prélèvement du solde, le lien, les rappels,
-les impayés (D-28) — et en Phase 4 la caution — ne se font que si le site est
+les impayés (D-28), la caution par carte (D-30), le courriel et les alertes de
+la caution par virement, la fin des séjours et l'effacement des tentatives
+abandonnées (D-31) ne se font que si le site est
 réveillé toutes les 15 minutes. **Sans la tâche programmée, rien d'automatique
 ne se fait, et rien ne le signale.**
 
@@ -652,7 +700,8 @@ ne se fait, et rien ne le signale.**
    interne ; à défaut de `curl`, la même requête par `node -e` et `fetch`).
 
 **Le contrôle.** Le journal de la tâche dans Coolify montre une réponse `200`
-avec un bilan (`soldes`, `courriels`) toutes les 15 minutes ; une réservation
+avec un bilan (`soldes`, `virements`, `cautions`, `abandons`, `courriels`)
+toutes les 15 minutes ; une réservation
 d'essai dont la date limite du solde est passée reçoit son courriel.
 
 ---

@@ -20,6 +20,9 @@ main dans un outil graphique.
 | `migrations/0006_courriels.sql` | Phase 3, lot 4 : journal `courriels`, table `alertes` (trois alertes vers contact@), adresses d'expédition et de réponse dans `reglages` (reservation@ et contact@, valeurs du gérant, sans valeur par défaut ensuite). |
 | `migrations/0007_suivi.sql` | Phase 3, lot 4 : jeton secret `reservations.jeton_suivi` (tiré par la base pour chaque ligne, y compris les réservations existantes), réglages de la page « Ma réservation » (30 jours après le départ, 3 demandes de lien par 60 minutes), courriel `lien_suivi` (D-25). |
 | `migrations/0008_annulation.sql` | Phase 3, lot 5 : délai de remboursement du solde (48 heures avant l'arrivée) en réglage, recopié avec le délai de virement de la caution sur chaque réservation (valeurs 48 et 3 pour les réservations existantes, puis sans valeur par défaut) ; note des avis de l'accueil en réglage (D-26). |
+| `migrations/0009_solde.sql` | Phase 4, lot 1 : délais des courriels du solde en réglages, courriels de la facture et du solde, une seule facture de chaque type par réservation (D-28, D-29). **Vérification préalable** sur une base existante : voir plus bas. |
+| `migrations/0010_caution.sql` | Phase 4, lot 2 : caution figée sur la réservation, préautorisation dans `paiements`, heures de la caution en réglages, courriels et alerte de la caution (D-30). **Vérification préalable** sur une base existante : voir plus bas. |
+| `migrations/0011_virement.sql` | Phase 4, lot 3 : compte qui reçoit la caution par virement (titulaire, IBAN, BIC, **vides**), jour du courriel des coordonnées (10 jours avant la date limite), durée de conservation des tentatives abandonnées (**vide** : rien n'est effacé), courriel `caution_virement` (D-31). |
 | `index.ts` | Le client de base de données partagé par le site (pool de 10 connexions maximum). |
 | `seed.ts` | Insère ou remet à jour les trois gîtes. |
 | `verify.ts` | Auto-vérification complète, sans rien laisser en base. |
@@ -77,7 +80,10 @@ commitée.
   de réservation, barème général, jour de début des périodes ; depuis la
   migration 0004, les réglages du tunnel (durée du blocage, délai avant
   l'arrivée, horaires, bébés) ; depuis la migration 0005, ceux du paiement
-  (taux d'acompte, délai du solde, délai du virement de caution).
+  (taux d'acompte, délai du solde, délai du virement de caution) ; ensuite
+  les courriels, la page « Ma réservation », l'annulation, le solde, la
+  caution et, depuis la migration 0011, le compte du virement et la durée de
+  conservation des tentatives (le détail : `docs/04-architecture.md` § 3).
 - **taxes_sejour** : les réglages de taxe de séjour, par gîte et datés.
 
 **Calendrier** (forme définitive en Phase 3, lot 2 — décision D-21)
@@ -122,11 +128,17 @@ d'essai, marquée « (essai) ». **`npm run db:seed` ne touche pas à ces tables
   montant figé sur la réservation (`reservations.caution`), préautorisation
   dans `paiements` (une par réservation, états `bloque`, `libere`, `retenu`),
   heures en réglages, courriels `caution_*` et alerte `alerte_caution`.
+- Depuis la migration 0011 (Phase 4, lot 3, D-31) : le courriel des
+  coordonnées de la caution par virement (`caution_virement`) ; le compte et
+  le jour du courriel sont dans `reglages`, avec la durée de conservation des
+  tentatives abandonnées.
 
 **Tables provisoires** (structure minimale)
 
 - **avis** : les avis clients affichés sur le site.
-- **audit_logs** : le journal des actions sensibles.
+- **audit_logs** : le journal des actions sensibles. Premier usage depuis la
+  Phase 4 (D-31) : l'effacement automatique d'une tentative abandonnée
+  (`effacement_tentative`, référence et dates seulement).
 
 ## Génération des documents et signature (fusion du module de contrat)
 
@@ -190,6 +202,20 @@ Pour une fonction, un trigger ou toute instruction que Drizzle ne génère pas :
 enregistré dans le journal, à remplir à la main.
 
 Ne jamais modifier une migration déjà appliquée : en écrire une nouvelle.
+
+### Avant de migrer la base réelle : `verify:production`
+
+```bash
+npm run verify:production
+```
+
+Sans `DB_CIBLE`, par le tunnel SSH. Le script travaille dans une transaction
+**en lecture seule** : il ne peut rien écrire. Il dit quelles migrations
+manquent, refait les deux vérifications ci-dessous (0009 et 0010), compare les
+compteurs de numérotation aux numéros déjà émis, compte le contenu et lit les
+réglages. Chaque ligne est OK, INFO, A VOIR ou BLOQUANT ; **un point BLOQUANT
+interdit d'appliquer les migrations** (code de sortie 1). Au 2 novembre 2026,
+la base réelle et `gites_test` du serveur sont à la migration 0001.
 
 ### Avant d'appliquer la migration 0009 sur une base existante
 
@@ -325,8 +351,9 @@ volume persistant du VPS et doivent être sauvegardés à part.
 ## Sécurité et bonnes pratiques
 
 - `.env.local` est ignoré par git ; `DATABASE_URL` ne se partage qu'en privé.
-- Le rôle utilisé par les applications a aujourd'hui tous les droits : une
-  séparation des rôles (lecture seule pour le site vitrine, par exemple) pourra
-  être décidée en Phase 3.
+- Le rôle utilisé par les applications a aujourd'hui tous les droits. La
+  séparation des rôles est reportée par le gérant à la fin des travaux
+  (2 novembre 2026) ; elle reste à faire avant l'ouverture
+  (`docs/06-avant-premier-client.md`, point 4).
 - Les fichiers PDF sont servis uniquement par des liens signés à durée limitée
   (voir `lib/storage.ts`), jamais directement.

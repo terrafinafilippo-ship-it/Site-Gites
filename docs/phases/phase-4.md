@@ -2,9 +2,11 @@
 
 **État :** ouverte le 1er novembre 2026. **Lot 1 (le réveil, le solde, les
 factures) livré le 1er novembre 2026** (D-28, D-29). **Lot 2 (la caution par
-carte) livré le 2 novembre 2026** (D-30). Bilans : `docs/journal-phases.md`.
-Reste le lot 3 (chèque et virement, réservations abandonnées, base en
-production).
+carte) livré le 2 novembre 2026** (D-30). **Lot 3 (chèque et virement,
+tentatives abandonnées, vérification de la base réelle) livré le 3 novembre
+2026** (D-31). Bilans : `docs/journal-phases.md`. Reste, avant la clôture :
+lancer `verify:production` sur la base réelle avec le gérant (tunnel ouvert
+par lui), puis il applique les migrations 0002 à 0011.
 
 **Dépendances :** Phase 3 close — sans acompte réel, il n'y a pas de carte
 enregistrée sur laquelle agir.
@@ -107,6 +109,42 @@ Le détail de ce qui est construit : D-30. Les **états** de la caution
 (point 9 ci-dessous) sont ceux de `paiements` : `bloque`, `echoue`, `libere`
 (expirée comprise), `retenu`, `annule` ; « carte enregistrée » se lit sur la
 réservation.
+
+## Cadrage du lot 3, 2 novembre 2026
+
+Réponses du gérant (exemple : Camille, L'Armu, arrivée le samedi 20 mars
+2027, départ le samedi 27 mars, caution de 500 € par virement, date limite le
+mercredi 17 mars) :
+
+1. **Le compte** qui reçoit le virement : celui de la SARL DE LA VOUTE, saisi
+   par le gérant dans les réglages — A.
+2. **Le RIB du client**, pour la restitution : il répond au courriel avec son
+   RIB ; le site ne stocke rien — A.
+3. **Virement trop tard** : le tunnel ne le propose plus une fois sa date
+   limite passée — A.
+4. **Les coordonnées** : courriel le dimanche 7 mars, et affichées sur « Ma
+   réservation » du 7 au 17 mars — C. **DMARC** du domaine en « quarantaine »
+   avant l'ouverture — A (point 15 de `docs/06-avant-premier-client.md`).
+5. **« Vérifiez le virement »** : alerte le jeudi 18 mars à 8 h, le lendemain
+   de la date limite — C. Le gérant précise que c'est un rappel : si rien
+   n'est arrivé le 18, on peut vérifier à nouveau le 19. (Le cadrage du 1er
+   novembre disait « à la date limite » : remplacé par cette réponse.)
+6. **« Rendez la caution »** : alerte le lundi 29 mars à 8 h — A.
+7. **Séjour sans caution par carte** (chèque, virement) : « terminé » le mardi
+   30 mars à 8 h — A.
+8. **Tentatives abandonnées** : fiche client Stripe supprimée aussi (a) ; trace
+   `audit_logs` avec la référence seulement (b) ; durée en jours, vide = rien
+   n'est effacé (c) — A, A, A. Si la fiche Stripe ne peut pas être supprimée,
+   l'effacement se fait quand même et l'échec est journalisé.
+9. **Le jour du courriel** (10 jours avant la date limite) : un réglage — oui.
+10. **Séparation des rôles de la base** : reportée (« pour l'instant une seule
+    clé, quand tout sera fini on s'occupera de ça »).
+11. **La base réelle** : le gérant ouvre le tunnel et m'autorise à la **lire**
+    (`verify:production`) ; il applique lui-même les migrations — B.
+12. **Pas de déploiement** dans ce lot — A.
+
+Texte ajouté à la validation du 3 novembre : la mise en garde contre les faux
+RIB dans le courriel des coordonnées. Le détail de ce qui est construit : D-31.
 
 ---
 

@@ -1464,6 +1464,103 @@ des courriels et du bloc « Votre caution » présentés au gérant le même jou
 
 ---
 
+## Phase 4 — lot 3 : virement et chèque, tentatives abandonnées, base réelle (3 novembre 2026)
+
+### Ce qui a été décidé
+
+Cadrage du lot le 2 novembre 2026 (fiche de phase, douze questions sur
+l'exemple de Camille : réponses 1A, 2A, 3A, 4C avec DMARC A, 5C, 6A, 7A,
+8a A, 8b A, 8c A, 9 oui, 10 reportée, 11B, 12A) ; décision D-31. Textes des
+courriels, des alertes, du bloc « Votre caution » et du tunnel présentés au
+gérant le 3 novembre, validés avec la mise en garde contre les faux RIB.
+
+### Défauts trouvés dans le code avant d'écrire
+
+- **Un séjour au chèque ou au virement ne passait jamais « terminé »** : seule
+  la levée d'une caution par carte fermait la réservation.
+- **Le tunnel proposait le virement même quand sa date limite était déjà
+  passée** (réservation à moins de 3 jours de l'arrivée).
+- **Le retour en arrière laissait la fiche client chez Stripe** (nom et
+  courriel) : seule la réservation était effacée.
+- **La base réelle est à la migration 0001**, le code à 0010 : rien ne
+  vérifiait qu'elle pouvait recevoir les migrations sans dégât (factures en
+  double, cautions anciennes, compteurs).
+- **La règle DMARC du domaine est « observer seulement »** : un faux courriel
+  au nom du domaine, avec un autre IBAN, arriverait chez le client.
+- `docs/06-avant-premier-client.md` annonçait seize points pour dix-huit, et
+  `db/README.md` renvoyait encore la séparation des rôles à la Phase 3.
+- Trouvé en écrivant : **une tentative payée trop tard puis remboursée** reste
+  « en attente de paiement » pour toujours ; cinquante d'entre elles auraient
+  occupé chaque passage de l'effacement. Elles sont écartées dès la recherche.
+
+### Ce qui a été fait
+
+- **Migration 0011** : compte du virement (`virement_titulaire`,
+  `virement_iban`, `virement_bic`, vides), `virement_courriel_jours` (10),
+  `abandon_conservation_jours` (vide), contraintes de forme ; courriel
+  `caution_virement`.
+- **`lib/iban.ts`** (contrôle mod 97, forme lisible) et **`lib/virement.ts`** :
+  coordonnées sur « Ma réservation » du jour du courriel à la date limite ;
+  courriel des coordonnées, alertes « à vérifier » et « à rendre », alerte « À
+  TRAITER » sans compte valable ; revérification à l'envoi.
+- **`lib/caution.ts`** : séjour sans caution par carte « terminé » au troisième
+  jour après le départ.
+- **Tunnel** : `virementPossible` dans le devis, choix grisé avec une phrase,
+  refus côté serveur.
+- **`lib/abandons.ts`** et **`abandonnerTentative`** : effacement après la durée
+  réglée, fiche client Stripe supprimée (`oublierClient`, aussi au retour en
+  arrière), trace `audit_logs` (premier usage de la table) ; 50 par passage.
+- **Le réveil** (`lib/taches.ts`) : soldes, virements, cautions, abandons, dans
+  cet ordre ; le bilan les nomme.
+- **`npm run verify:production`** : la base réelle en lecture seule (migrations,
+  vérifications préalables à 0009 et 0010, compteurs, contenu, réglages),
+  essayé sur deux bases jetables arrêtées à 0001 et à 0008 : il a signalé un
+  compteur de factures en avance (BLOQUANT) et une réservation ancienne qui
+  recevrait la caution du gîte (A VOIR).
+- **Contrôles** : `verify:virement` (47 cas), `verify:abandons` (22 cas),
+  outils communs `scripts/simulations.ts` ; 5 cas de plus dans
+  `verify:tarification` et 2 dans `verify:paiement` ; `db:verify` section 6j ;
+  deux étapes de plus dans `lancer.sh`.
+
+### Ce qui a été vérifié
+
+Sur une base PostgreSQL jetable du poste (port 55433, `gites_essai`), jamais sur
+la base réelle :
+- `npm run lint`, `npx tsc --noEmit`, `npm run build` : passent.
+- `npm run db:verify` : 191 contrôles, 0 échec.
+- `bash scripts/parcours/lancer.sh` : **dix-huit étapes sur dix-huit**, code de
+  sortie 0 — centimes, tarification 192 cas, blocage 42, paiement 69 (Stripe en
+  mode test compris), courriels 41, « Ma réservation » 22, solde 62, caution 86
+  (trois cartes Stripe comprises), virement 47, abandons 22, parcours L'Armu et
+  LaPhine 0 échec, URL signées 0 échec, contrôles en base 81/0, contrôles PDF
+  112 OK, `db:verify` 191/0. Aucun montant de `reference.ts` n'a bougé.
+
+### Ce qui n'a PAS été vérifié
+
+- **Les écrans** (virement grisé dans le tunnel, coordonnées sur « Ma
+  réservation ») dans un navigateur : leur contenu est contrôlé, pas leur
+  mise en page.
+- **`verify:production` sur la base réelle** : à lancer avec le gérant, tunnel
+  ouvert par lui (11B).
+- **Un vrai courriel du virement** reçu dans une boîte (Brevo, DMARC).
+- **La tâche programmée de Coolify** (point 18).
+
+### Points reportés
+
+- **Appliquer les migrations 0002 à 0011** sur la base réelle puis sur
+  `gites_test` du serveur : le gérant, après `verify:production`.
+- **Saisir le compte du virement** dans `reglages` : le gérant, en attendant
+  l'écran de gestion (Phase 5).
+- **La durée de conservation** des tentatives : le juriste (point 12) ; la
+  tentative remboursée et le journal des courriels restent hors de
+  l'effacement, pour la même question.
+- **Séparation des rôles PostgreSQL** : reportée à la fin des travaux (point 4).
+- **DMARC en « quarantaine »** avant l'ouverture (point 15).
+- L'enregistrement comptable d'une caution reçue par virement : question au
+  comptable (D-19, point 17).
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul
