@@ -23,3 +23,5 @@ export * from "./textes-accord";
 // Courriels (Phase 3, lot 4).
 export * from "./courriels";
 export * from "./alertes";
+// Back-office (Phase 5, lot 1).
+export * from "./gestion";

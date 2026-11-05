@@ -78,6 +78,14 @@
 //     réservation restée « en attente de paiement » est effacée ce nombre de
 //     jours après sa création. NULL : rien n'est effacé — la durée attend la
 //     réponse du juriste (docs/06-avant-premier-client.md, point 12).
+//
+//   - connexion au back-office (Phase 5, lot 1, migration 0012, D-32) : un
+//     appareil reste reconnu tant qu'il s'est connecté dans les 30 derniers
+//     jours (chaque connexion relance le délai), une session se ferme après
+//     8 heures sans activité ; après 5 échecs depuis une même adresse IP,
+//     15 minutes d'attente ; le code d'un appareil inconnu vaut 10 minutes et
+//     5 essais, le lien pour choisir le mot de passe 60 minutes (choix du
+//     gérant du 3 novembre 2026).
 import { sql } from "drizzle-orm";
 import { check, integer, pgTable, text, time, timestamp, uuid } from "drizzle-orm/pg-core";
 
@@ -143,6 +151,13 @@ export const reglages = pgTable(
     virement_courriel_jours: integer().notNull().default(10),
     // Tentatives abandonnées (Phase 4, lot 3, migration 0011), en jours ; NULL = rien n'est effacé.
     abandon_conservation_jours: integer(),
+    // Connexion au back-office (Phase 5, lot 1, migration 0012).
+    gestion_appareil_jours: integer().notNull().default(30),
+    gestion_inactivite_heures: integer().notNull().default(8),
+    gestion_essais_max: integer().notNull().default(5),
+    gestion_attente_minutes: integer().notNull().default(15),
+    gestion_code_minutes: integer().notNull().default(10),
+    gestion_lien_minutes: integer().notNull().default(60),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -206,6 +221,12 @@ export const reglages = pgTable(
     check(
       "reglages_abandon_check",
       sql`${t.abandon_conservation_jours} is null or ${t.abandon_conservation_jours} between 1 and 365`,
+    ),
+    check(
+      "reglages_gestion_check",
+      sql`${t.gestion_appareil_jours} between 1 and 365 and ${t.gestion_inactivite_heures} between 1 and 168
+          and ${t.gestion_essais_max} between 1 and 20 and ${t.gestion_attente_minutes} between 1 and 1440
+          and ${t.gestion_code_minutes} between 1 and 60 and ${t.gestion_lien_minutes} between 5 and 1440`,
     ),
   ],
 );

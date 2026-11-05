@@ -85,6 +85,13 @@
       "when": 1793660967339,
       "tag": "0011_virement",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793769928645,
+      "tag": "0012_gestion",
+      "breakpoints": true
     }
   ]
 }
