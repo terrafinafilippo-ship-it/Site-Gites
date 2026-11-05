@@ -21,7 +21,9 @@
     "verify:caution": "tsx scripts/verifier-caution.ts",
     "verify:virement": "tsx scripts/verifier-virement.ts",
     "verify:abandons": "tsx scripts/verifier-abandons.ts",
-    "verify:production": "tsx scripts/verifier-production.ts"
+    "verify:production": "tsx scripts/verifier-production.ts",
+    "verify:gestion": "tsx scripts/verifier-gestion.ts",
+    "gestion:compte": "tsx scripts/gestion-compte.ts"
   },
   "dependencies": {
     "@next/env": "^15.5.19",

@@ -138,6 +138,9 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     // Caution par carte (Phase 4, lot 2, migration 0010).
     "caution_heure_blocage", "caution_heure_alerte", "caution_heure_liberation",
     "virement_titulaire", "virement_iban", "virement_bic", "virement_courriel_jours", "abandon_conservation_jours",
+    // Connexion au back-office (Phase 5, lot 1, migration 0012).
+    "gestion_appareil_jours", "gestion_inactivite_heures", "gestion_essais_max", "gestion_attente_minutes",
+    "gestion_code_minutes", "gestion_lien_minutes",
     "updated_at",
   ],
   taxes_sejour: [
@@ -153,6 +156,13 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     "created_at", "updated_at",
   ],
   alertes: ["type", "active", "destinataires", "updated_at"],
+  // Connexion au back-office (Phase 5, lot 1, migration 0012, D-32).
+  comptes_gestion: ["id", "courriel", "empreinte_mot_de_passe", "mot_de_passe_change_at", "created_at"],
+  appareils_gestion: ["id", "compte_id", "empreinte_jeton", "description", "derniere_connexion_at", "created_at"],
+  sessions_gestion: ["id", "compte_id", "appareil_id", "empreinte_jeton", "derniere_activite_at", "created_at"],
+  codes_gestion: ["id", "compte_id", "empreinte_jeton", "empreinte_code", "description", "essais", "expire_at", "utilise_at", "created_at"],
+  liens_gestion: ["id", "compte_id", "empreinte_jeton", "expire_at", "utilise_at", "created_at"],
+  essais_gestion: ["ip", "echecs", "bloque_jusqu_a", "updated_at"],
 };
 
 // Quelques types sensibles (le module de contrat en dépend).
@@ -967,6 +977,45 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
        values ($1, 'caution_virement', 'verify:caution_virement', 'a@example.invalid', 'fr')`, [resaId],
     );
     noter("6j", courrielVirement.erreur === null, "courriel « caution_virement » accepté", codePg(courrielVirement.erreur));
+
+    // ── 6k. Connexion au back-office (Phase 5, lot 1, migration 0012, D-32) ──
+    titre("6k. Connexion au back-office");
+    const reglagesGestion = await client.query(
+      `select gestion_appareil_jours as a, gestion_inactivite_heures as i, gestion_essais_max as e,
+              gestion_attente_minutes as t, gestion_code_minutes as c, gestion_lien_minutes as l from reglages where id = 1`,
+    );
+    noter(
+      "6k",
+      JSON.stringify(reglagesGestion.rows[0]) === JSON.stringify({ a: 30, i: 8, e: 5, t: 15, c: 10, l: 60 }),
+      "réglages : 30 jours, 8 heures, 5 échecs, 15 minutes, code 10 minutes, lien 60 minutes",
+      JSON.stringify(reglagesGestion.rows[0]),
+    );
+    for (const [nom, sqlTexte, quoi] of [
+      ["sp_appareil_zero", `update reglages set gestion_appareil_jours = 0 where id = 1`, "reconnaissance de 0 jour refusée"],
+      ["sp_code_long", `update reglages set gestion_code_minutes = 61 where id = 1`, "code valable plus d'une heure refusé"],
+      ["sp_lien_court", `update reglages set gestion_lien_minutes = 4 where id = 1`, "lien valable moins de 5 minutes refusé"],
+      ["sp_essais_zero", `update reglages set gestion_essais_max = 0 where id = 1`, "zéro échec avant attente refusé"],
+      ["sp_compte_majuscules", `insert into comptes_gestion (courriel) values ('Verify@Example.invalid')`, "adresse de compte en majuscules refusée"],
+    ] as const) {
+      const e = await attendreErreur(client, nom, sqlTexte, []);
+      noter("6k", codePg(e.erreur) === "23514", quoi, codePg(e.erreur));
+    }
+    const compteG = await client.query<{ id: string }>(
+      `insert into comptes_gestion (courriel) values ('verify-gestion@example.invalid') returning id`,
+    );
+    const doublon = await attendreErreur(client, "sp_compte_doublon", `insert into comptes_gestion (courriel) values ('verify-gestion@example.invalid')`, []);
+    noter("6k", codePg(doublon.erreur) === "23505", "deux comptes à la même adresse refusés", codePg(doublon.erreur));
+    const appareilG = await client.query<{ id: string }>(
+      `insert into appareils_gestion (compte_id, empreinte_jeton, description) values ($1, 'verify-a', 'Essai') returning id`,
+      [compteG.rows[0].id],
+    );
+    await client.query(
+      `insert into sessions_gestion (compte_id, appareil_id, empreinte_jeton) values ($1, $2, 'verify-s')`,
+      [compteG.rows[0].id, appareilG.rows[0].id],
+    );
+    await client.query(`delete from appareils_gestion where id = $1`, [appareilG.rows[0].id]);
+    const sessionsRestantes = await client.query<{ n: number }>(`select count(*)::int as n from sessions_gestion where empreinte_jeton = 'verify-s'`);
+    noter("6k", sessionsRestantes.rows[0].n === 0, "retirer un appareil ferme ses sessions (cascade)", String(sessionsRestantes.rows[0].n));
   } finally {
     await client.query("ROLLBACK");
   }
