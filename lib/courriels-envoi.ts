@@ -699,6 +699,19 @@ async function lireProbleme(
     case "virement_coordonnees_absentes":
       if (!resa) return null;
       return { genre: "virement_coordonnees_absentes", montant: resa.caution ?? 0, dateLimite: dateLimiteVirement(resa) };
+    case "virement_compte_modifie": {
+      const compte = (v: unknown): { titulaire: string; iban: string } | null => {
+        const o = v as { titulaire?: unknown; iban?: unknown } | null;
+        return o && typeof o.titulaire === "string" && typeof o.iban === "string" ? { titulaire: o.titulaire, iban: o.iban } : null;
+      };
+      return {
+        genre: "virement_compte_modifie",
+        quand: String(d.quand ?? ""),
+        appareil: String(d.appareil ?? "un appareil inconnu"),
+        avant: compte(d.avant),
+        apres: compte(d.apres),
+      };
+    }
     case "contestation":
       return {
         genre: "contestation",

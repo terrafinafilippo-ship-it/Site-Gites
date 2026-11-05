@@ -50,7 +50,9 @@ export type GenreProbleme =
   | "contestation"
   // Phase 4, lot 3 : le compte qui reçoit la caution par virement n'est pas
   // saisi (ou son IBAN est faux) — le client n'a pas reçu les coordonnées.
-  | "virement_coordonnees_absentes";
+  | "virement_coordonnees_absentes"
+  // Phase 5, lot 1 : le compte de virement a été modifié depuis le back-office.
+  | "virement_compte_modifie";
 
 async function inscrire(
   executeur: Executeur,

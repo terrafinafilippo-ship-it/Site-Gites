@@ -767,6 +767,16 @@ export type Probleme =
   | { genre: "caution_a_verifier"; montant: number; depuis: string }
   | { genre: "virement_coordonnees_absentes"; montant: number; dateLimite: string }
   | {
+      // Phase 5, lot 1 (D-32) : le compte de virement a été modifié depuis le
+      // back-office. Les IBAN sont montrés masqués (4 premiers et 4 derniers caractères).
+      genre: "virement_compte_modifie";
+      /** Instant de la modification (ISO). */
+      quand: string;
+      appareil: string;
+      avant: { titulaire: string; iban: string } | null;
+      apres: { titulaire: string; iban: string } | null;
+    }
+  | {
       genre: "contestation";
       paiementId: string | null;
       /** Sorte du paiement contesté (acompte, solde, caution…), si le site le connaît. */
@@ -880,9 +890,22 @@ export function texteAlerteProbleme(p: Probleme, s: Sejour | null, c: FicheClien
         `Le client a choisi la caution par virement (${fmtEuro(p.montant)}, à recevoir au plus tard le ${fmtDateAvecJour(p.dateLimite, "fr")}), ` +
         "mais le compte qui doit la recevoir n'est pas saisi dans les réglages du site, ou son IBAN est faux : il n'a pas reçu les coordonnées bancaires.";
       faire =
-        "Faire saisir le titulaire et l'IBAN du compte de la société dans les réglages (prévenir le développeur en attendant l'écran de gestion) : " +
+        "Saisir le titulaire et l'IBAN du compte de la société dans la gestion du site (Réglages, « Caution par virement ») : " +
         "le courriel partira tout seul au passage suivant, jusqu'à la date limite. Sinon, envoyer vous-même les coordonnées au client.";
       break;
+    case "virement_compte_modifie": {
+      const quand = new Date(p.quand);
+      const compte = (c: { titulaire: string; iban: string } | null) =>
+        c ? `${ibanMasque(c.iban)} (${c.titulaire})` : "aucun compte";
+      titre = "le compte de virement a été modifié";
+      quoi =
+        `Le compte qui reçoit les cautions par virement a été modifié le ${fmtDateAvecJour(aujourdhuiParis(quand), "fr")} ` +
+        `à ${fmtHeure(heureParis(quand), "fr")}, depuis ${p.appareil}. Avant : ${compte(p.avant)}. Après : ${compte(p.apres)}.`;
+      faire =
+        "Si ce changement ne vient pas de vous, changez le mot de passe de la gestion et remettez le bon compte : " +
+        "les prochains courriels de virement partiront avec ces coordonnées.";
+      break;
+    }
     case "contestation":
       titre = `paiement contesté${qui ? `, ${qui}` : ""}`;
       quoi =
@@ -897,5 +920,52 @@ export function texteAlerteProbleme(p: Probleme, s: Sejour | null, c: FicheClien
     { p: quoi, gras: true },
     { p: `Ce qu'il faut faire : ${faire}` },
     ...(contexte.length ? [{ liste: contexte }] : []),
+  ]);
+}
+
+/** « FR76 •••• 0189 » : assez pour reconnaître un compte, pas pour le recopier. */
+export function ibanMasque(iban: string): string {
+  return `${iban.slice(0, 4)} •••• ${iban.slice(-4)}`;
+}
+
+// ─── Back-office (Phase 5, lot 1, D-32) ──────────────────────────────────────
+// Aux propriétaires, en français, envoyés tout de suite (lib/gestion/connexion.ts) :
+// ils portent un secret et ne passent pas par le journal des courriels.
+// Textes proposés le 3 novembre 2026, validés par le gérant le 6 novembre.
+
+const SUFFIXE_GESTION = "gestion des Gîtes de Samoyas";
+
+function duree(minutes: number): string {
+  if (minutes % 60 === 0) return `${minutes / 60} heure${minutes === 60 ? "" : "s"}`;
+  return `${minutes} minutes`;
+}
+
+/** Le code d'un appareil inconnu. */
+export function texteCodeGestion(code: string, demande: Date, appareil: string, minutes: number): Contenu {
+  return assembler(`Code de connexion — ${SUFFIXE_GESTION}`, [
+    { p: `Votre code : ${code}`, gras: true },
+    { p: `Il est valable ${duree(minutes)}.` },
+    {
+      p:
+        `Il a été demandé le ${fmtDateAvecJour(aujourdhuiParis(demande), "fr")} à ${fmtHeure(heureParis(demande), "fr")}, ` +
+        `depuis un appareil inconnu (${appareil}).`,
+    },
+    {
+      p: "Si personne parmi vous ne vient de se connecter, ne donnez ce code à personne et changez le mot de passe : quelqu'un le connaît.",
+    },
+  ]);
+}
+
+/** Le lien pour choisir le mot de passe. `premier` : le compte vient d'être créé, il n'a pas encore de mot de passe. */
+export function texteLienGestion(lienMotDePasse: string, minutes: number, premier: boolean): Contenu {
+  return assembler(`Choisir le mot de passe — ${SUFFIXE_GESTION}`, [
+    { p: "Pour choisir le mot de passe de la gestion, ouvrez ce lien :" },
+    { bouton: "Choisir le mot de passe", lien: lienMotDePasse },
+    { p: `Il est valable ${duree(minutes)} et ne sert qu'une fois.` },
+    {
+      p: premier
+        ? "Si personne parmi vous ne l'a demandé, ignorez ce courriel."
+        : "Si personne parmi vous ne l'a demandé, ignorez ce courriel : le mot de passe actuel reste valable.",
+    },
   ]);
 }
