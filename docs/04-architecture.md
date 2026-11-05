@@ -65,7 +65,7 @@ navigateur.
 ## 2. Organisation du dépôt
 
 ```
-middleware.ts   Aiguillage des langues : /… → français, /en/… → anglais (D-22)
+middleware.ts   Aiguillage des langues : /… → français, /en/… → anglais (D-22) ; /gestion à part, fermé sans témoin de session (D-32)
 app/            Pages et routes (Next.js App Router)
   api/          Routes serveur : contrats, contrats/signer, factures, documents, reservations, suivi/lien, suivi/solde, suivi/caution, taches, stripe/webhook
   [lang]/       TOUTES les pages, une fois par langue (fr, en) ; layout.tsx est la mise en page générale
@@ -75,6 +75,7 @@ app/            Pages et routes (Next.js App Router)
     suivi/        Page « Ma réservation » par lien secret (/suivi/{jeton}) et formulaire « Retrouver ma réservation » (/suivi)
     legal/        Mentions, CGV, confidentialité, cookies (texte français dans les deux langues)
     [...introuvable]/  Toute autre adresse : page introuvable dans la langue de l'adresse
+  gestion/      Le BACK-OFFICE (Phase 5, D-32), hors des langues : connexion, code, mot de passe, accueil, réglages, appareils ; actions.ts (formulaires), outils.ts (témoins, session)
   globals.css   Styles communs
 components/
   pdf/          Les quatre documents PDF (contrat, facture d'acompte, de solde, facture unique)
@@ -106,6 +107,7 @@ lib/
   reservations.ts  Chargement réservation + gîte joint, avec conversion en centimes
   gites-publics.ts Chiffres des gîtes pour les pages publiques (cache, dégradation)
   auth.ts       Vérification du secret service-à-service
+  gestion/      Back-office (D-32) : secrets.ts (scrypt, jetons, codes ; pur), connexion.ts (mot de passe, code, appareils, sessions, échecs par IP), reglages.ts (rubriques, bornes, alertes), journal.ts (audit_logs)
   i18n/         Langues (D-22) : liste, liens dans la bonne langue, balises hreflang
   data/         Contenu éditorial du site, en code et en deux langues (gîtes, récits, activités) — plus aucun prix
 db/
@@ -113,7 +115,7 @@ db/
   migrations/   Les SQL générés, numérotés. meta/ est le journal de Drizzle.
   seed.ts       Les trois gîtes. Idempotent.
   verify.ts     Auto-vérification complète, tout annulé par ROLLBACK.
-scripts/        Contrôles : verifier-centimes, verifier-tarification, verifier-blocage, verifier-paiement, -courriels, -suivi, -solde, -caution, -virement, -abandons ; verifier-production (base réelle, lecture seule)
+scripts/        Contrôles : verifier-centimes, verifier-tarification, verifier-blocage, verifier-paiement, -courriels, -suivi, -solde, -caution, -virement, -abandons, -gestion ; verifier-production (base réelle, lecture seule) ; gestion-compte (crée le compte du back-office)
 scripts/parcours/  Non-régression bout en bout (voir § 8)
 docs/           Le référentiel (ce dossier)
 public/         Servi tel quel par Next.js — dont public/logo.png
@@ -127,7 +129,7 @@ le dossier `admin/`. Les maquettes du back-office se récupèrent dans ce commit
 
 ---
 
-## 3. Modèle de données — les vingt tables
+## 3. Modèle de données — les vingt-six tables
 
 **Cœur métier — neuf tables exercées par le code**
 
@@ -144,14 +146,28 @@ le dossier `admin/`. Les maquettes du back-office se récupèrent dans ce commit
 | `textes_accord` | Le texte d'accord pour l'enregistrement de la carte, **une version par langue et par date** d'entrée en vigueur, avec qui l'a validé. Repères `{caution}`, `{ligne_solde}`, `{montant}`, `{date}`. | **Trigger d'immutabilité** · clé `(objet, langue, en_vigueur_depuis)` |
 
 | `courriels` | Le **journal des courriels** du site (lot 4, D-24) : une ligne par courriel et par destinataire, inscrite dans la transaction de l'événement (paiement, remboursement, signature, lien « Ma réservation » redemandé ; depuis la Phase 4, facture jointe en PDF, courriels du solde et de la caution, par carte et par virement), puis envoyée : statut (`a_envoyer`, `envoye`, `echec`), essais, échéance du prochain, voie (`brevo` ou `fichier`), sujet et texte envoyés. | **Index unique `cle`** : un événement constaté deux fois n'inscrit qu'un courriel · `envoye` exige date, voie et sujet |
-| `alertes` | Les trois alertes aux propriétaires (`reservation`, `signature`, `probleme`) : active ou non, destinataires. Créées par la migration 0006. | Une alerte active a au moins un destinataire |
+| `alertes` | Les alertes aux propriétaires (`reservation`, `signature`, `probleme` ; `caution` depuis la migration 0010) : active ou non, destinataires. Créées par les migrations ; modifiables dans le back-office (Réglages) depuis D-32. | Une alerte active a au moins un destinataire |
 
 **Tables provisoires — structure minimale, aucun code ne les exerce encore**
 
 | Table | Rôle prévu | Affinée en |
 |---|---|---|
 | `avis` | Les avis clients affichés sur le site. | Phase 6 |
-| `audit_logs` | Le journal des actions sensibles. Aucun trigger ne l'alimente. **Premier usage depuis D-31** : l'effacement automatique d'une tentative abandonnée (`action = 'effacement_tentative'`, référence et dates, ni nom ni courriel). | Phase 3 |
+| `audit_logs` | Le journal des actions sensibles. Aucun trigger ne l'alimente. **Premier usage depuis D-31** : l'effacement automatique d'une tentative abandonnée (`action = 'effacement_tentative'`, référence et dates, ni nom ni courriel). **Depuis D-32**, le back-office (`lib/gestion/journal.ts`) : compte créé, mot de passe changé, lien demandé, nouvel appareil, appareil retiré, adresse IP bloquée, réglage ou alerte modifiés (valeur avant et après) ; `acteur` = « gestion (Chrome sur Windows) », « commande » ou « visiteur ». Aucun écran ne le montre. | Phase 3 |
+
+**Back-office — six tables (Phase 5, lot 1, migration 0012, D-32)**
+
+| Table | Rôle | Garanties structurelles |
+|---|---|---|
+| `comptes_gestion` | Le compte du back-office (un seul, partagé) : adresse, empreinte scrypt du mot de passe (NULL tant qu'il n'est pas choisi par le lien). | `courriel` unique, en minuscules |
+| `appareils_gestion` | Les appareils reconnus : empreinte du jeton du témoin, description (« Chrome sur Windows »), dernière connexion. Reconnu tant qu'il s'est connecté dans les 30 derniers jours. | Jeton unique · effacé avec le compte · ses sessions partent avec lui (cascade) |
+| `sessions_gestion` | Les connexions ouvertes : empreinte du jeton, dernière activité. | Jeton unique · effacée avec l'appareil |
+| `codes_gestion` | Le code à 6 chiffres d'un appareil inconnu : empreinte du code et du jeton de l'étape, essais, échéance. | Jeton unique · essais ≥ 0 |
+| `liens_gestion` | Le lien pour choisir le mot de passe : empreinte du jeton, échéance, utilisation. Un nouveau lien annule le précédent. | Jeton unique |
+| `essais_gestion` | Les échecs par adresse IP et l'attente en cours. | Clé `ip` · échecs ≥ 0 |
+
+**Aucun secret en clair** dans ces tables : lire la base ne permet ni d'entrer
+ni de rejouer un lien.
 
 **Tarification — sept tables (Phase 3, lot 1 ; décisions D-17 et D-18)**
 
@@ -162,7 +178,7 @@ le dossier `admin/`. Les maquettes du back-office se récupèrent dans ce commit
 | `periodes` | Les plages de dates d'un tarif : première nuit incluse, jour de fin **exclu**. Règles et barème propres possibles. | **Contrainte d'exclusion `periodes_sans_chevauchement`** (migration 0003) : une nuit relève d'au plus un tarif · fin > début · un tarif utilisé ne se supprime pas |
 | `baremes` | Les barèmes de dégressivité. | `nom` unique |
 | `baremes_coefficients` | Une case de barème par **rang** de nuit (1 = première). Une ligne par rang plutôt qu'un tableau : le pilote pg lit un tableau de numeric en flottants. | Clé `(bareme_id, rang)` · rang ≥ 1 · coefficient > 0 · rangs consécutifs contrôlés à la lecture |
-| `reglages` | **Une seule ligne** (id = 1), créée par la migration 0003 : règle générale (nuits minimum, jours d'arrivée et de départ), barème général, jour de début attendu des périodes ; depuis la migration 0004, les réglages du tunnel : durée du blocage (20 min), délai minimum avant l'arrivée (1 jour), horaires (18 h, 9 h, 20 h), bébés (âge 2 ans, 1 hors capacité, 1 lit) ; depuis la migration 0005, le paiement : taux d'acompte (30 %), délai du solde (30 jours), délai du virement de caution (3 jours avant l'arrivée) ; depuis la migration 0006, les adresses des courriels ; depuis la migration 0007, la page « Ma réservation » : validité du lien (30 jours après le départ), demandes de lien (3 par 60 minutes et par adresse), lues à chaque affichage ; depuis la migration 0008 (D-26), le délai de remboursement du solde (48 heures avant l'arrivée, recopié sur la réservation) et la note des avis de l'accueil (4,97/5, 46 avis, 100 % ; vide = masquée) ; depuis la migration 0009 (D-28), les délais des courriels du solde : préavis et lien 7 jours avant la date limite, rappel la veille, seconde alerte 3 jours après l'impayé, lus à chaque passage ; depuis la migration 0010 (D-30), les heures de la caution : préautorisation 18 h la veille du départ, alerte et levée 8 h (levée avant midi, imposé) ; depuis la migration 0011 (D-31), le compte qui reçoit la caution par virement (titulaire, IBAN, BIC ; **vide** jusqu'à la saisie), le jour du courriel des coordonnées (10 jours avant la date limite) et la durée de conservation des tentatives abandonnées (**vide** : rien n'est effacé). | `id = 1` imposé · son absence est une panne, jamais comblée par des valeurs par défaut · bornes sur chaque réglage |
+| `reglages` | **Une seule ligne** (id = 1), créée par la migration 0003 : règle générale (nuits minimum, jours d'arrivée et de départ), barème général, jour de début attendu des périodes ; depuis la migration 0004, les réglages du tunnel : durée du blocage (20 min), délai minimum avant l'arrivée (1 jour), horaires (18 h, 9 h, 20 h), bébés (âge 2 ans, 1 hors capacité, 1 lit) ; depuis la migration 0005, le paiement : taux d'acompte (30 %), délai du solde (30 jours), délai du virement de caution (3 jours avant l'arrivée) ; depuis la migration 0006, les adresses des courriels ; depuis la migration 0007, la page « Ma réservation » : validité du lien (30 jours après le départ), demandes de lien (3 par 60 minutes et par adresse), lues à chaque affichage ; depuis la migration 0008 (D-26), le délai de remboursement du solde (48 heures avant l'arrivée, recopié sur la réservation) et la note des avis de l'accueil (4,97/5, 46 avis, 100 % ; vide = masquée) ; depuis la migration 0009 (D-28), les délais des courriels du solde : préavis et lien 7 jours avant la date limite, rappel la veille, seconde alerte 3 jours après l'impayé, lus à chaque passage ; depuis la migration 0010 (D-30), les heures de la caution : préautorisation 18 h la veille du départ, alerte et levée 8 h (levée avant midi, imposé) ; depuis la migration 0011 (D-31), le compte qui reçoit la caution par virement (titulaire, IBAN, BIC ; **vide** jusqu'à la saisie), le jour du courriel des coordonnées (10 jours avant la date limite) et la durée de conservation des tentatives abandonnées (**vide** : rien n'est effacé) ; depuis la migration 0012 (D-32), la connexion au back-office : appareil reconnu 30 jours après sa dernière connexion, 8 heures d'inactivité, 5 échecs puis 15 minutes, code 10 minutes, lien 60 minutes. | `id = 1` imposé · son absence est une panne, jamais comblée par des valeurs par défaut · bornes sur chaque réglage |
 | `taxes_sejour` | Les réglages de taxe de séjour, **par gîte et datés** : mode, taux, plafond, tarif fixe, taxe additionnelle, ménage dans l'assiette, bébés parmi les occupants, source. | Clé `(gite_id, date_debut)` · paramètres requis selon le mode |
 
 En base réelle, ces tables sont **vides** jusqu'à la saisie par les
@@ -289,6 +305,7 @@ permettrait de lire n'importe quel fichier du serveur.
 | `POST /api/suivi/solde` | Le jeton secret de « Ma réservation » | Ouvre (ou réutilise) le paiement du solde et renvoie son secret au navigateur (D-28). `200` · `400` · `404` lien non valable (même réponse pour tout jeton inconnu) · `409` rien à payer maintenant (payé, prélèvement prévu, en cours) · `503` paiement indisponible |
 | `POST /api/suivi/caution` | Le jeton secret de « Ma réservation » | Rouvre la préautorisation refusée pour que le client la valide, ou ouvre l'enregistrement d'une carte (art. 6.6), et renvoie son secret au navigateur (D-30). `200` · `400` · `404` lien non valable · `409` rien à valider (déjà bloquée, plus due) · `503` paiement indisponible |
 | `POST /api/taches` | En-tête `x-taches-secret` = `TACHES_SECRET` (tâche programmée de Coolify) | Un passage des tâches automatiques (le solde, D-28 ; la caution, D-30), puis l'envoi des courriels dus. `200` bilan, ou `{ occupe: true }` si un passage est en cours · `401` · `503` secret ou `NEXT_PUBLIC_SITE_URL` absents · `500` passage interrompu |
+| `/gestion/…` (pages) | **Témoin de session** `gestion_session` (`httpOnly`, `SameSite=Strict`, chemin /gestion), relu en base par chaque page et chaque action ; sans lui, le middleware renvoie à `/gestion/connexion`. Connexion, code, mot de passe et « mot de passe oublié » sont ouverts | Le back-office (D-32) : connexion par mot de passe, code par courriel sur un appareil inconnu, réglages, appareils. Formulaires par actions serveur : Next refuse une action dont l'en-tête Origin n'est pas celui du site. `X-Robots-Tag: noindex`, `no-store`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`. L'adresse IP des échecs est la dernière de `X-Forwarded-For`, comme ci-dessous |
 | `POST /api/stripe/webhook` | **Signature Stripe** (`STRIPE_WEBHOOK_SECRET`) sur le corps brut | Même constat que la page de retour, idempotent ; depuis D-30 aussi la caution bloquée, la carte enregistrée (`setup_intent.*`) et le paiement contesté (alerte « À TRAITER »). `200` · `400` signature invalide · `500` à reprendre (Stripe renvoie l'avis) · `503` secret absent |
 
 **Pourquoi trois régimes différents.** Les routes d'émission frappent des
@@ -390,9 +407,10 @@ complet produit les bons montants sur les bons documents**.
 | Caution par carte | `DB_CIBLE=test npm run verify:caution` | 67 cas, prestataire et messagerie **simulés**, le temps fixé : montant figé (le gîte peut changer le sien), préautorisation la veille à 18 h et pas avant, une seule ; courriels du jour même ; alerte la veille de la levée ; levée au troisième jour, réservation terminée, carte effacée ; refus et authentification exigée (un seul lien, pas de nouvel essai, validation sur le même paiement, courriels devenus faux non envoyés) ; montant absent ; réponse perdue, avis en avance, 20 heures ; retenue dans Stripe ; annulée, caution à 0 €, 7 jours ; article 6.6 ; passage manqué ; contestation. `--stripe` : **Stripe en mode test, trois cartes** (normale, 3184, refusée), carte détachée. `--http` : la route de validation et la page |
 | Caution par virement | `DB_CIBLE=test npm run verify:virement` | 47 cas, messagerie **simulée**, le temps fixé : contrôle de l'IBAN ; courriel des coordonnées 10 jours avant la date limite et une seule fois, son texte (compte, référence, mise en garde contre les faux RIB, RIB demandé, restitution) ; coordonnées sur « Ma réservation » jusqu'à la date limite ; alertes « à vérifier » et « à rendre » à 8 h ; séjour terminé au troisième jour ; compte absent ou IBAN faux (alerte « À TRAITER ») ; passage manqué ; anglais ; chèque ; réservation annulée ; tunnel qui refuse le virement après sa date limite |
 | Tentatives abandonnées | `DB_CIBLE=test npm run verify:abandons` | 22 cas, prestataire **simulé** : durée vide (rien n'est effacé) ; durée de 7 jours (effacée avec paiements, nuits et fiche client, trace sans nom ni courriel ; 6 jours gardée) ; payée non constatée, remboursée, confirmée jamais touchées ; fiche client impossible à supprimer ; retour en arrière |
+| Back-office | `DB_CIBLE=test npm run verify:gestion` | 97 cas, messagerie **simulée** : empreinte du mot de passe, codes, appareils ; création du compte (lien, aucun jeton en clair) ; mot de passe trop court, différent, lien usé ; connexion, code par courriel (texte), mauvais code, autre navigateur, appareil reconnu ; 29, 31 et 200 jours ; 7 et 9 heures d'inactivité ; 5 échecs par IP puis 15 minutes, autre IP libre ; 5 mauvais codes, code expiré ; retirer un appareil ; mot de passe oublié ; tout déconnecté après un changement ; réglages (bornes, champs liés, IBAN, BIC, journal avant/après, alerte « compte de virement modifié » et son texte, conditions du contrat intouchables) ; alertes. Avec `--http` (dans `lancer.sh`), 10 de plus : `/gestion` fermé sans session et non indexé, témoin inventé refusé, réglages et appareils ouverts avec une session |
 | Base réelle | `npm run verify:production` | **Lecture seule**, sans `DB_CIBLE` : migrations manquantes, vérifications préalables aux migrations 0009 et 0010, compteurs de numérotation et numéros émis, contenu, réglages. OK, INFO, A VOIR, BLOQUANT ; code de sortie 1 si un point est bloquant. Hors de `lancer.sh` |
 | Base | `npm run db:verify` | Tables, colonnes, seed, fonctions de numérotation, triggers, index uniques, contraintes de tarification, du calendrier et du paiement, immutabilité du texte d'accord, stockage. **Tout est annulé par ROLLBACK** : aucun numéro consommé |
-| Bout en bout | `bash scripts/parcours/lancer.sh` | Les dix-huit étapes : les contrôles ci-dessus, puis le parcours complet — contrat, signature, factures, idempotence, refus attendus, accès aux PDF, contrôles en base **et** sur les PDF produits. Les étapes « blocage » et « paiement » exigent les clés Stripe de test |
+| Bout en bout | `bash scripts/parcours/lancer.sh` | Les dix-neuf étapes : les contrôles ci-dessus, puis le parcours complet — contrat, signature, factures, idempotence, refus attendus, accès aux PDF, contrôles en base **et** sur les PDF produits. Les étapes « blocage » et « paiement » exigent les clés Stripe de test |
 
 **Les deux réservations de test** (`scripts/parcours/reference.ts`) sont
 complémentaires :

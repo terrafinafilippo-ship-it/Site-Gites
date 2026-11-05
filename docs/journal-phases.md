@@ -1561,6 +1561,100 @@ la base réelle :
 
 ---
 
+## Phase 5 — ouverture et lot 1 : la connexion et les réglages (3 et 4 novembre 2026)
+
+### Ce qui a été décidé
+
+Cadrage de la phase le 3 novembre 2026 : quinze questions sur l'exemple de
+Camille, puis six de plus (statistiques, durées, alerte du compte, conditions
+du contrat, texte d'accord, limites). Réponses consignées dans
+`docs/phases/phase-5.md` (« Cadrage du 3 novembre 2026 ») ; décision D-32.
+L'essentiel : un seul compte partagé, mot de passe plus un code sur un appareil
+inconnu (30 jours glissants), journal gardé, rien n'est vendu en options, bons
+cadeaux reportés, travaux gérés par le blocage des nuits, seed « création
+seule », annulation et avoir dans un lot à part après le comptable, page de
+statistiques à part. La phase compte six lots.
+
+### Défauts trouvés dans le code avant d'écrire
+
+- **Aucune authentification n'existait** : seul un secret service-à-service
+  protégeait les routes d'émission.
+- **Aucune annulation par les propriétaires** dans aucune phase, alors que les
+  factures partent au paiement : rembourser un client laisse une facture sans
+  avoir. Ajouté : point 19 de la liste, lot 5.
+- **La fiche de phase était en partie dépassée** : le drapeau `actif` refuse
+  déjà la réservation en ligne ; l'alerte « virement pas arrivé » et le compte
+  du virement existent depuis la Phase 4.
+- **`db:seed` écrase les fiches des gîtes** : à traiter au lot 4 (réponse 11A).
+- **Le point 1 (libellé des options)** visait un cas qui n'existe pas : aucune
+  option n'est vendue ; levé, E-5 sans objet.
+- Trouvé en écrivant : la limite du tunnel lit la **dernière** adresse de
+  X-Forwarded-For (celle du proxy), la signature la **première** ; le
+  back-office suit le tunnel. L'écart de la signature reste le point 2.
+
+### Ce qui a été fait
+
+- **Migration 0012** : six tables de connexion (`db/schema/gestion.ts`), six
+  réglages `gestion_*` et leurs bornes.
+- **`lib/gestion/`** : `secrets.ts` (scrypt N = 2^17, jetons, codes, appareil
+  lisible), `connexion.ts` (mot de passe, code, appareils reconnus 30 jours
+  glissants, sessions de 8 heures, échecs par adresse IP, lien du mot de passe,
+  ménage à chaque connexion), `reglages.ts` (dix rubriques, bornes, champs
+  liés, IBAN, alertes, lecture seule), `journal.ts` (`audit_logs`).
+- **`app/gestion/`** : connexion, code, mot de passe oublié, choix du mot de
+  passe, accueil provisoire, réglages, appareils ; actions serveur ; témoins
+  `httpOnly`, `SameSite=Strict`, chemin /gestion. **`middleware.ts`** : /gestion
+  hors des langues, fermé sans témoin, en-têtes `noindex`, `no-store`,
+  `DENY`, `no-referrer`.
+- **Courriels** : code de connexion et lien du mot de passe (envoyés tout de
+  suite, hors du journal des courriels) ; alerte « À TRAITER — le compte de
+  virement a été modifié » ; l'alerte « coordonnées bancaires absentes » renvoie
+  désormais aux réglages du back-office.
+- **`npm run gestion:compte`** : crée le compte et envoie le lien.
+- **Contrôles** : `verify:gestion` (97 cas, 10 de plus avec `--http`),
+  `db:verify` section 6k (8 contrôles), une étape de plus dans `lancer.sh`.
+
+### Ce qui a été vérifié
+
+Sur la base PostgreSQL jetable du poste (port 55433, `gites_essai`), jamais sur
+la base réelle :
+- `npm run lint`, `npx tsc --noEmit`, `npm run build` : passent.
+- `npm run db:verify` : 205 contrôles, 0 échec.
+- Les formulaires par le serveur, comme un navigateur sans JavaScript (curl) :
+  connexion, code reçu dans le fichier du courriel, témoins posés avec leurs
+  protections, accueil, action refusée depuis une autre origine, déconnexion,
+  ancien témoin refusé ; une rubrique des réglages refusée (0 minute) puis
+  enregistrée (21 minutes, journal avant/après), remise à 20.
+- `bash scripts/parcours/lancer.sh` : **dix-neuf étapes sur dix-neuf**, code de
+  sortie 0 — centimes 51, tarification 192, blocage 42, paiement 69 (Stripe en
+  mode test compris), courriels 41, « Ma réservation » 22, solde 62, caution
+  86 (trois cartes Stripe comprises), virement 47, abandons 22, **back-office
+  107**, parcours L'Armu et LaPhine 0 échec, URL signées 0 échec, contrôles en
+  base 81/0, contrôles PDF 112 OK, `db:verify` 205/0. Aucun montant de
+  `reference.ts` n'a bougé.
+
+### Ce qui n'a PAS été vérifié
+
+- **Les écrans dans un navigateur** (mise en page, téléphone) : leur contenu et
+  leurs formulaires sont contrôlés, pas leur aspect.
+- **Un vrai courriel de code** reçu à contact@ par Brevo.
+- **L'en-tête X-Forwarded-For écrit par Traefik** sur le serveur (comme pour
+  le tunnel) : sans lui, les échecs de tous les visiteurs se cumulent.
+- **La base réelle** : la migration 0012 s'ajoute aux migrations en attente.
+
+### Points reportés
+
+- **Appliquer les migrations 0002 à 0012**, puis **créer le compte**
+  (`npm run gestion:compte -- contact@gitesdesamoyas.fr`) et **saisir le compte
+  du virement** dans le back-office : le gérant (point 4).
+- **Les questions au comptable** (avoir, retenue de caution) : avant le lot 5
+  (point 19).
+- **La commission de comparaison** (statistiques) : un réglage du lot 6.
+- Les textes des pages et des courriels du back-office, proposés le 3 et le
+  4 novembre, ont été **validés par le gérant le 6 novembre 2026**.
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

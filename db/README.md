@@ -23,6 +23,7 @@ main dans un outil graphique.
 | `migrations/0009_solde.sql` | Phase 4, lot 1 : délais des courriels du solde en réglages, courriels de la facture et du solde, une seule facture de chaque type par réservation (D-28, D-29). **Vérification préalable** sur une base existante : voir plus bas. |
 | `migrations/0010_caution.sql` | Phase 4, lot 2 : caution figée sur la réservation, préautorisation dans `paiements`, heures de la caution en réglages, courriels et alerte de la caution (D-30). **Vérification préalable** sur une base existante : voir plus bas. |
 | `migrations/0011_virement.sql` | Phase 4, lot 3 : compte qui reçoit la caution par virement (titulaire, IBAN, BIC, **vides**), jour du courriel des coordonnées (10 jours avant la date limite), durée de conservation des tentatives abandonnées (**vide** : rien n'est effacé), courriel `caution_virement` (D-31). |
+| `migrations/0012_gestion.sql` | Phase 5, lot 1 : connexion au back-office — compte, appareils reconnus, sessions, codes, liens du mot de passe, échecs par adresse IP (jetons et codes en empreinte seulement) ; six réglages de connexion (30 jours, 8 heures, 5 échecs, 15 minutes, code 10 minutes, lien 60 minutes) (D-32). **Aucun compte n'est créé** : voir « Le compte du back-office » plus bas. |
 | `index.ts` | Le client de base de données partagé par le site (pool de 10 connexions maximum). |
 | `seed.ts` | Insère ou remet à jour les trois gîtes. |
 | `verify.ts` | Auto-vérification complète, sans rien laisser en base. |
@@ -82,8 +83,11 @@ commitée.
   l'arrivée, horaires, bébés) ; depuis la migration 0005, ceux du paiement
   (taux d'acompte, délai du solde, délai du virement de caution) ; ensuite
   les courriels, la page « Ma réservation », l'annulation, le solde, la
-  caution et, depuis la migration 0011, le compte du virement et la durée de
-  conservation des tentatives (le détail : `docs/04-architecture.md` § 3).
+  caution, depuis la migration 0011 le compte du virement et la durée de
+  conservation des tentatives, depuis la migration 0012 la connexion au
+  back-office (le détail : `docs/04-architecture.md` § 3). Depuis la Phase 5,
+  la plupart se modifient dans le back-office (Réglages), chaque changement
+  noté dans `audit_logs`.
 - **taxes_sejour** : les réglages de taxe de séjour, par gîte et datés.
 
 **Calendrier** (forme définitive en Phase 3, lot 2 — décision D-21)
@@ -214,8 +218,9 @@ Sans `DB_CIBLE`, par le tunnel SSH. Le script travaille dans une transaction
 manquent, refait les deux vérifications ci-dessous (0009 et 0010), compare les
 compteurs de numérotation aux numéros déjà émis, compte le contenu et lit les
 réglages. Chaque ligne est OK, INFO, A VOIR ou BLOQUANT ; **un point BLOQUANT
-interdit d'appliquer les migrations** (code de sortie 1). Au 2 novembre 2026,
-la base réelle et `gites_test` du serveur sont à la migration 0001.
+interdit d'appliquer les migrations** (code de sortie 1). Au 4 novembre 2026,
+la base réelle et `gites_test` du serveur sont à la migration 0001 (onze
+migrations en attente, 0002 à 0012).
 
 ### Avant d'appliquer la migration 0009 sur une base existante
 
@@ -248,6 +253,19 @@ select r.reference, g.caution as caution_du_gite, d.numero as contrat
 Pour chaque ligne qui a un contrat : comparer avec le montant imprimé au
 contrat, et prévenir le développeur en cas d'écart (une migration de
 correction, jamais une modification de la 0010).
+
+## Le compte du back-office
+
+```bash
+npm run gestion:compte -- contact@gitesdesamoyas.fr
+```
+
+Crée le compte (une **écriture** : sur la base réelle, c'est le gérant qui la
+lance) et envoie à cette adresse le lien pour choisir le mot de passe, valable
+une heure. Le lien pointe vers `NEXT_PUBLIC_SITE_URL`, obligatoire. Relancée sur
+un compte existant, la commande n'envoie qu'un nouveau lien : le mot de passe
+actuel reste valable tant que le lien n'est pas utilisé. Le mot de passe ne
+passe jamais par la commande (D-32).
 
 ## Relancer le seed
 

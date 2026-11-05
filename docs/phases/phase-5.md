@@ -1,6 +1,8 @@
 # Phase 5 — Back-office Patricia et Nicolas
 
-> Fiche à **compléter à l'ouverture de la phase**. Ce qui suit est le cadre.
+> **État au 4 novembre 2026 :** phase **ouverte** le 3 novembre ; **lot 1
+> construit** (connexion et réglages, D-32). Lots 2 à 6 à faire. Le cadrage est
+> en fin de fiche ; il prime sur le cadre initial là où ils diffèrent.
 
 **Dépendances :** Phase 2 close. **Parallélisable** avec les phases 3 et 4 : ne
 dépend que de la lecture en base, pas du paiement.
@@ -134,3 +136,63 @@ d'afficher une fiche quand la base ne répond pas. `lib/gites-publics.ts`
 journalise une ligne `INCOHÉRENCE` si les valeurs divergent. Si le back-office
 rend ces champs modifiables, il faudra reporter la modification dans le code —
 ou décider que la fiche dégradée n'affiche plus de nom.
+
+---
+
+## Cadrage du 3 novembre 2026
+
+Réponses du gérant, sur l'exemple de Camille (L'Armu, du 20 au 27 mars 2027,
+contrat signé, facture d'acompte émise).
+
+| # | Question | Réponse |
+|---|---|---|
+| 1 | Ordre des lots | **A** : connexion et réglages d'abord |
+| 2 | Connexion | **C** : mot de passe, plus un code par courriel sur un appareil inconnu |
+| 3 | Comptes | **Un seul compte, partagé** ; le journal est gardé (invisible) |
+| 4 | Adresse | **A** : `/gestion`, français, non indexé |
+| 5 | Modifier une réservation | **A** : seulement ce qui n'est pas sur un document émis (téléphone, courriel, note interne) ; dates ou prix : annuler et refaire |
+| 6 | Annulation | **A** : construite dans cette phase, lot à part, après la réponse du comptable sur l'avoir ; point à ajouter à la liste avant le premier client |
+| 7 | Retenue de caution | **A** : justificatifs en pièces jointes (10 Mo au plus), gardés sur le serveur ; facture ou non : question au comptable |
+| 8 | Options | **Rien n'est vendu aujourd'hui** ; une session dédiée le jour où ce sera le cas |
+| 9 | Bons cadeaux | **A** : reportés après l'ouverture |
+| 10 | Gîte fermé (travaux) | **On bloque les nuits des travaux dans le calendrier**, d'un geste, du premier au dernier jour ; les dates suivantes restent réservables, un retard se gère à la main. L'interrupteur « ouvert à la vente » n'est pas proposé |
+| 11 | Le seed | **A** : `db:seed` ne crée que les gîtes absents, ne touche jamais un gîte existant |
+| 12 | Fiche d'un gîte | **A** : capacité, ménage, caution, équipements, téléphone d'arrivée, spa ; nom et référence GdF fixes ; textes et photos en Phase 6 |
+| 13 | Réservation par téléphone | **A** : bloquer les nuits, puis envoyer réserver en ligne |
+| 14 | Solde payé autrement | **A** : un bouton « solde reçu par virement ou chèque », qui émet la facture de solde |
+| 15 | Accueil | **A**, plus une **page de statistiques à part** |
+| S | Statistiques | **Toutes** : nuits louées par gîte et par mois ; encaissé par mois et par gîte (hors taxe) ; taxe de séjour sur une période ; nombre, durée moyenne, délai de réservation ; provenance ; cautions retenues ; commissions évitées (un seul taux, en réglage) |
+| D | Durées de connexion | 30 jours **glissants** depuis la dernière connexion ; 8 heures d'inactivité |
+| V | Alerte quand le compte de virement change | **Oui** |
+| P | Conditions du contrat en réglage | **A** : affichées, pas modifiables |
+| T | Texte d'accord | **A** : affiché avec ses versions, pas modifiable |
+| E | Limites | 5 échecs puis 15 minutes ; code de 6 chiffres, 10 minutes ; lien 1 heure, une fois |
+
+**Ce que le cadrage change au cadre initial :**
+- point 6 (bons cadeaux) : **reporté** ;
+- point 7 (libellé des options) : **sans objet** tant que rien n'est vendu — la
+  ligne « Options » ne s'imprime que si elle vaut plus de 0 €, le tunnel écrit
+  toujours 0 et le back-office n'en propose pas ; le parcours garde sa
+  réservation d'essai à 25,50 € pour le jour où ;
+- point 9 : l'alerte « virement pas arrivé » existe depuis la Phase 4 (lot 3) ;
+- le drapeau `actif` refuse déjà la réservation en ligne (`lib/tunnel.ts`) ; il
+  n'est pas exposé (réponse 10) ;
+- **ajout** : l'annulation par les propriétaires, le remboursement et l'avoir
+  (réponse 6), absents de toutes les phases.
+
+**Les lots :**
+
+| Lot | Contenu | État |
+|---|---|---|
+| 1 | Connexion (D-32) et réglages | **construit le 4 novembre 2026** |
+| 2 | Réservations, cautions (libérer, retenir, chèque et virement reçus et rendus, lien de caution), solde reçu autrement, accueil « à traiter » | à faire |
+| 3 | Tarifs (lève le point 11) | à faire |
+| 4 | Calendrier (blocage par période), fiches des gîtes, documents, seed « création seule » | à faire |
+| 5 | Annulation et avoir | après la réponse du comptable |
+| 6 | Statistiques | à faire |
+
+**Questions au comptable** (le lot 5 en dépend) :
+1. quand un client annule et que sa facture d'acompte est déjà émise, quelle
+   forme doit avoir l'avoir (montant, mentions, suite de numéros à part ou
+   commune) ?
+2. une retenue sur la caution donne-t-elle lieu à une facture ?

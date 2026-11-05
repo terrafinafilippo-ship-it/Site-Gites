@@ -18,7 +18,7 @@ lettres.
 | E-2 | Deux médiateurs annoncés ; adhésion non prouvée | Bloquant | 6 | Les propriétaires |
 | E-3 | Aucune règle sauna dans le contrat, alors que le consentement en fait accepter | Bloquant | 6 | Développement |
 | E-4 | Caution par préautorisation Stripe décrite au contrat et sur le site, pas encore développée | Bloquant | 4 | Stripe (deux confirmations) + juriste + développement |
-| E-5 | Options facturées sous un intitulé générique | Bloquant | 5 | Développement |
+| ~~E-5~~ | ~~Options facturées sous un intitulé générique~~ — **sans objet depuis le 3 novembre 2026** : aucune option vendue | — | — | — |
 | E-6 | Adresse IP du signataire falsifiable | Bloquant | Déploiement | Développement |
 | E-7 | Identité légale recopiée en dur dans les PDF, hors de `lib/constantes.ts` | Faible | 6 | Développement |
 | E-8 | « La semaine, tout compris » alors que ménage, taxe de séjour et caution s'ajoutent | Faible | 6 | **Les propriétaires** + développement |
@@ -93,6 +93,11 @@ détail des postes (location, forfait ménage, options, taxe de séjour), total 
 produits et contrôle que chaque montant attendu y figure et que **les lignes
 s'additionnent jusqu'au sous-total**. Le contrôle visuel (`--png`) reste
 nécessaire : un PDF peut être exact et illisible.
+
+**Écart E-5 — sans objet depuis le 3 novembre 2026** (cadrage de la Phase 5,
+réponse 8) : les propriétaires ne vendent aucune option ; la ligne ne s'imprime
+qu'au-delà de 0 €, le tunnel écrit 0 et le back-office n'en propose pas. Il
+redevient bloquant le jour où une option est vendue. Le constat d'origine :
 
 **Écart E-5 (bloquant, Phase 5).** La table `reservations` porte un **montant**
 d'options mais **aucun libellé**. Les documents affichent l'intitulé générique
@@ -223,6 +228,19 @@ bancaires : **le site ne le stocke pas**. Il reste dans la boîte contact@,
 dont la durée de conservation relève de la même question (point 12) ; il
 n'est pas cité à l'article 14.2 du contrat, à signaler au juriste avec
 l'article 6.
+
+**Accès des propriétaires : le back-office (Phase 5, lot 1, D-32).** Les
+coordonnées de tous les clients sont lisibles depuis `/gestion` : c'est la
+mesure de sécurité de l'article 32 du RGPD qui compte le plus ici. Mot de
+passe (empreinte scrypt), plus un code reçu par courriel sur tout appareil
+inconnu ; session fermée après 8 heures sans activité ; échecs limités par
+adresse IP ; témoins inaccessibles aux scripts et jamais envoyés depuis un
+autre site ; pages non indexées et jamais mises en cache. Aucun secret n'est
+gardé en clair en base. Les gestes sensibles sont notés dans `audit_logs` (ni
+mot de passe, ni code ; l'adresse IP de l'appareil, qui est une donnée
+personnelle des propriétaires). Le compte est partagé par trois personnes :
+la boîte contact@, qui reçoit le lien et le code, est la vraie clé d'accès.
+Contrôle : `verify:gestion`.
 
 **Page « Ma réservation » (Phase 3, lot 4, D-25).** Les données d'un séjour
 (adresse du gîte, dates, montants, contrat signé) sont montrées à qui détient

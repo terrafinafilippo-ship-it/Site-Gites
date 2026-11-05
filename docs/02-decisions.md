@@ -1455,6 +1455,88 @@ une durée de conservation, à décider avec le juriste.
 
 ---
 
+## D-32 · Le back-office : un compte partagé, un code sur un appareil inconnu, des réglages sous journal
+
+**Date :** 3 novembre 2026 (cadrage de la Phase 5), construit le 4 novembre
+(lot 1). Choix du gérant :
+- **un seul compte**, partagé par Patricia, Nicolas et le gérant (réponse à la
+  question 3 : « on utilisera le même accès ») ;
+- **mot de passe, plus un code reçu par courriel la première fois sur un
+  appareil inconnu** (2C). Un appareil reste reconnu **tant qu'il s'est connecté
+  dans les 30 derniers jours** : chaque connexion relance le délai, même si le
+  dernier code date de plus longtemps (réponse D). Après **8 heures sans
+  activité**, on retape le mot de passe, sans code ;
+- **5 échecs, puis 15 minutes d'attente** ; code valable 10 minutes, lien du
+  mot de passe 1 heure, une seule fois (réponse E) ;
+- à l'adresse **/gestion**, en français, invisible des moteurs (4A) ;
+- un **journal** des gestes sensibles, invisible, gardé (3A, après explication :
+  avec un compte partagé il ne dit pas qui, mais quoi, quand, avant et après,
+  depuis quel appareil) ;
+- une **alerte « À TRAITER » quand le compte de virement change** (V) ;
+- les **conditions du contrat** (acompte 30 %, solde 30 jours, virement de la
+  caution 3 jours, remboursement 48 heures) **affichées, pas modifiables** (P = A) ;
+- le **texte d'accord** pour la carte affiché avec ses versions, pas modifiable
+  (T = A).
+
+**Décision.**
+- **Tables** (migration 0012, `db/schema/gestion.ts`) : `comptes_gestion`,
+  `appareils_gestion`, `sessions_gestion`, `codes_gestion`, `liens_gestion`,
+  `essais_gestion` ; six réglages `gestion_*`. Plusieurs comptes restent
+  possibles : en ajouter un ne demande pas de tout refaire.
+- **Aucun secret en clair** : mot de passe en scrypt (N = 2^17, `node:crypto`,
+  aucune dépendance), jetons et codes en empreinte SHA-256. Lire la base ne
+  permet ni d'entrer ni de rejouer un lien.
+- **Le compte se crée par une commande** (`npm run gestion:compte -- adresse`),
+  qui envoie le lien pour choisir le mot de passe : le mot de passe ne passe
+  jamais par une commande ni par une conversation. « Mot de passe oublié »
+  envoie le même lien. Choisir un mot de passe **déconnecte tout et oublie tous
+  les appareils**.
+- **Les échecs se comptent par adresse IP**, pas par compte : sinon n'importe qui
+  bloquerait le compte en tapant de faux mots de passe à l'adresse publique
+  contact@. L'adresse est la dernière de X-Forwarded-For, celle qu'écrit le
+  proxy de Coolify (même règle que la limite du tunnel). Une demande de lien
+  compte comme un échec (pas de rafale).
+- **Témoins** `httpOnly`, `SameSite=Strict`, chemin /gestion, `Secure` en
+  production. Le middleware renvoie à la connexion sans témoin et pose
+  `X-Robots-Tag: noindex`, `no-store`, `X-Frame-Options: DENY`,
+  `Referrer-Policy: no-referrer` ; chaque page et chaque action relit la session
+  en base. Next refuse une action venue d'un autre site (en-tête Origin).
+- **Les courriels du code et du lien partent tout de suite**, sans passer par le
+  journal des courriels : ils portent un secret qui ne doit pas dormir en base.
+  Si Brevo ne répond pas, la page le dit.
+- **Réglages** (`lib/gestion/reglages.ts`) : dix rubriques modifiables, chacune
+  enregistrée à part, avec les bornes de la base dites en clair ; destinataires
+  des alertes ; trois blocs en lecture seule. Chaque changement écrit dans
+  `audit_logs` la valeur avant et après. Changer les avis relit le site public
+  (`revalidateTag('gites')`).
+
+**Pourquoi.** Le back-office ouvre les coordonnées de tous les clients et la
+caution : un mot de passe deviné ne doit pas suffire depuis un ordinateur
+inconnu. Le code n'est demandé qu'aux appareils nouveaux ou oubliés, pour ne pas
+gêner trois personnes qui se connectent souvent.
+
+**Ce qui pourrait mal tourner.**
+- **Brevo en panne** : un appareil inconnu ne peut pas entrer (les appareils
+  reconnus, si).
+- **La boîte contact@ compromise** : elle reçoit le lien et le code. Qui la lit
+  peut choisir un nouveau mot de passe, puis recevoir le code : **la boîte
+  contact@ est la vraie clé du back-office**. Son mot de passe chez OVH doit
+  être fort et ne servir nulle part ailleurs. L'alerte « compte de virement
+  modifié » part dans cette même boîte.
+- **Un mot de passe partagé** se change pour trois ; un appareil perdu se retire
+  dans « Appareils » sans le changer.
+- **Si le proxy n'écrit pas X-Forwarded-For** (à vérifier au déploiement, comme
+  pour le tunnel), tous les visiteurs partagent une adresse : cinq faux mots de
+  passe de n'importe qui bloquent alors tout le monde 15 minutes. Le code reste
+  exigé sur un appareil inconnu.
+
+**Si on revient dessus.** Les durées et les limites : des réglages. Des comptes
+séparés : les tables le permettent ; il faut un écran pour les créer, et le
+journal dira alors qui. Rendre modifiables les conditions du contrat ou le texte
+d'accord : une session dédiée (contrat, pages du site, nouvelle version du texte).
+
+---
+
 ## Décisions ouvertes
 
 Elles ne sont **pas tranchées** et ne doivent pas l'être dans le code.

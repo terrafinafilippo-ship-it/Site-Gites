@@ -4,14 +4,16 @@
 > **seul** domicile de cette liste : elle ne doit être recopiée nulle part
 > ailleurs (voir `docs/05-protocole-phase.md`, règle 1).
 
-Dix-huit points à traiter **avant qu'un vrai client signe un vrai contrat**. Aucun
+Dix-huit points à traiter **avant qu'un vrai client signe un vrai contrat** (le
+point 1 est levé depuis le 3 novembre 2026, le point 19 ajouté le même jour ;
+les numéros ne changent pas, d'autres documents les citent). Aucun
 n'empêche le logiciel de fonctionner : ils empêchent qu'il fonctionne
 **correctement le jour où il compte**.
 
 ## Qui peut lever un point
 
-Quatorze des dix-huit points **ne se résolvent pas, ou pas entièrement, dans le
-dépôt** (3, 4, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17 et 18). Sans cette
+Quinze des dix-huit points **ne se résolvent pas, ou pas entièrement, dans le
+dépôt** (3, 4, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 et 19). Sans cette
 précision, une session future les lira comme des tâches techniques et cherchera
 la réponse au mauvais endroit — dans le code, où elle n'est pas.
 
@@ -27,7 +29,7 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 
 | # | Point | Qui peut lever | Quand |
 |---|---|---|---|
-| 1 | Nommer les options sur les documents | Développement | Phase 5 |
+| ~~1~~ | ~~Nommer les options sur les documents~~ — **levé le 3 novembre 2026** (aucune option vendue) | — | — |
 | 2 | Rendre l'adresse IP du signataire non falsifiable | Développement | Au déploiement |
 | 3 | Caution (carte, chèque, virement) et paiement : confirmés par Stripe, contrat et texte d'accord relus par un juriste, développés et testés | **Les propriétaires** (Stripe, juriste), puis développement | Phases 3 et 4 |
 | 4 | Passer la base en configuration de production | Développement (vérification), puis **le gérant** (migrations, compte du virement) | Avant l'ouverture |
@@ -45,10 +47,18 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | 16 | Annulation : confirmer le délai de remboursement du solde (48 heures) | **Arbitrage** | Avant l'ouverture |
 | 17 | Séjour payé en une fois : faire confirmer la facture unique | **Le comptable** | Avant l'ouverture |
 | 18 | Programmer le réveil des tâches automatiques (solde, factures, relances) | **Phase de déploiement** | Au déploiement |
+| 19 | Annulation par les propriétaires : remboursement et avoir | **Le comptable** (forme de l'avoir), puis développement | Phase 5, lot 5 |
 
 ---
 
 ## 1. Nommer les options sur les documents
+
+> **Levé le 3 novembre 2026** (cadrage de la Phase 5, réponse 8) : les
+> propriétaires ne vendent aucune option. La ligne « Options » ne s'imprime que
+> si elle vaut plus de 0 €, le tunnel écrit toujours 0 et le back-office n'en
+> propose pas : aucun document réel ne porte la ligne générique. Le jour où une
+> option est vendue, une session dédiée reprend l'action ci-dessous, **avant**
+> la première vente. Le texte qui suit est gardé pour ce jour-là.
 
 **Qui peut lever :** développement · **Phase 5**
 
@@ -226,22 +236,30 @@ inclure :
    conservation, tarification). Chaque ligne est OK, INFO, A VOIR ou
    BLOQUANT ; un point BLOQUANT interdit de migrer. Au 2 novembre 2026, la base
    réelle et `gites_test` du serveur sont à la migration **0001**.
-2. **Appliquer les migrations 0002 à 0011** : **le gérant** les applique
-   lui-même (`npm run db:migrate`), après une sauvegarde, sur la base réelle
-   puis sur `gites_test` du serveur (réponse 11B).
-3. **Saisir le compte du virement** (titulaire et IBAN de la SARL DE LA VOUTE,
-   BIC facultatif) dans `reglages` : **le gérant**, en attendant l'écran de
-   gestion (Phase 5). Sans lui, aucun client ne reçoit les coordonnées et une
+2. **Appliquer les migrations 0002 à 0012** (0012 : la connexion au
+   back-office, Phase 5, lot 1) : **le gérant** les applique lui-même
+   (`npm run db:migrate`), après une sauvegarde, sur la base réelle puis sur
+   `gites_test` du serveur (réponse 11B).
+3. **Créer le compte du back-office** : le gérant lance
+   `npm run gestion:compte -- contact@gitesdesamoyas.fr` sur la base réelle
+   (avec `NEXT_PUBLIC_SITE_URL` à l'adresse publique), puis ouvre le lien reçu à
+   contact@ pour choisir le mot de passe (D-32). **La boîte contact@ est la vraie
+   clé du back-office** (elle reçoit le lien et le code) : son mot de passe chez
+   OVH doit être fort et ne servir nulle part ailleurs.
+4. **Saisir le compte du virement** (titulaire et IBAN de la SARL DE LA VOUTE,
+   BIC facultatif) : **le gérant**, dans le back-office (Réglages, « Caution
+   par virement »). Sans lui, aucun client ne reçoit les coordonnées et une
    alerte « À TRAITER » le signale.
-4. `DATABASE_URL` (hôte interne), `STORAGE_PATH` (volume), `DB_CIBLE`
+5. `DATABASE_URL` (hôte interne), `STORAGE_PATH` (volume), `DB_CIBLE`
    absente : à vérifier au déploiement (les trois premières puces ci-dessus).
-5. **Séparation des rôles PostgreSQL** : reportée par le gérant le 2 novembre
+6. **Séparation des rôles PostgreSQL** : reportée par le gérant le 2 novembre
    2026 (« une seule clé pour l'instant, on s'en occupera quand tout sera
    fini ») ; elle reste à faire avant l'ouverture.
 
 **Le contrôle.** `verify:production` ne signale aucun point BLOQUANT avant les
 migrations, puis toutes les migrations sont appliquées et la ligne du compte du
-virement est OK.
+virement est OK ; la connexion au back-office marche depuis un appareil
+inconnu (code reçu à contact@).
 
 ---
 
@@ -706,10 +724,38 @@ d'essai dont la date limite du solde est passée reçoit son courriel.
 
 ---
 
+## 19. Annulation par les propriétaires : remboursement et avoir
+
+**Qui peut lever :** **le comptable** (la forme de l'avoir), puis
+développement · **Phase 5, lot 5**
+
+**La raison.** Le contrat dit ce qui est rendu quand un client annule (art. 7.2,
+D-26), mais le site ne sait pas annuler une réservation : un remboursement se
+fait à la main, depuis Stripe. Or la facture d'acompte part au paiement
+(D-29) : un client remboursé garde une facture qui ne correspond plus à rien.
+Une facture émise ne se supprime pas (règle absolue 1) ; elle se corrige par un
+**avoir**, numéroté sans trou comme elle, et cette suite n'existe pas encore.
+
+**L'action.**
+1. Poser au comptable, avec la question du point 17 :
+   > « Quand un client annule et que sa facture d'acompte est déjà émise, quelle
+   > forme doit avoir l'avoir : son montant (tout l'acompte, ou ce qui est
+   > rendu), ses mentions, et sa suite de numéros (à part ou commune avec les
+   > factures) ? Et une retenue sur la caution (une vitre cassée, 120 € sur
+   > 500 €) donne-t-elle lieu à une facture ? »
+2. Avec la réponse, construire le lot 5 de la Phase 5 : le bouton « Annuler »,
+   le calcul de l'article 7.2, le remboursement par Stripe, l'avoir.
+
+**Le contrôle.** Réponse écrite du comptable, conservée ; une annulation d'essai
+sur la base de test produit le remboursement attendu et un avoir numéroté.
+
+---
+
 ## Points levés
 
 Conservés pour mémoire : ils ont figuré dans cette liste et n'y figurent plus.
 
 | Point | Levé le | Comment |
 |---|---|---|
+| 1. Nommer les options sur les documents | 3 novembre 2026 | Aucune option n'est vendue (cadrage de la Phase 5, réponse 8) : la ligne ne s'imprime qu'au-delà de 0 €, le tunnel écrit 0, le back-office n'en propose pas. À reprendre dans une session dédiée avant la première option vendue. |
 | Refermer le port PostgreSQL public | 16 septembre 2026 | Port fermé ; `DATABASE_URL` vise l'hôte interne du réseau Coolify ; accès de développement par tunnel SSH. `?sslmode=require` reste inutilisable, le serveur tournant avec `ssl = off`. Voir `docs/02-decisions.md`, D-10. |
