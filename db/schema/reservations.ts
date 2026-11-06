@@ -155,6 +155,14 @@ export const reservations = pgTable(
     // carte. Tant qu'il est renseigné et qu'aucune carte n'est enregistrée, la
     // page « Ma réservation » propose de l'enregistrer.
     carte_caution_demandee_at: timestamp({ withTimezone: true }),
+    // Caution par chèque ou virement (Phase 5, lot 2, migration 0013) : le
+    // site ne touche pas à cet argent, il en garde la trace — reçue (date
+    // saisie par les propriétaires), puis rendue (entière, ou le reste après
+    // une retenue, table `retenues`).
+    caution_recue_at: timestamp({ withTimezone: true }),
+    caution_rendue_at: timestamp({ withTimezone: true }),
+    // Note des propriétaires, jamais montrée au client (Phase 5, lot 2).
+    note_interne: text(),
 
     // Paiement de l'acompte (données du prestataire)
     mode_paiement: text(),
@@ -167,6 +175,11 @@ export const reservations = pgTable(
   },
   (t) => [
     unique("reservations_reference_key").on(t.reference),
+    check(
+      "reservations_caution_recue_check",
+      sql`(${t.caution_recue_at} is null or ${t.moyen_caution} in ('cheque', 'virement'))
+          and (${t.caution_rendue_at} is null or ${t.caution_recue_at} is not null)`,
+    ),
     unique("reservations_jeton_suivi_key").on(t.jeton_suivi),
     index("reservations_gite_id_idx").on(t.gite_id),
     check(

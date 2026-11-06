@@ -133,3 +133,13 @@ export const essais_gestion = pgTable(
   },
   (t) => [check("essais_gestion_echecs_check", sql`${t.echecs} >= 0`)],
 );
+
+// « C'est fait » (Phase 5, lot 2, réponse c du cadrage) : une ligne de la
+// liste « À traiter » que le site ne peut pas constater lui-même (courriel
+// non parti, paiement à vérifier dans Stripe, contestation) est retirée par
+// les propriétaires. `cle` désigne la ligne (lib/gestion/a-traiter.ts).
+export const a_traiter_faits = pgTable("a_traiter_faits", {
+  cle: text().primaryKey(),
+  acteur: text().notNull(),
+  fait_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});

@@ -86,6 +86,10 @@
 //     15 minutes d'attente ; le code d'un appareil inconnu vaut 10 minutes et
 //     5 essais, le lien pour choisir le mot de passe 60 minutes (choix du
 //     gérant du 3 novembre 2026).
+//
+//   - back-office, lot 2 (Phase 5, migration 0013) : un contrat non signé
+//     apparaît dans « À traiter » 3 jours après le paiement (réponse b du
+//     cadrage du 6 novembre 2026).
 import { sql } from "drizzle-orm";
 import { check, integer, pgTable, text, time, timestamp, uuid } from "drizzle-orm/pg-core";
 
@@ -158,6 +162,8 @@ export const reglages = pgTable(
     gestion_attente_minutes: integer().notNull().default(15),
     gestion_code_minutes: integer().notNull().default(10),
     gestion_lien_minutes: integer().notNull().default(60),
+    // « À traiter » (Phase 5, lot 2, migration 0013), en jours après le paiement.
+    contrat_non_signe_jours: integer().notNull().default(3),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -228,5 +234,6 @@ export const reglages = pgTable(
           and ${t.gestion_essais_max} between 1 and 20 and ${t.gestion_attente_minutes} between 1 and 1440
           and ${t.gestion_code_minutes} between 1 and 60 and ${t.gestion_lien_minutes} between 5 and 1440`,
     ),
+    check("reglages_contrat_non_signe_check", sql`${t.contrat_non_signe_jours} between 0 and 60`),
   ],
 );
