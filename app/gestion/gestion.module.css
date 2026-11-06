@@ -232,3 +232,83 @@
 .liens a {
   color: #3d5b45;
 }
+
+.boutonSecondaire {
+  font: inherit;
+  background: #ffffff;
+  color: #2b2b2b;
+  border: 1px solid #b8c2b2;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.confirmation {
+  border: 2px solid #a12a1b;
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin: 12px 0;
+  background: #fff8f6;
+}
+
+.grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0 24px;
+}
+
+.onglets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.onglets a {
+  padding: 6px 12px;
+  border: 1px solid #b8c2b2;
+  border-radius: 4px;
+  color: #2b2b2b;
+  text-decoration: none;
+  background: #ffffff;
+}
+
+.onglets a[aria-current="page"] {
+  background: #3d5b45;
+  border-color: #3d5b45;
+  color: #ffffff;
+}
+
+.tache {
+  border-left: 4px solid #a12a1b;
+  background: #ffffff;
+  padding: 12px 14px;
+  margin: 10px 0;
+  border-radius: 0 4px 4px 0;
+}
+
+.tache h3 {
+  font-size: 1rem;
+  margin: 0 0 4px;
+}
+
+.etiquette {
+  display: inline-block;
+  font-size: 0.8rem;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: #e6e9e1;
+}
+
+.defile {
+  overflow-x: auto;
+}
+
+.champRecherche {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid #b8c2b2;
+  border-radius: 4px;
+  min-width: 0;
+  flex: 1 1 220px;
+}
