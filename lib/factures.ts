@@ -27,6 +27,7 @@ import {
   calculerMontants,
   instantaneFacture,
   mapFactureData,
+  paiementImprime,
   type Reservation,
   type FactureContext,
 } from '@/lib/montants';
@@ -287,6 +288,13 @@ async function trouverFacture(ex: Executeur, reservationId: string, type: TypeFa
   return lignes[0] ?? null;
 }
 
+interface PaiementFacture {
+  reference: string | null;
+  date: Date | null;
+  /** « stripe », ou « virement » pour un solde reçu par virement (Phase 5, lot 2). */
+  prestataire: string | null;
+}
+
 /**
  * Le paiement reçu que la facture constate (ligne `paiements` réussie) :
  * l'acompte ou le total pour la facture de la réservation, le solde pour la
@@ -298,10 +306,10 @@ async function paiementFacture(
   ex: Executeur,
   reservationId: string,
   type: TypeFacture,
-): Promise<{ reference: string | null; date: Date | null } | null> {
+): Promise<PaiementFacture | null> {
   const types = type === 'solde' ? (['solde'] as const) : (['acompte', 'total'] as const);
   const [p] = await ex
-    .select({ reference: paiements.reference_externe, date: paiements.date_paiement })
+    .select({ reference: paiements.reference_externe, date: paiements.date_paiement, prestataire: paiements.prestataire })
     .from(paiements)
     .where(
       and(
@@ -319,9 +327,10 @@ function contexte(
   type: TypeFacture,
   resa: Reservation,
   factureAcompte: FactureRow | null,
-  paiement: { reference: string | null; date: Date | null } | null,
+  paiement: PaiementFacture | null,
   override: { numeroFacture: string; dateEmission: string },
 ): FactureContext {
+  const imprime = paiementImprime(paiement);
   return {
     type,
     numeroFacture: override.numeroFacture,
@@ -329,7 +338,8 @@ function contexte(
     // Date d'encaissement : celle du paiement constaté, au jour de Paris ; à
     // défaut, la date d'émission (les deux coïncident pour un encaissement immédiat).
     datePaiement: paiement?.date ? fmtDateFr(aujourdhuiParis(paiement.date)) : override.dateEmission,
-    referenceTransaction: paiement?.reference ?? undefined,
+    referenceTransaction: imprime.referenceTransaction,
+    modePaiement: imprime.modePaiement,
     factureAcompte:
       type === 'solde' && factureAcompte
         ? {

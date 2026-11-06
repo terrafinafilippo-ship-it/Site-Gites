@@ -171,6 +171,14 @@ export interface Prestataire {
    * déjà reçu). Une caution bloquée est LEVÉE : rien n'est débité.
    */
   annulerPaiement(id: string): Promise<EtatPaiement>;
+  /**
+   * Encaisse `montant` centimes d'une caution bloquée (retenue, Phase 5,
+   * lot 2) ; le reste est libéré par la banque. Renvoie l'état obtenu
+   * (« reussi », `montantEncaisse`) ; une caution déjà encaissée ou levée est
+   * renvoyée telle quelle, sans second encaissement. LÈVE si le prestataire
+   * ne répond pas.
+   */
+  encaisserCaution(id: string, montant: number): Promise<EtatPaiement>;
   /** Remboursement INTÉGRAL. Idempotent : un second appel ne rembourse pas deux fois. */
   rembourser(id: string, motif: string): Promise<{ id: string }>;
   /** La carte n'est plus conservée (réservation non honorée). */
@@ -461,6 +469,26 @@ class PrestataireStripe implements Prestataire {
       // Le paiement a pu aboutir entre la lecture et l'annulation : l'état relu fait foi.
       const relu = await this.lirePaiement(id);
       if (relu.statut === "annule" || relu.statut === "reussi" || relu.statut === "en_cours") return relu;
+      throw erreur;
+    }
+  }
+
+  async encaisserCaution(id: string, montant: number): Promise<EtatPaiement> {
+    const etat = await this.lirePaiement(id);
+    // Seule une préautorisation encore bloquée s'encaisse : jamais deux fois.
+    if (etat.statut !== "bloque") return etat;
+    try {
+      return etatDe(
+        await this.stripe().paymentIntents.capture(
+          id,
+          { amount_to_capture: montant, expand: AVEC_CHARGE },
+          { idempotencyKey: `retenue-${id}-${montant}` },
+        ),
+      );
+    } catch (erreur) {
+      // Encaissée ou levée entre la lecture et l'appel : l'état relu fait foi.
+      const relu = await this.lirePaiement(id);
+      if (relu.statut !== "bloque") return relu;
       throw erreur;
     }
   }

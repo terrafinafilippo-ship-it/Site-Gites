@@ -21,9 +21,10 @@
 // Un séjour SANS préautorisation (chèque, virement, sans caution) passe
 // « terminé » au même moment que la levée : mardi 30 mars à 8 h (Phase 4,
 // lot 3, choix du gérant du 3 novembre 2026).
-// La RETENUE (encaissement d'une partie) arrive avec l'écran de gestion
-// (Phase 5) ; une retenue faite d'ici là dans le tableau de bord Stripe est
-// constatée (avis de Stripe) et enregistrée.
+// La RETENUE (encaissement d'une partie) et la levée anticipée se font depuis
+// l'écran de gestion (Phase 5, lot 2, lib/gestion/cautions.ts) ; une retenue
+// faite dans le tableau de bord Stripe est constatée (avis de Stripe) et
+// enregistrée.
 //
 // Caution non constituée à l'arrivée (art. 6.6) : `demanderCarteCaution`
 // (bouton de l'écran de gestion, Phase 5) envoie au client le lien pour
@@ -234,8 +235,8 @@ export async function constaterCaution(tx: Executeur, ligne: LignePaiement, etat
   }
 }
 
-/** Constat sous verrou d'une préautorisation dont on vient de lire l'état. */
-async function constaterSousVerrou(ligneId: string, etat: EtatPaiement): Promise<IssueCaution | null> {
+/** Constat sous verrou d'une préautorisation dont on vient de lire l'état (aussi : back-office, lib/gestion/cautions.ts). */
+export async function constaterSousVerrou(ligneId: string, etat: EtatPaiement): Promise<IssueCaution | null> {
   return getDb().transaction(async (tx) => {
     const [ligne] = await tx.select().from(paiements).where(eq(paiements.id, ligneId)).for("update");
     return ligne ? constaterCaution(tx, ligne, etat) : null;

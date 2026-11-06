@@ -69,6 +69,14 @@ export class PrestataireSimule implements Prestataire {
   async lireEnregistrement(): Promise<EtatEnregistrement> {
     throw new Error("enregistrement de carte : hors de ce contrôle");
   }
+  /** Retenue sur une caution bloquée (Phase 5, lot 2) : une seule fois. */
+  async encaisserCaution(id: string, montant: number): Promise<EtatPaiement> {
+    const e = await this.lirePaiement(id);
+    if (e.statut !== "bloque") return e;
+    const fait = { ...e, statut: "reussi" as const, montantEncaisse: montant };
+    this.paiements.set(id, fait);
+    return { ...fait };
+  }
   async rembourser(): Promise<{ id: string }> {
     throw new Error("remboursement : hors de ce contrôle");
   }

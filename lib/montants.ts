@@ -180,6 +180,9 @@ export interface FactureContext {
   // lui-même. Absente : celle inscrite sur la réservation (paiement de la
   // réservation, ou réservation saisie sans ligne `paiements`).
   referenceTransaction?: string;
+  // Mode du paiement facturé quand il n'est pas celui de la réservation (solde
+  // reçu par virement, Phase 5, lot 2). Absent : `reservations.mode_paiement`.
+  modePaiement?: string;
   // rappel de la facture d'acompte (obligatoire pour le solde)
   factureAcompte?: {
     numero: string;
@@ -196,6 +199,22 @@ export type FactureData = FactureAcompteData | FactureSoldeData | FactureTotalDa
  * FactureSoldeData ou FactureTotalData) à partir de la réservation, du gîte
  * joint, des montants calculés et du contexte (numéro/date issus de creer_facture).
  */
+/** Mode imprimé pour un solde reçu par virement, noté dans le back-office (Phase 5, lot 2). */
+export const MODE_PAIEMENT_VIREMENT = 'Virement bancaire';
+
+/**
+ * Ce que la facture imprime du paiement qu'elle constate : pour un solde reçu
+ * par virement, « Virement bancaire » et la référence lue sur le relevé (« — »
+ * sans référence), jamais la carte ni la référence de l'acompte ; sinon la
+ * référence du paiement chez le prestataire (absente : celle de la réservation).
+ */
+export function paiementImprime(
+  p: { reference: string | null; prestataire: string | null } | null,
+): { modePaiement?: string; referenceTransaction?: string } {
+  if (p?.prestataire === 'virement') return { modePaiement: MODE_PAIEMENT_VIREMENT, referenceTransaction: p.reference ?? '—' };
+  return { referenceTransaction: p?.reference ?? undefined };
+}
+
 export function mapFactureData(
   resa: Reservation,
   montants: Montants,
@@ -318,7 +337,7 @@ function mapSoldeData(
     montantAcompte: acompte?.montant ?? m.acompte,
     montantSolde: m.solde,
 
-    modePaiement: resa.mode_paiement ?? '',
+    modePaiement: ctx.modePaiement ?? resa.mode_paiement ?? '',
     datePaiement: ctx.datePaiement,
     referenceTransaction: ctx.referenceTransaction ?? resa.reference_transaction ?? '',
   };

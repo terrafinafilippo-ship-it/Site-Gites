@@ -490,6 +490,76 @@ export function texteCautionLiberee(
   );
 }
 
+// ─── Back-office, lot 2 (Phase 5) : retenue, caution reçue, rendue ──────────
+// Textes validés par le gérant le 6 novembre 2026.
+
+/**
+ * Retenue sur la caution : montant, motif (écrit par les propriétaires, en
+ * français, dans les deux langues), le reste, les justificatifs joints.
+ */
+export function texteCautionRetenue(
+  langue: Langue,
+  s: Sejour,
+  d: { montant: number; retenu: number; motif: string; moyen: "carte" | "cheque" | "virement"; pieces: number },
+  adresseContact: string,
+): Contenu {
+  const en = langue === "en";
+  const montant = fmtEuro(d.montant, langue);
+  const retenu = fmtEuro(d.retenu, langue);
+  const reste = d.montant - d.retenu;
+  const blocs: Bloc[] = [
+    { p: bonjour(langue, s.prenom) },
+    {
+      p: en ? `We have kept ${retenu} from your ${montant} security deposit.` : `Nous avons retenu ${retenu} sur votre caution de ${montant}.`,
+      gras: true,
+    },
+    { p: en ? `Reason: ${d.motif}` : `Motif : ${d.motif}` },
+  ];
+  if (reste > 0) {
+    const r = fmtEuro(reste, langue);
+    blocs.push({
+      p:
+        d.moyen === "carte"
+          ? en
+            ? `The rest, ${r}, has not been charged: your bank releases it.`
+            : `Le reste, ${r}, n'a pas été débité : votre banque le libère.`
+          : en
+            ? `The rest of your security deposit, ${r}, is being returned to you.`
+            : `Le reste de votre caution, ${r}, vous est rendu.`,
+    });
+  }
+  if (d.pieces > 0) {
+    blocs.push({ p: en ? "The supporting documents are attached to this email." : "Les justificatifs sont joints à ce courriel." });
+  }
+  return assembler(
+    en ? `Security deposit deduction — booking ${s.reference}` : `Retenue sur votre caution — réservation ${s.reference}`,
+    [...blocs, ...piedClient(langue, s, adresseContact)],
+  );
+}
+
+/** Caution par chèque ou virement reçue. */
+export function texteCautionRecue(langue: Langue, s: Sejour, d: { montant: number; moyen: "cheque" | "virement" }, adresseContact: string): Contenu {
+  const en = langue === "en";
+  const montant = fmtEuro(d.montant, langue);
+  const par = d.moyen === "virement" ? (en ? "by bank transfer" : "par virement") : en ? "by cheque" : "par chèque";
+  return assembler(en ? `Security deposit received — booking ${s.reference}` : `Caution reçue — réservation ${s.reference}`, [
+    { p: bonjour(langue, s.prenom) },
+    { p: en ? `We have received your ${montant} security deposit ${par}.` : `Nous avons bien reçu votre caution de ${montant} ${par}.`, gras: true },
+    ...piedClient(langue, s, adresseContact),
+  ]);
+}
+
+/** Caution par chèque ou virement rendue entière. */
+export function texteCautionRendue(langue: Langue, s: Sejour, d: { montant: number }, adresseContact: string): Contenu {
+  const en = langue === "en";
+  const montant = fmtEuro(d.montant, langue);
+  return assembler(en ? `Security deposit returned — booking ${s.reference}` : `Caution rendue — réservation ${s.reference}`, [
+    { p: bonjour(langue, s.prenom) },
+    { p: en ? `We have returned your ${montant} security deposit.` : `Nous vous avons rendu votre caution de ${montant}.`, gras: true },
+    ...piedClient(langue, s, adresseContact),
+  ]);
+}
+
 /** Caution non constituée à l'arrivée (art. 6.6) : le lien pour enregistrer une carte. */
 export function texteCarteCaution(
   langue: Langue,
@@ -800,6 +870,9 @@ const OBJETS_CLIENT: Record<string, string> = {
   caution_liberee: "l'avis de caution levée",
   caution_carte: "le lien pour enregistrer une carte pour sa caution",
   caution_virement: "les coordonnées bancaires pour sa caution par virement",
+  caution_retenue: "l'avis de retenue sur sa caution",
+  caution_recue: "l'avis de caution reçue",
+  caution_rendue: "l'avis de caution rendue",
 };
 
 export function texteAlerteProbleme(p: Probleme, s: Sejour | null, c: FicheClient | null): Contenu {

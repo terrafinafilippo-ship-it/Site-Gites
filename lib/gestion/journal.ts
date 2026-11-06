@@ -13,7 +13,7 @@ import type { Executeur } from "@/lib/reservations";
 /** Qui agit : un appareil connecté au back-office, ou la commande `gestion:compte`. */
 export type Acteur = { appareilId: string; description: string; ip: string } | "commande" | "visiteur";
 
-function libelleActeur(a: Acteur): string {
+export function libelleActeur(a: Acteur): string {
   return typeof a === "string" ? a : `gestion (${a.description})`;
 }
 

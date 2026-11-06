@@ -218,7 +218,15 @@ export async function inscrireRelanceImpaye(
 async function inscrireCautionClient(
   executeur: Executeur,
   reservationId: string,
-  objet: "caution_bloquee" | "caution_a_valider" | "caution_liberee" | "caution_carte" | "caution_virement",
+  objet:
+    | "caution_bloquee"
+    | "caution_a_valider"
+    | "caution_liberee"
+    | "caution_carte"
+    | "caution_virement"
+    | "caution_retenue"
+    | "caution_recue"
+    | "caution_rendue",
   donnees: Record<string, unknown> = {},
 ): Promise<void> {
   const c = await client(executeur, reservationId);
@@ -279,6 +287,41 @@ export async function inscrireCarteCaution(executeur: Executeur, reservationId: 
 /** Caution par virement : les coordonnées bancaires et la demande du RIB du client (D-31). */
 export async function inscrireCautionVirement(executeur: Executeur, reservationId: string): Promise<void> {
   await inscrireCautionClient(executeur, reservationId, "caution_virement");
+}
+
+/**
+ * Retenue sur la caution (Phase 5, lot 2) : montant, motif et justificatifs
+ * au client. Une seule par réservation.
+ */
+export async function inscrireCautionRetenue(executeur: Executeur, reservationId: string): Promise<void> {
+  await inscrireCautionClient(executeur, reservationId, "caution_retenue");
+}
+
+/** Caution par chèque ou virement notée reçue par les propriétaires (réponse 5 A du cadrage du lot 2). */
+export async function inscrireCautionRecue(executeur: Executeur, reservationId: string): Promise<void> {
+  await inscrireCautionClient(executeur, reservationId, "caution_recue");
+}
+
+/** Caution par chèque ou virement notée rendue entière (une retenue a son propre courriel). */
+export async function inscrireCautionRendue(executeur: Executeur, reservationId: string): Promise<void> {
+  await inscrireCautionClient(executeur, reservationId, "caution_rendue");
+}
+
+/**
+ * « Renvoyer le lien de signature » (back-office, Phase 5, lot 2) : le même
+ * courriel « contrat à signer », sous une clé nouvelle à chaque renvoi.
+ */
+export async function inscrireContratRenvoye(executeur: Executeur, reservationId: string, quand: Date): Promise<boolean> {
+  const c = await client(executeur, reservationId);
+  if (!c?.email) return false;
+  await inscrire(executeur, {
+    objet: "contrat",
+    cle: `contrat:${reservationId}:renvoi:${quand.toISOString()}`,
+    reservationId,
+    destinataire: c.email,
+    langue: c.langue === "en" ? "en" : "fr",
+  });
+  return true;
 }
 
 /**

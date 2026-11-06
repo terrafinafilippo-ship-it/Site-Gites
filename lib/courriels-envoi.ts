@@ -35,7 +35,7 @@
 import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { courriels, paiements, reglages, TYPES_FACTURE, type TypeFacture } from "@/db/schema";
+import { courriels, paiements, reglages, retenues, TYPES_FACTURE, type TypeFacture } from "@/db/schema";
 import { jourBlocage, jourLevee, lireReglagesCaution } from "@/lib/caution";
 import { centimesDepuisNumeric } from "@/lib/centimes";
 import { aujourdhuiParis } from "@/lib/dates-civiles";
@@ -49,6 +49,9 @@ import {
   texteCautionAValider,
   texteCautionBloquee,
   texteCautionLiberee,
+  texteCautionRecue,
+  texteCautionRendue,
+  texteCautionRetenue,
   texteCautionVirement,
   texteAlerteSignature,
   texteConfirmation,
@@ -72,6 +75,7 @@ import { messagerie } from "@/lib/messagerie";
 import { recapitulatif } from "@/lib/recapitulatif";
 import { chargerReservationAvecGite, type Executeur, type ReservationAvecGite } from "@/lib/reservations";
 import { messageErreur } from "@/lib/route-helpers";
+import { getStorage } from "@/lib/storage";
 import { dateLimiteSolde, lireEtatSolde } from "@/lib/solde";
 import { finValidite, lienOuvert, lienSuivi } from "@/lib/suivi";
 import { autresGitesLibres } from "@/lib/tunnel";
@@ -85,7 +89,7 @@ const ESSAIS_CONTRAT_AVANT_ENVOI = 2;
 /** Délai avant le courriel « contrat à signer » qui retente la création. */
 const RELANCE_CONTRAT_MINUTES = 30;
 
-const OBJETS_CLIENT = new Set([
+export const OBJETS_CLIENT = new Set<string>([
   "confirmation",
   "contrat",
   "remboursement",
@@ -100,6 +104,9 @@ const OBJETS_CLIENT = new Set([
   "caution_liberee",
   "caution_carte",
   "caution_virement",
+  "caution_retenue",
+  "caution_recue",
+  "caution_rendue",
 ]);
 
 type Courriel = typeof courriels.$inferSelect;
@@ -573,6 +580,7 @@ async function preparer(tx: Executeur, c: Courriel, origine: string): Promise<Pr
       if (resa.statut !== "confirmee") return { abandon: `réservation au statut « ${resa.statut} »` };
       if (resa.moyen_caution !== "virement") return { abandon: `caution par ${resa.moyen_caution ?? "un moyen inconnu"}` };
       if (resa.caution === null || resa.caution <= 0) return { abandon: "montant de la caution absent" };
+      if (resa.caution_recue_at) return { abandon: "virement déjà noté reçu" };
       const dateLimite = dateLimiteVirement(resa);
       if (aujourdhuiParis() > dateLimite) return { abandon: "date limite du virement passée avant l'envoi" };
       const compte = await lireCompteVirement(tx);
@@ -593,6 +601,41 @@ async function preparer(tx: Executeur, c: Courriel, origine: string): Promise<Pr
       };
     }
 
+    // Phase 5, lot 2 : retenue sur la caution, caution par chèque ou virement reçue, rendue.
+    case "caution_retenue": {
+      if (!resa) return { abandon: "réservation absente" };
+      const [r] = await tx.select().from(retenues).where(eq(retenues.reservation_id, resa.id));
+      if (!r?.faite_at) return { abandon: "retenue absente ou inachevée au moment de l'envoi" };
+      // Le montant de la caution : celui de la préautorisation pour une carte, celui de la réservation sinon.
+      const carte = r.moyen === "carte" ? await cautionDe(tx, resa.id) : null;
+      const montant = carte ? centimesDepuisNumeric(carte.montant) : (resa.caution ?? 0);
+      const stockage = getStorage();
+      const piecesJointes = [];
+      for (const piece of r.pieces) piecesJointes.push({ nom: piece.nom, contenu: await stockage.read(piece.chemin) });
+      return {
+        contenu: texteCautionRetenue(
+          langue,
+          sejour(resa),
+          { montant, retenu: centimesDepuisNumeric(r.montant), motif: r.motif, moyen: r.moyen, pieces: r.pieces.length },
+          await adresseReponse(tx),
+        ),
+        piecesJointes,
+      };
+    }
+
+    case "caution_recue":
+    case "caution_rendue": {
+      if (!resa) return { abandon: "réservation absente" };
+      if (resa.moyen_caution !== "cheque" && resa.moyen_caution !== "virement") return { abandon: "caution ni par chèque ni par virement" };
+      const montant = resa.caution ?? 0;
+      if (c.objet === "caution_recue") {
+        if (!resa.caution_recue_at) return { abandon: "caution plus notée reçue au moment de l'envoi" };
+        return { contenu: texteCautionRecue(langue, sejour(resa), { montant, moyen: resa.moyen_caution }, await adresseReponse(tx)) };
+      }
+      if (!resa.caution_rendue_at) return { abandon: "caution plus notée rendue au moment de l'envoi" };
+      return { contenu: texteCautionRendue(langue, sejour(resa), { montant }, await adresseReponse(tx)) };
+    }
+
     case "alerte_caution": {
       if (!resa) return { abandon: "réservation absente" };
       const quoi = (QUOI_CAUTION as readonly unknown[]).includes(d.quoi) ? (d.quoi as QuoiCaution) : null;
@@ -604,6 +647,9 @@ async function preparer(tx: Executeur, c: Courriel, origine: string): Promise<Pr
       }
       if (quoi === "virement_a_verifier" && resa.statut !== "confirmee") return { abandon: `réservation au statut « ${resa.statut} »` };
       if (quoi === "virement_a_rendre" && !enCours(resa)) return { abandon: `réservation au statut « ${resa.statut} »` };
+      // Phase 5, lot 2 : ce que les propriétaires ont déjà noté dans le back-office.
+      if (quoi === "virement_a_verifier" && resa.caution_recue_at) return { abandon: "virement déjà noté reçu" };
+      if (quoi === "virement_a_rendre" && resa.caution_rendue_at) return { abandon: "caution déjà notée rendue" };
       const r = await lireReglagesCaution(tx);
       const montant = caution ? centimesDepuisNumeric(caution.montant) : resa.caution;
       if (montant === null) return { abandon: "montant de la caution absent" };

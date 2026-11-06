@@ -5,6 +5,13 @@ const nextConfig: NextConfig = {
   // fontkit et zlib : il doit rester un module Node externe, jamais bundlé.
   serverExternalPackages: ["@react-pdf/renderer"],
 
+  // Les justificatifs d'une retenue sur la caution (back-office, Phase 5,
+  // lot 2) passent par une action serveur : 10 Mo au plus en tout, plus la
+  // marge du formulaire. Le plafond par défaut de Next (1 Mo) les refuserait.
+  experimental: {
+    serverActions: { bodySizeLimit: "12mb" },
+  },
+
   // Les fiches gîtes ont porté un temps des slugs inventés côté code (larmu,
   // maisonvieille) avant d'adopter ceux de la base (armu, maison-vieille, voir
   // docs/02-decisions.md, D-14). Le site Next n'a jamais été déployé : ces

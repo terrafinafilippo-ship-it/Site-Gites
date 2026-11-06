@@ -136,6 +136,8 @@ export async function traiterVirements(maintenant: Date = new Date()): Promise<B
       arrivee: reservations.date_arrivee,
       depart: reservations.date_depart,
       delai: reservations.delai_virement_caution_jours,
+      recue: reservations.caution_recue_at,
+      rendue: reservations.caution_rendue_at,
     })
     .from(reservations)
     .where(
@@ -154,7 +156,9 @@ export async function traiterVirements(maintenant: Date = new Date()): Promise<B
     try {
       const dateLimite = dateLimiteVirement(resa);
       // 1. Les coordonnées, du jour du courriel à la date limite incluse.
-      if (r.statut === "confirmee" && aujourdhui >= jourCourrielVirement(resa, delaiCourriel) && aujourdhui <= dateLimite) {
+      // Phase 5, lot 2 : un virement noté reçu n'appelle plus ni coordonnées ni vérification ;
+      // une caution notée rendue n'appelle plus l'alerte « rendez la caution ».
+      if (r.statut === "confirmee" && !r.recue && aujourdhui >= jourCourrielVirement(resa, delaiCourriel) && aujourdhui <= dateLimite) {
         if (compte === undefined) compte = await lireCompteVirement(db);
         if (compte) {
           await inscrireCautionVirement(db, r.id);
@@ -164,11 +168,11 @@ export async function traiterVirements(maintenant: Date = new Date()): Promise<B
         }
       }
       // 2. « Vérifiez que le virement est arrivé », le lendemain de la date limite, jusqu'à l'arrivée.
-      if (r.statut === "confirmee" && aujourdhui <= r.arrivee && atteint(aujourdhui, heure, jourVerification(resa), heureAlerte)) {
+      if (r.statut === "confirmee" && !r.recue && aujourdhui <= r.arrivee && atteint(aujourdhui, heure, jourVerification(resa), heureAlerte)) {
         await inscrireAlerteCaution(db, r.id, "virement_a_verifier");
       }
       // 3. « Rendez la caution », la veille du délai de restitution (art. 6.5).
-      if (aujourdhui <= jourLevee(r.depart) && atteint(aujourdhui, heure, jourAlerte(r.depart), heureAlerte)) {
+      if (!r.rendue && aujourdhui <= jourLevee(r.depart) && atteint(aujourdhui, heure, jourAlerte(r.depart), heureAlerte)) {
         await inscrireAlerteCaution(db, r.id, "virement_a_rendre");
       }
     } catch (erreur) {

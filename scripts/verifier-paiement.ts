@@ -112,6 +112,12 @@ class PrestataireSimule implements Prestataire {
     return { ...etat, statut: "annule" };
   }
 
+  async encaisserCaution(): Promise<EtatPaiement> {
+
+    throw new Error("retenue de caution : hors de ce contrôle");
+
+  }
+
   async rembourser(id: string): Promise<{ id: string }> {
     if (this.pannesRemboursement > 0) {
       this.pannesRemboursement -= 1;
