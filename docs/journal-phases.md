@@ -1655,6 +1655,81 @@ la base réelle :
 
 ---
 
+## Phase 5 — lot 2 : réservations, cautions, solde par virement, « À traiter » (6 novembre 2026)
+
+### Ce qui a été décidé
+
+Cadrage du lot le 6 novembre 2026 (neuf questions sur l'exemple de Camille,
+puis quatre de plus : réponses 1A à 8A, 9 « tout ce qui est à traiter
+maintenant », a = A, b = 3 jours, c = A, d = virement seulement) ; décision
+D-33. Consigné dans `docs/phases/phase-5.md`. Les textes (trois courriels au
+client en français et en anglais, mentions de la facture, récapitulatifs,
+lignes de l'accueil, messages de refus) ont été **validés par le gérant le
+6 novembre 2026**.
+
+### Défauts trouvés dans le code avant d'écrire
+
+- **La facture de solde imprimait le moyen de paiement de l'acompte** (« Carte
+  bancaire ») et sa référence : un solde reçu par virement serait sorti faux.
+  Corrigé (`paiementImprime`, `lib/montants.ts`).
+- **Le site ne savait pas encaisser une partie d'une caution** : le
+  prestataire n'avait que « lever ». Ajouté : `encaisserCaution` (capture
+  partielle Stripe, clé d'idempotence).
+- **Les alertes du virement auraient continué** après qu'il soit noté reçu ou
+  rendu (« vérifiez le virement », « rendez la caution ») : arrêtées.
+- **Next refuse par défaut un formulaire de plus de 1 Mo** : les justificatifs
+  (10 Mo) auraient été refusés. Plafond relevé à 12 Mo (`next.config.ts`).
+- Trouvé au parcours : la **remise à zéro de la base de test** ne connaissait
+  pas les nouvelles tables (`TRUNCATE` refusé à cause de `retenues`) ; ajoutées.
+
+### Ce qui a été fait
+
+- **Migration 0013** : caution reçue et rendue, note interne ; tables
+  `retenues` et `a_traiter_faits` ; réglage `contrat_non_signe_jours` (3) ;
+  trois courriels au client (retenue, caution reçue, caution rendue).
+- **`lib/gestion/`** : `cautions.ts` (libérer, retenir avec justificatifs,
+  chèque et virement reçus et rendus, lien de caution), `solde-virement.ts`,
+  `reservations.ts` (liste, fiche, coordonnées, renvoi du lien de signature),
+  `a-traiter.ts` (accueil, « C'est fait », arrivées et départs).
+- **Pages** : accueil « À traiter », liste des réservations, fiche avec ses
+  gestes ; les gestes définitifs passent par un récapitulatif à confirmer.
+- **Contrôles** : `verify:gestion-reservations` (81 cas, 5 de plus avec
+  `--http`), `db:verify` section 6l (11 contrôles), une étape de plus dans
+  `lancer.sh` (vingt étapes).
+
+### Ce qui a été vérifié
+
+Sur la base PostgreSQL jetable du poste (port 55433, `gites_essai`), jamais sur
+la base réelle :
+- `npm run lint`, `npx tsc --noEmit`, `npm run build` : passent.
+- `npm run db:verify` : 218 contrôles, 0 échec.
+- `bash scripts/parcours/lancer.sh` : **vingt étapes sur vingt**, code de
+  sortie 0 — centimes 51, tarification 192, blocage 42, paiement 69 (Stripe en
+  mode test compris), courriels 41, « Ma réservation » 22, solde 62, caution
+  86 (trois cartes Stripe comprises), virement 47, abandons 22, back-office
+  connexion 107, **back-office réservations 86**, parcours L'Armu et LaPhine
+  0 échec, URL signées 0 échec, contrôles en base 81/0, contrôles PDF 112 OK,
+  `db:verify` 218/0. Aucun montant de `reference.ts` n'a bougé. (Un premier
+  passage a échoué à la remise à zéro : voir plus haut.)
+
+### Ce qui n'a PAS été vérifié
+
+- **Les écrans dans un navigateur**, dont le récapitulatif de la retenue et le
+  choix des fichiers sur téléphone.
+- **Une vraie capture partielle chez Stripe** (mode test) : la retenue est
+  contrôlée avec le prestataire simulé.
+- **Une facture de solde « Virement bancaire » en PDF** : les données imprimées
+  sont contrôlées, pas le rendu (aucun numéro légal consommé pour un essai).
+- **Un courriel avec pièce jointe reçu par Brevo.**
+
+### Points reportés
+
+- La **facture d'une retenue**, si le comptable la demande (point 19).
+- La **durée de conservation** des justificatifs : le juriste (point 12).
+- Les **migrations 0002 à 0013** sur la base réelle : le gérant (point 4).
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

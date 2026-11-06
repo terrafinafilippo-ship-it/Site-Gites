@@ -24,6 +24,7 @@ main dans un outil graphique.
 | `migrations/0010_caution.sql` | Phase 4, lot 2 : caution figée sur la réservation, préautorisation dans `paiements`, heures de la caution en réglages, courriels et alerte de la caution (D-30). **Vérification préalable** sur une base existante : voir plus bas. |
 | `migrations/0011_virement.sql` | Phase 4, lot 3 : compte qui reçoit la caution par virement (titulaire, IBAN, BIC, **vides**), jour du courriel des coordonnées (10 jours avant la date limite), durée de conservation des tentatives abandonnées (**vide** : rien n'est effacé), courriel `caution_virement` (D-31). |
 | `migrations/0012_gestion.sql` | Phase 5, lot 1 : connexion au back-office — compte, appareils reconnus, sessions, codes, liens du mot de passe, échecs par adresse IP (jetons et codes en empreinte seulement) ; six réglages de connexion (30 jours, 8 heures, 5 échecs, 15 minutes, code 10 minutes, lien 60 minutes) (D-32). **Aucun compte n'est créé** : voir « Le compte du back-office » plus bas. |
+| `migrations/0013_reservations_gestion.sql` | Phase 5, lot 2 : caution par chèque ou virement reçue et rendue, note interne (réservations) ; table `retenues` (une par réservation, motif obligatoire, justificatifs) ; table `a_traiter_faits` ; contrat non signé visible 3 jours après le paiement (réglage) ; courriels de retenue, de caution reçue et rendue (D-33). |
 | `index.ts` | Le client de base de données partagé par le site (pool de 10 connexions maximum). |
 | `seed.ts` | Insère ou remet à jour les trois gîtes. |
 | `verify.ts` | Auto-vérification complète, sans rien laisser en base. |
@@ -219,8 +220,8 @@ manquent, refait les deux vérifications ci-dessous (0009 et 0010), compare les
 compteurs de numérotation aux numéros déjà émis, compte le contenu et lit les
 réglages. Chaque ligne est OK, INFO, A VOIR ou BLOQUANT ; **un point BLOQUANT
 interdit d'appliquer les migrations** (code de sortie 1). Au 4 novembre 2026,
-la base réelle et `gites_test` du serveur sont à la migration 0001 (onze
-migrations en attente, 0002 à 0012).
+la base réelle et `gites_test` du serveur sont à la migration 0001 (douze
+migrations en attente, 0002 à 0013).
 
 ### Avant d'appliquer la migration 0009 sur une base existante
 

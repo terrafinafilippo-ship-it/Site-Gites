@@ -35,6 +35,7 @@ DB_CIBLE=test npm run verify:caution  # caution par carte, temps simulé ; --str
 DB_CIBLE=test npm run verify:virement # caution par virement et fin des séjours, temps simulé (base de test)
 DB_CIBLE=test npm run verify:abandons # effacement des tentatives abandonnées (base de test)
 DB_CIBLE=test npm run verify:gestion  # back-office : connexion, code, appareils, réglages ; --http : pages (base de test)
+DB_CIBLE=test npm run verify:gestion-reservations # back-office : cautions, solde par virement, À traiter ; --http (base de test)
 npm run verify:production             # base RÉELLE, en lecture seule, avant d'appliquer ses migrations
 npm run gestion:compte -- adresse     # crée le compte du back-office et envoie le lien du mot de passe (ÉCRITURE)
 

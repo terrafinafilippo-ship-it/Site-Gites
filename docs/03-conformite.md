@@ -242,6 +242,14 @@ personnelle des propriétaires). Le compte est partagé par trois personnes :
 la boîte contact@, qui reçoit le lien et le code, est la vraie clé d'accès.
 Contrôle : `verify:gestion`.
 
+**Justificatifs d'une retenue sur la caution (Phase 5, lot 2, D-33).** Les
+photos, devis et factures déposés par les propriétaires sont gardés dans le
+stockage du serveur (`retenues/…`) et joints au courriel du client. Ils peuvent
+montrer des personnes ou des objets personnels : leur durée de conservation est
+la même question au juriste que celle des tentatives (point 12). Le motif et
+le montant restent dans `retenues`, avec qui les a saisis. Aucune facture n'est
+émise pour une retenue tant que le comptable n'a pas répondu (point 19).
+
 **Page « Ma réservation » (Phase 3, lot 4, D-25).** Les données d'un séjour
 (adresse du gîte, dates, montants, contrat signé) sont montrées à qui détient
 le lien secret de la réservation : un jeton de 64 caractères tirés au hasard,

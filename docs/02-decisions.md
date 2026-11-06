@@ -1537,6 +1537,79 @@ d'accord : une session dédiée (contrat, pages du site, nouvelle version du tex
 
 ---
 
+## D-33 · Le back-office, lot 2 : cautions, solde par virement, « À traiter »
+
+**Date :** 6 novembre 2026 (cadrage du lot 2 de la Phase 5). Choix du gérant,
+sur l'exemple de Camille (L'Armu du 20 au 27 mars 2027, caution de 500 € par
+carte, levée automatique le mardi 30 à 8 h) :
+- **retenir** sur la carte passe par un **second écran** qui récapitule le
+  montant (« C'est définitif ») (1A) ; **libérer maintenant** est possible dès
+  le départ, définitif, dit avant le clic (2A) ; le **motif est obligatoire**
+  (3A) ; la retenue est construite **avant la réponse du comptable**, la facture
+  viendra s'il la demande (4A) ;
+- **chèque et virement** : le site note « reçue » puis « rendue » ou « retenue »,
+  et envoie un **court courriel au client** à la réception et à la restitution (5A) ;
+- **solde payé autrement** : montant **exact**, **virement seulement** (un chèque
+  ne s'encaisse pas avant l'arrivée ; la carte reste le lien en ligne), facture
+  de solde le jour même (6A, réponse d) ;
+- **liste** : à venir et en cours par défaut (7A) ; **courriel changé** : rien
+  n'est envoyé, l'ancien reste au journal (8A) ;
+- **accueil** : **tout ce qui demande un geste maintenant**, quelle que soit la
+  date du séjour, puis les arrivées et départs des 7 prochains jours (9, a) ;
+  **contrat non signé** visible 3 jours après le paiement, avec « Renvoyer le
+  lien » (b) ; « **C'est fait** » pour ce que le site ne voit pas (c).
+
+**Décision.**
+- **Migration 0013** : `reservations.caution_recue_at`, `caution_rendue_at`,
+  `note_interne` ; table `retenues` (une par réservation, motif obligatoire,
+  justificatifs) ; table `a_traiter_faits` ; réglage `contrat_non_signe_jours` ;
+  courriels `caution_retenue`, `caution_recue`, `caution_rendue`.
+- **La retenue par carte** (`lib/gestion/cautions.ts`) : la ligne `retenues` et
+  les justificatifs sont écrits **avant** l'encaissement ; Stripe encaisse le
+  montant (`encaisserCaution`, capture partielle, clé d'idempotence), le reste
+  est libéré par la banque ; un échec efface la ligne et les fichiers. Par
+  chèque ou virement, le site note la retenue et que le reste est rendu.
+  Justificatifs : PDF ou photos, 10 fichiers et 10 Mo au plus, gardés dans le
+  stockage (`retenues/{réservation}/…`), joints au courriel. Le séjour passe
+  « terminé ».
+- **Le solde par virement** (`lib/gestion/solde-virement.ts`) : un paiement
+  « solde » réussi, prestataire `virement`, daté du jour de réception, avec la
+  référence du relevé ; un paiement en ligne encore ouvert est annulé chez
+  Stripe ; s'il venait d'aboutir, le virement est refusé. La facture de solde
+  imprime « Virement bancaire » et cette référence (« — » sans référence).
+- **« À traiter »** (`lib/gestion/a-traiter.ts`) relit l'état des réservations
+  à chaque affichage ; les alertes « À TRAITER » que le site ne peut pas clore
+  (contestation, paiement à vérifier, facture non émise…) et les courriels au
+  client non partis restent jusqu'à « C'est fait ».
+- Les alertes du virement (« vérifiez », « rendez ») et le courriel des
+  coordonnées **s'arrêtent** dès que la caution est notée reçue ou rendue.
+
+**Pourquoi.** La caution est l'argent d'un client : un encaissement ne se
+rattrape pas, d'où le récapitulatif et le motif obligatoire. L'accueil doit
+dire ce qui est en retard même quand le séjour est loin (un solde impayé depuis
+deux jours pour une arrivée dans vingt jours).
+
+**Ce qui pourrait mal tourner.**
+- **Une panne entre l'encaissement chez Stripe et l'écriture en base** : l'avis
+  de Stripe enregistre la retenue, la ligne `retenues` (motif, justificatifs)
+  reste « en cours » ; le courriel au client ne part pas. Rare ; à vérifier
+  dans Stripe si une retenue semble bloquée.
+- **Le motif est écrit en français**, même dans le courriel d'un client anglais.
+- **Une alerte « problème » coupée dans les réglages** ne laisse aucune trace :
+  sa ligne « À traiter » n'apparaît pas.
+- **Les justificatifs** (photos du gîte, devis) sont gardés sans durée fixée :
+  même question au juriste que le point 12.
+- La retenue n'émet **aucune facture** tant que le comptable n'a pas répondu
+  (point 19).
+
+**Si on revient dessus.** Le délai du contrat non signé : un réglage. Plusieurs
+retenues sur une même caution : l'index unique de `retenues` et la capture
+Stripe (une seule possible) l'interdisent, il faudrait encaisser autrement.
+Accepter le chèque pour le solde : le refus est dans `lib/gestion/solde-virement.ts`
+(prestataire « virement » seulement) et sur la facture (son mode imprimé).
+
+---
+
 ## Décisions ouvertes
 
 Elles ne sont **pas tranchées** et ne doivent pas l'être dans le code.

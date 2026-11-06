@@ -1,7 +1,9 @@
 # Phase 5 — Back-office Patricia et Nicolas
 
-> **État au 4 novembre 2026 :** phase **ouverte** le 3 novembre ; **lot 1
-> construit** (connexion et réglages, D-32). Lots 2 à 6 à faire. Le cadrage est
+> **État au 6 novembre 2026 :** phase **ouverte** le 3 novembre ; **lot 1
+> construit** (connexion et réglages, D-32) le 4 novembre ; **lot 2 construit**
+> (réservations, cautions, solde par virement, « À traiter », D-33) le
+> 6 novembre. Lots 3 à 6 à faire. Le cadrage est
 > en fin de fiche ; il prime sur le cadre initial là où ils diffèrent.
 
 **Dépendances :** Phase 2 close. **Parallélisable** avec les phases 3 et 4 : ne
@@ -185,11 +187,29 @@ contrat signé, facture d'acompte émise).
 | Lot | Contenu | État |
 |---|---|---|
 | 1 | Connexion (D-32) et réglages | **construit le 4 novembre 2026** |
-| 2 | Réservations, cautions (libérer, retenir, chèque et virement reçus et rendus, lien de caution), solde reçu autrement, accueil « à traiter » | à faire |
+| 2 | Réservations, cautions (libérer, retenir, chèque et virement reçus et rendus, lien de caution), solde reçu par virement, accueil « À traiter » | **construit le 6 novembre 2026** (D-33) |
 | 3 | Tarifs (lève le point 11) | à faire |
 | 4 | Calendrier (blocage par période), fiches des gîtes, documents, seed « création seule » | à faire |
 | 5 | Annulation et avoir | après la réponse du comptable |
 | 6 | Statistiques | à faire |
+
+**Cadrage du lot 2, 6 novembre 2026** (exemple : Camille, L'Armu du 20 au
+27 mars 2027, caution de 500 € par carte, levée automatique le mardi 30 à 8 h) :
+
+| # | Question | Réponse |
+|---|---|---|
+| 1 | Retenir sur la carte | **A** : un second écran récapitule le montant (« C'est définitif »), puis « Confirmer » |
+| 2 | Libérer plus tôt | **A** : bouton « Libérer maintenant », définitif, dit avant le clic |
+| 3 | Motif d'une retenue | **A** : obligatoire (il part au client avec les justificatifs) |
+| 4 | Retenue avant la réponse du comptable | **A** : construite maintenant ; facture ajoutée ensuite s'il la demande |
+| 5 | Chèque et virement | Le site note « reçue » (arrête l'alerte), puis « rendue » ou « retenue » ; **A** : un court courriel au client à la réception et à la restitution, et le courriel de retenue |
+| 6 | Solde payé autrement | **A** : montant exact seulement, facture de solde le jour même, prélèvement prévu annulé ; **par virement** (le chèque ne peut pas être encaissé avant l'arrivée) — la carte bancaire reste le lien de paiement en ligne |
+| 7 | Liste des réservations | **A** : à venir et en cours par défaut, filtres, recherche ; tentatives jamais payées absentes |
+| 8 | Changer le courriel d'un client | **A** : les courriels suivants vont à la nouvelle adresse, l'ancienne reste au journal, aucun courriel automatique |
+| 9 | Accueil | **Tout ce qui demande un geste maintenant**, quelle que soit la date du séjour : une ligne apparaît le jour où il faut agir et disparaît quand c'est fait (caution à décider ou à rendre, virement de caution pas reçu, client arrivé sans caution, solde impayé, contrat pas signé, courriel non parti, paiement à vérifier ou contesté, compte de la SARL absent) |
+| a | Arrivées et départs | **A** : un rappel des 7 prochains jours sous « À traiter » |
+| b | Contrat pas signé | Visible **3 jours** après le paiement (réglage), bouton « Renvoyer le lien de signature » |
+| c | Ce que le site ne voit pas | **A** : bouton « C'est fait », noté au journal |
 
 **Questions au comptable** (le lot 5 en dépend) :
 1. quand un client annule et que sa facture d'acompte est déjà émise, quelle
