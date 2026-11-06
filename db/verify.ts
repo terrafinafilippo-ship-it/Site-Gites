@@ -82,6 +82,8 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     "stripe_customer_id", "stripe_payment_method_id", "accord_carte_id", "accord_carte_texte",
     // Carte demandée pour la caution (art. 6.6, migration 0010).
     "carte_caution_demandee_at",
+    // Back-office (Phase 5, lot 2, migration 0013).
+    "caution_recue_at", "caution_rendue_at", "note_interne",
     "mode_paiement", "reference_transaction", "date_paiement_acompte",
     "created_at", "updated_at",
   ],
@@ -141,6 +143,8 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     // Connexion au back-office (Phase 5, lot 1, migration 0012).
     "gestion_appareil_jours", "gestion_inactivite_heures", "gestion_essais_max", "gestion_attente_minutes",
     "gestion_code_minutes", "gestion_lien_minutes",
+    // Back-office, lot 2 (migration 0013).
+    "contrat_non_signe_jours",
     "updated_at",
   ],
   taxes_sejour: [
@@ -163,6 +167,9 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
   codes_gestion: ["id", "compte_id", "empreinte_jeton", "empreinte_code", "description", "essais", "expire_at", "utilise_at", "created_at"],
   liens_gestion: ["id", "compte_id", "empreinte_jeton", "expire_at", "utilise_at", "created_at"],
   essais_gestion: ["ip", "echecs", "bloque_jusqu_a", "updated_at"],
+  // Back-office, lot 2 (migration 0013).
+  retenues: ["id", "reservation_id", "montant", "motif", "moyen", "pieces", "acteur", "faite_at", "created_at"],
+  a_traiter_faits: ["cle", "acteur", "fait_at"],
 };
 
 // Quelques types sensibles (le module de contrat en dépend).
@@ -1016,6 +1023,32 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
     await client.query(`delete from appareils_gestion where id = $1`, [appareilG.rows[0].id]);
     const sessionsRestantes = await client.query<{ n: number }>(`select count(*)::int as n from sessions_gestion where empreinte_jeton = 'verify-s'`);
     noter("6k", sessionsRestantes.rows[0].n === 0, "retirer un appareil ferme ses sessions (cascade)", String(sessionsRestantes.rows[0].n));
+
+    // ── 6l. Réservations dans le back-office (Phase 5, lot 2, migration 0013) ──
+    titre("6l. Réservations dans le back-office");
+    const contratJours = await client.query<{ j: number }>(`select contrat_non_signe_jours as j from reglages where id = 1`);
+    noter("6l", contratJours.rows[0]?.j === 3, "réglages : contrat non signé visible 3 jours après le paiement", JSON.stringify(contratJours.rows[0]));
+    for (const [nom, sqlTexte, params, quoi] of [
+      ["sp_rendue_sans_recue", `update reservations set moyen_caution = 'cheque', caution_rendue_at = now(), caution_recue_at = null where id = $1`, [resaId], "caution rendue sans être reçue : refusée"],
+      ["sp_recue_carte", `update reservations set moyen_caution = 'carte', caution_recue_at = now() where id = $1`, [resaId], "caution « reçue » sur une caution par carte : refusée"],
+      ["sp_retenue_zero", `insert into retenues (reservation_id, montant, motif, moyen, acteur) values ($1, 0, 'x', 'cheque', 'verify')`, [resaId], "retenue de 0 € refusée"],
+      ["sp_retenue_sans_motif", `insert into retenues (reservation_id, montant, motif, moyen, acteur) values ($1, 10, '  ', 'cheque', 'verify')`, [resaId], "retenue sans motif refusée"],
+      ["sp_retenue_moyen", `insert into retenues (reservation_id, montant, motif, moyen, acteur) values ($1, 10, 'x', 'especes', 'verify')`, [resaId], "retenue d'un moyen inconnu refusée"],
+      ["sp_contrat_jours", `update reglages set contrat_non_signe_jours = 61 where id = 1`, [], "contrat non signé au-delà de 60 jours refusé"],
+    ] as const) {
+      const e = await attendreErreur(client, nom, sqlTexte, [...params]);
+      noter("6l", codePg(e.erreur) === "23514", quoi, codePg(e.erreur));
+    }
+    await client.query(`insert into retenues (reservation_id, montant, motif, moyen, acteur) values ($1, 10, 'Vitre', 'carte', 'verify')`, [resaId]);
+    const seconde = await attendreErreur(client, "sp_seconde_retenue", `insert into retenues (reservation_id, montant, motif, moyen, acteur) values ($1, 5, 'Encore', 'carte', 'verify')`, [resaId]);
+    noter("6l", codePg(seconde.erreur) === "23505", "une seule retenue par réservation", codePg(seconde.erreur));
+    for (const objet of ["caution_retenue", "caution_recue", "caution_rendue"]) {
+      const c = await attendreErreur(
+        client, `sp_${objet}`,
+        `insert into courriels (reservation_id, objet, cle, destinataire, langue) values ($1, $2, $3, 'a@example.invalid', 'fr')`, [resaId, objet, `verify:${objet}`],
+      );
+      noter("6l", c.erreur === null, `courriel « ${objet} » accepté`, codePg(c.erreur));
+    }
   } finally {
     await client.query("ROLLBACK");
   }
