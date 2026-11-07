@@ -68,6 +68,11 @@ export default async function AccueilGestion() {
                     Ouvrir les réglages
                   </Link>
                 )}
+                {t.gestes.includes("tarifs") && (
+                  <Link href="/gestion/tarifs" className={styles.boutonSecondaire}>
+                    Ouvrir les tarifs
+                  </Link>
+                )}
                 {t.gestes.includes("renvoyer_contrat") && t.reservationId && (
                   <GesteBouton action={actionRenvoyerContrat.bind(null, t.reservationId)} libelle="Renvoyer le lien de signature" discret />
                 )}

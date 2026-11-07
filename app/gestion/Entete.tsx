@@ -6,6 +6,7 @@ import styles from "./gestion.module.css";
 const RUBRIQUES = [
   { href: "/gestion", libelle: "Accueil" },
   { href: "/gestion/reservations", libelle: "Réservations" },
+  { href: "/gestion/tarifs", libelle: "Tarifs" },
   { href: "/gestion/reglages", libelle: "Réglages" },
   { href: "/gestion/appareils", libelle: "Appareils" },
 ] as const;

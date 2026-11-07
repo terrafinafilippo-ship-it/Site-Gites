@@ -312,3 +312,105 @@
   min-width: 0;
   flex: 1 1 220px;
 }
+
+/* Tarifs (Phase 5, lot 3). */
+
+.champ input[type="date"],
+.champ select,
+.ligne select {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid #b8c2b2;
+  border-radius: 4px;
+  background: #ffffff;
+  max-width: 100%;
+}
+
+.court {
+  width: 6em;
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid #b8c2b2;
+  border-radius: 4px;
+}
+
+.court[aria-invalid="true"] {
+  border-color: #a12a1b;
+}
+
+.groupe {
+  border: 1px solid #dde3d6;
+  border-radius: 4px;
+  margin: 12px 0;
+  padding: 8px 12px;
+}
+
+.groupe legend {
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+.replie {
+  margin: 12px 0;
+}
+
+.replie summary,
+.carte > summary {
+  cursor: pointer;
+}
+
+.bande {
+  display: flex;
+  height: 28px;
+  border: 1px solid #dde3d6;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.segment {
+  min-width: 1px;
+  background: #e6e9e1;
+}
+
+.sansTarif {
+  background: repeating-linear-gradient(45deg, #d9534f 0 6px, #f2b8b5 6px 12px);
+}
+
+.passe {
+  opacity: 0.45;
+}
+
+.mois {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #5c5c5c;
+  margin-bottom: 12px;
+}
+
+.legende {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  list-style: none;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+.legende i {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+.periode {
+  border-left: 4px solid #3d5b45;
+  padding: 4px 0 4px 12px;
+  margin: 12px 0;
+}
+
+.periode p {
+  margin: 4px 0;
+}

@@ -17,6 +17,11 @@
 //
 // Les jours (veille, levée à 3 jours) sont ceux du contrat (lib/caution.ts) ;
 // le délai du contrat non signé est un réglage (`contrat_non_signe_jours`, 3).
+//
+// Depuis le lot 3 (D-34) : les nuits sans tarif des 12 prochains mois
+// (`tarifs_horizon_mois`) et ce qui rend des dates invendables (prix, barème
+// ou taxe de séjour manquants) ont leur ligne, jusqu'à ce que la page des
+// tarifs les comble.
 import { and, eq, gte, inArray, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
@@ -31,9 +36,11 @@ import { dateLimiteSolde, lireEtatSolde } from "@/lib/solde";
 import { dateLimiteVirement } from "@/lib/virement";
 
 import { journaliser, type Acteur } from "./journal";
+import { lireEtatTarifs } from "./tarifs";
+import { trouLisible } from "./tarifs-regles";
 
 /** Les gestes qu'une ligne propose (la fiche de la réservation porte les formulaires). */
-export type GesteTache = "fiche" | "reglages" | "renvoyer_contrat" | "c_est_fait";
+export type GesteTache = "fiche" | "reglages" | "tarifs" | "renvoyer_contrat" | "c_est_fait";
 
 export interface Tache {
   /** Identifiant stable de la ligne (et clé de « C'est fait »). */
@@ -215,7 +222,17 @@ export async function listerATraiter(maintenant: Date = new Date(), ex: Executeu
     });
   }
 
-  // 6. Ce que le site ne peut pas clore : alertes « À TRAITER », courriels au client non partis.
+  // 6. Les tarifs : une nuit invendable dans les mois qui viennent (réponse 6 A du lot 3).
+  const etat = await lireEtatTarifs(maintenant, ex);
+  const sansSejour = { reservationId: null, reference: null, client: null, gite: null, gestes: ["tarifs" as const] };
+  for (const t of etat.trous) {
+    taches.push({ ...sansSejour, cle: `tarifs_trou:${t.debut}`, titre: "Nuits sans tarif", detail: trouLisible(t), depuis: aujourdhui });
+  }
+  if (etat.problemes.length) {
+    taches.push({ ...sansSejour, cle: "tarifs_incomplets", titre: "Tarifs incomplets", detail: etat.problemes.join(" "), depuis: aujourdhui });
+  }
+
+  // 7. Ce que le site ne peut pas clore : alertes « À TRAITER », courriels au client non partis.
   const alertes = await ex
     .select({ cle: courriels.cle, donnees: courriels.donnees, reservationId: courriels.reservation_id, creeLe: courriels.created_at })
     .from(courriels)
