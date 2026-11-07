@@ -1610,6 +1610,81 @@ Accepter le chèque pour le solde : le refus est dans `lib/gestion/solde-viremen
 
 ---
 
+## D-34 · Le back-office, lot 3 : l'écran des tarifs
+
+**Date :** 7 novembre 2026 (cadrage du lot 3 de la Phase 5). Le modèle de
+tarification est celui de D-17 et D-18 ; rien n'en change. Choix du gérant, sur
+l'exemple de L'Armu (75 € la nuit en basse saison, 450 € la semaine) :
+- un changement de prix passe par un **récapitulatif** (« 75,00 € → 80,00 € la
+  nuit, soit 450,00 € → 480,00 € la semaine ») avant d'être enregistré (1A) ;
+- les périodes : une **liste par année**, une **bande de couleurs** où les nuits
+  sans tarif sont en rouge, et « **Copier une année** » sur la suivante,
+  décalée de 52 semaines pour que les samedis restent des samedis (2A) ;
+- une période ajoutée au milieu d'une autre **la découpe**, et le résultat
+  s'affiche avant d'enregistrer (3B) ;
+- une période qui ne commence pas ou ne finit pas le **jour réglé** (samedi)
+  est **refusée** ; le jour est un réglage, « n'importe quel jour » compris
+  (4 : prévu par la fiche de la phase, expliqué puis retenu) ;
+- une période **passée est figée** ; une période **en cours** ne change que sa
+  date de fin ; une modification ne touche jamais une réservation faite (5A) ;
+- une ligne « **Nuits sans tarif** » dans « À traiter » pour les **12 prochains
+  mois**, durée réglable (6A) ;
+- le barème se saisit en **pourcentages**, avec l'**aperçu** du prix de 1 à
+  14 nuits pour un gîte et un tarif (7A ; la règle elle-même est celle de D-17) ;
+- une **règle générale**, et pour chaque tarif et chaque période « comme le
+  général » ou des règles et un barème **propres** (8A) ;
+- la taxe de séjour : **une saisie pour les trois gîtes**, limitable à un
+  gîte ; une ligne **pas encore commencée** se corrige ou se supprime, une ligne
+  **commencée est figée** (9A).
+
+**Décision.**
+- **Migration 0014** : `reglages.tarifs_horizon_mois` (12, de 1 à 36). Le jour
+  de début des périodes (`periodes_jour_debut`, samedi) existe depuis la
+  migration 0003.
+- **`lib/gestion/tarifs-regles.ts`** (pur, partagé avec le navigateur) : lecture
+  des saisies (prix par `centimesDepuisNumeric`, pourcentage → coefficient par
+  découpage du texte), découpage des périodes (`planPeriode`), suppression,
+  copie d'une année (+ 364 jours), trous, état de la tarification.
+- **`lib/gestion/tarifs.ts`** : lecture pour la page et les gestes. Un geste qui
+  change un prix est **en deux temps** : sans confirmation, il renvoie le
+  récapitulatif et son **empreinte** ; à la confirmation, il relit tout sous un
+  **verrou** des six tables de tarification, recalcule, et n'écrit que si
+  l'empreinte est la même (sinon le récapitulatif revient : « La tarification
+  a changé entre-temps »). Chaque écriture va au journal (`audit_logs`), et le
+  site public relit les prix tout de suite (`revalidateTag('gites')`).
+- **Pages** : `/gestion/tarifs` (prix), `/periodes`, `/baremes`, `/regles`,
+  `/taxe`, avec en tête l'**état** : « Tout est réservable jusqu'au … », puis
+  les trous et ce qui manque (prix d'un gîte, barème, taxe de séjour, période
+  mal calée).
+- **« À traiter »** : une ligne par trou dans l'horizon réglé, et une ligne
+  « Tarifs incomplets » quand un prix, un barème ou une taxe manque.
+
+**Pourquoi.** Le prix est ce que le client paie : un changement doit se lire
+avant d'être fait, et l'empreinte empêche de confirmer un récapitulatif devenu
+faux. Les nuits passées ne changent pas parce que la tarification d'hier
+explique les réservations d'hier. Le trou est le danger silencieux de D-17 : une
+date sans tarif est invendable sans que personne ne le voie.
+
+**Ce qui pourrait mal tourner.**
+- **La copie décale de 52 semaines** : l'année copiée commence un ou deux jours
+  plus tôt chaque année, et les vacances scolaires ne tombent pas aux mêmes
+  semaines. Le récapitulatif le rappelle ; il faut relire les dates.
+- **Une période en cours raccourcie** laisse des nuits sans tarif : le
+  récapitulatif l'annonce, « À traiter » le rappelle.
+- **Changer le jour de début** ne déplace pas les périodes déjà saisies : l'état
+  signale celles qui ne sont plus calées.
+- **La base réelle n'a aucun tarif** : dès les migrations appliquées, « À
+  traiter » affichera « Aucun tarif à partir d'aujourd'hui » jusqu'à la saisie
+  (point 11).
+
+**Si on revient dessus.** Accepter une période un autre jour : le réglage
+« n'importe quel jour ». Modifier le passé : la règle est dans `planPeriode`
+(`lib/gestion/tarifs-regles.ts`). Supprimer le récapitulatif : retirer le
+premier temps de `deuxTemps` (`lib/gestion/tarifs.ts`), au prix d'un
+enregistrement sans relecture.
+
+---
+
 ## Décisions ouvertes
 
 Elles ne sont **pas tranchées** et ne doivent pas l'être dans le code.

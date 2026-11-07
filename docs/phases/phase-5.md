@@ -3,7 +3,8 @@
 > **État au 6 novembre 2026 :** phase **ouverte** le 3 novembre ; **lot 1
 > construit** (connexion et réglages, D-32) le 4 novembre ; **lot 2 construit**
 > (réservations, cautions, solde par virement, « À traiter », D-33) le
-> 6 novembre. Lots 3 à 6 à faire. Le cadrage est
+> 6 novembre ; **lot 3 construit** (tarifs, D-34) le 7 novembre. Lots 4 à 6 à
+> faire. Le cadrage est
 > en fin de fiche ; il prime sur le cadre initial là où ils diffèrent.
 
 **Dépendances :** Phase 2 close. **Parallélisable** avec les phases 3 et 4 : ne
@@ -188,7 +189,7 @@ contrat signé, facture d'acompte émise).
 |---|---|---|
 | 1 | Connexion (D-32) et réglages | **construit le 4 novembre 2026** |
 | 2 | Réservations, cautions (libérer, retenir, chèque et virement reçus et rendus, lien de caution), solde reçu par virement, accueil « À traiter » | **construit le 6 novembre 2026** (D-33) |
-| 3 | Tarifs (lève le point 11) | à faire |
+| 3 | Tarifs (lève le point 11) | **construit le 7 novembre 2026** (D-34) |
 | 4 | Calendrier (blocage par période), fiches des gîtes, documents, seed « création seule » | à faire |
 | 5 | Annulation et avoir | après la réponse du comptable |
 | 6 | Statistiques | à faire |
@@ -216,3 +217,18 @@ contrat signé, facture d'acompte émise).
    forme doit avoir l'avoir (montant, mentions, suite de numéros à part ou
    commune) ?
 2. une retenue sur la caution donne-t-elle lieu à une facture ?
+
+**Cadrage du lot 3, 7 novembre 2026** (exemple : L'Armu, 75 € la nuit en basse
+saison, 450 € la semaine ; le modèle est celui de D-17 et D-18) :
+
+| # | Question | Réponse |
+|---|---|---|
+| 1 | Changer un prix | **A** : un récapitulatif avant d'enregistrer (ancien et nouveau prix de la nuit et de la semaine) |
+| 2 | Saisir les périodes | **A** : liste par année, bande de couleurs (nuits sans tarif en rouge), « Copier une année » décalée de 52 semaines |
+| 3 | Période au milieu d'une autre | **B** : le site découpe et montre le résultat avant d'enregistrer |
+| 4 | Période qui ne commence pas un samedi | Refusée, comme le prévoyait la fiche ; le jour est un réglage (« n'importe quel jour » possible) |
+| 5 | Passé et périodes en cours | **A** : période passée figée ; en cours, seule la fin change ; les réservations faites ne changent jamais |
+| 6 | Prévenir des trous | **A** : ligne « Nuits sans tarif » dans « À traiter » sur 12 mois (réglage) |
+| 7 | Barème | **A** : en pourcentages, avec l'aperçu de 1 à 14 nuits (la règle du barème reste celle de D-17) |
+| 8 | Exceptions par tarif ou période | **A** : règle générale, et « comme le général » ou propres pour chaque tarif et chaque période |
+| 9 | Taxe de séjour | **A** : une saisie pour les trois gîtes, limitable à un gîte ; ligne à venir corrigeable, ligne commencée figée |

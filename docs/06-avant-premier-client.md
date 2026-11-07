@@ -236,8 +236,8 @@ inclure :
    conservation, tarification). Chaque ligne est OK, INFO, A VOIR ou
    BLOQUANT ; un point BLOQUANT interdit de migrer. Au 2 novembre 2026, la base
    réelle et `gites_test` du serveur sont à la migration **0001**.
-2. **Appliquer les migrations 0002 à 0013** (0012 et 0013 : le back-office,
-   Phase 5, lots 1 et 2) : **le gérant** les applique lui-même
+2. **Appliquer les migrations 0002 à 0014** (0012 à 0014 : le back-office,
+   Phase 5, lots 1 à 3) : **le gérant** les applique lui-même
    (`npm run db:migrate`), après une sauvegarde, sur la base réelle puis sur
    `gites_test` du serveur (réponse 11B).
 3. **Créer le compte du back-office** : le gérant lance
@@ -492,8 +492,8 @@ La règle complète, l'implémentation actuelle et l'écart sont détaillés dan
 
 ## 11. Saisir les vrais tarifs, périodes, barème et réglages de taxe
 
-**Qui peut lever :** **les propriétaires**, au back-office · **avant
-l'ouverture** (l'écran de saisie est en Phase 5)
+**Qui peut lever :** **les propriétaires**, au back-office (Tarifs) · **avant
+l'ouverture** — l'écran de saisie est construit (Phase 5, lot 3, D-34)
 
 **La raison.** Depuis la Phase 3 (D-17), les prix ne sont plus écrits dans le
 code : ils vivent dans les tables de tarification, **vides en base réelle**.
@@ -505,7 +505,9 @@ base de test, elle, porte une tarification d'essai marquée « (essai) ».
 périodes de l'année (sans trou), le barème général, les règles d'arrivée et de
 durée s'il y en a, et les réglages de taxe de séjour (point 10).
 
-**Le contrôle.** Chaque fiche gîte affiche sa grille ; le journal du serveur ne
+**Le contrôle.** En haut de la page Tarifs, l'état dit « Tout est réservable
+jusqu'au … » sans aucun manque listé, et « À traiter » n'a ni « Nuits sans
+tarif » ni « Tarifs incomplets ». Chaque fiche gîte affiche sa grille ; le journal du serveur ne
 contient ni « VALEUR ABSENTE EN BASE », ni « TARIF ÉCARTÉ », ni « PÉRIODE NON
 CALÉE », ni « BARÈME » ; un séjour de test se chiffre dans le tunnel.
 

@@ -1730,6 +1730,66 @@ la base réelle :
 
 ---
 
+## Phase 5 — lot 3 : les tarifs (7 novembre 2026)
+
+### Ce qui a été décidé
+
+Cadrage du lot le 7 novembre 2026 (neuf questions sur l'exemple de L'Armu,
+75 € la nuit en basse saison) : réponses 1A, 2A, 3B, 5A, 6A, 7A, 8A, 9A. La
+question 4 (période qui ne commence pas un samedi) n'avait pas été comprise :
+expliquée, elle reprend ce que prévoyait déjà la fiche (refus, jour réglable).
+La question 7 reposait à tort la règle du barème, décidée en octobre (D-17) :
+seule la saisie à l'écran était ouverte. Décision D-34, consignée dans
+`docs/phases/phase-5.md`. Les textes des écrans (état, récapitulatifs, refus,
+aides) ont été **validés par le gérant le 7 novembre 2026**.
+
+### Ce qui a été fait
+
+- **Migration 0014** : `reglages.tarifs_horizon_mois` (12 mois).
+- **`lib/gestion/tarifs-regles.ts`** (pur) : saisies, découpage des périodes,
+  passé figé, période en cours, copie d'une année (+ 364 jours), trous, état.
+- **`lib/gestion/tarifs.ts`** : lecture de la page ; gestes en deux temps
+  (récapitulatif et empreinte, puis écriture sous verrou si rien n'a bougé) ;
+  journal ; noms comparés côté site (`lower()` de PostgreSQL laisse « É » intact
+  en locale C : trouvé par le contrôle).
+- **Pages** `/gestion/tarifs` (prix, périodes, barèmes, règles, taxe de séjour),
+  l'état en tête de chacune ; « Tarifs » dans le menu ; « À traiter » : nuits
+  sans tarif et tarifs incomplets.
+- **Contrôles** : `verify:gestion-tarifs` (87 cas, 93 avec `--http`),
+  `db:verify` section 6m (3 contrôles), une étape de plus dans `lancer.sh`
+  (vingt et une étapes).
+
+### Ce qui a été vérifié
+
+Sur la base PostgreSQL jetable du poste (port 55433, `gites_essai`), jamais sur
+la base réelle :
+- `npm run lint`, `npx tsc --noEmit`, `npm run build` : passent.
+- `npm run db:verify` : 221 contrôles, 0 échec.
+- `bash scripts/parcours/lancer.sh` : **vingt et une étapes sur vingt et une**,
+  code de sortie 0 — tarification 192, blocage 42, paiement 69, courriels 41,
+  « Ma réservation » 22, solde 62, caution 86, virement 47, abandons 22,
+  back-office connexion 107, réservations 86, **tarifs 93**, parcours L'Armu et
+  LaPhine 0 échec, URL signées 0 échec, contrôles en base 81/0, contrôles PDF
+  0 échec, `db:verify` 221/0. Aucun montant de `reference.ts` n'a bougé.
+
+### Ce qui n'a PAS été vérifié
+
+- **Les écrans dans un navigateur** : les formulaires en deux temps, l'aperçu
+  du barème, la bande de couleurs sur téléphone. Les gestes sont contrôlés par
+  leurs fonctions, les pages par leur affichage au serveur.
+- La lecture des tarifs dans une transaction envoie plusieurs requêtes à la
+  fois sur la même connexion (avertissement de la bibliothèque PostgreSQL,
+  déjà présent avec le tunnel) : sans effet aujourd'hui, à reprendre avant la
+  version 9 de `pg`.
+
+### Points reportés
+
+- **La saisie des vrais tarifs** : les propriétaires, après les migrations
+  (point 11).
+- Les **migrations 0002 à 0014** sur la base réelle : le gérant (point 4).
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

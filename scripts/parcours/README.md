@@ -29,6 +29,7 @@ signature ne se supprime pas. Ne jamais lancer ces scripts sur la base réelle.
 | Tentatives abandonnées | Prestataire simulé : durée vide (rien n'est effacé), effacement après la durée avec la fiche client et une trace sans nom ni courriel, tentatives engagées ou remboursées jamais touchées, fiche client impossible à supprimer, retour en arrière (`verify:abandons`, 22 cas) |
 | Back-office | Messagerie simulée : secrets (scrypt, codes), création du compte et lien, mot de passe choisi, connexion et code par courriel, appareil reconnu 30 jours glissants, 8 heures d'inactivité, échecs par adresse IP, appareils retirés, mot de passe oublié, réglages (bornes, IBAN, journal avant/après, alerte « compte de virement modifié »), alertes ; puis par le serveur : `/gestion` fermé sans session et non indexé, pages ouvertes avec une session (`verify:gestion --http`, 107 cas) |
 | Back-office, réservations | Prestataire et messagerie simulés : liste et fiche, coordonnées et journal, caution par carte (libérer, retenir, bornes, motif, justificatifs, Stripe en panne, courriel et pièce jointe), chèque et virement (reçue, rendue, retenue, alertes arrêtées), lien de caution, solde par virement (montant exact, paiement en ligne annulé, facture « Virement bancaire »), « À traiter » (chaque ligne apparaît puis disparaît, « C'est fait »), arrivées et départs ; puis les pages par le serveur (`verify:gestion-reservations --http`, 86 cas) |
+| Back-office, tarifs | Règles pures (saisies, découpage des périodes, jour de début, passé figé, copie d'une année, trous, état), puis sur la base : prix en deux temps (rien d'écrit avant la confirmation, empreinte périmée), périodes (découpage, période en cours, suppression, copie), barèmes, règles générales, taxe de séjour, « À traiter » (nuits sans tarif, tarif sans prix) ; puis les cinq pages par le serveur (`verify:gestion-tarifs --http`, 93 cas) ; la tarification d'essai est rechargée à la fin |
 | Remise à zéro | Avant les parcours : les contrats et les factures créés par le paiement ne comptent pas dans la numérotation contrôlée |
 | Contrat | Émission, numéro `CTR-AAAA-NNN`, PDF, recopie du numéro sur la réservation |
 | Signature | Page publique, preuve enregistrée, PDF signé, statut `signe` |
@@ -143,5 +144,5 @@ mise en page.
 | `controler-pdf.py` | Contrôles sur les PDF produits, et PNG de contrôle visuel. |
 | `id-reservation.ts` | Résout une référence en identifiant, pour les scripts shell. |
 | `prix-location.ts` | Modifie ou rétablit le prix d'une réservation (garde du cas B). |
-| `lancer.sh` | Enchaîne tout (vingt étapes). |
+| `lancer.sh` | Enchaîne tout (vingt et une étapes). |
 | `../verifier-blocage.ts` | Le blocage des dates et le tunnel, sur la base de test ; `--http` ajoute les contrôles par le serveur. Hors de ce dossier : il se lance aussi seul (`npm run verify:blocage`). |
