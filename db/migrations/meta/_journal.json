@@ -99,6 +99,13 @@
       "when": 1793965269950,
       "tag": "0013_reservations_gestion",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794073191913,
+      "tag": "0014_tarifs_gestion",
+      "breakpoints": true
     }
   ]
 }

@@ -90,6 +90,10 @@
 //   - back-office, lot 2 (Phase 5, migration 0013) : un contrat non signé
 //     apparaît dans « À traiter » 3 jours après le paiement (réponse b du
 //     cadrage du 6 novembre 2026).
+//
+//   - tarifs (Phase 5, lot 3, migration 0014, D-34) : une nuit sans tarif dans
+//     les 12 prochains mois apparaît dans « À traiter » (réponse 6 A du cadrage
+//     du 7 novembre 2026).
 import { sql } from "drizzle-orm";
 import { check, integer, pgTable, text, time, timestamp, uuid } from "drizzle-orm/pg-core";
 
@@ -164,6 +168,8 @@ export const reglages = pgTable(
     gestion_lien_minutes: integer().notNull().default(60),
     // « À traiter » (Phase 5, lot 2, migration 0013), en jours après le paiement.
     contrat_non_signe_jours: integer().notNull().default(3),
+    // Tarifs (Phase 5, lot 3, migration 0014), en mois à partir d'aujourd'hui.
+    tarifs_horizon_mois: integer().notNull().default(12),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -235,5 +241,6 @@ export const reglages = pgTable(
           and ${t.gestion_code_minutes} between 1 and 60 and ${t.gestion_lien_minutes} between 5 and 1440`,
     ),
     check("reglages_contrat_non_signe_check", sql`${t.contrat_non_signe_jours} between 0 and 60`),
+    check("reglages_tarifs_horizon_check", sql`${t.tarifs_horizon_mois} between 1 and 36`),
   ],
 );
