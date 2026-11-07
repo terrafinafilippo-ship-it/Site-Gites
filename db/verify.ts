@@ -145,6 +145,8 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     "gestion_code_minutes", "gestion_lien_minutes",
     // Back-office, lot 2 (migration 0013).
     "contrat_non_signe_jours",
+    // Tarifs, lot 3 (migration 0014).
+    "tarifs_horizon_mois",
     "updated_at",
   ],
   taxes_sejour: [
@@ -1048,6 +1050,15 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
         `insert into courriels (reservation_id, objet, cle, destinataire, langue) values ($1, $2, $3, 'a@example.invalid', 'fr')`, [resaId, objet, `verify:${objet}`],
       );
       noter("6l", c.erreur === null, `courriel « ${objet} » accepté`, codePg(c.erreur));
+    }
+
+    // ── 6m. Tarifs dans le back-office (Phase 5, lot 3, migration 0014) ──
+    titre("6m. Tarifs dans le back-office");
+    const horizon = await client.query<{ h: number; j: number | null }>(`select tarifs_horizon_mois as h, periodes_jour_debut as j from reglages where id = 1`);
+    noter("6m", horizon.rows[0]?.h === 12, "réglages : nuits sans tarif signalées sur 12 mois", JSON.stringify(horizon.rows[0]));
+    for (const [nom, valeur] of [["sp_horizon_0", 0], ["sp_horizon_37", 37]] as const) {
+      const e = await attendreErreur(client, nom, `update reglages set tarifs_horizon_mois = $1 where id = 1`, [valeur]);
+      noter("6m", codePg(e.erreur) === "23514", `horizon de ${valeur} mois refusé`, codePg(e.erreur));
     }
   } finally {
     await client.query("ROLLBACK");
