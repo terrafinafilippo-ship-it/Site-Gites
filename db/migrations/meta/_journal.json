@@ -106,6 +106,20 @@
       "when": 1794073191913,
       "tag": "0014_tarifs_gestion",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1794083541358,
+      "tag": "0015_calendrier_gestion",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794135635386,
+      "tag": "0016_contrat_fiche_figee",
+      "breakpoints": true
     }
   ]
 }

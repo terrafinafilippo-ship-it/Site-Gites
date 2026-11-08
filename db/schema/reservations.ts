@@ -28,6 +28,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { gites } from "./gites";
+import { options_sejour } from "./options-sejour";
 import { textes_accord } from "./textes-accord";
 
 export const STATUTS_RESERVATION = [
@@ -66,6 +67,15 @@ export const reservations = pgTable(
     statut: text().$type<StatutReservation>().notNull().default("brouillon"),
     // Numéro du contrat émis (série CTR), recopié depuis documents.numero.
     numero_contrat: text(),
+    // Fiche du gîte FIGÉE à l'émission du contrat (écart E-9, migration 0016) :
+    // capacité, équipements, spa et téléphone d'arrivée imprimés au contrat,
+    // recopiés du gîte dans la même transaction que le numéro. La copie signée
+    // les relit ici : une fiche modifiée entre l'envoi et la signature ne
+    // change pas le contrat. NULL tant que le contrat n'est pas émis.
+    contrat_capacite_max: integer(),
+    contrat_equipements: text(),
+    contrat_a_spa: boolean(),
+    contrat_contact_arrivee_tel: text(),
 
     // Client principal
     client_civilite: text(),
@@ -163,6 +173,9 @@ export const reservations = pgTable(
     caution_rendue_at: timestamp({ withTimezone: true }),
     // Note des propriétaires, jamais montrée au client (Phase 5, lot 2).
     note_interne: text(),
+    // Réservation faite par le lien d'une option posée au téléphone (Phase 5,
+    // lot 4, migration 0015) : ses nuits sont celles que l'option gardait.
+    option_id: uuid().references(() => options_sejour.id),
 
     // Paiement de l'acompte (données du prestataire)
     mode_paiement: text(),

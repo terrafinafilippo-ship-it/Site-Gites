@@ -170,6 +170,9 @@ export const reglages = pgTable(
     contrat_non_signe_jours: integer().notNull().default(3),
     // Tarifs (Phase 5, lot 3, migration 0014), en mois à partir d'aujourd'hui.
     tarifs_horizon_mois: integer().notNull().default(12),
+    // Option posée au téléphone (Phase 5, lot 4, migration 0015) : les nuits
+    // sont gardées jusqu'à la fin du jour « aujourd'hui + N », heure de Paris.
+    option_duree_jours: integer().notNull().default(3),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -242,5 +245,6 @@ export const reglages = pgTable(
     ),
     check("reglages_contrat_non_signe_check", sql`${t.contrat_non_signe_jours} between 0 and 60`),
     check("reglages_tarifs_horizon_check", sql`${t.tarifs_horizon_mois} between 1 and 36`),
+    check("reglages_option_duree_check", sql`${t.option_duree_jours} between 1 and 30`),
   ],
 );

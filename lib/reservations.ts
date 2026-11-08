@@ -27,7 +27,7 @@ type GiteRowDb = typeof gites.$inferSelect;
 
 // Colonnes de MONTANT (pas les taux) converties en centimes à la lecture.
 const MONTANTS_RESERVATION = ['prix_location', 'forfait_menage', 'options', 'taxe_sejour', 'caution'] as const;
-const MONTANTS_GITE = ['forfait_menage', 'caution', 'tarif_semaine_base', 'tarif_weekend'] as const;
+const MONTANTS_GITE = ['forfait_menage', 'caution'] as const;
 
 /** Colonnes K passées du texte numeric aux centimes entiers, nullabilité conservée. */
 type EnCentimes<T, K extends keyof T> = Omit<T, K> & {

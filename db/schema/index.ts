@@ -26,3 +26,5 @@ export * from "./alertes";
 // Back-office (Phase 5, lot 1).
 export * from "./gestion";
 export * from "./retenues";
+// Calendrier (Phase 5, lot 4).
+export * from "./options-sejour";
