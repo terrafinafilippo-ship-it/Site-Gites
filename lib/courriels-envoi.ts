@@ -35,7 +35,7 @@
 import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { courriels, paiements, reglages, retenues, TYPES_FACTURE, type TypeFacture } from "@/db/schema";
+import { courriels, documents, gites, options_sejour, paiements, reglages, retenues, TYPES_FACTURE, type TypeFacture } from "@/db/schema";
 import { jourBlocage, jourLevee, lireReglagesCaution } from "@/lib/caution";
 import { centimesDepuisNumeric } from "@/lib/centimes";
 import { aujourdhuiParis } from "@/lib/dates-civiles";
@@ -56,8 +56,10 @@ import {
   texteAlerteSignature,
   texteConfirmation,
   texteContrat,
+  texteContratSigne,
   texteFacture,
   texteLienSuivi,
+  texteOption,
   texteRemboursement,
   texteSoldeImpaye,
   texteSoldeLien,
@@ -75,7 +77,8 @@ import { messagerie } from "@/lib/messagerie";
 import { recapitulatif } from "@/lib/recapitulatif";
 import { chargerReservationAvecGite, type Executeur, type ReservationAvecGite } from "@/lib/reservations";
 import { messageErreur } from "@/lib/route-helpers";
-import { getStorage } from "@/lib/storage";
+import { dernierJourOption, etatOption } from "@/lib/options-sejour";
+import { cheminContratSigne, getStorage } from "@/lib/storage";
 import { dateLimiteSolde, lireEtatSolde } from "@/lib/solde";
 import { finValidite, lienOuvert, lienSuivi } from "@/lib/suivi";
 import { autresGitesLibres } from "@/lib/tunnel";
@@ -107,6 +110,8 @@ export const OBJETS_CLIENT = new Set<string>([
   "caution_retenue",
   "caution_recue",
   "caution_rendue",
+  "option",
+  "contrat_signe",
 ]);
 
 type Courriel = typeof courriels.$inferSelect;
@@ -634,6 +639,53 @@ async function preparer(tx: Executeur, c: Courriel, origine: string): Promise<Pr
       }
       if (!resa.caution_rendue_at) return { abandon: "caution plus notée rendue au moment de l'envoi" };
       return { contenu: texteCautionRendue(langue, sejour(resa), { montant }, await adresseReponse(tx)) };
+    }
+
+    // Phase 5, lot 4 : le lien d'une option posée au téléphone ; le contrat signé renvoyé.
+    case "option": {
+      const [o] = await tx
+        .select({ o: options_sejour, gite: gites.nom })
+        .from(options_sejour)
+        .innerJoin(gites, eq(gites.id, options_sejour.gite_id))
+        .where(eq(options_sejour.id, String(d.optionId ?? "")));
+      if (!o) return { abandon: "option introuvable" };
+      const etat = etatOption(o.o);
+      if (etat !== "en_cours") return { abandon: `option ${etat} au moment de l'envoi` };
+      return {
+        contenu: texteOption(
+          langue,
+          {
+            nom: o.o.client_nom,
+            gite: o.gite,
+            arrivee: o.o.date_arrivee,
+            depart: o.o.date_depart,
+            dernierJour: dernierJourOption(o.o.expire_at),
+          },
+          `${origine}${lien(langue, `/reserver?option=${o.o.jeton}`)}`,
+          await adresseReponse(tx),
+        ),
+      };
+    }
+
+    case "contrat_signe": {
+      if (!resa) return { abandon: "réservation absente" };
+      const [doc] = await tx
+        .select()
+        .from(documents)
+        .where(and(eq(documents.reservation_id, resa.id), eq(documents.type, "contrat_location")));
+      if (!doc || doc.statut !== "signe" || !doc.date_signature) return { abandon: "contrat non signé au moment de l'envoi" };
+      return {
+        contenu: texteContratSigne(
+          langue,
+          sejour(resa),
+          { numero: doc.numero, signeLe: aujourdhuiParis(doc.date_signature) },
+          lienSuivi(origine, langue, resa.jeton_suivi),
+          await adresseReponse(tx),
+        ),
+        piecesJointes: [
+          { nom: `${doc.numero}-signe.pdf`, contenu: await getStorage().read(cheminContratSigne(resa.id, doc.numero)) },
+        ],
+      };
     }
 
     case "alerte_caution": {

@@ -52,6 +52,11 @@ export const OBJETS_COURRIEL = [
   "caution_retenue",
   "caution_recue",
   "caution_rendue",
+  // Phase 5, lot 4 (migration 0015) : le lien d'une option posée au
+  // téléphone (sans réservation) ; le contrat signé renvoyé depuis le
+  // back-office, en pièce jointe.
+  "option",
+  "contrat_signe",
   // Aux propriétaires, en français.
   "alerte_reservation",
   "alerte_signature",
@@ -67,7 +72,8 @@ export const courriels = pgTable(
   "courriels",
   {
     id: uuid().primaryKey().defaultRandom(),
-    // NULL pour une alerte sans réservation (paiement inconnu du site).
+    // NULL pour une alerte sans réservation (paiement inconnu du site), et
+    // pour le lien d'une option (donnees.optionId).
     reservation_id: uuid().references(() => reservations.id),
     objet: text().$type<ObjetCourriel>().notNull(),
     cle: text().notNull(),
@@ -99,7 +105,7 @@ export const courriels = pgTable(
       sql`${t.objet} in ('confirmation', 'contrat', 'remboursement', 'lien_suivi', 'facture', 'solde_preavis',
           'solde_lien', 'solde_rappel', 'solde_impaye', 'caution_bloquee', 'caution_a_valider', 'caution_liberee',
           'caution_carte', 'caution_virement', 'caution_retenue', 'caution_recue', 'caution_rendue',
-          'alerte_reservation', 'alerte_signature', 'alerte_probleme', 'alerte_caution')`,
+          'option', 'contrat_signe', 'alerte_reservation', 'alerte_signature', 'alerte_probleme', 'alerte_caution')`,
     ),
     check("courriels_statut_check", sql`${t.statut} in ('a_envoyer', 'envoye', 'echec')`),
     check("courriels_langue_check", sql`${t.langue} in ('fr', 'en')`),

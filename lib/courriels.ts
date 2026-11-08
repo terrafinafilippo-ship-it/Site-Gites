@@ -15,7 +15,10 @@
 //     pour enregistrer une carte (art. 6.6) ; paiement contesté (avis de Stripe).
 //   - Phase 4, lot 3 (D-31) : caution par virement (lib/virement.ts) — les
 //     coordonnées bancaires au client, les alertes « virement à vérifier » et
-//     « virement à rendre », l'alerte « coordonnées bancaires absentes ».
+//     « virement à rendre », l'alerte « coordonnées bancaires absentes » ;
+//   - Phase 5, lot 4 : option posée au téléphone → son lien au client ;
+//     back-office → facture ou contrat signé renvoyés (même document, même
+//     numéro, une clé nouvelle à chaque renvoi).
 // L'ENVOI est ailleurs (lib/courriels-envoi.ts), après la réponse : ce module
 // ne fait qu'écrire, sans réseau, et reste léger (lib/paiement.ts l'importe).
 //
@@ -392,4 +395,58 @@ export async function inscrireLienSuivi(
 /** Contrat signé : alerte « signature ». */
 export async function inscrireSignature(executeur: Executeur, reservationId: string, numero: string): Promise<void> {
   await alerter(executeur, "signature", "alerte_signature", reservationId, reservationId, { numero });
+}
+
+// ─── Back-office, lot 4 : option, documents renvoyés ─────────────────────────
+
+/** Option posée au téléphone (Phase 5, lot 4) : le lien personnel vers le tunnel. */
+export async function inscrireOption(
+  executeur: Executeur,
+  o: { optionId: string; destinataire: string; langue: "fr" | "en" },
+): Promise<void> {
+  await inscrire(executeur, {
+    objet: "option",
+    cle: `option:${o.optionId}`,
+    reservationId: null,
+    destinataire: o.destinataire,
+    langue: o.langue,
+    donnees: { optionId: o.optionId },
+  });
+}
+
+/**
+ * « Renvoyer au client » une facture déjà émise : le même courriel, le même
+ * PDF, le même numéro (lib/factures.ts réutilise la facture existante).
+ */
+export async function inscrireFactureRenvoyee(
+  executeur: Executeur,
+  reservationId: string,
+  type: TypeFacture,
+  quand: Date,
+): Promise<boolean> {
+  const c = await client(executeur, reservationId);
+  if (!c?.email) return false;
+  await inscrire(executeur, {
+    objet: "facture",
+    cle: `facture:${reservationId}:${type}:renvoi:${quand.toISOString()}`,
+    reservationId,
+    destinataire: c.email,
+    langue: c.langue === "en" ? "en" : "fr",
+    donnees: { type, renvoi: true },
+  });
+  return true;
+}
+
+/** « Renvoyer au client » le contrat signé, en pièce jointe. */
+export async function inscrireContratSigne(executeur: Executeur, reservationId: string, quand: Date): Promise<boolean> {
+  const c = await client(executeur, reservationId);
+  if (!c?.email) return false;
+  await inscrire(executeur, {
+    objet: "contrat_signe",
+    cle: `contrat_signe:${reservationId}:${quand.toISOString()}`,
+    reservationId,
+    destinataire: c.email,
+    langue: c.langue === "en" ? "en" : "fr",
+  });
+  return true;
 }

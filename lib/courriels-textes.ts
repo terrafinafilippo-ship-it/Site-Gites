@@ -188,6 +188,69 @@ export function texteContrat(langue: Langue, s: Sejour, lienContrat: string, adr
   );
 }
 
+/** Le contrat signé, renvoyé depuis le back-office (Phase 5, lot 4), en pièce jointe. */
+export function texteContratSigne(
+  langue: Langue,
+  s: Sejour,
+  c: { numero: string; signeLe: string },
+  lienSuivi: string,
+  adresseContact: string,
+): Contenu {
+  const en = langue === "en";
+  const plage = plageDates(s.arrivee, s.depart, langue);
+  const le = fmtDateLongue(c.signeLe, langue);
+  return assembler(
+    en ? `Your signed contract ${c.numero} — booking ${s.reference}` : `Votre contrat signé ${c.numero} — réservation ${s.reference}`,
+    [
+      { p: bonjour(langue, s.prenom) },
+      {
+        p: en
+          ? `Here is your rental contract no. ${c.numero} for ${s.gite}, ${plage}, signed on ${le}. It is attached to this email (PDF, in French).`
+          : `Voici votre contrat de location n° ${c.numero} pour ${s.gite}, du ${plage}, signé le ${le}. Il est joint à ce courriel (PDF).`,
+      },
+      { bouton: BOUTON_SUIVI[langue], lien: lienSuivi },
+      ...piedClient(langue, s, adresseContact),
+    ],
+  );
+}
+
+/**
+ * Option posée au téléphone (Phase 5, lot 4) : le lien personnel pour
+ * réserver les dates gardées, jusqu'au dernier jour de l'option inclus.
+ */
+export function texteOption(
+  langue: Langue,
+  o: { nom: string; gite: string; arrivee: string; depart: string; dernierJour: string },
+  lienReserver: string,
+  adresseContact: string,
+): Contenu {
+  const en = langue === "en";
+  const plage = plageDates(o.arrivee, o.depart, langue);
+  const fin = fmtDateAvecJour(o.dernierJour, langue);
+  return assembler(en ? `Your option — ${o.gite}, ${plage}` : `Votre option — ${o.gite}, du ${plage}`, [
+    { p: en ? `Hello ${o.nom},` : `Bonjour ${o.nom},` },
+    {
+      p: en
+        ? `As agreed by phone, we are holding ${o.gite} for you, ${plage}.`
+        : `Comme convenu par téléphone, nous vous gardons ${o.gite} du ${plage}.`,
+      gras: true,
+    },
+    {
+      p: en
+        ? `This option runs until ${fin} inclusive. To confirm your booking, please book and pay online by then:`
+        : `Cette option court jusqu'au ${fin} inclus. Pour confirmer votre réservation, réservez et réglez en ligne d'ici là :`,
+    },
+    { bouton: en ? "Book these dates" : "Réserver ces dates", lien: lienReserver },
+    {
+      note: en
+        ? "After that day, these dates will be open to other guests again."
+        : "Passé ce jour, ces dates seront de nouveau proposées à la réservation.",
+    },
+    { note: contact(langue, adresseContact) },
+    { note: SIGNATURE[langue] },
+  ]);
+}
+
 export interface AutreGite {
   nom: string;
   total: number;
@@ -873,6 +936,8 @@ const OBJETS_CLIENT: Record<string, string> = {
   caution_retenue: "l'avis de retenue sur sa caution",
   caution_recue: "l'avis de caution reçue",
   caution_rendue: "l'avis de caution rendue",
+  option: "le lien de son option",
+  contrat_signe: "son contrat signé",
 };
 
 export function texteAlerteProbleme(p: Probleme, s: Sejour | null, c: FicheClient | null): Contenu {
