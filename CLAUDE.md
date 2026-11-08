@@ -22,7 +22,7 @@ npx tsc --noEmit         # contrôle de types (pas de script dédié)
 
 npm run db:generate      # génère une migration SQL depuis db/schema/
 npm run db:migrate       # applique les migrations en attente
-npm run db:seed          # insère ou remet à jour les trois gîtes
+npm run db:seed          # crée les gîtes absents (ne touche jamais un gîte existant)
 npm run db:verify        # auto-vérification de la base (tout est annulé par ROLLBACK)
 npm run verify:centimes  # aller-retour centimes <-> texte numeric (51 cas)
 npm run verify:tarification  # prix, taxe de séjour, devis du tunnel, règlement, anglais, annulation (192 cas, sans base)
@@ -37,6 +37,7 @@ DB_CIBLE=test npm run verify:abandons # effacement des tentatives abandonnées (
 DB_CIBLE=test npm run verify:gestion  # back-office : connexion, code, appareils, réglages ; --http : pages (base de test)
 DB_CIBLE=test npm run verify:gestion-reservations # back-office : cautions, solde par virement, À traiter ; --http (base de test)
 DB_CIBLE=test npm run verify:gestion-tarifs # back-office : prix, périodes, barèmes, taxe de séjour ; --http (base de test)
+DB_CIBLE=test npm run verify:gestion-calendrier # back-office : calendrier, options, fiches des gîtes, documents, seed ; --http (base de test)
 npm run verify:production             # base RÉELLE, en lecture seule, avant d'appliquer ses migrations
 npm run gestion:compte -- adresse     # crée le compte du back-office et envoie le lien du mot de passe (ÉCRITURE)
 

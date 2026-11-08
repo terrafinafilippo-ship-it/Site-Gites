@@ -1790,6 +1790,80 @@ la base réelle :
 
 ---
 
+## Phase 5 — lot 4 : calendrier, options, fiches des gîtes, documents (7 et 8 novembre 2026)
+
+### Ce qui a été décidé
+
+Cadrage du lot le 7 novembre 2026 (exemples : M. Durand au téléphone pour
+LaPhine du 10 au 17 juillet ; travaux à L'Armu en janvier). Déjà décidé le
+3 novembre : fermer d'un geste (10), seed « création seule » (11 A), fiche du
+gîte (12 A). Réponses : 1B (option), 2A, 4A, 5B, 6A, 7A. La décision 13 A
+(« bloquer puis envoyer réserver ») ne marchait pas — le site refuse une nuit
+fermée au client lui-même — : remplacée par l'option. La question 3 greffait
+des variantes (plusieurs gîtes, motif, réouverture partielle) sur une décision
+prise : « ça se fera manuellement » ; seule la forme simple est construite.
+Décision D-35, consignée dans `docs/phases/phase-5.md`. Le 8 novembre : textes
+validés ; les boutons deviennent « Bloquer ces nuits » et « Débloquer ces
+nuits » (blocage manuel, sans motif ni paiement) ; écart E-9 : choix A, la
+fiche du gîte est figée sur la réservation à l'émission du contrat.
+
+### Ce qui a été fait
+
+- **Migration 0015** : table `options_sejour`, état `option` des nuits,
+  `reservations.option_id`, réglage `option_duree_jours` (3), courriels
+  `option` et `contrat_signe` ; trois colonnes mortes de `gites` retirées.
+- **`lib/disponibilites.ts`** : une ligne provisoire échue (verrou ou option)
+  vaut libre ; les nuits d'une option sont libres pour son client et vendues à
+  son paiement. **`lib/options-sejour.ts`** ; le tunnel accepte le lien d'une
+  option (`/reserver?option=…`, dates fixées, pas de verrou) ;
+  `lib/paiement.ts` marque l'option utilisée.
+- **`lib/gestion/calendrier.ts`** (mois, fermer, rouvrir, poser et lever une
+  option), **`gites.ts`** (fiche en deux temps), **`documents.ts`** (liste,
+  PDF, renvoi du même document).
+- **Pages** `/gestion/calendrier`, `/gestion/gites`, `/gestion/documents`
+  (et `/gestion/documents/pdf`), boutons « Ouvrir le PDF » et « Renvoyer » sur
+  la fiche d'une réservation, réglage de la durée d'une option ; menu.
+- **`db:seed`** : création seule.
+- **Migration 0016** (écart E-9, le 8 novembre) : capacité, équipements, spa et
+  téléphone recopiés sur la réservation par `lib/contrat.ts` à l'émission ;
+  `ficheContrat` (`lib/montants.ts`) les lit pour le contrat et sa copie signée.
+- **Contrôles** : `verify:gestion-calendrier` (92 cas, 105 avec `--http`),
+  `db:verify` section 6n (11 contrôles), `controler.ts` (la fiche recopiée à
+  l'émission, une fois par parcours), une étape de plus dans `lancer.sh`
+  (vingt-deux étapes) ; `verify:gestion` envoie le nouveau champ de la rubrique
+  Tunnel.
+
+### Ce qui a été vérifié
+
+Sur la base PostgreSQL jetable du poste (port 55433, `gites_essai`), jamais sur
+la base réelle :
+- `npm run lint`, `npx tsc --noEmit`, `npm run build` : passent.
+- `npm run db:verify` : 232 contrôles, 0 échec.
+- `bash scripts/parcours/lancer.sh` : **vingt-deux étapes sur vingt-deux**,
+  code de sortie 0 — tarification 192, blocage 42, paiement 69, courriels 41,
+  « Ma réservation » 22, solde 62, caution 86, virement 47, abandons 22,
+  back-office connexion 107, réservations 86, tarifs 93, **calendrier 105**,
+  parcours L'Armu et LaPhine 0 échec, URL signées 0 échec, contrôles en base
+  83/0, contrôles PDF 0 échec, `db:verify` 232/0. Aucun montant de
+  `reference.ts` n'a bougé. Journal du serveur sans erreur. (Rejoué le
+  8 novembre après le renommage et la migration 0016.)
+- Le contrôle a trouvé, avant tout commit, une condition qui faisait lire
+  toutes les nuits comme libres hors option (la vente en double restait
+  impossible : le verrou en base refusait) ; corrigée.
+
+### Ce qui n'a PAS été vérifié
+
+- **Les écrans dans un navigateur** : la grille du calendrier sur téléphone,
+  les formulaires, le tunnel ouvert par un lien d'option. Les pages sont
+  contrôlées par leur affichage au serveur, les gestes par leurs fonctions.
+- Le courriel d'option réellement reçu (envoi simulé).
+
+### Points reportés
+
+- Les **migrations 0002 à 0016** sur la base réelle : le gérant (point 4).
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

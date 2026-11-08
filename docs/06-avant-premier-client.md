@@ -236,8 +236,8 @@ inclure :
    conservation, tarification). Chaque ligne est OK, INFO, A VOIR ou
    BLOQUANT ; un point BLOQUANT interdit de migrer. Au 2 novembre 2026, la base
    réelle et `gites_test` du serveur sont à la migration **0001**.
-2. **Appliquer les migrations 0002 à 0014** (0012 à 0014 : le back-office,
-   Phase 5, lots 1 à 3) : **le gérant** les applique lui-même
+2. **Appliquer les migrations 0002 à 0016** (0012 à 0016 : le back-office,
+   Phase 5, lots 1 à 4) : **le gérant** les applique lui-même
    (`npm run db:migrate`), après une sauvegarde, sur la base réelle puis sur
    `gites_test` du serveur (réponse 11B).
 3. **Créer le compte du back-office** : le gérant lance

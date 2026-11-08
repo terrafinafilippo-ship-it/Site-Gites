@@ -1685,6 +1685,101 @@ enregistrement sans relecture.
 
 ---
 
+## D-35 · Le back-office, lot 4 : calendrier, options, fiches des gîtes, documents
+
+**Date :** 7 novembre 2026 (cadrage du lot 4 de la Phase 5). Déjà décidé au
+cadrage de la phase (3 novembre) : un gîte fermé pour travaux se ferme dans le
+calendrier, d'un geste, du premier au dernier jour, sans interrupteur « ouvert
+à la vente » (10) ; `db:seed` ne crée que les gîtes absents (11A) ; la fiche
+d'un gîte porte capacité, ménage, caution, équipements, téléphone d'arrivée et
+spa (12A). Choix du gérant le 7 novembre :
+- **réservation par téléphone** (la décision 13A « bloquer puis envoyer
+  réserver » ne marchait pas : le site refuse une nuit fermée, au client
+  comme aux autres) : une **option**. Ses nuits sont fermées à tous sauf au
+  client, qui reçoit un **lien personnel** ; sans paiement à la fin du
+  **3e jour** (réglage), elles se libèrent d'elles-mêmes ; on peut la lever
+  avant (1B) ;
+- le calendrier : **un mois, les trois gîtes l'un sous l'autre**, une case par
+  nuit (2A) ;
+- bloquer des nuits (« Bloquer ces nuits », « Débloquer ces nuits », libellés
+  choisis le 8 novembre) : **un gîte, le premier et le dernier jour, rien de plus**
+  — « ça se fera manuellement » : pas de motif, pas de plusieurs gîtes à la
+  fois, pas de réouverture partielle (3) ;
+- une page **Documents** : contrats et factures, recherche, année, « Ouvrir le
+  PDF », « Renvoyer au client » — le même document, au même numéro ; les mêmes
+  boutons sur la fiche d'une réservation (4A) ;
+- **pas d'export** pour le comptable pour l'instant (5B) ;
+- un document renvoyé part **à l'adresse de la réservation** ; si elle a
+  changé, on la corrige d'abord sur la fiche (6A) ;
+- les trois colonnes mortes de `gites` sont **supprimées** (7A).
+
+**Décision.**
+- **Migration 0015** : table `options_sejour` (gîte, dates, nom et courriel du
+  client, langue, jeton, échéance, levée, utilisée) ; `disponibilites` reçoit
+  l'état **`option`** et `option_id` (une nuit en option désigne son option, et
+  porte son échéance dans `verrou_expire_at`) ; `reservations.option_id` ;
+  `reglages.option_duree_jours` (3, de 1 à 30) ; objets de courriel `option` et
+  `contrat_signe` ; `gites` perd `tarif_semaine_base`, `tarif_weekend` et
+  `taux_taxe_sejour`.
+- **Une ligne provisoire échue vaut libre**, qu'elle soit un verrou ou une
+  option (`lib/disponibilites.ts`) : aucune tâche n'efface une option échue, le
+  client suivant ou les propriétaires reprennent ses nuits.
+- **Le client de l'option** arrive par `/reserver?option=<jeton>` : gîte et
+  dates fixés, pas de calendrier, « Ces dates sont gardées pour vous jusqu'au
+  … inclus ». Pour lui, les nuits de l'option sont libres ; ses nuits ne sont
+  **pas verrouillées** pendant le paiement (l'option les garde, et un retour en
+  arrière ne doit pas les rendre aux autres) ; le paiement les lui **vend** et
+  marque l'option utilisée (`lib/paiement.ts`). Un lien échu, levé ou déjà
+  utilisé affiche « Ce lien n'est plus valable ».
+- **Poser une option** vérifie d'abord que le site accepterait ces dates
+  (`controlerDates`) : sinon le lien ne servirait à rien, et l'écran dit
+  pourquoi.
+- **Fermer** refuse tout si une seule nuit est prise, et dit laquelle et par
+  qui (client et référence, paiement en cours, option, plateforme) ; les nuits
+  passées ne se ferment ni ne se rouvrent.
+- **`lib/gestion/gites.ts`** : la fiche en deux temps, comme les tarifs
+  (récapitulatif, empreinte, ligne verrouillée).
+- **`lib/gestion/documents.ts`** : liste, chemin du PDF (le contrat signé s'il
+  l'est), renvoi. La facture repart par son courriel habituel : l'émetteur
+  réutilise la facture émise, **aucun numéro n'est frappé**. Le contrat signé
+  part en pièce jointe (courriel `contrat_signe`) ; pas signé, c'est le lien de
+  signature (geste du lot 2). « Ouvrir le PDF » passe par
+  `/gestion/documents/pdf`, qui exige la session et renvoie vers un lien signé
+  de 5 minutes.
+- **`db:seed`** : `on conflict do nothing` ; il dit quels gîtes il a créés et
+  lesquels il a laissés tels quels.
+- **Pages** : `/gestion/calendrier`, `/gestion/gites`, `/gestion/documents` ;
+  le réglage « Option posée au téléphone : nuits gardées » dans la rubrique
+  Tunnel.
+
+**Pourquoi.** Avec la seule fermeture, un client au téléphone ne pouvait pas
+réserver les dates qu'on lui gardait. L'option garde les dates pour lui seul,
+sans saisie de ses coordonnées par les propriétaires : c'est lui qui les donne
+dans le tunnel, et qui accepte le contrat. Un document renvoyé est le même
+document : un nouveau numéro serait une nouvelle facture (règle 1).
+
+**Ce qui pourrait mal tourner.**
+- **Deux tunnels ouverts par le même client** avec le même lien : les deux
+  peuvent payer ; le second paiement trouve les nuits vendues et il est
+  remboursé (chemin existant, D-21).
+- **Une option levée pendant que le client paie** : ses nuits sont libres, le
+  paiement les reprend si personne ne les a prises entre-temps.
+- **Le prix n'est pas figé par l'option** : il est calculé au moment où le
+  client réserve. Une modification de tarif entre l'appel et la réservation
+  s'applique.
+- **Capacité, équipements, spa et téléphone sont imprimés au contrat** : ils
+  sont recopiés sur la réservation à l'émission du contrat (migration 0016,
+  écart E-9 corrigé le 8 novembre 2026), et la copie signée les relit là. Un
+  changement de fiche vaut pour les contrats émis ensuite ; le récapitulatif
+  de la fiche le dit.
+
+**Si on revient dessus.** Supprimer les options : retirer l'état `option` et
+ses deux branches dans `lib/disponibilites.ts` et `lib/tunnel.ts`. Changer la
+durée : le réglage. Remettre l'écrasement par le seed : non — une valeur saisie
+au back-office serait perdue sans prévenir.
+
+---
+
 ## Décisions ouvertes
 
 Elles ne sont **pas tranchées** et ne doivent pas l'être dans le code.

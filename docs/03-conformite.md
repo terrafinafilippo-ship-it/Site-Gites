@@ -22,6 +22,7 @@ lettres.
 | E-6 | Adresse IP du signataire falsifiable | Bloquant | Déploiement | Développement |
 | E-7 | Identité légale recopiée en dur dans les PDF, hors de `lib/constantes.ts` | Faible | 6 | Développement |
 | E-8 | « La semaine, tout compris » alors que ménage, taxe de séjour et caution s'ajoutent | Faible | 6 | **Les propriétaires** + développement |
+| ~~E-9~~ | ~~Une fiche de gîte modifiée entre l'envoi et la signature change la copie signée~~ — **corrigé le 8 novembre 2026** (migration 0016) | — | — | — |
 
 ---
 
@@ -151,6 +152,18 @@ proxy de confiance ne les réécrit pas : n'importe qui peut aujourd'hui faire
 enregistrer l'adresse de son choix. Une preuve dont un élément est fourni par la
 personne à qui on l'oppose ne vaut rien. À lever au déploiement (voir
 `docs/06-avant-premier-client.md`).
+
+**Écart E-9 (faible, Phase 5) — corrigé le 8 novembre 2026.** La copie
+signée (`…-signe.pdf`) est produite à nouveau au moment de la signature. Depuis
+le lot 4, capacité, équipements, spa et téléphone d'arrivée se modifient au
+back-office : un changement fait entre l'envoi et la signature serait apparu
+dans la copie signée et pas dans le PDF haché. **Correction** (choix du gérant,
+migration 0016) : ces quatre valeurs sont recopiées sur la réservation
+(`contrat_capacite_max`, `contrat_equipements`, `contrat_a_spa`,
+`contrat_contact_arrivee_tel`) dans la transaction qui émet le contrat, et la
+copie signée les relit là (`lib/montants.ts`, `ficheContrat`). Vérifié par le
+parcours (`controler.ts` : la fiche recopiée à l'émission) et par
+`verify:gestion-calendrier` (la fiche figée l'emporte sur celle du gîte).
 
 ---
 

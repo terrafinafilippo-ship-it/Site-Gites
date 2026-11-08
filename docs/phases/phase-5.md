@@ -1,11 +1,12 @@
 # Phase 5 — Back-office Patricia et Nicolas
 
-> **État au 6 novembre 2026 :** phase **ouverte** le 3 novembre ; **lot 1
+> **État au 7 novembre 2026 :** phase **ouverte** le 3 novembre ; **lot 1
 > construit** (connexion et réglages, D-32) le 4 novembre ; **lot 2 construit**
 > (réservations, cautions, solde par virement, « À traiter », D-33) le
-> 6 novembre ; **lot 3 construit** (tarifs, D-34) le 7 novembre. Lots 4 à 6 à
-> faire. Le cadrage est
-> en fin de fiche ; il prime sur le cadre initial là où ils diffèrent.
+> 6 novembre ; **lot 3 construit** (tarifs, D-34) et **lot 4 construit**
+> (calendrier, options, fiches des gîtes, documents, D-35) le 7 novembre.
+> Lots 5 et 6 à faire. Le cadrage est en fin de fiche ; il prime sur le cadre
+> initial là où ils diffèrent.
 
 **Dépendances :** Phase 2 close. **Parallélisable** avec les phases 3 et 4 : ne
 dépend que de la lecture en base, pas du paiement.
@@ -161,7 +162,7 @@ contrat signé, facture d'acompte émise).
 | 10 | Gîte fermé (travaux) | **On bloque les nuits des travaux dans le calendrier**, d'un geste, du premier au dernier jour ; les dates suivantes restent réservables, un retard se gère à la main. L'interrupteur « ouvert à la vente » n'est pas proposé |
 | 11 | Le seed | **A** : `db:seed` ne crée que les gîtes absents, ne touche jamais un gîte existant |
 | 12 | Fiche d'un gîte | **A** : capacité, ménage, caution, équipements, téléphone d'arrivée, spa ; nom et référence GdF fixes ; textes et photos en Phase 6 |
-| 13 | Réservation par téléphone | **A** : bloquer les nuits, puis envoyer réserver en ligne |
+| 13 | Réservation par téléphone | **A** : bloquer les nuits, puis envoyer réserver en ligne — remplacé le 7 novembre par l'**option** (lot 4, réponse 1 B) : le site refuse une nuit fermée au client lui-même |
 | 14 | Solde payé autrement | **A** : un bouton « solde reçu par virement ou chèque », qui émet la facture de solde |
 | 15 | Accueil | **A**, plus une **page de statistiques à part** |
 | S | Statistiques | **Toutes** : nuits louées par gîte et par mois ; encaissé par mois et par gîte (hors taxe) ; taxe de séjour sur une période ; nombre, durée moyenne, délai de réservation ; provenance ; cautions retenues ; commissions évitées (un seul taux, en réglage) |
@@ -190,7 +191,7 @@ contrat signé, facture d'acompte émise).
 | 1 | Connexion (D-32) et réglages | **construit le 4 novembre 2026** |
 | 2 | Réservations, cautions (libérer, retenir, chèque et virement reçus et rendus, lien de caution), solde reçu par virement, accueil « À traiter » | **construit le 6 novembre 2026** (D-33) |
 | 3 | Tarifs (lève le point 11) | **construit le 7 novembre 2026** (D-34) |
-| 4 | Calendrier (blocage par période), fiches des gîtes, documents, seed « création seule » | à faire |
+| 4 | Calendrier (bloquer des nuits, options), fiches des gîtes, documents, seed « création seule » | **construit le 7 novembre 2026** (D-35) ; écart E-9 corrigé le 8 (migration 0016) |
 | 5 | Annulation et avoir | après la réponse du comptable |
 | 6 | Statistiques | à faire |
 
@@ -232,3 +233,17 @@ saison, 450 € la semaine ; le modèle est celui de D-17 et D-18) :
 | 7 | Barème | **A** : en pourcentages, avec l'aperçu de 1 à 14 nuits (la règle du barème reste celle de D-17) |
 | 8 | Exceptions par tarif ou période | **A** : règle générale, et « comme le général » ou propres pour chaque tarif et chaque période |
 | 9 | Taxe de séjour | **A** : une saisie pour les trois gîtes, limitable à un gîte ; ligne à venir corrigeable, ligne commencée figée |
+
+**Cadrage du lot 4, 7 novembre 2026** (exemple : M. Durand appelle pour
+LaPhine du 10 au 17 juillet ; travaux à L'Armu du 4 au 15 janvier 2027). Déjà
+décidé le 3 novembre : 10 (fermer d'un geste), 11 A (seed), 12 A (fiche) :
+
+| # | Question | Réponse |
+|---|---|---|
+| 1 | Réservation par téléphone | **B** : une option — nuits fermées à tous sauf au client, lien personnel, libérées seules à la fin du 3e jour (réglage), levée possible |
+| 2 | Le calendrier | **A** : un mois, les trois gîtes l'un sous l'autre, une case par nuit |
+| 3 | Bloquer des nuits | Un gîte, le premier et le dernier jour : rien de plus (« ça se fera manuellement »), sans motif ni paiement ; refus si une nuit est prise ; débloquer d'un clic. Libellés « Bloquer ces nuits » et « Débloquer ces nuits » (8 novembre) |
+| 4 | Documents | **A** : une page (recherche, année), « Ouvrir le PDF », « Renvoyer au client » (même document, même numéro) ; mêmes boutons sur la fiche |
+| 5 | Pour le comptable | **B** : pas d'export pour l'instant |
+| 6 | Adresse du renvoi | **A** : celle de la réservation, corrigée d'abord sur la fiche si besoin |
+| 7 | Colonnes mortes de `gites` | **A** : supprimées (migration 0015) |

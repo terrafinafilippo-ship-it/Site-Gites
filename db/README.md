@@ -26,8 +26,10 @@ main dans un outil graphique.
 | `migrations/0012_gestion.sql` | Phase 5, lot 1 : connexion au back-office — compte, appareils reconnus, sessions, codes, liens du mot de passe, échecs par adresse IP (jetons et codes en empreinte seulement) ; six réglages de connexion (30 jours, 8 heures, 5 échecs, 15 minutes, code 10 minutes, lien 60 minutes) (D-32). **Aucun compte n'est créé** : voir « Le compte du back-office » plus bas. |
 | `migrations/0013_reservations_gestion.sql` | Phase 5, lot 2 : caution par chèque ou virement reçue et rendue, note interne (réservations) ; table `retenues` (une par réservation, motif obligatoire, justificatifs) ; table `a_traiter_faits` ; contrat non signé visible 3 jours après le paiement (réglage) ; courriels de retenue, de caution reçue et rendue (D-33). |
 | `migrations/0014_tarifs_gestion.sql` | Phase 5, lot 3 : durée sur laquelle « À traiter » signale les nuits sans tarif (12 mois, réglage `tarifs_horizon_mois`) (D-34). |
+| `migrations/0015_calendrier_gestion.sql` | Phase 5, lot 4 : options posées au téléphone (table `options_sejour`, état `option` des nuits, `reservations.option_id`, 3 jours en réglage), courriels `option` et `contrat_signe` ; les colonnes `tarif_semaine_base`, `tarif_weekend` et `taux_taxe_sejour` de `gites` sont retirées (D-35). |
+| `migrations/0016_contrat_fiche_figee.sql` | Phase 5, lot 4 : capacité, équipements, spa et téléphone d'arrivée recopiés sur la réservation à l'émission du contrat, relus par la copie signée (`contrat_capacite_max`, `contrat_equipements`, `contrat_a_spa`, `contrat_contact_arrivee_tel`) ; les contrats déjà émis reçoivent la fiche actuelle de leur gîte (écart E-9). |
 | `index.ts` | Le client de base de données partagé par le site (pool de 10 connexions maximum). |
-| `seed.ts` | Insère ou remet à jour les trois gîtes. |
+| `seed.ts` | Crée les gîtes absents ; ne touche jamais un gîte existant (D-35). |
 | `verify.ts` | Auto-vérification complète, sans rien laisser en base. |
 | `migrate.ts` | Applique les migrations en attente. |
 | `env.ts` | Charge `.env.local` pour les scripts. |
@@ -221,8 +223,8 @@ manquent, refait les deux vérifications ci-dessous (0009 et 0010), compare les
 compteurs de numérotation aux numéros déjà émis, compte le contenu et lit les
 réglages. Chaque ligne est OK, INFO, A VOIR ou BLOQUANT ; **un point BLOQUANT
 interdit d'appliquer les migrations** (code de sortie 1). Au 4 novembre 2026,
-la base réelle et `gites_test` du serveur sont à la migration 0001 (treize
-migrations en attente, 0002 à 0014).
+la base réelle et `gites_test` du serveur sont à la migration 0001 (quinze
+migrations en attente au 8 novembre, 0002 à 0016).
 
 ### Avant d'appliquer la migration 0009 sur une base existante
 
@@ -275,13 +277,13 @@ passe jamais par la commande (D-32).
 npm run db:seed
 ```
 
-Le seed insère les trois gîtes. Il peut être relancé autant de fois que
-nécessaire : il ne crée jamais de doublon (la clé est la référence Gîtes de
-France). Si un gîte existe déjà, ses paramètres descriptifs sont **remis aux
-valeurs du fichier** `seed.ts` (nom, adresse, capacité, ménage, caution,
-tarifs, taux de taxe). Le drapeau `actif` n'est pas touché. Attention donc : une
-valeur modifiée en back-office sera écrasée au prochain seed si elle n'est pas
-reportée dans `seed.ts`.
+Le seed **crée les gîtes absents, et seulement eux** (Phase 5, lot 4, D-35). Il
+peut être relancé autant de fois que nécessaire : la clé est la référence
+Gîtes de France, et un gîte déjà en base n'est **jamais touché** — capacité,
+ménage, caution, équipements, téléphone et spa se modifient dans le
+back-office (Gîtes), et un seed rejoué ne les écrase plus. Il dit, gîte par
+gîte, « Créé » ou « Déjà en base, laissé tel quel ». Ce n'est pas une
+restauration : pour revenir à un état passé, on restaure une sauvegarde.
 
 ## Vérifier
 
