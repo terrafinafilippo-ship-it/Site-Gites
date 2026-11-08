@@ -19,7 +19,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { documents, reglages, reservations } from "@/db/schema";
 import { getStorage } from "@/lib/storage";
-import { calculerMontants, mapContratData } from "@/lib/montants";
+import { calculerMontants, ficheContrat, mapContratData } from "@/lib/montants";
 import { chargerReservationAvecGite, type Executeur } from "@/lib/reservations";
 import { fmtDateFr } from "@/lib/format";
 import { isDuplicateError, isUniqueViolation, messageErreur } from "@/lib/route-helpers";
@@ -141,10 +141,19 @@ export async function emettreContrat(reservationId: string): Promise<ResultatEmi
         }
       }
 
-      // Numéro recopié sur la réservation, dans la MÊME transaction.
+      // Numéro recopié sur la réservation, dans la MÊME transaction, avec la
+      // fiche du gîte que le PDF vient d'imprimer : la copie signée la relira
+      // là (écart E-9).
+      const fiche = ficheContrat(resa);
       const maj = await tx
         .update(reservations)
-        .set({ numero_contrat: numero })
+        .set({
+          numero_contrat: numero,
+          contrat_capacite_max: fiche.capacite_max,
+          contrat_equipements: fiche.equipements_specifiques,
+          contrat_a_spa: fiche.a_spa,
+          contrat_contact_arrivee_tel: fiche.contact_arrivee_tel,
+        })
         .where(eq(reservations.id, reservationId))
         .returning({ id: reservations.id });
       if (maj.length !== 1) {

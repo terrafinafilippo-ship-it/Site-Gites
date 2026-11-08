@@ -371,6 +371,37 @@ export function cautionDe(resa: Reservation): number {
   return resa.caution;
 }
 
+/** Ce que le contrat imprime de la fiche du gîte (écart E-9). */
+export interface FicheContrat {
+  capacite_max: number | null;
+  equipements_specifiques: string | null;
+  a_spa: boolean | null;
+  contact_arrivee_tel: string | null;
+}
+
+/**
+ * La fiche du gîte imprimée au contrat : celle figée sur la réservation quand
+ * le contrat est émis (lib/contrat.ts, migration 0016), sinon celle du gîte —
+ * c'est le cas au moment même de l'émission, qui la recopie alors.
+ */
+export function ficheContrat(resa: Reservation): FicheContrat {
+  if (resa.contrat_capacite_max !== null) {
+    return {
+      capacite_max: resa.contrat_capacite_max,
+      equipements_specifiques: resa.contrat_equipements,
+      a_spa: resa.contrat_a_spa,
+      contact_arrivee_tel: resa.contrat_contact_arrivee_tel,
+    };
+  }
+  const gite = resa.gites;
+  return {
+    capacite_max: gite?.capacite_max ?? null,
+    equipements_specifiques: gite?.equipements_specifiques ?? null,
+    a_spa: gite?.a_spa ?? null,
+    contact_arrivee_tel: gite?.contact_arrivee_tel ?? null,
+  };
+}
+
 /**
  * Construit l'objet `ContratData` à partir de la réservation, du gîte joint, des
  * montants calculés et du numéro/date de contrat (fournis par la route).
@@ -385,7 +416,7 @@ export function mapContratData(
   montants: Montants,
   ctx: { numeroContrat: string; dateEmission: string; contactEmail: string },
 ): ContratData {
-  const gite = resa.gites ?? undefined;
+  const fiche = ficheContrat(resa);
   const dateArriveeIso = resa.date_arrivee ?? '';
   const heureArrivee = resa.heure_arrivee ?? HEURE_ARRIVEE_DEFAUT;
 
@@ -397,10 +428,10 @@ export function mapContratData(
     // champsCommuns ne fournit pas le téléphone (absent des factures)
     clientTelephone: resa.client_telephone ?? '',
 
-    // Caractéristiques du gîte (back-office > défauts entreprise)
-    giteCapaciteMax: gite?.capacite_max ?? 0,
-    giteEquipementsSpecifiques: gite?.equipements_specifiques ?? '',
-    giteASpa: gite?.a_spa ?? false,
+    // Caractéristiques du gîte : figées sur la réservation à l'émission (E-9).
+    giteCapaciteMax: fiche.capacite_max ?? 0,
+    giteEquipementsSpecifiques: fiche.equipements_specifiques ?? '',
+    giteASpa: fiche.a_spa ?? false,
     // Montant FIGÉ sur la réservation (Phase 4, lot 2), jamais une valeur par
     // défaut : lib/contrat.ts refuse de créer un contrat sans lui.
     cautionMontant: cautionDe(resa),
@@ -437,7 +468,7 @@ export function mapContratData(
     retenueAnnulation: retenueAnnulation(resa, montants),
 
     contactEmail: ctx.contactEmail,
-    contactArriveeTel: gite?.contact_arrivee_tel ?? '',
+    contactArriveeTel: fiche.contact_arrivee_tel ?? '',
 
     // Tampon de signature SES — renseigné par la route de signature.
     signatureSesId: undefined,
