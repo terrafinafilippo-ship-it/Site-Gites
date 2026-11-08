@@ -36,10 +36,10 @@
 // MONTANTS EN CENTIMES ENTIERS.
 import { timingSafeEqual } from "node:crypto";
 
-import { and, desc, eq, inArray, lte } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lte } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { paiements, reservations, textes_accord, type StatutPaiement } from "@/db/schema";
+import { options_sejour, paiements, reservations, textes_accord, type StatutPaiement } from "@/db/schema";
 import { centimesDepuisNumeric, numericDepuisCentimes } from "@/lib/centimes";
 import { inscrireApresPaiement, inscrireFacture, inscrireProbleme, inscrireRemboursement } from "@/lib/courriels";
 import { constaterCaution, type IssueCaution } from "@/lib/caution";
@@ -254,6 +254,7 @@ export async function constaterPaiement(paiementId: string, p: Prestataire = pre
         reservationId,
         arrivee: resa.date_arrivee,
         depart: resa.date_depart,
+        optionId: resa.option_id,
       });
       if (!vente.ok) {
         throw new ARembourser(
@@ -277,6 +278,13 @@ export async function constaterPaiement(paiementId: string, p: Prestataire = pre
         .update(paiements)
         .set({ statut: "reussi", date_paiement: new Date() })
         .where(eq(paiements.id, ligne.id));
+      // Réservation faite par le lien d'une option (Phase 5, lot 4) : l'option a servi.
+      if (resa.option_id) {
+        await tx
+          .update(options_sejour)
+          .set({ utilisee_at: new Date() })
+          .where(and(eq(options_sejour.id, resa.option_id), isNull(options_sejour.utilisee_at)));
+      }
       await inscrireApresPaiement(tx, reservationId);
       confirmeeIci = true;
       return { issue: "CONFIRMEE", reservationId } as const;

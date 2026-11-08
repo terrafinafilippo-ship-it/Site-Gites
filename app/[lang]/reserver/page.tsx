@@ -4,9 +4,10 @@ import { GITES, isGiteId } from "@/lib/data/gites";
 import { lireChiffresPublics } from "@/lib/gites-publics";
 import { langueDe } from "@/lib/i18n/langues";
 import { metadonnees } from "@/lib/i18n/metadonnees";
+import { dernierJourOption, lireOptionParJeton, type OptionLue } from "@/lib/options-sejour";
 import { configurationPaiement } from "@/lib/stripe";
 import { chargerDonneesTunnel, type DonneesTunnel } from "@/lib/tunnel";
-import ChoixGite, { TunnelIndisponible } from "./ChoixGite";
+import ChoixGite, { OptionInvalide, TunnelIndisponible } from "./ChoixGite";
 import ReserverFunnel, { type DemandeInitiale } from "./ReserverFunnel";
 
 // Données lues à chaque visite : un calendrier mis en cache annoncerait libres
@@ -62,7 +63,21 @@ export default async function ReserverPage({
 }) {
   const langue = langueDe((await params).lang);
   const parametres = await searchParams;
-  const slug = texte(parametres, "gite");
+
+  // Lien d'une option posée au téléphone (Phase 5, lot 4) : le gîte et les
+  // dates sont ceux de l'option, quoi que dise le reste de l'adresse.
+  const jeton = texte(parametres, "option");
+  let option: OptionLue | null = null;
+  if (jeton) {
+    try {
+      option = await lireOptionParJeton(jeton);
+    } catch (erreur) {
+      console.error("[reserver] OPTION ILLISIBLE :", erreur instanceof Error ? erreur.message : erreur);
+      return <TunnelIndisponible langue={langue} nomGite={langue === "en" ? "this gîte" : "ce gîte"} />;
+    }
+    if (!option || option.etat !== "en_cours") return <OptionInvalide langue={langue} />;
+  }
+  const slug = option ? option.slug : texte(parametres, "gite");
 
   // Sans gîte : le client choisit. Gîte inconnu : 404, jamais un autre gîte à sa place.
   if (!slug) return <ChoixGite langue={langue} publics={await lireChiffresPublics()} />;
@@ -72,7 +87,7 @@ export default async function ReserverPage({
   let donnees: DonneesTunnel;
   try {
     // L'identifiant interne du gîte reste sur le serveur.
-    ({ donnees } = await chargerDonneesTunnel(slug));
+    ({ donnees } = await chargerDonneesTunnel(slug, undefined, option?.id ?? null));
   } catch (erreur) {
     // Le tunnel ne dégrade jamais : sans données sûres, il refuse d'engager le client.
     console.error(
@@ -87,13 +102,15 @@ export default async function ReserverPage({
     console.error(`[reserver] PAIEMENT NON CONFIGURÉ (${slug}) : ${paiement.raison}`);
     return <TunnelIndisponible langue={langue} nomGite={gite.name} />;
   }
+  const initial = demandeInitiale(parametres);
   return (
     <ReserverFunnel
       langue={langue}
       gite={gite}
       donnees={donnees}
-      initial={demandeInitiale(parametres)}
+      initial={option ? { ...initial, arrivee: option.arrivee, depart: option.depart } : initial}
       clePublique={paiement.clePublique}
+      option={option ? { jeton: option.jeton, fin: dernierJourOption(option.expireAt) } : null}
     />
   );
 }

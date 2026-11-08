@@ -75,6 +75,13 @@ export interface DemandeInitiale {
   coordonnees?: boolean;
 }
 
+/** Option posée au téléphone : le client arrive par son lien, ses dates sont fixées (Phase 5, lot 4). */
+export interface OptionTunnel {
+  jeton: string;
+  /** Dernier jour où l'option garde les dates (inclus), aaaa-mm-jj. */
+  fin: string;
+}
+
 /** La réservation enregistrée par le serveur, dates bloquées. */
 interface Tentative {
   id: string;
@@ -155,6 +162,8 @@ const TEXTES: Bilingue<{
   aPartirDe: (heure: string) => string;
   avant: (heure: string) => string;
   aucuneDate: string;
+  /** Dates gardées par une option posée au téléphone (Phase 5, lot 4). */
+  optionGardee: (fin: string) => string;
   titreAdultes: string;
   detailAdultes: string;
   titreEnfants: string;
@@ -318,6 +327,7 @@ const TEXTES: Bilingue<{
     aPartirDe: (heure) => `À partir de ${heure}`,
     avant: (heure) => `Avant ${heure}`,
     aucuneDate: "Aucune date n'est encore ouverte à la réservation en ligne pour ce gîte.",
+    optionGardee: (fin) => `Ces dates sont gardées pour vous jusqu'au ${fin} inclus.`,
     titreAdultes: "Adultes",
     detailAdultes: "18 ans et plus",
     titreEnfants: "Enfants",
@@ -496,6 +506,7 @@ const TEXTES: Bilingue<{
     aPartirDe: (heure) => `From ${heure}`,
     avant: (heure) => `Before ${heure}`,
     aucuneDate: "No dates are open for online booking for this gîte yet.",
+    optionGardee: (fin) => `These dates are held for you until ${fin} inclusive.`,
     titreAdultes: "Adults",
     detailAdultes: "18 and over",
     titreEnfants: "Children",
@@ -809,11 +820,14 @@ export default function ReserverFunnel({
   donnees,
   initial,
   clePublique,
+  option = null,
 }: {
   langue: Langue;
   gite: GiteData;
   donnees: DonneesTunnel;
   initial: DemandeInitiale;
+  /** Dates fixées par une option : pas de calendrier, les dates partent avec le jeton. */
+  option?: OptionTunnel | null;
   /** Clé publique Stripe (pk_test_…), vérifiée par le serveur avant d'ouvrir le tunnel. */
   clePublique: string;
 }) {
@@ -890,7 +904,7 @@ export default function ReserverFunnel({
   // après un rechargement ou un changement de langue (components/layout/ChoixLangue.tsx).
   const etapeCoordonnees = state === "step2" || state === "step3" || state === "step4";
   useEffect(() => {
-    const p = new URLSearchParams({ gite: gite.id });
+    const p = new URLSearchParams(option ? { option: option.jeton } : { gite: gite.id });
     if (arrivee) p.set("arrivee", arrivee);
     if (depart) p.set("depart", depart);
     p.set("adultes", String(adultes));
@@ -899,7 +913,7 @@ export default function ReserverFunnel({
     if (etapeCoordonnees) p.set("etape", "coordonnees");
     // Forme documentée par Next.js (état `null`) : le routeur se synchronise sur la nouvelle adresse.
     window.history.replaceState(null, "", `${window.location.pathname}?${p.toString()}`);
-  }, [gite.id, arrivee, depart, adultes, enfants, bebes, etapeCoordonnees]);
+  }, [gite.id, option, arrivee, depart, adultes, enfants, bebes, etapeCoordonnees]);
 
   // ── Compte à rebours du blocage ──
   useEffect(() => {
@@ -987,6 +1001,7 @@ export default function ReserverFunnel({
           totalAttendu: devisClient.montants.totalTtc,
           reglement,
           langue,
+          option: option?.jeton ?? null,
         }),
       });
       const corps = (await reponse.json().catch(() => ({}))) as Record<string, unknown>;
@@ -1158,7 +1173,7 @@ export default function ReserverFunnel({
             <div className={styles.funnel}>
               <div className={styles.stepPane}>
                 <h1>{t.titre1}</h1>
-                <p className={styles.stepLead}>{t.intro1}</p>
+                {!option && <p className={styles.stepLead}>{t.intro1}</p>}
 
                 <div className={styles.fieldGroup}>
                   <h3>{t.vosDates}</h3>
@@ -1174,17 +1189,21 @@ export default function ReserverFunnel({
                       <div className={styles.dateCardSub}>{t.avant(fmtHeure(reglages.heureDepart, langue))}</div>
                     </div>
                   </div>
-                  <Calendrier
-                    ctx={ctx}
-                    horizon={donnees.horizon}
-                    arrivee={arrivee}
-                    depart={depart}
-                    onChange={(a, d) => {
-                      setArrivee(a);
-                      setDepart(d);
-                    }}
-                  />
-                  {donnees.horizon === null && (
+                  {option ? (
+                    <div className={styles.avis}>{t.optionGardee(date(option.fin))}</div>
+                  ) : (
+                    <Calendrier
+                      ctx={ctx}
+                      horizon={donnees.horizon}
+                      arrivee={arrivee}
+                      depart={depart}
+                      onChange={(a, d) => {
+                        setArrivee(a);
+                        setDepart(d);
+                      }}
+                    />
+                  )}
+                  {!option && donnees.horizon === null && (
                     <div className={styles.avis}>{t.aucuneDate}</div>
                   )}
                   {refusDates && <div className={styles.avis}>{refusDates.message}</div>}

@@ -11,7 +11,7 @@
 //
 // Réponses : 201 enregistrée · 400 demande invalide (coordonnées, règlement) ·
 // 404 gîte inconnu · 409 refus métier (règle, capacité, dates prises — avec
-// les autres gîtes libres) · 429 trop de tentatives · 503 tunnel ou paiement
+// les autres gîtes libres —, lien d'option qui n'est plus valable) · 429 trop de tentatives · 503 tunnel ou paiement
 // indisponible (base, réglages, Stripe) · 500 erreur inattendue. Un 409 est une situation normale ; un 503 ou un 500
 // est une panne, journalisée comme telle.
 //
@@ -173,7 +173,17 @@ export async function POST(request: Request) {
   }
 
   try {
-    const r = await enregistrerTentative(gite, demande, coordonnees.coordonnees, totalAttendu, corps.reglement, langue);
+    // Option posée au téléphone (Phase 5, lot 4) : le jeton de son lien, revérifié par le serveur.
+    const jetonOption = chaine(corps.option) || null;
+    const r = await enregistrerTentative(
+      gite,
+      demande,
+      coordonnees.coordonnees,
+      totalAttendu,
+      corps.reglement,
+      langue,
+      jetonOption,
+    );
     if (r.ok) {
       let clientSecret: string;
       try {
@@ -210,6 +220,7 @@ export async function POST(request: Request) {
       });
     }
     if (r.raison === "REGLEMENT") return reponse(400, { code: "REGLEMENT_INVALIDE", error: r.message });
+    if (r.raison === "OPTION") return reponse(409, { code: "OPTION_INVALIDE", error: r.message });
     if (r.raison === "DATES_PRISES") {
       return reponse(409, {
         code: "DATES_PRISES",

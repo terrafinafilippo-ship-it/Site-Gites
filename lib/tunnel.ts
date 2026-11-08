@@ -12,12 +12,17 @@
 // Le prix est TOUJOURS recalculé ici au moment du blocage, avec les données
 // lues à cet instant : le navigateur ne fournit que des dates, des voyageurs
 // et des coordonnées, jamais un montant.
+//
+// OPTION posée au téléphone (Phase 5, lot 4) : le client arrive avec le jeton
+// de son lien. Pour lui, les nuits de l'option sont libres ; ses dates sont
+// celles de l'option, à l'identique. Ses nuits ne sont pas verrouillées
+// pendant le paiement : l'option les garde déjà (lib/disponibilites.ts).
 import { randomInt } from "node:crypto";
 
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { audit_logs, gites, paiements, reglages, reservations } from "@/db/schema";
+import { audit_logs, gites, options_sejour, paiements, reglages, reservations } from "@/db/schema";
 import { centimesDepuisNumeric, numericDepuisCentimes } from "@/lib/centimes";
 import { occupantsMajeurs, type Coordonnees } from "@/lib/coordonnees";
 import { GITE_IDS, type GiteId } from "@/lib/data/gites";
@@ -35,6 +40,7 @@ import {
 } from "@/lib/devis";
 import { leverBlocage, lireNuitsPrises, poserBlocage } from "@/lib/disponibilites";
 import { LANGUES, type Langue } from "@/lib/i18n/langues";
+import { lireOptionParJeton, type OptionLue } from "@/lib/options-sejour";
 import { annulerPaiementsOuverts, lireTexteAccord } from "@/lib/paiement";
 import {
   carteEnregistree,
@@ -97,11 +103,16 @@ export interface TunnelCharge {
 
 /**
  * Tout ce dont le tunnel a besoin pour un gîte. LÈVE TunnelIndisponible au
- * lieu de compléter.
+ * lieu de compléter. Avec `optionId`, les nuits de cette option sont libres
+ * (son client, arrivé par son lien).
  */
-export async function chargerDonneesTunnel(slug: GiteId, executeur: Executeur = getDb()): Promise<TunnelCharge> {
+export async function chargerDonneesTunnel(
+  slug: GiteId,
+  executeur: Executeur = getDb(),
+  optionId: string | null = null,
+): Promise<TunnelCharge> {
   try {
-    return await lireDonneesTunnel(slug, executeur);
+    return await lireDonneesTunnel(slug, executeur, optionId);
   } catch (erreur) {
     if (erreur instanceof TunnelIndisponible) throw erreur;
     throw new TunnelIndisponible(
@@ -111,7 +122,7 @@ export async function chargerDonneesTunnel(slug: GiteId, executeur: Executeur = 
   }
 }
 
-async function lireDonneesTunnel(slug: GiteId, executeur: Executeur): Promise<TunnelCharge> {
+async function lireDonneesTunnel(slug: GiteId, executeur: Executeur, optionId: string | null): Promise<TunnelCharge> {
   const [ligne] = await executeur.select().from(gites).where(eq(gites.slug, slug));
   if (!ligne) throw new TunnelIndisponible(`gîte « ${slug} » absent en base`);
   if (!ligne.actif) throw new TunnelIndisponible(`gîte « ${slug} » inactif en base`);
@@ -145,7 +156,7 @@ async function lireDonneesTunnel(slug: GiteId, executeur: Executeur): Promise<Tu
         caution: centimesDepuisNumeric(ligne.caution),
       },
       reglages: reglagesTunnel,
-      nuitsPrises: await lireNuitsPrises(executeur, ligne.id, aujourdhui, finLecture),
+      nuitsPrises: await lireNuitsPrises(executeur, ligne.id, aujourdhui, finLecture, optionId),
       aujourdhui,
       horizon,
     },
@@ -220,12 +231,40 @@ export type ResultatTentative =
     }
   | { ok: false; raison: "REFUS"; refus: RefusDevis }
   | { ok: false; raison: "REGLEMENT"; message: string }
+  | { ok: false; raison: "OPTION"; message: string }
   | { ok: false; raison: "DATES_PRISES"; nuitsPrises: string[]; alternatives: Alternative[] };
 
 class DatesPrises extends Error {
   constructor(readonly nuitsPrises: string[]) {
     super("dates prises");
   }
+}
+
+class OptionPerdue extends Error {
+  constructor() {
+    super("option plus en cours");
+  }
+}
+
+/** Le lien d'une option qui ne garde plus ses dates (échue, levée, déjà utilisée), ou d'autres dates. */
+export const OPTION_INVALIDE: Record<Langue, string> = {
+  fr: "Ce lien d'option n'est plus valable : l'option a pris fin ou a déjà servi. Vous pouvez choisir d'autres dates, ou nous appeler.",
+  en: "This option link is no longer valid: the option has ended or has already been used. You can choose other dates, or call us.",
+};
+
+/**
+ * L'option d'un lien, si elle garde encore exactement ces dates de ce gîte ;
+ * sinon `null`.
+ */
+export async function optionValable(
+  jeton: string,
+  slug: GiteId,
+  dates: { arrivee: string; depart: string },
+  executeur: Executeur = getDb(),
+): Promise<OptionLue | null> {
+  const o = await lireOptionParJeton(jeton, executeur);
+  if (!o || o.etat !== "en_cours" || o.slug !== slug) return null;
+  return o.arrivee === dates.arrivee && o.depart === dates.depart ? o : null;
 }
 
 /**
@@ -241,9 +280,16 @@ export async function enregistrerTentative(
   reglementBrut: unknown,
   /** Langue du client : messages de refus, texte d'accord, courriels (lot 4). */
   langue: Langue = "fr",
+  /** Jeton du lien d'une option posée au téléphone (Phase 5, lot 4), tel que reçu. */
+  jetonOption: string | null = null,
 ): Promise<ResultatTentative> {
   const db = getDb();
-  const { giteId, donnees } = await chargerDonneesTunnel(slug, db);
+  let option: OptionLue | null = null;
+  if (jetonOption) {
+    option = await optionValable(jetonOption, slug, demande, db);
+    if (!option) return { ok: false, raison: "OPTION", message: OPTION_INVALIDE[langue] };
+  }
+  const { giteId, donnees } = await chargerDonneesTunnel(slug, db, option?.id ?? null);
   const resultat = devisSejour(preparerDevis(donnees, langue), demande);
   if (!resultat.ok) {
     if (resultat.refus.donneeManquante) {
@@ -339,8 +385,21 @@ export async function enregistrerTentative(
             langue,
             accord_carte_id: accord?.id ?? null,
             accord_carte_texte: accord?.texte ?? null,
+            option_id: option?.id ?? null,
           })
           .returning({ id: reservations.id });
+
+        if (option) {
+          // L'option garde déjà les nuits : on vérifie, sous verrou, qu'elle
+          // les garde encore (ni levée, ni échue, ni utilisée entre-temps).
+          const [o] = await tx
+            .select({ levee: options_sejour.levee_at, utilisee: options_sejour.utilisee_at, expire: options_sejour.expire_at })
+            .from(options_sejour)
+            .where(eq(options_sejour.id, option.id))
+            .for("update");
+          if (!o || o.levee || o.utilisee || o.expire.getTime() <= Date.now()) throw new OptionPerdue();
+          return { id: resa.id, expireA: new Date(Date.now() + r.dureeBlocageMinutes * 60_000) };
+        }
 
         const blocage = await poserBlocage(tx, {
           giteId,
@@ -366,6 +425,7 @@ export async function enregistrerTentative(
         client: { email: coordonnees.email, nom: `${locataire.prenom} ${locataire.nom}` },
       };
     } catch (erreur) {
+      if (erreur instanceof OptionPerdue) return { ok: false, raison: "OPTION", message: OPTION_INVALIDE[langue] };
       if (erreur instanceof DatesPrises) {
         return {
           ok: false,

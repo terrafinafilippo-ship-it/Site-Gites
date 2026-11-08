@@ -13,6 +13,9 @@ const TEXTES: Bilingue<{
   pasEnLigne: (nom: string) => string;
   contacter: string;
   voirGites: string;
+  optionInvalide: string;
+  optionInvalideSub: string;
+  autresDates: string;
 }> = {
   fr: {
     quelGite: "Quel gîte souhaitez-vous réserver ?",
@@ -22,6 +25,9 @@ const TEXTES: Bilingue<{
     pasEnLigne: (nom) => `Il n'est pas possible de réserver ${nom} en ligne pour le moment.`,
     contacter: "Nous contacter",
     voirGites: "Voir les gîtes",
+    optionInvalide: "Ce lien n'est plus valable.",
+    optionInvalideSub: "L'option a pris fin ou a déjà servi à réserver. Vous pouvez choisir d'autres dates, ou nous appeler.",
+    autresDates: "Choisir des dates",
   },
   en: {
     quelGite: "Which gîte would you like to book?",
@@ -31,6 +37,9 @@ const TEXTES: Bilingue<{
     pasEnLigne: (nom) => `${nom} cannot be booked online for the moment.`,
     contacter: "Contact us",
     voirGites: "See the gîtes",
+    optionInvalide: "This link is no longer valid.",
+    optionInvalideSub: "The option has ended or has already been used to book. You can choose other dates, or call us.",
+    autresDates: "Choose dates",
   },
 };
 
@@ -91,6 +100,28 @@ export function TunnelIndisponible({ langue, nomGite }: { langue: Langue; nomGit
             <div style={{ display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
               <Link className="btn btn-primary" href={lien(langue, "/contact")}>{t.contacter}</Link>
               <Link className="btn btn-ghost" href={lien(langue, "/gites")}>{t.voirGites}</Link>
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+/** Lien d'une option qui ne garde plus ses dates : échue, levée, ou déjà utilisée (Phase 5, lot 4). */
+export function OptionInvalide({ langue }: { langue: Langue }) {
+  const t = TEXTES[langue];
+  return (
+    <>
+      <EnteteTunnel langue={langue} />
+      <section>
+        <div className="wrap" style={{ paddingBlock: 56 }}>
+          <div className={styles.stateBlock}>
+            <h1>{t.optionInvalide}</h1>
+            <p className={styles.stateBlockSub}>{t.optionInvalideSub}</p>
+            <div style={{ display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
+              <Link className="btn btn-primary" href={lien(langue, "/reserver")}>{t.autresDates}</Link>
+              <Link className="btn btn-ghost" href={lien(langue, "/contact")}>{t.contacter}</Link>
             </div>
           </div>
         </div>
