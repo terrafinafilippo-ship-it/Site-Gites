@@ -49,6 +49,15 @@ export const RUBRIQUES: Rubrique[] = [
     champs: [
       { cle: "duree_blocage_minutes", libelle: "Dates gardées pendant le paiement", sorte: "entier", min: 1, max: 120, unite: "minutes" },
       {
+        cle: "option_duree_jours",
+        libelle: "Option posée au téléphone : nuits gardées",
+        sorte: "entier",
+        min: 1,
+        max: 30,
+        unite: "jours",
+        aide: "3 : une option posée lundi garde les nuits jusqu'à jeudi inclus.",
+      },
+      {
         cle: "delai_reservation_jours",
         libelle: "Délai minimum avant l'arrivée",
         sorte: "entier",

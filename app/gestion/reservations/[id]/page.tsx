@@ -5,6 +5,7 @@ import { jourBlocage, jourLevee, lireReglagesCaution } from "@/lib/caution";
 import { centimesDepuisNumeric } from "@/lib/centimes";
 import { aujourdhuiParis } from "@/lib/dates-civiles";
 import { fmtDateAvecJour, fmtDateLongue, fmtEuro, fmtHeure } from "@/lib/format";
+import { LIBELLES_FACTURE } from "@/lib/gestion/documents";
 import { lireFiche, montantDe } from "@/lib/gestion/reservations";
 import { isUuid } from "@/lib/route-helpers";
 import { dateLimiteSolde } from "@/lib/solde";
@@ -22,6 +23,7 @@ import {
   actionRetenir,
   actionSoldeVirement,
 } from "../../actions-reservations";
+import { actionRenvoyerDocument } from "../../actions-calendrier";
 import Entete from "../../Entete";
 import styles from "../../gestion.module.css";
 import { exigerSession } from "../../outils";
@@ -52,6 +54,8 @@ const ACTIONS_JOURNAL: Record<string, string> = {
   solde_recu_virement: "Solde noté reçu par virement",
   coordonnees_modifiees: "Coordonnées modifiées",
   lien_signature_renvoye: "Lien de signature renvoyé",
+  contrat_renvoye: "Contrat signé renvoyé",
+  facture_renvoyee: "Facture renvoyée",
   effacement_tentative: "Tentative effacée",
 };
 
@@ -322,10 +326,41 @@ export default async function FicheReservation({ params }: { params: Promise<{ i
             <li>
               Contrat :{" "}
               {contrat ? `${contrat.numero}, ${contrat.statut === "signe" ? `signé${contrat.date_signature ? ` le ${quand(contrat.date_signature)}` : ""}` : "pas encore signé"}` : "pas encore créé"}
+              {contrat && (
+                <>
+                  {" — "}
+                  <a href={`/gestion/documents/pdf?sorte=contrat&id=${contrat.id}`} target="_blank" rel="noopener">
+                    Ouvrir le PDF
+                  </a>
+                </>
+              )}
+              {contrat?.statut === "signe" && (
+                <GesteBouton
+                  action={actionRenvoyerDocument.bind(null, "contrat", contrat.id)}
+                  libelle="Renvoyer le contrat signé"
+                  confirmation={`Renvoyer le contrat signé ${contrat.numero} à ${resa.client_email ?? "(aucune adresse)"} ?`}
+                  discret
+                />
+              )}
             </li>
             {fiche.factures.map((f) => (
               <li key={f.id}>
-                Facture {f.numero} ({f.type}) : {fmtEuro(centimesDepuisNumeric(f.montant_ttc))}, émise le {fmtDateLongue(String(f.date_emission).slice(0, 10))}
+                {LIBELLES_FACTURE[f.type] ?? "Facture"} {f.numero} : {fmtEuro(centimesDepuisNumeric(f.montant_ttc))}, émise le{" "}
+                {fmtDateLongue(String(f.date_emission).slice(0, 10))}
+                {f.pdf_url && (
+                  <>
+                    {" — "}
+                    <a href={`/gestion/documents/pdf?sorte=facture&id=${f.id}`} target="_blank" rel="noopener">
+                      Ouvrir le PDF
+                    </a>
+                  </>
+                )}
+                <GesteBouton
+                  action={actionRenvoyerDocument.bind(null, "facture", f.id)}
+                  libelle="Renvoyer la facture"
+                  confirmation={`Renvoyer la facture ${f.numero} à ${resa.client_email ?? "(aucune adresse)"} ?`}
+                  discret
+                />
               </li>
             ))}
           </ul>

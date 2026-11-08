@@ -414,3 +414,69 @@
 .periode p {
   margin: 4px 0;
 }
+
+/* Calendrier (Phase 5, lot 4). */
+
+.calendrier {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.calendrier th,
+.calendrier td {
+  padding: 0;
+  text-align: center;
+  font-weight: normal;
+}
+
+.calendrier thead th {
+  min-width: 22px;
+  padding-bottom: 4px;
+  color: #5c5c5c;
+  line-height: 1.2;
+}
+
+.calendrier tbody th {
+  position: sticky;
+  left: 0;
+  background: #ffffff;
+  text-align: left;
+  padding-right: 8px;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.nuit {
+  display: block;
+  width: 20px;
+  height: 26px;
+  margin: 1px;
+  border-radius: 3px;
+  border: 1px solid #dde3d6;
+  background: #ffffff;
+}
+
+.nuitReserve {
+  background: #3d5b45;
+  border-color: #3d5b45;
+}
+
+.nuitPaiement {
+  background: #e0a800;
+  border-color: #e0a800;
+}
+
+.nuitFerme {
+  background: #5c5c5c;
+  border-color: #5c5c5c;
+}
+
+.nuitOption {
+  background: #7a9cc6;
+  border-color: #7a9cc6;
+}
+
+.aujourdhui {
+  text-decoration: underline;
+  font-weight: 700;
+}
