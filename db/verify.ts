@@ -60,8 +60,7 @@ const pad3 = (n: number): string => String(n).padStart(3, "0");
 const COLONNES_ATTENDUES: Record<string, string[]> = {
   gites: [
     "id", "nom", "ref_gdf", "slug", "adresse", "capacite_max", "forfait_menage", "caution",
-    "equipements_specifiques", "a_spa", "contact_arrivee_tel", "tarif_semaine_base",
-    "tarif_weekend", "taux_taxe_sejour", "actif", "created_at",
+    "equipements_specifiques", "a_spa", "contact_arrivee_tel", "actif", "created_at",
   ],
   reservations: [
     "id", "gite_id", "reference", "jeton_suivi", "statut", "numero_contrat",
@@ -85,6 +84,10 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     // Back-office (Phase 5, lot 2, migration 0013).
     "caution_recue_at", "caution_rendue_at", "note_interne",
     "mode_paiement", "reference_transaction", "date_paiement_acompte",
+    // Réservation faite par le lien d'une option (Phase 5, lot 4, migration 0015).
+    "option_id",
+    // Fiche du gîte figée à l'émission du contrat (écart E-9, migration 0016).
+    "contrat_capacite_max", "contrat_equipements", "contrat_a_spa", "contrat_contact_arrivee_tel",
     "created_at", "updated_at",
   ],
   documents: [
@@ -110,6 +113,8 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
   ],
   disponibilites: [
     "id", "gite_id", "date", "statut", "source", "reservation_id", "verrou_expire_at", "created_at",
+    // Option posée au téléphone (Phase 5, lot 4, migration 0015).
+    "option_id",
   ],
   avis: ["id", "gite_id", "source", "note", "commentaire", "auteur", "date_sejour", "publie", "created_at"],
   audit_logs: ["id", "table_cible", "ligne_id", "action", "acteur", "details", "created_at"],
@@ -147,6 +152,8 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     "contrat_non_signe_jours",
     // Tarifs, lot 3 (migration 0014).
     "tarifs_horizon_mois",
+    // Calendrier, lot 4 (migration 0015).
+    "option_duree_jours",
     "updated_at",
   ],
   taxes_sejour: [
@@ -172,6 +179,11 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
   // Back-office, lot 2 (migration 0013).
   retenues: ["id", "reservation_id", "montant", "motif", "moyen", "pieces", "acteur", "faite_at", "created_at"],
   a_traiter_faits: ["cle", "acteur", "fait_at"],
+  // Calendrier, lot 4 (migration 0015).
+  options_sejour: [
+    "id", "gite_id", "date_arrivee", "date_depart", "client_nom", "client_email", "langue", "jeton",
+    "expire_at", "levee_at", "utilisee_at", "created_at",
+  ],
 };
 
 // Quelques types sensibles (le module de contrat en dépend).
@@ -310,9 +322,9 @@ async function verifierSchema(client: PoolClient): Promise<void> {
 
   // Aucune ligne « libre » ne survit à la migration 0004 : une nuit sans ligne est libre.
   const libres = await client.query<{ n: number }>(
-    `select count(*)::int as n from disponibilites where statut not in ('verrou', 'reserve', 'bloque')`,
+    `select count(*)::int as n from disponibilites where statut not in ('verrou', 'reserve', 'bloque', 'option')`,
   );
-  noter("1", libres.rows[0].n === 0, "disponibilites : aucune ligne hors des trois états", `${libres.rows[0].n} ligne(s)`);
+  noter("1", libres.rows[0].n === 0, "disponibilites : aucune ligne hors des quatre états", `${libres.rows[0].n} ligne(s)`);
 
   // Le tunnel ne s'ouvre pas sans texte d'accord pour la carte, dans chaque langue.
   const accords = await client.query<{ langue: string }>(
@@ -1060,6 +1072,46 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
       const e = await attendreErreur(client, nom, `update reglages set tarifs_horizon_mois = $1 where id = 1`, [valeur]);
       noter("6m", codePg(e.erreur) === "23514", `horizon de ${valeur} mois refusé`, codePg(e.erreur));
     }
+
+    // ── 6n. Calendrier : options posées au téléphone (Phase 5, lot 4, migration 0015) ──
+    titre("6n. Calendrier : options");
+    const duree = await client.query<{ d: number }>(`select option_duree_jours as d from reglages where id = 1`);
+    noter("6n", duree.rows[0]?.d === 3, "réglages : une option garde les nuits 3 jours", JSON.stringify(duree.rows[0]));
+    const opt = await client.query<{ id: string; jeton: string }>(
+      `insert into options_sejour (gite_id, date_arrivee, date_depart, client_nom, client_email, expire_at)
+       values ($1, '2099-06-05', '2099-06-12', 'VERIFY', 'verify@example.invalid', now() + interval '1 day') returning id, jeton`,
+      [giteId],
+    );
+    noter("6n", /^[0-9a-f]{64}$/.test(opt.rows[0]?.jeton ?? ""), "une option reçoit un jeton de 64 signes", String(opt.rows[0]?.jeton?.length));
+    const casOption: Array<[string, string, string, unknown[]]> = [
+      ["sp_opt_sans_option", "nuit en option sans son option : refusée",
+        `insert into disponibilites (gite_id, date, statut, verrou_expire_at) values ($1, '2099-06-05', 'option', now() + interval '1 day')`, [giteId]],
+      ["sp_opt_sans_echeance", "nuit en option sans échéance : refusée",
+        `insert into disponibilites (gite_id, date, statut, option_id) values ($1, '2099-06-05', 'option', $2)`, [giteId, opt.rows[0].id]],
+      ["sp_opt_bloque", "nuit fermée qui désigne une option : refusée",
+        `insert into disponibilites (gite_id, date, statut, option_id) values ($1, '2099-06-05', 'bloque', $2)`, [giteId, opt.rows[0].id]],
+      ["sp_opt_dates", "option dont le départ n'est pas après l'arrivée : refusée",
+        `insert into options_sejour (gite_id, date_arrivee, date_depart, client_nom, client_email, expire_at) values ($1, '2099-06-05', '2099-06-05', 'V', 'v@example.invalid', now())`, [giteId]],
+      ["sp_opt_duree", "option gardée 0 jour : refusée",
+        `update reglages set option_duree_jours = 0 where id = 1`, []],
+    ];
+    for (const [nom, quoi, sqlTexte, params] of casOption) {
+      const e = await attendreErreur(client, nom, sqlTexte, params);
+      noter("6n", codePg(e.erreur) === "23514", quoi, codePg(e.erreur));
+    }
+    const nuitOption = await attendreErreur(
+      client, "sp_opt_ok",
+      `insert into disponibilites (gite_id, date, statut, option_id, verrou_expire_at) values ($1, '2099-06-05', 'option', $2, now() + interval '1 day')`,
+      [giteId, opt.rows[0].id],
+    );
+    noter("6n", nuitOption.erreur === null, "nuit en option avec son option et son échéance : acceptée", codePg(nuitOption.erreur));
+    for (const objet of ["option", "contrat_signe"]) {
+      const c = await attendreErreur(
+        client, `sp_${objet}`,
+        `insert into courriels (reservation_id, objet, cle, destinataire, langue) values ($1, $2, $3, 'a@example.invalid', 'fr')`, [resaId, objet, `verify:${objet}`],
+      );
+      noter("6n", c.erreur === null, `courriel « ${objet} » accepté`, codePg(c.erreur));
+    }
   } finally {
     await client.query("ROLLBACK");
   }
@@ -1080,7 +1132,8 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
     `select ((select count(*) from tarifs where nom like 'VERIFY-%')
            + (select count(*) from baremes where nom like 'VERIFY-%')
            + (select count(*) from periodes where date_debut >= '2099-01-01')
-           + (select count(*) from disponibilites where date >= '2099-01-01'))::int as n`,
+           + (select count(*) from disponibilites where date >= '2099-01-01')
+           + (select count(*) from options_sejour where date_arrivee >= '2099-01-01'))::int as n`,
   );
   noter("R", restesTarifs.rows[0].n === 0, "aucun tarif, barème, période ni nuit de test restant", `${restesTarifs.rows[0].n} ligne(s)`);
 }

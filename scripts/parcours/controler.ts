@@ -69,6 +69,18 @@ async function main(): Promise<void> {
         "numero_contrat recopié sur la réservation",
         ligneResa?.numero_contrat ?? "absent",
       );
+      // Fiche du gîte figée à l'émission du contrat (écart E-9) : celle du gîte.
+      const fiche = (
+        await pool.query<{ egale: boolean }>(
+          `select (r.contrat_capacite_max = g.capacite_max
+                   and r.contrat_a_spa = g.a_spa
+                   and r.contrat_contact_arrivee_tel is not distinct from g.contact_arrivee_tel
+                   and r.contrat_equipements is not distinct from g.equipements_specifiques) as egale
+             from reservations r join gites g on g.id = r.gite_id where r.reference = $1`,
+          [resa.reference],
+        )
+      ).rows[0];
+      noter(fiche?.egale === true, "fiche du gîte recopiée sur la réservation à l'émission du contrat", String(fiche?.egale));
       noter(
         centimesDepuisNumeric(ligneResa?.prix_location ?? null) === a.prixLocation,
         `prix_location = ${fmtEuro(a.prixLocation)} (aucune modification résiduelle)`,

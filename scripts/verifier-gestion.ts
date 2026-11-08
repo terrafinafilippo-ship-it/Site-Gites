@@ -362,10 +362,12 @@ async function partieReglages(): Promise<void> {
     noter(t1.issue === "erreurs", "nombre à virgule refusé");
     const ancienne = Number(sauvegarde.duree_blocage_minutes);
     const nouvelle = ancienne === 25 ? 26 : 25;
+    // Option posée au téléphone (Phase 5, lot 4) : champ de la même rubrique, laissé tel quel.
+    const optionTunnel = { option_duree_jours: String(sauvegarde.option_duree_jours) };
     const t2 = await enregistrerRubrique(
       "tunnel",
       // taux_acompte n'est pas un champ de la rubrique : il est ignoré.
-      { duree_blocage_minutes: String(nouvelle), delai_reservation_jours: String(sauvegarde.delai_reservation_jours), taux_acompte: "50" },
+      { ...optionTunnel, duree_blocage_minutes: String(nouvelle), delai_reservation_jours: String(sauvegarde.delai_reservation_jours), taux_acompte: "50" },
       acteur,
     );
     noter(t2.issue === "fait" && JSON.stringify(t2.changes) === '["duree_blocage_minutes"]', "durée de blocage enregistrée, seul ce réglage change", t2);
@@ -381,7 +383,7 @@ async function partieReglages(): Promise<void> {
       "journal : valeur avant et après, appareil",
       j,
     );
-    const t3 = await enregistrerRubrique("tunnel", { duree_blocage_minutes: String(nouvelle), delai_reservation_jours: String(sauvegarde.delai_reservation_jours) }, acteur);
+    const t3 = await enregistrerRubrique("tunnel", { ...optionTunnel, duree_blocage_minutes: String(nouvelle), delai_reservation_jours: String(sauvegarde.delai_reservation_jours) }, acteur);
     noter(t3.issue === "fait" && t3.changes.length === 0, "rien de changé : rien d'écrit");
     noter((await enregistrerRubrique("contrat", { taux_acompte: "50" }, acteur)).issue === "erreurs", "les conditions du contrat ne sont pas une rubrique modifiable");
 
