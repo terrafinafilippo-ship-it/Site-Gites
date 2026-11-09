@@ -20,7 +20,7 @@ lettres.
 | E-4 | Caution par préautorisation Stripe décrite au contrat et sur le site, pas encore développée | Bloquant | 4 | Stripe (deux confirmations) + juriste + développement |
 | ~~E-5~~ | ~~Options facturées sous un intitulé générique~~ — **sans objet depuis le 3 novembre 2026** : aucune option vendue | — | — | — |
 | E-6 | Adresse IP du signataire falsifiable | Bloquant | Déploiement | Développement |
-| E-7 | Identité légale recopiée en dur dans les PDF, hors de `lib/constantes.ts` | Faible | 6 | Développement |
+| ~~E-7~~ | ~~Identité légale recopiée en dur dans les PDF, hors de `lib/constantes.ts`~~ — **corrigé le 9 novembre 2026** | — | — | — |
 | E-8 | « La semaine, tout compris » alors que ménage, taxe de séjour et caution s'ajoutent | Faible | 6 | **Les propriétaires** + développement |
 | ~~E-9~~ | ~~Une fiche de gîte modifiée entre l'envoi et la signature change la copie signée~~ — **corrigé le 8 novembre 2026** (migration 0016) | — | — | — |
 
@@ -106,12 +106,17 @@ d'options mais **aucun libellé**. Les documents affichent l'intitulé génériq
 ce n'est pas une dénomination précise. À lever en Phase 5 (ajout du libellé en
 base et affichage dans les quatre composants PDF et la page de signature).
 
-**Écart E-7 (faible, Phase 6).** `lib/constantes.ts` déclare `EMETTEUR` et
-`MENTIONS` (raison sociale, capital, RCS, SIRET, mention de TVA, médiateur),
-mais **aucun fichier ne les importe** : les quatre composants PDF recopient ces
-valeurs en texte littéral. Conséquence : corriger `lib/constantes.ts` ne change
-**rien** aux documents produits. Toute correction d'identité doit aujourd'hui
-être faite aux cinq endroits. À traiter en même temps que E-1.
+**Écart E-7 (faible, Phase 6) — corrigé le 9 novembre 2026.** `lib/constantes.ts`
+déclarait `EMETTEUR` et `MENTIONS` (raison sociale, capital, RCS, SIRET,
+mention de TVA, médiateur), mais aucun fichier ne les importait : les quatre
+composants PDF recopiaient ces valeurs en texte littéral, et corriger
+`lib/constantes.ts` ne changeait rien aux documents. Depuis le 9 novembre, le
+contrat, les trois factures et la page de signature lisent ces valeurs dans
+`lib/constantes.ts`, leur seul domicile. Le texte des PDF est resté identique
+mot pour mot (comparaison avant et après sur le parcours, et sur une facture
+unique rendue à part). La réponse à E-1 se reportera donc en un seul endroit
+pour les documents ; les pages du site (`lib/data/legal.ts`) restent à
+reprendre en Phase 6.
 
 ---
 
@@ -613,9 +618,9 @@ son site, ses conditions générales et ses documents contractuels. L'adhésion 
 un **abonnement payant** auprès d'un médiateur référencé.
 
 **Où c'est implémenté.**
-- `lib/constantes.ts`, `MENTIONS.mediation` : **MEDICYS** (73 Bd de Clichy,
-  75009 Paris) — déclaré mais, comme indiqué en E-7, **jamais importé**.
-- Les deux factures et le contrat impriment **MEDICYS** en dur.
+- `lib/constantes.ts`, `MENTIONS.mediateur` : **MEDICYS** (73 Bd de Clichy,
+  75009 Paris), imprimé par le contrat et les trois factures (E-7 corrigé le
+  9 novembre 2026).
 - Les CGV du site (`lib/data/legal.ts`) annoncent **MTV — Médiation Tourisme
   Voyage** (BP 80303, 75823 Paris Cedex 17).
 

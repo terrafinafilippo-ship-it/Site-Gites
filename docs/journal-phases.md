@@ -1864,6 +1864,41 @@ la base réelle :
 
 ---
 
+## Hors phase : travaux sans réponse extérieure (9 novembre 2026)
+
+En attendant le comptable, trois travaux qui ne demandent la réponse de
+personne, à la demande du gérant.
+
+### Ce qui a été fait
+
+- **Écart E-7 corrigé.** L'identité de la SARL (raison sociale, capital,
+  adresse, RCS, SIRET, téléphone, gérant) et les mentions (article de
+  l'exonération de TVA, médiateur) vivent dans `lib/constantes.ts`, en
+  éléments séparés ; le contrat, les trois factures et la page de signature les
+  lisent là. Aucun mot imprimé ne change.
+- **Relevé des valeurs sans source** des pages publiques, inscrit dans
+  `docs/phases/phase-6.md` : rien n'a été modifié.
+- **Ancien site relevé** (sept adresses, lecture seule) et quatre redirections
+  301 ajoutées dans `next.config.ts` ; deux adresses attendent une décision
+  (`docs/phases/phase-7.md`).
+
+### Ce qui a été vérifié
+
+- Texte des PDF extrait avant et après (contrat, contrat signé, factures
+  d'acompte et de solde du parcours ; facture unique rendue à part par les deux
+  versions avec les mêmes données) : identique, hors date, identifiant et
+  empreinte de signature. Le premier passage a trouvé deux écarts d'espace
+  (« donnéespersonnelles » à l'article 14.1, un espace double dans l'en-tête
+  des factures), corrigés avant le second passage.
+- Parcours complet 23 étapes, code de sortie 0 ; lint, `tsc --noEmit`, build.
+- Les quatre redirections répondent 301 vers une page qui répond 200.
+
+### Ce qui n'a PAS été vérifié
+
+- Les pages de l'ancien site que plus aucun lien ne montre (Search Console).
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

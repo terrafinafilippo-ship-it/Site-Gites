@@ -312,9 +312,8 @@ Le SIRET factice est une **conséquence** : il disparaît quand l'identité est
 arrêtée. Voir `docs/02-decisions.md` DO-01 et `docs/03-conformite.md` § 7 et § 9.
 
 **L'action, une fois la réponse obtenue.** Aligner en Phase 6 : mentions légales
-du site, CGV, contrat, deux factures, et `lib/constantes.ts` — en traitant au
-passage l'écart E-7 (les PDF n'importent pas `EMETTEUR`, ils recopient ses
-valeurs).
+du site, CGV, et `lib/constantes.ts`, que le contrat et les factures lisent
+depuis le 9 novembre 2026 (écart E-7 corrigé).
 
 ---
 

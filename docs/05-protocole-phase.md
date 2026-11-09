@@ -52,8 +52,8 @@ précède** (`docs/phases/phase-N.md`). Raison : l'étape 1 fait ouvrir
 `06`. Sans ce renvoi, la session qui démarre la phase ne voit pas le point. Le
 renvoi nomme le point et son numéro ; le contenu reste dans `06`.
 
-Deux écarts à cette règle sont ouverts dans le code et documentés : E-7
-(identité recopiée dans les PDF) et les montants encore en dur dans le tunnel de
+Deux écarts à cette règle ont été ouverts dans le code et documentés : E-7
+(identité recopiée dans les PDF, corrigé le 9 novembre 2026) et les montants encore en dur dans le tunnel de
 réservation (ménage, taxe, acompte). Le second se lève en Phase 3 ; la caution,
 qui en faisait partie et contredisait la fiche de L'Armu, est lue en base
 depuis le 9 octobre 2026.

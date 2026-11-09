@@ -37,9 +37,8 @@ référencement en place.
 5. **Identité du bailleur** (point 6) : question au **comptable**, dans ses trois
    volets — qui exploite, comment les revenus sont déclarés, l'exonération de TVA
    de l'art. 261 D 4° CGI tient-elle. Puis alignement des mentions légales, des
-   CGV, du contrat, des deux factures et de `lib/constantes.ts`. Traiter au
-   passage l'**écart E-7** (`EMETTEUR` et `MENTIONS` déclarés mais jamais
-   importés : les PDF recopient leurs valeurs).
+   CGV, et de `lib/constantes.ts`, que le contrat, les trois factures et la
+   page de signature lisent depuis le 9 novembre 2026 (écart E-7 corrigé).
 6. **Médiateur de la consommation** (point 7) : question aux **propriétaires** —
    existe-t-il une adhésion en cours, à qui. Puis un seul organisme partout.
 7. **Article 12 du contrat — règles sauna** (point 8). Ce n'est **pas** une
@@ -59,6 +58,24 @@ référencement en place.
 10. Balises, métadonnées, données structurées. Les balises hreflang des deux
     langues existent déjà (`lib/i18n/metadonnees.ts`) ; elles donnent des
     adresses relatives tant que `NEXT_PUBLIC_SITE_URL` n'est pas réglée.
+
+### Relevé des valeurs sans source (9 novembre 2026)
+
+Ce que les pages publiques affichent sans source vérifiable, pour le critère
+d'acceptation 4. Rien n'a été modifié : chaque ligne attend celui qui peut la
+lever.
+
+| Où | Ce qui s'affiche | Pourquoi c'est faux ou douteux | Qui |
+|---|---|---|---|
+| Mentions légales | « exploitants en nom propre », SIRET 000 000 000 00000 | Le contrat et les factures sont au nom de la SARL (E-1) | Le comptable (point 6) |
+| Mentions légales, confidentialité, page Contact | contact@gites-samoyas.fr | Le domaine est gitesdesamoyas.fr ; le contrat imprime l'adresse des réglages, l'ancien site donnait nicolas.terrafina@wanadoo.fr | Les propriétaires |
+| Fiches et cartes des gîtes (`lib/data/gites.ts`) | Note, nombre d'avis, % de recommandation par gîte (5,0 · 16 avis…) | Écrits en dur ; l'accueil, lui, lit la note des réglages et la masque si elle est vide | Les propriétaires (origine des avis) |
+| Mentions légales | « Les avis affichés sont collectés et vérifiés par Gîtes de France » | Vrai seulement si les chiffres viennent de Gîtes de France | Les propriétaires |
+| Accueil | « Labellisés depuis 2018 » | Écrit en dur, aucune source dans le dépôt | Les propriétaires |
+| Politique cookies, bannière | Mesure d'audience par Matomo | Aucun Matomo n'est installé : la bannière demande un accord pour un outil absent | Développement, après décision |
+| CGV | Médiateur MTV ; contrat et factures : MEDICYS | E-2 | Les propriétaires (point 7) |
+| Confidentialité | Conservation 5 ans, rien sur la carte ni sur Brevo | Voir le périmètre exclu ci-dessous | Juriste, Phase 6 |
+| Mentions légales | « Conception … avec l'aide d'une agence partenaire » | Aucune agence connue | Les propriétaires |
 
 ---
 
