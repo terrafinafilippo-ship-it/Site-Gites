@@ -21,10 +21,22 @@ const nextConfig: NextConfig = {
   // `statusCode: 301` et non `permanent: true` : `permanent` produit un 308,
   // qui est correct mais que certains vieux clients et outils de référencement
   // ne suivent pas. Le 301 est la redirection définitive universellement comprise.
+  //
+  // L'ANCIEN SITE en ligne sur gitesdesamoyas.fr (PHP, relevé en lecture seule
+  // le 9 novembre 2026 en suivant ses liens depuis l'accueil : sept adresses).
+  // Chaque page garde un équivalent, pour que liens, favoris et résultats de
+  // recherche ne tombent pas sur une erreur à la bascule (Phase 7, point 4).
+  // Restent sans redirection, en attente d'une décision : /bon.html (bons
+  // cadeaux, reportés après l'ouverture) et /images/amour.pdf (affiche du bon
+  // cadeau).
   async redirects() {
     return [
       { source: "/gites/larmu", destination: "/gites/armu", statusCode: 301 },
       { source: "/gites/maisonvieille", destination: "/gites/maison-vieille", statusCode: 301 },
+      { source: "/index.php", destination: "/", statusCode: 301 },
+      { source: "/gites.html", destination: "/gites", statusCode: 301 },
+      { source: "/activites.php", destination: "/activites", statusCode: 301 },
+      { source: "/contact.html", destination: "/contact", statusCode: 301 },
     ];
   },
 };
