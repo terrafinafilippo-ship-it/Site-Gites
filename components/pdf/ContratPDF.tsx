@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from '@react-pdf/renderer';
 
+import { EMETTEUR, LIGNE_CAPITAL, LIGNE_IMMATRICULATION, MENTIONS } from '@/lib/constantes';
 import { fmtEuro } from '@/lib/format';
 
 const C = {
@@ -480,6 +481,9 @@ const LIBELLE_CAUTION = {
   virement: 'virement',
 } as const;
 
+// « M. Nicolas TERRAFINA » : le nom du gérant en capitales, comme au contrat.
+const GERANT = `${EMETTEUR.gerant.civilite} ${EMETTEUR.gerant.prenom} ${EMETTEUR.gerant.nom.toUpperCase()}`;
+
 // ─── Sous-composants ────────────────────────────────
 function ArtHead({ data, logo }: { data: ContratData; logo: Buffer | null }) {
   return (
@@ -487,7 +491,7 @@ function ArtHead({ data, logo }: { data: ContratData; logo: Buffer | null }) {
       <View style={styles.artHeadBrand}>
         {logo && <Image src={logo} style={styles.artHeadLogo} />}
         <Text style={styles.artHeadBrandText}>
-          Les Gîtes de Samoyas — SARL DE LA VOUTE
+          {`${EMETTEUR.enseigne} — ${EMETTEUR.raisonSociale}`}
         </Text>
       </View>
       <View>
@@ -539,8 +543,8 @@ export function ContratPDF({
   return (
     <Document
       title={`Contrat ${data.numeroContrat}`}
-      author="SARL DE LA VOUTE"
-      creator="Les Gîtes de Samoyas"
+      author={EMETTEUR.raisonSociale}
+      creator={EMETTEUR.enseigne}
       producer="@react-pdf/renderer"
       subject={`Contrat de location saisonnière — ${data.giteNom}`}
     >
@@ -566,15 +570,15 @@ export function ContratPDF({
         <View style={styles.parties}>
           <View style={styles.party}>
             <Text style={styles.partyLbl}>Le Bailleur</Text>
-            <Text style={styles.partyName}>SARL DE LA VOUTE</Text>
+            <Text style={styles.partyName}>{EMETTEUR.raisonSociale}</Text>
             <Text style={styles.partyInfo}>
-              SARL au capital de 500 €{'\n'}
-              176 Route de Samoyas, 07100 Boulieu-lès-Annonay{'\n'}
-              RCS Annonay 831 170 782 — SIRET 831 170 782 00013{'\n'}
-              Représentée par M. Nicolas TERRAFINA, gérant{'\n'}
-              Tél. 06 79 33 23 51{'\n'}
+              {LIGNE_CAPITAL}{'\n'}
+              {`${EMETTEUR.adresse}, ${EMETTEUR.codePostalVille}`}{'\n'}
+              {LIGNE_IMMATRICULATION}{'\n'}
+              {`Représentée par ${GERANT}, gérant`}{'\n'}
+              {`Tél. ${EMETTEUR.telephone}`}{'\n'}
               {data.contactEmail}{'\n'}
-              Enseigne commerciale : Les Gîtes de Samoyas
+              {`Enseigne commerciale : ${EMETTEUR.enseigne}`}
             </Text>
           </View>
           <View style={styles.party}>
@@ -791,7 +795,7 @@ export function ContratPDF({
           <View style={styles.sigBox}>
             <Text style={styles.sigBoxLbl}>Pour le Bailleur</Text>
             <Text style={styles.sigBoxName}>
-              M. Nicolas TERRAFINA, gérant
+              {`${GERANT}, gérant`}
             </Text>
             <Text style={styles.sigBoxSmall}>
               Signature électronique simple (SES) — règlement eIDAS
@@ -852,8 +856,8 @@ export function ContratPDF({
         <View style={styles.art}>
           <ArtTitle num="—" title="Préambule" />
           <Text style={styles.p}>
-            Le Bailleur exploite, sous l&apos;enseigne commerciale « Les Gîtes
-            de Samoyas », trois gîtes labellisés Gîtes de France situés à
+            Le Bailleur exploite, sous l&apos;enseigne commerciale
+            {` « ${EMETTEUR.enseigne} », `}trois gîtes labellisés Gîtes de France situés à
             Savas (Ardèche), dans le cadre d&apos;une activité de location
             saisonnière en meublé de tourisme exercée à titre civil. Le
             Locataire ayant souhaité louer l&apos;un de ces gîtes aux
@@ -1122,8 +1126,8 @@ export function ContratPDF({
           </Text>
           <View style={styles.callout}>
             <Text style={styles.calloutText}>
-              <Text style={styles.pAccent}>Exonération de TVA</Text> — article
-              261 D 4° du Code général des impôts.
+              <Text style={styles.pAccent}>Exonération de TVA</Text>
+              {` — ${MENTIONS.articleTva}.`}
             </Text>
           </View>
 
@@ -1846,7 +1850,7 @@ export function ContratPDF({
           <ArtTitle num="Art. 14" title="Données personnelles (RGPD)" />
           <Text style={styles.p}>
             <Text style={styles.pBold}>14.1 Responsable du traitement —</Text>{' '}
-            La SARL DE LA VOUTE est responsable du traitement des données
+            {`La ${EMETTEUR.raisonSociale} est responsable du traitement des données `}
             personnelles du Locataire et des occupants majeurs déclarés.
             Contact : {data.contactEmail}.
           </Text>
@@ -1936,9 +1940,8 @@ export function ContratPDF({
           </Text>
           <View style={styles.callout}>
             <Text style={styles.calloutText}>
-              <Text style={styles.pAccent}>MEDICYS</Text> · 73 Boulevard de
-              Clichy, 75009 PARIS · www.medicys.fr · Saisine en ligne
-              possible.
+              <Text style={styles.pAccent}>{MENTIONS.mediateur.nom}</Text>
+              {` · ${MENTIONS.mediateur.adresse}, ${MENTIONS.mediateur.codePostalVille.toUpperCase()} · ${MENTIONS.mediateur.site} · Saisine en ligne possible.`}
             </Text>
           </View>
           <Text style={styles.p}>
@@ -2056,9 +2059,9 @@ export function ContratPDF({
             <View style={styles.signerBlock}>
               <Text style={styles.signerWho}>Pour le Bailleur</Text>
               <Text style={styles.signerName}>
-                M. Nicolas TERRAFINA{'\n'}
+                {GERANT}{'\n'}
                 <Text style={styles.signerSmall}>
-                  Gérant de la SARL DE LA VOUTE
+                  {`Gérant de la ${EMETTEUR.raisonSociale}`}
                 </Text>
               </Text>
             </View>

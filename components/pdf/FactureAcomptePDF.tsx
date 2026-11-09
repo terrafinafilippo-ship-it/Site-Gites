@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from '@react-pdf/renderer';
 
+import { EMETTEUR, LIGNE_CAPITAL, LIGNE_IMMATRICULATION, MENTIONS } from '@/lib/constantes';
 import { fmtEuro } from '@/lib/format';
 
 // Polices natives react-pdf utilisées :
@@ -431,8 +432,8 @@ export function FactureAcomptePDF({ data, logo }: { data: FactureAcompteData; lo
   return (
     <Document
       title={`Facture acompte ${data.numeroFacture}`}
-      author="SARL DE LA VOUTE"
-      creator="Les Gîtes de Samoyas"
+      author={EMETTEUR.raisonSociale}
+      creator={EMETTEUR.enseigne}
       producer="@react-pdf/renderer"
       subject={`Facture d'acompte — Contrat ${data.numeroContrat}`}
     >
@@ -441,7 +442,7 @@ export function FactureAcomptePDF({ data, logo }: { data: FactureAcompteData; lo
         <View style={styles.head} fixed={false}>
           <View style={styles.brand}>
             {logo && <Image src={logo} style={styles.logo} />}
-            <Text style={styles.tagline}>SARL DE LA VOUTE — Savas, Ardèche</Text>
+            <Text style={styles.tagline}>{`${EMETTEUR.raisonSociale} — Savas, Ardèche`}</Text>
           </View>
           <View style={styles.docTitle}>
             <Text style={styles.docTitleH1}>Facture d&apos;acompte</Text>
@@ -453,14 +454,14 @@ export function FactureAcomptePDF({ data, logo }: { data: FactureAcompteData; lo
         <View style={styles.parties}>
           <View style={styles.party}>
             <Text style={styles.partyLabel}>Émetteur</Text>
-            <Text style={styles.partyWho}>SARL DE LA VOUTE</Text>
-            <Text style={styles.partyLine}>SARL au capital de 500 €</Text>
-            <Text style={styles.partyLine}>176 Route de Samoyas</Text>
-            <Text style={styles.partyLine}>07100 Boulieu-lès-Annonay</Text>
+            <Text style={styles.partyWho}>{EMETTEUR.raisonSociale}</Text>
+            <Text style={styles.partyLine}>{LIGNE_CAPITAL}</Text>
+            <Text style={styles.partyLine}>{EMETTEUR.adresse}</Text>
+            <Text style={styles.partyLine}>{EMETTEUR.codePostalVille}</Text>
+            <Text style={styles.partySmall}>{LIGNE_IMMATRICULATION}</Text>
             <Text style={styles.partySmall}>
-              RCS Annonay 831 170 782 — SIRET 831 170 782 00013
+              {`Gérant : ${EMETTEUR.gerant.prenom} ${EMETTEUR.gerant.nom}`}
             </Text>
-            <Text style={styles.partySmall}>Gérant : Nicolas Terrafina</Text>
           </View>
           <View style={styles.party}>
             <Text style={styles.partyLabel}>Destinataire</Text>
@@ -618,8 +619,8 @@ export function FactureAcomptePDF({ data, logo }: { data: FactureAcompteData; lo
           <View style={styles.legalItem}>
             <Text style={styles.legalBullet}>•</Text>
             <Text style={styles.legalText}>
-              <Text style={styles.legalBold}>Exonération de TVA</Text> — article
-              261 D 4° du Code général des impôts.
+              <Text style={styles.legalBold}>Exonération de TVA</Text>
+              {` — ${MENTIONS.articleTva}.`}
             </Text>
           </View>
           <View style={styles.legalItem}>
@@ -631,8 +632,8 @@ export function FactureAcomptePDF({ data, logo }: { data: FactureAcompteData; lo
           <View style={styles.legalItem}>
             <Text style={styles.legalBullet}>•</Text>
             <Text style={styles.legalText}>
-              <Text style={styles.legalBold}>Médiation de la consommation</Text>{' '}
-              : MEDICYS, 73 Boulevard de Clichy, 75009 Paris (www.medicys.fr).
+              <Text style={styles.legalBold}>Médiation de la consommation</Text>
+              {` : ${MENTIONS.mediateur.nom}, ${MENTIONS.mediateur.adresse}, ${MENTIONS.mediateur.codePostalVille} (${MENTIONS.mediateur.site}).`}
             </Text>
           </View>
           <View style={styles.legalItem}>
@@ -654,11 +655,11 @@ export function FactureAcomptePDF({ data, logo }: { data: FactureAcompteData; lo
         {/* FOOTER */}
         <View style={styles.footer} fixed>
           <Text>
-            <Text style={{ color: C.inkSoft }}>SARL DE LA VOUTE</Text> — Capital
-            500 € — RCS Annonay 831 170 782 — SIRET 831 170 782 00013
+            <Text style={{ color: C.inkSoft }}>{EMETTEUR.raisonSociale}</Text>
+            {` — Capital ${EMETTEUR.capital} — ${LIGNE_IMMATRICULATION}`}
           </Text>
           <Text>
-            Exonération de TVA — article 261 D 4° du Code général des impôts
+            {`Exonération de TVA — ${MENTIONS.articleTva}`}
           </Text>
         </View>
       </Page>

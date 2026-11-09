@@ -10,6 +10,8 @@
 
 import { useState } from 'react';
 
+import { EMETTEUR } from '@/lib/constantes';
+
 type Etat = 'idle' | 'envoi' | 'signe' | 'erreur';
 
 interface ReponseSignature {
@@ -186,7 +188,7 @@ export function SignerForm({
 
       <p className="text-sm mt-4 leading-relaxed">
         Signature électronique simple au sens de l&apos;article 3, point 10, du règlement
-        eIDAS, recueillie directement par la SARL DE LA VOUTE. La date, l&apos;heure, votre
+        eIDAS, recueillie directement par la {EMETTEUR.raisonSociale}. La date, l&apos;heure, votre
         adresse IP et l&apos;empreinte SHA-256 du document sont enregistrées comme preuve de
         signature.
       </p>

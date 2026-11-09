@@ -7,22 +7,36 @@
 // de la table `gites` en base et priment sur les défauts ci-dessous.
 
 // ─── Identité légale de l'émetteur ────────────────────────────────────────────
+// Seul domicile de ces valeurs (écart E-7 corrigé) : le contrat, les trois
+// factures et la page de signature les lisent ici. Les changer change les
+// prochains documents ; un document déjà émis garde ce qu'il a imprimé.
 export const EMETTEUR = {
   raisonSociale: 'SARL DE LA VOUTE',
-  formeCapital: 'SARL au capital de 500 €',
+  forme: 'SARL',
+  capital: '500 €',
   adresse: '176 Route de Samoyas',
   codePostalVille: '07100 Boulieu-lès-Annonay',
-  rcs: 'RCS Annonay 831 170 782',
-  siret: 'SIRET 831 170 782 00013',
-  gerant: 'Nicolas TERRAFINA',
+  villeRcs: 'Annonay',
+  siren: '831 170 782',
+  siret: '831 170 782 00013',
+  telephone: '06 79 33 23 51',
+  gerant: { civilite: 'M.', prenom: 'Nicolas', nom: 'Terrafina' },
   enseigne: 'Les Gîtes de Samoyas',
 } as const;
 
-// ─── Mentions légales obligatoires (factures B2C) ─────────────────────────────
+// Lignes composées, imprimées telles quelles.
+export const LIGNE_CAPITAL = `${EMETTEUR.forme} au capital de ${EMETTEUR.capital}`;
+export const LIGNE_IMMATRICULATION = `RCS ${EMETTEUR.villeRcs} ${EMETTEUR.siren} — SIRET ${EMETTEUR.siret}`;
+
+// ─── Mentions légales obligatoires ────────────────────────────────────────────
 export const MENTIONS = {
-  tva: 'Exonération de TVA, article 261 D 4° du CGI',
-  mediation:
-    'MEDICYS, 73 Boulevard de Clichy, 75009 Paris (www.medicys.fr), article L.612-1 du Code de la consommation',
+  articleTva: 'article 261 D 4° du Code général des impôts',
+  mediateur: {
+    nom: 'MEDICYS',
+    adresse: '73 Boulevard de Clichy',
+    codePostalVille: '75009 Paris',
+    site: 'www.medicys.fr',
+  },
 } as const;
 
 // ─── Paramètres financiers par défaut ─────────────────────────────────────────
