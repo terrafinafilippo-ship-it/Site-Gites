@@ -26,9 +26,9 @@ const nextConfig: NextConfig = {
   // le 9 novembre 2026 en suivant ses liens depuis l'accueil : sept adresses).
   // Chaque page garde un équivalent, pour que liens, favoris et résultats de
   // recherche ne tombent pas sur une erreur à la bascule (Phase 7, point 4).
-  // Restent sans redirection, en attente d'une décision : /bon.html (bons
-  // cadeaux, reportés après l'ouverture) et /images/amour.pdf (affiche du bon
-  // cadeau).
+  // Les bons cadeaux sont reportés après l'ouverture : leur page (/bon.html)
+  // et leur affiche (/images/amour.pdf) mènent à la page Contact, comme le
+  // disait l'ancienne page (décision du gérant, 11 novembre 2026).
   async redirects() {
     return [
       { source: "/gites/larmu", destination: "/gites/armu", statusCode: 301 },
@@ -37,6 +37,8 @@ const nextConfig: NextConfig = {
       { source: "/gites.html", destination: "/gites", statusCode: 301 },
       { source: "/activites.php", destination: "/activites", statusCode: 301 },
       { source: "/contact.html", destination: "/contact", statusCode: 301 },
+      { source: "/bon.html", destination: "/contact", statusCode: 301 },
+      { source: "/images/amour.pdf", destination: "/contact", statusCode: 301 },
     ];
   },
 };
