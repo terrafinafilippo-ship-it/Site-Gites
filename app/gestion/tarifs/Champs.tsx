@@ -173,9 +173,9 @@ export function ChampsTaxe({ id, gites, valeurs, choixGites }: { id: string; git
         <input type="checkbox" name="menage" defaultChecked={v.menage ?? false} /> Le forfait ménage entre dans le calcul
       </label>
       <label className={styles.ligne}>
-        <input type="checkbox" name="bebes" defaultChecked={v.bebes ?? true} /> Les bébés comptent parmi les occupants
+        <input type="checkbox" name="bebes" defaultChecked={v.bebes ?? false} /> Les bébés comptent parmi les occupants
       </label>
-      <p className={styles.aide}>Ces deux cases attendent la réponse du service taxe de séjour d&apos;Ardèche Grand Air.</p>
+      <p className={styles.aide}>Réponse du 11 novembre 2026 : ni le forfait ménage ni les bébés ne comptent dans le calcul. Laissez ces deux cases vides.</p>
       <div className={styles.champ}>
         <label htmlFor={`${id}-source`}>Référence de la délibération</label>
         <input id={`${id}-source`} name="source" type="text" maxLength={200} defaultValue={v.source ?? ""} className={styles.large} autoComplete="off" />
