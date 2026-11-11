@@ -102,7 +102,7 @@ export default async function ContactPage({ params }: { params: Promise<Params> 
               <div className={styles.coordsBlock}>
                 <div className={styles.coordsLabel}>{t.email}</div>
                 <div className={styles.coordsValue} style={{ fontSize: 17, fontFamily: "var(--font-sans)" }}>
-                  contact@gites-samoyas.fr
+                  contact@gitesdesamoyas.fr
                 </div>
               </div>
 

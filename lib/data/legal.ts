@@ -23,7 +23,7 @@ export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
     body: `
       <section><div class="legal__num">01 — Éditeur</div><h2>Éditeur du site</h2>
         <p>Le présent site est édité par Patricia &amp; Nicolas Terrafina, exploitants des Gîtes de Samoyas en nom propre.</p>
-        <p>Hameau de Samoyas — 07430 Savas, France<br>SIRET 000 000 000 00000 — Code APE 5520Z<br>Téléphone : +33 6 79 33 23 51 — Email : contact@gites-samoyas.fr</p>
+        <p>Hameau de Samoyas — 07430 Savas, France<br>SIRET 000 000 000 00000 — Code APE 5520Z<br>Téléphone : +33 6 79 33 23 51 — Email : contact@gitesdesamoyas.fr</p>
       </section>
       <section><div class="legal__num">02 — Hébergement</div><h2>Hébergeur du site</h2>
         <p>OVHcloud — 2 rue Kellermann, 59100 Roubaix, France. Le site est hébergé en France.</p>
@@ -78,7 +78,7 @@ export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
     meta: "Conforme RGPD — mise à jour le 19 mai 2026",
     body: `
       <section><div class="legal__num">01 — Responsable</div><h2>Responsable de traitement</h2>
-        <p>Patricia &amp; Nicolas Terrafina, Hameau de Samoyas, 07430 Savas. Email : contact@gites-samoyas.fr.</p>
+        <p>Patricia &amp; Nicolas Terrafina, Hameau de Samoyas, 07430 Savas. Email : contact@gitesdesamoyas.fr.</p>
       </section>
       <section><div class="legal__num">02 — Données collectées</div><h2>Quelles données, pour quoi ?</h2>
         <ul>
@@ -92,7 +92,7 @@ export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
         <p>Les données liées à votre réservation sont conservées 5 ans après la fin du séjour, conformément aux obligations comptables et fiscales. Vous pouvez nous demander leur effacement avant — sauf pièces obligatoires.</p>
       </section>
       <section><div class="legal__num">04 — Vos droits</div><h2>Accès, rectification, effacement</h2>
-        <p>Vous disposez d'un droit d'accès, de rectification, d'effacement, de portabilité et d'opposition. Pour l'exercer : contact@gites-samoyas.fr — réponse sous 30 jours. Vous pouvez également saisir la CNIL (cnil.fr).</p>
+        <p>Vous disposez d'un droit d'accès, de rectification, d'effacement, de portabilité et d'opposition. Pour l'exercer : contact@gitesdesamoyas.fr — réponse sous 30 jours. Vous pouvez également saisir la CNIL (cnil.fr).</p>
       </section>
     `,
   },
