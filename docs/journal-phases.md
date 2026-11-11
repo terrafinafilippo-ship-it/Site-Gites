@@ -1864,6 +1864,61 @@ la base réelle :
 
 ---
 
+## Phase 5 — lot 6 : statistiques (8 novembre 2026)
+
+### Ce qui a été décidé
+
+La liste des chiffres était décidée depuis le 3 novembre (réponse S
+« toutes »), provenance comprise (langue du site, département ou pays). Le lot 5
+(annulation et avoir) attend toujours le comptable : le lot 6 passe avant.
+Réponses du 8 novembre : 1B (l'argent au mois du séjour : « quel mois a été
+productif »), 2A (taxe : les séjours qui commencent dans la période), 4A (taux
+de commission vide au départ). La question 3 (provenance) avait été reposée
+par erreur : retirée. Décision D-36, consignée dans `docs/phases/phase-5.md`.
+
+### Ce qui a été fait
+
+- **Migration 0017** : `reglages.commission_taux` (pour cent entiers, 1 à 50,
+  vide), rubrique « Statistiques » des Réglages.
+- **`lib/gestion/statistiques.ts`**, **`lib/departements.ts`**, page
+  **`/gestion/statistiques`** (menu) : nuits louées, séjours hors taxe de
+  séjour, réservations, commissions évitées, provenance, cautions retenues,
+  registre de la taxe de séjour d'une période.
+- **Contrôles** : `verify:gestion-statistiques` (26 cas, 28 avec `--http`),
+  `db:verify` (colonne et borne du taux), vingt-troisième étape de
+  `lancer.sh`.
+
+### Ce qui a été vérifié
+
+Sur la base PostgreSQL jetable du poste (`gites_essai`), jamais sur la base
+réelle :
+- `npm run lint`, `npx tsc --noEmit`, `npm run build` : passent.
+- `npm run db:verify` : 233 contrôles, 0 échec.
+- `bash scripts/parcours/lancer.sh` : **vingt-trois étapes sur vingt-trois**,
+  code de sortie 0 — tarification 192, blocage 42, paiement 69, courriels 41,
+  « Ma réservation » 22, solde 62, caution 86, virement 47, abandons 22,
+  back-office connexion 107, réservations 86, tarifs 93, calendrier 105,
+  **statistiques 28**, parcours L'Armu et LaPhine 0 échec, URL signées
+  0 échec, contrôles en base 83/0, contrôles PDF OK, `db:verify` 233/0. Aucun
+  montant de `reference.ts` n'a bougé. Journal du serveur sans erreur.
+- Le premier passage a buté sur un seul cas : la page affichait bien
+  « Corse-du-Sud (2A) », mais en morceaux dans le HTML ; le libellé est écrit
+  d'un tenant.
+
+### Ce qui n'a PAS été vérifié
+
+- **La page dans un navigateur**, en particulier les tableaux sur téléphone
+  (ils défilent de côté).
+- Des chiffres sur de vraies réservations : aucune en base réelle.
+
+### Points reportés
+
+- **Les textes de la page** sont à valider par le gérant avant le commit.
+- Le **lot 5** (annulation et avoir) : après la réponse du comptable.
+- Les **migrations 0002 à 0017** sur la base réelle : le gérant (point 4).
+
+---
+
 ## Hors phase : travaux sans réponse extérieure (9 novembre 2026)
 
 En attendant le comptable, trois travaux qui ne demandent la réponse de

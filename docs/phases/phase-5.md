@@ -1,12 +1,13 @@
 # Phase 5 — Back-office Patricia et Nicolas
 
-> **État au 7 novembre 2026 :** phase **ouverte** le 3 novembre ; **lot 1
+> **État au 8 novembre 2026 :** phase **ouverte** le 3 novembre ; **lot 1
 > construit** (connexion et réglages, D-32) le 4 novembre ; **lot 2 construit**
 > (réservations, cautions, solde par virement, « À traiter », D-33) le
 > 6 novembre ; **lot 3 construit** (tarifs, D-34) et **lot 4 construit**
-> (calendrier, options, fiches des gîtes, documents, D-35) le 7 novembre.
-> Lots 5 et 6 à faire. Le cadrage est en fin de fiche ; il prime sur le cadre
-> initial là où ils diffèrent.
+> (calendrier, options, fiches des gîtes, documents, D-35) le 7 novembre ;
+> **lot 6 construit** (statistiques, D-36) le 8 novembre. Reste le lot 5, qui
+> attend la réponse du comptable. Le cadrage est en fin de fiche ; il prime sur
+> le cadre initial là où ils diffèrent.
 
 **Dépendances :** Phase 2 close. **Parallélisable** avec les phases 3 et 4 : ne
 dépend que de la lecture en base, pas du paiement.
@@ -193,7 +194,7 @@ contrat signé, facture d'acompte émise).
 | 3 | Tarifs (lève le point 11) | **construit le 7 novembre 2026** (D-34) |
 | 4 | Calendrier (bloquer des nuits, options), fiches des gîtes, documents, seed « création seule » | **construit le 7 novembre 2026** (D-35) ; écart E-9 corrigé le 8 (migration 0016) |
 | 5 | Annulation et avoir | après la réponse du comptable |
-| 6 | Statistiques | à faire |
+| 6 | Statistiques | **construit le 8 novembre 2026** (D-36) |
 
 **Cadrage du lot 2, 6 novembre 2026** (exemple : Camille, L'Armu du 20 au
 27 mars 2027, caution de 500 € par carte, levée automatique le mardi 30 à 8 h) :
@@ -247,3 +248,15 @@ décidé le 3 novembre : 10 (fermer d'un geste), 11 A (seed), 12 A (fiche) :
 | 5 | Pour le comptable | **B** : pas d'export pour l'instant |
 | 6 | Adresse du renvoi | **A** : celle de la réservation, corrigée d'abord sur la fiche si besoin |
 | 7 | Colonnes mortes de `gites` | **A** : supprimées (migration 0015) |
+
+**Cadrage du lot 6, 8 novembre 2026** (exemple : Camille paie l'acompte en
+mars et le solde en juin pour un séjour en juillet). Déjà décidé le
+3 novembre : la liste des chiffres (S « toutes »), la provenance (langue,
+département ou pays), un taux de commission en réglage :
+
+| # | Question | Réponse |
+|---|---|---|
+| 1 | L'argent, rangé par quel mois ? | **B** : au mois du séjour (« quel mois a été productif ») ; le séjour entier au mois de son arrivée |
+| 2 | Taxe de séjour d'une période | **A** : les séjours qui commencent dans la période, une ligne par séjour (le registre) |
+| 3 | Provenance | déjà décidée le 3 novembre : langue du site, pays, département pour la France, d'après l'adresse |
+| 4 | Taux de commission | **A** : réglage vide au départ, saisi dans Réglages › Statistiques |

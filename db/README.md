@@ -28,6 +28,7 @@ main dans un outil graphique.
 | `migrations/0014_tarifs_gestion.sql` | Phase 5, lot 3 : durée sur laquelle « À traiter » signale les nuits sans tarif (12 mois, réglage `tarifs_horizon_mois`) (D-34). |
 | `migrations/0015_calendrier_gestion.sql` | Phase 5, lot 4 : options posées au téléphone (table `options_sejour`, état `option` des nuits, `reservations.option_id`, 3 jours en réglage), courriels `option` et `contrat_signe` ; les colonnes `tarif_semaine_base`, `tarif_weekend` et `taux_taxe_sejour` de `gites` sont retirées (D-35). |
 | `migrations/0016_contrat_fiche_figee.sql` | Phase 5, lot 4 : capacité, équipements, spa et téléphone d'arrivée recopiés sur la réservation à l'émission du contrat, relus par la copie signée (`contrat_capacite_max`, `contrat_equipements`, `contrat_a_spa`, `contrat_contact_arrivee_tel`) ; les contrats déjà émis reçoivent la fiche actuelle de leur gîte (écart E-9). |
+| `migrations/0017_statistiques.sql` | Phase 5, lot 6 : taux de commission d'une plateforme pour les statistiques (`reglages.commission_taux`, pour cent entiers de 1 à 50, vide par défaut) (D-36). |
 | `index.ts` | Le client de base de données partagé par le site (pool de 10 connexions maximum). |
 | `seed.ts` | Crée les gîtes absents ; ne touche jamais un gîte existant (D-35). |
 | `verify.ts` | Auto-vérification complète, sans rien laisser en base. |
@@ -223,8 +224,8 @@ manquent, refait les deux vérifications ci-dessous (0009 et 0010), compare les
 compteurs de numérotation aux numéros déjà émis, compte le contenu et lit les
 réglages. Chaque ligne est OK, INFO, A VOIR ou BLOQUANT ; **un point BLOQUANT
 interdit d'appliquer les migrations** (code de sortie 1). Au 4 novembre 2026,
-la base réelle et `gites_test` du serveur sont à la migration 0001 (quinze
-migrations en attente au 8 novembre, 0002 à 0016).
+la base réelle et `gites_test` du serveur sont à la migration 0001 (seize
+migrations en attente au 8 novembre, 0002 à 0017).
 
 ### Avant d'appliquer la migration 0009 sur une base existante
 

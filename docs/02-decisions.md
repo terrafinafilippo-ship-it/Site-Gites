@@ -1780,6 +1780,74 @@ au back-office serait perdue sans prévenir.
 
 ---
 
+## D-36 · Le back-office, lot 6 : les statistiques
+
+**Date :** 8 novembre 2026 (cadrage du lot 6 de la Phase 5). Déjà décidé au
+cadrage de la phase (3 novembre, réponse S « toutes ») : nuits louées par gîte
+et par mois ; argent des séjours par mois et par gîte, hors taxe de séjour ;
+taxe de séjour sur une période ; nombre, durée moyenne et délai des
+réservations ; provenance (langue du site, département ou pays) ; cautions
+retenues ; commissions évitées, avec un taux en réglage. Choix du gérant le
+8 novembre :
+- l'argent est rangé au **mois du séjour**, pas au mois du paiement (1B :
+  « quel mois a été productif » ; le compte en banque dit quand l'argent est
+  arrivé) ;
+- la taxe de séjour d'une période : les séjours qui **commencent** dans la
+  période (2A) ;
+- le taux de commission : un réglage **vide au départ**, saisi par les
+  propriétaires (4A).
+
+**Décision.**
+- **Migration 0017** : `reglages.commission_taux`, en pour cent entiers, de 1
+  à 50, vide par défaut.
+- **`lib/gestion/statistiques.ts`** et la page **`/gestion/statistiques`** :
+  une année à choisir, de simples tableaux. Seules comptent les réservations
+  payées (`confirmee`, `terminee`) — ni les tentatives, ni les annulées, ni les
+  nuits bloquées.
+  - **Nuits louées** : chaque nuit dans son mois, même d'un séjour à cheval sur
+    deux mois ou deux années.
+  - **Séjours, hors taxe de séjour** : location, ménage (et options) ; chaque
+    séjour compte **en entier au mois de son arrivée**, comme pour la taxe de
+    séjour — un séjour du 28 juin au 5 juillet compte en juin. Un séjour à
+    venir compte déjà, même si son solde n'est pas payé. « Hors taxe » veut dire
+    hors taxe de séjour : la SARL est exonérée de TVA.
+  - **Réservations** : séjours qui commencent dans l'année ; durée moyenne en
+    nuits ; délai moyen entre la réservation (sa création, heure de Paris) et
+    l'arrivée.
+  - **Provenance** : langue du site ; pays tel que saisi, regroupé sans tenir
+    compte des majuscules, des accents ni des espaces ; département pour la
+    France, lu dans le code postal (`lib/departements.ts` : Corse 2A/2B,
+    outre-mer 97x).
+  - **Cautions retenues** : les retenues faites, pour les séjours de l'année.
+  - **Commissions évitées** : séjours de l'année × taux, arrondi au centime
+    (le `/ 100` porte sur le taux, règle 3) ; sans taux, la page renvoie aux
+    Réglages.
+  - **Registre de la taxe de séjour** : du … au … (l'année par défaut), une
+    ligne par séjour — arrivée, départ, gîte, client, nuits, adultes, mineurs
+    exonérés, nuitées taxées (adultes × nuits), taxe — et le total.
+
+**Pourquoi.** Le site existe pour faire réserver en direct : ces chiffres
+disent quels mois et quels gîtes travaillent, d'où viennent les clients et ce
+que la vente directe épargne. Le registre est obligatoire (art. L.2333-26 et
+suivants du CGCT, `docs/03-conformite.md` § 7 bis).
+
+**Ce qui pourrait mal tourner.**
+- **Les séjours des plateformes manquent** : ils n'entrent dans le site
+  qu'avec la Phase 7, et sans leur prix. La page le dit.
+- **Les annulations** viendront avec le lot 5 : un séjour annulé et remboursé
+  sortira alors des chiffres (statut `annulee`, déjà écarté).
+- **Un pays mal orthographié** (« Belgium », « Belgique ») fait deux lignes : le
+  pays est saisi librement par le client.
+- **Les nuitées taxées** valent adultes × nuits, comme le libellé de la facture
+  (`libelleTaxeSejour`) ; si le service de la taxe compte autrement (questions
+  du point 10 de `docs/06-avant-premier-client.md`), ce calcul suivra.
+
+**Si on revient dessus.** Ranger l'argent au mois du paiement : lire
+`paiements` au lieu de `reservations` dans `lib/gestion/statistiques.ts`.
+Répartir un séjour sur ses mois : prix de chaque nuit dans `detail_calcul`.
+
+---
+
 ## Décisions ouvertes
 
 Elles ne sont **pas tranchées** et ne doivent pas l'être dans le code.
