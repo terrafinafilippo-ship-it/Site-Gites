@@ -120,6 +120,13 @@
       "when": 1794135635386,
       "tag": "0016_contrat_fiche_figee",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794142470983,
+      "tag": "0017_statistiques",
+      "breakpoints": true
     }
   ]
 }

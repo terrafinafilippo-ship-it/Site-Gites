@@ -160,6 +160,22 @@ export const RUBRIQUES: Rubrique[] = [
     ],
   },
   {
+    id: "statistiques",
+    titre: "Statistiques",
+    champs: [
+      {
+        cle: "commission_taux",
+        libelle: "Commission d'une plateforme, pour chiffrer les commissions évitées",
+        sorte: "entier",
+        min: 1,
+        max: 50,
+        unite: "%",
+        vide: "Vide : les commissions évitées ne sont pas chiffrées.",
+        aide: "Par exemple 15 : sur 10 000 € de séjours réservés en direct, 1 500 € de commissions évitées.",
+      },
+    ],
+  },
+  {
     id: "avis",
     titre: "Avis affichés sur le site",
     aide: "La note et le nombre d'avis vont ensemble : vides tous les deux, les chiffres des avis sont masqués.",

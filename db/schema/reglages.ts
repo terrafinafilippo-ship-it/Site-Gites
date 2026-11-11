@@ -173,6 +173,10 @@ export const reglages = pgTable(
     // Option posée au téléphone (Phase 5, lot 4, migration 0015) : les nuits
     // sont gardées jusqu'à la fin du jour « aujourd'hui + N », heure de Paris.
     option_duree_jours: integer().notNull().default(3),
+    // Statistiques (Phase 5, lot 6, migration 0017) : taux de commission d'une
+    // plateforme, en pour cent entiers, pour chiffrer les commissions évitées.
+    // NULL : pas encore saisi, la ligne invite à le saisir.
+    commission_taux: integer(),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -246,5 +250,6 @@ export const reglages = pgTable(
     check("reglages_contrat_non_signe_check", sql`${t.contrat_non_signe_jours} between 0 and 60`),
     check("reglages_tarifs_horizon_check", sql`${t.tarifs_horizon_mois} between 1 and 36`),
     check("reglages_option_duree_check", sql`${t.option_duree_jours} between 1 and 30`),
+    check("reglages_commission_check", sql`${t.commission_taux} is null or ${t.commission_taux} between 1 and 50`),
   ],
 );
