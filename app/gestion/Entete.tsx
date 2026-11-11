@@ -10,6 +10,7 @@ const RUBRIQUES = [
   { href: "/gestion/tarifs", libelle: "Tarifs" },
   { href: "/gestion/gites", libelle: "Gîtes" },
   { href: "/gestion/documents", libelle: "Documents" },
+  { href: "/gestion/statistiques", libelle: "Statistiques" },
   { href: "/gestion/reglages", libelle: "Réglages" },
   { href: "/gestion/appareils", libelle: "Appareils" },
 ] as const;

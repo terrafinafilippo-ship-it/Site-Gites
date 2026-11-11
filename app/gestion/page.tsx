@@ -1,7 +1,8 @@
 // Accueil du back-office (Phase 5, lot 2, réponses 9 et a du cadrage du
 // 6 novembre 2026) : tout ce qui demande un geste MAINTENANT, quelle que soit
 // la date du séjour (lib/gestion/a-traiter.ts), puis les arrivées et les
-// départs des 7 prochains jours. Les chiffres auront leur page (lot 6).
+// départs des 7 prochains jours. Les chiffres ont leur page (lot 6,
+// /gestion/statistiques).
 import Link from "next/link";
 
 import { fmtDateCourte, fmtDateLongue, fmtHeure } from "@/lib/format";
