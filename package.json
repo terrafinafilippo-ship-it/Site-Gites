@@ -26,6 +26,7 @@
     "verify:gestion-reservations": "tsx scripts/verifier-gestion-reservations.ts",
     "verify:gestion-tarifs": "tsx scripts/verifier-gestion-tarifs.ts",
     "verify:gestion-calendrier": "tsx scripts/verifier-gestion-calendrier.ts",
+    "verify:gestion-statistiques": "tsx scripts/verifier-gestion-statistiques.ts",
     "gestion:compte": "tsx scripts/gestion-compte.ts"
   },
   "dependencies": {

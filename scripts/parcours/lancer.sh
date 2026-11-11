@@ -51,6 +51,7 @@ etape "Back-office : connexion, réglages, pages" env DB_CIBLE=test npx tsx scri
 etape "Back-office : réservations, cautions, solde, À traiter" env DB_CIBLE=test npx tsx scripts/verifier-gestion-reservations.ts --http
 etape "Back-office : tarifs, périodes, barèmes, taxe de séjour" env DB_CIBLE=test npx tsx scripts/verifier-gestion-tarifs.ts --http
 etape "Back-office : calendrier, options, fiches des gîtes, documents" env DB_CIBLE=test npx tsx scripts/verifier-gestion-calendrier.ts --http
+etape "Back-office : statistiques, registre de la taxe de séjour" env DB_CIBLE=test npx tsx scripts/verifier-gestion-statistiques.ts --http
 # Le paiement par le serveur crée de vrais contrats et de vraies factures (numéros légaux de la base
 # de test) : on repart de zéro pour que la numérotation contrôlée plus bas soit
 # celle des deux parcours seulement.

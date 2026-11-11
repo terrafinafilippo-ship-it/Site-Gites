@@ -154,6 +154,8 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     "tarifs_horizon_mois",
     // Calendrier, lot 4 (migration 0015).
     "option_duree_jours",
+    // Statistiques, lot 6 (migration 0017).
+    "commission_taux",
     "updated_at",
   ],
   taxes_sejour: [
@@ -1094,6 +1096,8 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
         `insert into options_sejour (gite_id, date_arrivee, date_depart, client_nom, client_email, expire_at) values ($1, '2099-06-05', '2099-06-05', 'V', 'v@example.invalid', now())`, [giteId]],
       ["sp_opt_duree", "option gardée 0 jour : refusée",
         `update reglages set option_duree_jours = 0 where id = 1`, []],
+      ["sp_commission", "commission de 51 % : refusée (lot 6, de 1 à 50)",
+        `update reglages set commission_taux = 51 where id = 1`, []],
     ];
     for (const [nom, quoi, sqlTexte, params] of casOption) {
       const e = await attendreErreur(client, nom, sqlTexte, params);
