@@ -689,10 +689,11 @@ donne 15,59 € au lieu de 15,75 € sur l'exemple officiel n° 1. Les réglages
 par gîte parce qu'un gîte peut être classé sans que les autres le soient, et
 datés parce que les tarifs se votent chaque année pour le 1er janvier suivant.
 
-**Ce qui reste ouvert** (point 10 de `docs/06-avant-premier-client.md`) : le
+**Ce qui restait ouvert** (point 10 de `docs/06-avant-premier-client.md`) : le
 forfait ménage entre-t-il dans le prix retenu, et les bébés comptent-ils parmi
-les occupants ? Le calcul accepte les deux réponses ; elles se demandent au
-service taxe de séjour d'Ardèche Grand Air.
+les occupants ? Le calcul accepte les deux réponses. Le gérant a répondu non
+aux deux le 11 novembre 2026 : ce sont les valeurs par défaut des deux réglages
+(migration 0018 pour les bébés).
 
 **Si on revient dessus.** Un taux unique appliqué au total, c'est collecter une
 taxe qui n'est pas due ou laisser la société payer la différence. Un arrondi
@@ -1848,6 +1849,48 @@ Répartir un séjour sur ses mois : prix de chaque nuit dans `detail_calcul`.
 
 ---
 
+## D-37 · Pas de forfait ménage : le client nettoie avant de partir
+
+**Date :** 12 novembre 2026. Réponses du gérant : « aucun ménage » ; 1 = A
+(le forfait reste un champ de la fiche du gîte, mis à 0 €) ; 2 = A (un départ
+sans nettoyage se retient sur la caution) — « pour l'instant », le
+fonctionnement pourra évoluer.
+
+**Ce qui est décidé.**
+- Le forfait ménage reste le champ « Ménage » de la fiche de chaque gîte. Les
+  propriétaires le mettent à **0 €** au back-office ; la base de test et le
+  parcours gardent 80 € pour éprouver la ligne.
+- **À 0 €, aucune ligne de ménage** : ni sur la fiche du gîte, ni dans le
+  tunnel, ni au contrat (tableau du prix et échéancier), ni sur les trois
+  factures — comme la ligne « Options ».
+- **Contrat v5** (`lib/contrat.ts`, `TEMPLATE_VERSION`) : à 0 €, l'article 4.5
+  (« forfait obligatoire ») disparaît et l'article 11.5 devient « Entretien et
+  nettoyage » : le Locataire nettoie le gîte avant son départ et le rend dans
+  l'état de propreté où il l'a trouvé ; à défaut, les frais de nettoyage sont
+  retenus sur le dépôt de garantie, dans les conditions de l'article 6.4 (dont
+  le cas 2, « manquements aux obligations d'entretien de l'article 11 », et la
+  justification par pièces). Avec un forfait, le texte reste celui de la v4.
+  Texte à relire par le juriste avec le reste du contrat.
+
+**Pourquoi.** Les propriétaires ne veulent pas facturer le ménage. Garder le
+champ plutôt que retirer le ménage du code : c'est moins de code, et revenir à
+un forfait ne demande qu'un montant.
+
+**Ce qui pourrait mal tourner.**
+- **Un gîte laissé à 80 €** par oubli garde l'ancien contrat : la fiche du gîte
+  au back-office est le seul endroit à vérifier.
+- **La retenue pour nettoyage** se conteste si l'état des lieux d'entrée et de
+  sortie ne montre pas la différence : photographies à garder.
+- **La TVA** : sans ménage facturé, il reste le linge fourni et l'accueil comme
+  prestations de type hôtelier (DO-01, question au comptable).
+
+**Si on revient dessus.** Remettre un montant sur la fiche du gîte : la ligne,
+l'article 4.5 et l'ancien 11.5 reviennent, sans code. Un ménage optionnel,
+choisi par le client, serait en revanche une option vendue (session dédiée,
+cadrage de la Phase 5, réponse 8).
+
+---
+
 ## Décisions ouvertes
 
 Elles ne sont **pas tranchées** et ne doivent pas l'être dans le code.
@@ -1863,11 +1906,12 @@ choses qui doivent être cohérentes entre elles :
 2. **la déclaration des revenus locatifs** (résultat de la société, ou revenus
    fonciers / BIC des personnes) ;
 3. **l'application de l'exemption de TVA de l'article 261 D 4° du CGI**, que les
-   factures affichent déjà (`lib/constantes.ts`, `MENTIONS.tva`). Cette
+   factures affichent déjà (`lib/constantes.ts`, `MENTIONS.articleTva`). Cette
    exemption vise la location de locaux d'habitation meublés ; elle **cesse de
    s'appliquer** quand l'exploitant fournit des prestations de type hôtelier
    (accueil, ménage en cours de séjour, fourniture de linge, petit-déjeuner).
-   Le forfait ménage de 80 € facturé systématiquement doit être qualifié.
+   Le forfait ménage de 80 € facturé systématiquement devait être qualifié ;
+   depuis D-37 (12 novembre 2026), il n'y en a plus (0 €).
 
 **État actuel du dépôt, qui est incohérent.** Le contrat et les factures
 engagent la **SARL DE LA VOUTE** (RCS Annonay 831 170 782). Les mentions légales

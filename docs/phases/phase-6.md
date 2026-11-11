@@ -68,7 +68,7 @@ lever.
 | Où | Ce qui s'affiche | Pourquoi c'est faux ou douteux | Qui |
 |---|---|---|---|
 | Mentions légales | « exploitants en nom propre », SIRET 000 000 000 00000 | Le contrat et les factures sont au nom de la SARL (E-1) | Le comptable (point 6) |
-| Mentions légales, confidentialité, page Contact | contact@gites-samoyas.fr | Le domaine est gitesdesamoyas.fr ; le contrat imprime l'adresse des réglages, l'ancien site donnait nicolas.terrafina@wanadoo.fr | Les propriétaires |
+| ~~Mentions légales, confidentialité, page Contact~~ | ~~contact@gites-samoyas.fr~~ | **Corrigé le 11 novembre 2026** : contact@gitesdesamoyas.fr (réponse du gérant), l'adresse que le contrat imprime depuis les réglages. Les pages l'écrivent en clair : si les réglages changent d'adresse, elles sont à corriger aussi | — |
 | Fiches et cartes des gîtes (`lib/data/gites.ts`) | Note, nombre d'avis, % de recommandation par gîte (5,0 · 16 avis…) | Écrits en dur ; l'accueil, lui, lit la note des réglages et la masque si elle est vide | Les propriétaires (origine des avis) |
 | Mentions légales | « Les avis affichés sont collectés et vérifiés par Gîtes de France » | Vrai seulement si les chiffres viennent de Gîtes de France | Les propriétaires |
 | Accueil | « Labellisés depuis 2018 » | Écrit en dur, aucune source dans le dépôt | Les propriétaires |

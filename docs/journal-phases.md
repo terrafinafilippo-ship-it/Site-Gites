@@ -1954,6 +1954,52 @@ personne, à la demande du gérant.
 
 ---
 
+## Hors phase : réponses du gérant (11 et 12 novembre 2026)
+
+### Ce qui a été décidé
+
+- Adresse de contact du site : **contact@gitesdesamoyas.fr**.
+- Bons cadeaux de l'ancien site (`/bon.html`, `/images/amour.pdf`) : vers la
+  page Contact ; les options de l'ancien site ne sont pas reprises.
+- Taxe de séjour : ni le ménage ni les **bébés** ne comptent dans le calcul.
+- **Aucun ménage** (D-37) : forfait à 0 € sur la fiche des gîtes, client qui
+  nettoie avant de partir, retenue sur la caution à défaut ; contrat v5.
+- Médiateur : **aucune adhésion** ; l'obligation est rappelée, le point 7 reste
+  bloquant.
+- Lot 6 : textes validés, commité.
+
+### Ce qui a été fait
+
+- `lib/data/legal.ts` et la page Contact : contact@gitesdesamoyas.fr.
+- `next.config.ts` : les sept adresses de l'ancien site ont une suite.
+- Migration **0018** : `taxes_sejour.bebes_parmi_occupants` faux par défaut ;
+  la case du back-office naît décochée, son aide donne la réponse.
+- Ménage à 0 € : lignes masquées (fiche du gîte, tunnel, contrat, trois
+  factures), article 4.5 omis, article 11.5 en seconde rédaction ;
+  `TEMPLATE_VERSION` v5 ; `docs/contrat-template.md` et
+  `docs/facture-template.md` suivent.
+
+### Ce qui a été vérifié
+
+- Contrat et trois factures rendus avec et sans ménage, sur la réservation
+  LaPhine du parcours, ménage modifié en mémoire seulement : sans ménage, plus
+  aucune ligne, plus d'article 4.5, nouvel article 11.5, totaux en baisse de
+  80 € exactement, taxe de séjour inchangée (le ménage n'est pas dans son
+  calcul). Avec 80 €, texte de la v4.
+- Fiche de LaPhine à 0 € sur la base de test, en français et en anglais : plus
+  de ligne ménage ; L'Armu, à 80 €, la garde ; base remise à 80 €.
+- Sept adresses de l'ancien site : 301 puis 200. L'adresse de contact sur
+  Contact (fr, en), mentions légales et confidentialité.
+- `db:verify` 233/0, `verify:tarification` 192, `verify:gestion-tarifs` 87,
+  parcours 23 étapes (code 0, `reference.ts` inchangé), lint, `tsc`, build.
+
+### Ce qui n'a PAS été vérifié
+
+- Le récapitulatif du tunnel à 0 € dans un navigateur : il se dessine chez le
+  client ; la condition est celle de la fiche du gîte.
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

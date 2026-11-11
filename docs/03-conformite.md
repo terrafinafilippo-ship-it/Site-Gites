@@ -412,10 +412,11 @@ CGI » est imprimée sur les **deux factures** et dans le contrat.
 
 **Écart — décision différée (voir `docs/02-decisions.md`, DO-01).** La mention
 est affichée **sans que la qualification ait été validée**. Deux éléments
-appellent une vérification : le **forfait ménage de 80 € facturé
-systématiquement**, et la **fourniture du linge** annoncée sur le site
-(« Linge & draps : fournis »). Ce sont deux des quatre prestations. L'accueil
-des clients à l'arrivée en est potentiellement une troisième.
+appelaient une vérification : le **forfait ménage de 80 € facturé
+systématiquement** — supprimé le 12 novembre 2026 (D-37, forfait à 0 €) — et
+la **fourniture du linge** annoncée sur le site (« Linge & draps : fournis »),
+qui reste. L'accueil des clients à l'arrivée est potentiellement une autre de
+ces prestations.
 
 Cette question est **la même** que celle de l'identité du bailleur : le régime
 de TVA et le régime de déclaration des revenus dépendent tous deux de qui
@@ -475,10 +476,11 @@ attendant, le ménage est exclu par défaut, et c'est un réglage
 (`taxes_sejour.menage_dans_assiette`), pas une ligne de code.
 
 **Les bébés.** Le guide compte comme occupants toutes les personnes hébergées.
-Qu'un bébé en fasse partie n'est écrit nulle part : **à confirmer** avec la
-même question. En attendant, il est compté (lecture littérale du guide), et
-c'est un réglage (`taxes_sejour.bebes_parmi_occupants`, Phase 3 lot 2), pas
-une ligne de code. Un bébé ne paie jamais : il est mineur.
+Qu'un bébé en fasse partie n'est écrit nulle part. Réponse du gérant du
+11 novembre 2026 : il **ne compte pas**. C'est un réglage
+(`taxes_sejour.bebes_parmi_occupants`, Phase 3 lot 2), faux par défaut depuis
+la migration 0018, pas une ligne de code. Un bébé ne paie jamais : il est
+mineur.
 
 **Meublé CLASSÉ : méthode entièrement différente** — un **tarif fixe** par
 personne et par nuit, voté par la collectivité selon la catégorie. Attention au
@@ -519,7 +521,8 @@ soit 2,05 € × 7 nuits × 2 adultes = **28,70 €**. L'ancienne formule (5,5 %
 la location et du ménage) donnait 47,30 €.
 
 **Qui peut lever ce qui reste :** le service taxe de séjour d'Ardèche Grand Air
-(ménage, bébés, tarifs 2027 : 04 75 33 24 51, ardechegrandair@taxesejour.fr) et
+(tarifs 2027 : 04 75 33 24 51, ardechegrandair@taxesejour.fr ; ménage et
+bébés tranchés par le gérant le 11 novembre 2026) et
 les propriétaires (saisie des réglages).
 
 ---

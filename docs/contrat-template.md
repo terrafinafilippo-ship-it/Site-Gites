@@ -122,7 +122,7 @@ Le prix total du séjour est fixé comme suit :
 | Poste | Montant |
 |---|---|
 | Prix de la location ({{nb_nuits}} nuits) | {{prix_location}} € |
-| Forfait ménage obligatoire | {{forfait_menage}} € |
+| Forfait ménage obligatoire *(ligne absente si le forfait vaut 0 €)* | {{forfait_menage}} € |
 | **Sous-total prestations du Bailleur** | **{{sous_total}} €** |
 | Taxe de séjour ({{taux_taxe_sejour}} %) | {{montant_taxe_sejour}} € |
 | **TOTAL DU SÉJOUR** | **{{total_ttc}} €** |
@@ -144,6 +144,8 @@ La taxe de séjour est collectée par le Bailleur pour le compte d'Annonay Rhôn
 ### 4.5 — Forfait ménage
 
 Le forfait ménage est **obligatoire** et ne peut être ni supprimé ni minoré, y compris si le Locataire souhaite assurer lui-même le nettoyage du gîte avant son départ.
+
+> Contrat v5 (12 novembre 2026, D-37). L'article 4.5 n'est imprimé que si le gîte a un forfait ménage. À 0 €, il disparaît, comme la ligne du tableau ci-dessus, et l'article 11.5 prend sa seconde rédaction.
 
 ---
 
@@ -395,6 +397,10 @@ Le manquement à cette interdiction constitue une cause de résiliation immédia
 ### 11.5 — Entretien quotidien
 
 Pendant la durée du séjour, le nettoyage courant et l'entretien quotidien du gîte (vaisselle, propreté des sols, déchets) sont à la charge du Locataire. Le forfait ménage prévu à l'article 4 couvre exclusivement le nettoyage final entre deux locations.
+
+> **Seconde rédaction, gîte sans forfait ménage (contrat v5, D-37) :**
+>
+> **11.5 — Entretien et nettoyage.** Pendant le séjour, le nettoyage courant (vaisselle, propreté des sols, déchets) est à la charge du Locataire. Aucun forfait ménage n'est facturé : avant son départ, le Locataire nettoie le gîte et le rend dans l'état de propreté où il l'a trouvé à son arrivée. À défaut, les frais de nettoyage sont retenus sur le dépôt de garantie, dans les conditions de l'article 6.4.
 
 ### 11.6 — Tri des déchets et collecte
 

@@ -46,11 +46,13 @@ mettre en ligne.
 
    **Relevé du 9 novembre 2026** (lecture seule, en suivant les liens depuis
    l'accueil). L'ancien site est un petit site PHP de sept adresses ; la liste
-   et ses redirections vivent dans `next.config.ts`. Quatre sont redirigées
-   (`/index.php`, `/gites.html`, `/activites.php`, `/contact.html`) ; deux
-   attendent une décision, `/bon.html` (bons cadeaux, reportés) et
-   `/images/amour.pdf` (affiche du bon cadeau). Reste à croiser avec la Search
-   Console, qui peut connaître des pages que plus aucun lien ne montre.
+   et ses redirections vivent dans `next.config.ts`. L'accueil (`/`) reste
+   l'accueil ; les six autres sont redirigées : `/index.php`, `/gites.html`, `/activites.php`, `/contact.html` vers leur
+   équivalent, et le 11 novembre `/bon.html` et `/images/amour.pdf` (bons
+   cadeaux, reportés) vers la page Contact. Les options vendues par l'ancien
+   site (apéritif dînatoire…) ne sont pas reprises (gérant, 11 novembre). Reste
+   à croiser avec la Search Console, qui peut connaître des pages que plus
+   aucun lien ne montre.
 5. Vérification finale de `docs/06-avant-premier-client.md` : **les dix points
    doivent être levés.**
 

@@ -108,7 +108,7 @@ Désignation du séjour :
 DÉTAIL DU SÉJOUR (pour information)
 
   Prix de la location ({{nb_nuits}} nuits)            {{prix_location}} €
-  Forfait ménage obligatoire                          {{forfait_menage}} €
+  Forfait ménage obligatoire                          {{forfait_menage}} €   (ligne absente à 0 €)
   Sous-total prestations                              {{sous_total}} €
   Taxe de séjour ({{taux_taxe_sejour}} %)             {{montant_taxe_sejour}} €
   ─────────────────────────────────────────────────────────────────────────
@@ -215,7 +215,7 @@ Désignation du séjour :
 RÉCAPITULATIF FINANCIER COMPLET
 
   Prix de la location ({{nb_nuits}} nuits)            {{prix_location}} €
-  Forfait ménage obligatoire                          {{forfait_menage}} €
+  Forfait ménage obligatoire                          {{forfait_menage}} €   (ligne absente à 0 €)
   Sous-total prestations                              {{sous_total}} €
   Taxe de séjour ({{taux_taxe_sejour}} %)             {{montant_taxe_sejour}} €
   ─────────────────────────────────────────────────────────────────────────

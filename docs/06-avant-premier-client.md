@@ -38,7 +38,7 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | 7 | Médiateur de la consommation : lequel, et adhésion en cours | **Les propriétaires** | Phase 6 |
 | 8 | Écrire les règles sauna à l'article 12 du contrat | Développement | Phase 6 |
 | 9 | Sauvegarder le volume des PDF, et tester une restauration | **Phase de déploiement** | Au déploiement effectif — échéance tranchée le 24 septembre 2026 |
-| 10 | Taxe de séjour : régime et taux **vérifiés** ; restent l'assiette (ménage), les bébés et les tarifs 2027 | **Le service taxe de séjour** (Ardèche Grand Air) | Phase 3 |
+| 10 | Taxe de séjour : régime, taux, assiette (sans le ménage) et occupants (sans les bébés) **arrêtés** ; restent les tarifs 2027 | **Le service taxe de séjour** (Ardèche Grand Air) | Phase 3 |
 | 11 | Saisir les vrais tarifs, périodes, barème et réglages de taxe | **Les propriétaires**, au back-office | Avant l'ouverture (Phase 5) |
 | 12 | Durée de conservation des tentatives de réservation abandonnées | **Les propriétaires** (juriste) — l'effacement est construit | Avant l'ouverture |
 | 13 | Site en anglais : relire la traduction, faire valider l'anglais du juridique | **Les propriétaires** (relecture), **le juriste** (pages juridiques, bannière cookies) | Avant l'ouverture (Phase 6) |
@@ -236,8 +236,9 @@ inclure :
    conservation, tarification). Chaque ligne est OK, INFO, A VOIR ou
    BLOQUANT ; un point BLOQUANT interdit de migrer. Au 2 novembre 2026, la base
    réelle et `gites_test` du serveur sont à la migration **0001**.
-2. **Appliquer les migrations 0002 à 0017** (0012 à 0017 : le back-office,
-   Phase 5, lots 1 à 4 et 6) : **le gérant** les applique lui-même
+2. **Appliquer les migrations 0002 à 0018** (0012 à 0017 : le back-office,
+   Phase 5, lots 1 à 4 et 6 ; 0018 : les bébés et la taxe de séjour) :
+   **le gérant** les applique lui-même
    (`npm run db:migrate`), après une sauvegarde, sur la base réelle puis sur
    `gites_test` du serveur (réponse 11B).
 3. **Créer le compte du back-office** : le gérant lance
@@ -303,9 +304,10 @@ obligatoires (art. 6-III LCEN).
    personnes) ;
 3. l'**exonération de TVA de l'article 261 D 4° du CGI**, déjà imprimée sur les
    deux factures et dans le contrat. Cette exonération tombe si l'exploitant
-   fournit des prestations de type hôtelier — **le forfait ménage de 80 €
-   facturé systématiquement** et **la fourniture du linge** annoncée sur le site
-   en sont deux.
+   fournit des prestations de type hôtelier — **la fourniture du linge**
+   annoncée sur le site en est une. Le forfait ménage de 80 € facturé
+   systématiquement en était une autre : il est supprimé depuis le
+   12 novembre 2026 (D-37, forfait à 0 € sur la fiche des gîtes).
 
 **Une seule question, posée une seule fois au comptable, dans ses trois volets.**
 Le SIRET factice est une **conséquence** : il disparaît quand l'identité est
@@ -343,7 +345,14 @@ tourisme** (hébergement, voyage) ; **MEDICYS** est un médiateur **généralist
 Les deux sont référencés. Le choix dépend du secteur et du coût d'adhésion.
 
 **L'action.** Une fois l'organisme arrêté, l'inscrire au même endroit que
-l'identité (point 6) et le propager aux mêmes cinq emplacements.
+l'identité (`lib/constantes.ts`, `MENTIONS.mediateur`, que le contrat et les
+factures lisent depuis le 9 novembre 2026) et dans les CGV du site.
+
+> **Réponse du gérant, 12 novembre 2026 : aucune adhésion à ce jour.**
+> L'obligation lui a été rappelée (art. L.612-1 C. conso., amende
+> administrative en cas de manquement) : le point reste **bloquant**, et le
+> contrat et les factures annoncent MEDICYS tant qu'aucun organisme n'est
+> choisi.
 
 ---
 
@@ -451,6 +460,14 @@ intercommunalité) · **Phase 3**
 > Le calcul suit les réponses sans modification : le ménage et les bébés sont
 > deux réglages, les tarifs une ligne datée.
 >
+> **Réponses du gérant, 11 novembre 2026.** Question 1 : le forfait ménage
+> n'entre **pas** dans le prix retenu — c'est déjà la valeur par défaut du
+> réglage (`taxes_sejour.menage_dans_assiette`, faux). Question 2 : un bébé
+> ne compte **pas** parmi les occupants qui se partagent le prix de la nuit
+> (`taxes_sejour.bebes_parmi_occupants`, faux par défaut depuis la migration
+> 0018). Les mineurs ne paient pas, ce que le calcul fait déjà. Reste la
+> question 3 (tarifs 2027).
+>
 > **Ajout du 29 octobre 2026 (lot 5), à vérifier par les propriétaires.** Le
 > contrat (art. 4.4) dit la taxe collectée pour le compte d'**Annonay Rhône
 > Agglo**, taxe additionnelle départementale comprise. Recherche du 29 octobre :
@@ -502,7 +519,9 @@ base de test, elle, porte une tarification d'essai marquée « (essai) ».
 
 **L'action.** Saisir, pour chaque gîte : les tarifs et leur prix à la nuit, les
 périodes de l'année (sans trou), le barème général, les règles d'arrivée et de
-durée s'il y en a, et les réglages de taxe de séjour (point 10).
+durée s'il y en a, et les réglages de taxe de séjour (point 10). Dans la fiche
+de chaque gîte (Gîtes), mettre le **ménage à 0 €** (D-37) : un gîte resté à
+80 € facture encore le ménage et imprime l'ancien contrat.
 
 **Le contrôle.** En haut de la page Tarifs, l'état dit « Tout est réservable
 jusqu'au … » sans aucun manque listé, et « À traiter » n'a ni « Nuits sans
