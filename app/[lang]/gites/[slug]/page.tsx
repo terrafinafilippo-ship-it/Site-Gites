@@ -662,7 +662,9 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
                 {chiffres && (
                   <>
                     <li><span>{t.caution}</span><strong>{fmtPrix(chiffres.caution, langue)}</strong></li>
-                    <li><span>{t.menage}</span><strong>{fmtPrix(chiffres.forfaitMenage, langue)}</strong></li>
+                    {chiffres.forfaitMenage !== 0 && (
+                      <li><span>{t.menage}</span><strong>{fmtPrix(chiffres.forfaitMenage, langue)}</strong></li>
+                    )}
                     {chiffres.taxe !== null && (
                       <li><span>{t.taxe}</span><strong>{fmtTaxeSejour(chiffres.taxe, langue)}</strong></li>
                     )}

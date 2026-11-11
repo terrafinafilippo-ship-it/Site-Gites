@@ -681,15 +681,17 @@ export function ContratPDF({
                 —
               </Text>
             </View>
-            <View style={styles.echRow}>
-              <Text style={[styles.echTd, { flex: 3 }]}>Forfait ménage</Text>
-              <Text style={[styles.echTd, { flex: 1.5, textAlign: 'right' }]}>
-                {fmtEuro(data.forfaitMenage)}
-              </Text>
-              <Text style={[styles.echTd, { flex: 2.5, textAlign: 'right' }]}>
-                —
-              </Text>
-            </View>
+            {data.forfaitMenage !== 0 && (
+              <View style={styles.echRow}>
+                <Text style={[styles.echTd, { flex: 3 }]}>Forfait ménage</Text>
+                <Text style={[styles.echTd, { flex: 1.5, textAlign: 'right' }]}>
+                  {fmtEuro(data.forfaitMenage)}
+                </Text>
+                <Text style={[styles.echTd, { flex: 2.5, textAlign: 'right' }]}>
+                  —
+                </Text>
+              </View>
+            )}
             {data.montantOptions !== 0 && (
               <View style={styles.echRow}>
                 <Text style={[styles.echTd, { flex: 3 }]}>Options</Text>
@@ -1051,16 +1053,18 @@ export function ContratPDF({
                 {fmtEuro(data.prixLocation)}
               </Text>
             </View>
-            <View style={styles.tblRow}>
-              <Text style={[styles.tblTd, { flex: 4 }]}>
-                Forfait ménage obligatoire
-              </Text>
-              <Text
-                style={[styles.tblTd, { flex: 1.5, textAlign: 'right' }]}
-              >
-                {fmtEuro(data.forfaitMenage)}
-              </Text>
-            </View>
+            {data.forfaitMenage !== 0 && (
+              <View style={styles.tblRow}>
+                <Text style={[styles.tblTd, { flex: 4 }]}>
+                  Forfait ménage obligatoire
+                </Text>
+                <Text
+                  style={[styles.tblTd, { flex: 1.5, textAlign: 'right' }]}
+                >
+                  {fmtEuro(data.forfaitMenage)}
+                </Text>
+              </View>
+            )}
             {data.montantOptions !== 0 && (
               <View style={styles.tblRow}>
                 <Text style={[styles.tblTd, { flex: 4 }]}>Options</Text>
@@ -1144,15 +1148,21 @@ export function ContratPDF({
             d&apos;annulation (article 7.2).
           </Text>
 
-          <Text style={styles.artH3}>
-            <Text style={styles.artH3Num}>4.5 </Text>Forfait ménage
-          </Text>
-          <Text style={styles.p}>
-            Le forfait ménage est{' '}
-            <Text style={styles.pBold}>obligatoire</Text> et ne peut être ni
-            supprimé ni minoré, y compris si le Locataire souhaite assurer
-            lui-même le nettoyage du gîte avant son départ.
-          </Text>
+          {/* Sans forfait ménage (gîte à 0 €, choix du gérant du 12 novembre
+              2026), l'article 4.5 disparaît : le nettoyage est à l'article 11.5. */}
+          {data.forfaitMenage !== 0 && (
+            <>
+              <Text style={styles.artH3}>
+                <Text style={styles.artH3Num}>4.5 </Text>Forfait ménage
+              </Text>
+              <Text style={styles.p}>
+                Le forfait ménage est{' '}
+                <Text style={styles.pBold}>obligatoire</Text> et ne peut être ni
+                supprimé ni minoré, y compris si le Locataire souhaite assurer
+                lui-même le nettoyage du gîte avant son départ.
+              </Text>
+            </>
+          )}
         </View>
 
         <View style={styles.art}>
@@ -1747,13 +1757,26 @@ export function ContratPDF({
             Le manquement constitue une cause de résiliation immédiate. Frais
             de nettoyage et de dépollution prélevés sur la caution.
           </Text>
-          <Text style={styles.p}>
-            <Text style={styles.pBold}>11.5 Entretien quotidien —</Text>{' '}
-            Pendant le séjour, le nettoyage courant (vaisselle, propreté des
-            sols, déchets) est à la charge du Locataire. Le forfait ménage de
-            l&apos;article 4 couvre exclusivement le nettoyage final entre
-            deux locations.
-          </Text>
+          {data.forfaitMenage !== 0 ? (
+            <Text style={styles.p}>
+              <Text style={styles.pBold}>11.5 Entretien quotidien —</Text>{' '}
+              Pendant le séjour, le nettoyage courant (vaisselle, propreté des
+              sols, déchets) est à la charge du Locataire. Le forfait ménage de
+              l&apos;article 4 couvre exclusivement le nettoyage final entre
+              deux locations.
+            </Text>
+          ) : (
+            <Text style={styles.p}>
+              <Text style={styles.pBold}>11.5 Entretien et nettoyage —</Text>{' '}
+              Pendant le séjour, le nettoyage courant (vaisselle, propreté des
+              sols, déchets) est à la charge du Locataire. Aucun forfait
+              ménage n&apos;est facturé : avant son départ, le Locataire
+              nettoie le gîte et le rend dans l&apos;état de propreté où il
+              l&apos;a trouvé à son arrivée. À défaut, les frais de nettoyage
+              sont retenus sur le dépôt de garantie, dans les conditions de
+              l&apos;article 6.4.
+            </Text>
+          )}
           <Text style={styles.p}>
             <Text style={styles.pBold}>11.6 Tri des déchets —</Text> Le
             Locataire est tenu de respecter les consignes de tri sélectif et

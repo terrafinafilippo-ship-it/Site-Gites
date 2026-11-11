@@ -1086,7 +1086,9 @@ export default function ReserverFunnel({
                 <dd>{euros(ligne.montant)}</dd>
               </div>
             ))}
-            <div className={styles.recapLine}><dt>{t.menage}</dt><dd>{euros(devis.montants.forfaitMenage)}</dd></div>
+            {devis.montants.forfaitMenage !== 0 && (
+              <div className={styles.recapLine}><dt>{t.menage}</dt><dd>{euros(devis.montants.forfaitMenage)}</dd></div>
+            )}
             <div className={styles.recapLine}><dt>{t.taxe}</dt><dd>{euros(devis.montants.taxeSejour)}</dd></div>
           </div>
           <div className={styles.recapTotal}>
@@ -1422,12 +1424,14 @@ export default function ReserverFunnel({
                       <span>{euros(ligne.montant)}</span>
                     </div>
                   ))}
-                  <div className={styles.drLine}>
-                    <div>
-                      <strong>{t.menage}</strong>
+                  {devis.montants.forfaitMenage !== 0 && (
+                    <div className={styles.drLine}>
+                      <div>
+                        <strong>{t.menage}</strong>
+                      </div>
+                      <span>{euros(devis.montants.forfaitMenage)}</span>
                     </div>
-                    <span>{euros(devis.montants.forfaitMenage)}</span>
-                  </div>
+                  )}
                   <div className={styles.drLine}>
                     <div>
                       <strong>{t.taxe}</strong>

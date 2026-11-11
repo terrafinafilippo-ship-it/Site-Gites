@@ -158,10 +158,12 @@ export function FactureTotalPDF({ data, logo }: { data: FactureTotalData; logo: 
             <Text style={styles.lineDesc}>Prix de la location ({data.nbNuits} nuits)</Text>
             <Text style={styles.lineAmount}>{fmtEuro(data.prixLocation)}</Text>
           </View>
-          <View style={styles.line}>
-            <Text style={styles.lineDesc}>Forfait ménage obligatoire</Text>
-            <Text style={styles.lineAmount}>{fmtEuro(data.forfaitMenage)}</Text>
-          </View>
+          {data.forfaitMenage !== 0 && (
+            <View style={styles.line}>
+              <Text style={styles.lineDesc}>Forfait ménage obligatoire</Text>
+              <Text style={styles.lineAmount}>{fmtEuro(data.forfaitMenage)}</Text>
+            </View>
+          )}
           {data.montantOptions !== 0 && (
             <View style={styles.line}>
               <Text style={styles.lineDesc}>Options</Text>

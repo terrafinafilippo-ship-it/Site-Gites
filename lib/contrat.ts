@@ -36,7 +36,10 @@ const DOCUMENT_TYPE = "contrat_location";
 // adresse de contact des réglages.
 // v4 (30 octobre 2026, D-27) : paiement intégral choisi par le client avant
 // la date limite du solde (art. 5.1 et 7.2).
-const TEMPLATE_VERSION = "v4";
+// v5 (12 novembre 2026, D-37) : gîte sans forfait ménage (0 €) — ni ligne de
+// ménage ni art. 4.5, et l'art. 11.5 met le nettoyage du départ à la charge du
+// Locataire. Avec un forfait, le texte est celui de la v4.
+const TEMPLATE_VERSION = "v5";
 // Le lien de signature reste valable 30 jours.
 const TOKEN_TTL_JOURS = 30;
 
