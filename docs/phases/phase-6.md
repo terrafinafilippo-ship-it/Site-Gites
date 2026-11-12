@@ -73,7 +73,7 @@ lever.
 |---|---|---|---|
 | Mentions légales | « exploitants en nom propre », SIRET 000 000 000 00000 | Le contrat et les factures sont au nom de la SARL (E-1) | Le comptable (point 6) |
 | ~~Mentions légales, confidentialité, page Contact~~ | ~~contact@gites-samoyas.fr~~ | **Corrigé le 11 novembre 2026** : contact@gitesdesamoyas.fr (réponse du gérant), l'adresse que le contrat imprime depuis les réglages. Les pages l'écrivent en clair : si les réglages changent d'adresse, elles sont à corriger aussi | — |
-| Fiches et cartes des gîtes (`lib/data/gites.ts`) | Note, nombre d'avis, % de recommandation par gîte (5,0 · 16 avis…) | **Vrais** : avis Gîtes de France (gérant, 12 novembre 2026). Mais écrits en dur ; l'accueil, lui, lit la note des réglages. À terme, les avis laissés par les clients du site doivent les remplacer | Développement (avis des clients) |
+| ~~Fiches et cartes des gîtes (`lib/data/gites.ts`)~~ | ~~Note, nombre d'avis, % de recommandation par gîte (5,0 · 16 avis…)~~ | **Vrais** : avis Gîtes de France (gérant, 12 novembre 2026). **Sortis du code le 12 novembre 2026** (D-40) : saisis sur la fiche de chaque gîte du back-office, affichés avec leur source à côté des avis des clients du site | — |
 | ~~Mentions légales~~ | ~~« Les avis affichés sont collectés et vérifiés par Gîtes de France »~~ | **Vrai** : les chiffres viennent de Gîtes de France (gérant, 12 novembre 2026) | — |
 | Accueil | « Labellisés depuis 2018 » | Écrit en dur, aucune source dans le dépôt | Les propriétaires |
 | ~~Politique cookies, bannière~~ | ~~Mesure d'audience par Matomo~~ | **Corrigé le 12 novembre 2026** (D-39) : bannière retirée, politique cookies réécrite (aucun traceur ; cookies de Stripe au paiement) | — |
