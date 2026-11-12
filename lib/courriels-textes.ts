@@ -938,6 +938,8 @@ const OBJETS_CLIENT: Record<string, string> = {
   caution_rendue: "l'avis de caution rendue",
   option: "le lien de son option",
   contrat_signe: "son contrat signé",
+  avis_invitation: "l'invitation à donner son avis",
+  avis_retrait: "l'avis du retrait de son avis",
 };
 
 export function texteAlerteProbleme(p: Probleme, s: Sejour | null, c: FicheClient | null): Contenu {
@@ -1058,6 +1060,87 @@ export function texteAlerteProbleme(p: Probleme, s: Sejour | null, c: FicheClien
     { p: quoi, gras: true },
     { p: `Ce qu'il faut faire : ${faire}` },
     ...(contexte.length ? [{ liste: contexte }] : []),
+  ]);
+}
+
+// ─── Avis des clients (Phase 6, D-40) ────────────────────────────────────────
+
+/** L'invitation à donner son avis, après le départ, avec le lien personnel. */
+export function texteAvisInvitation(
+  langue: Langue,
+  s: Sejour,
+  d: { lienAvis: string; signature: string; finValidite: string },
+  adresseContact: string,
+): Contenu {
+  const en = langue === "en";
+  const plage = plageDates(s.arrivee, s.depart, langue);
+  const fin = fmtDateLongue(d.finValidite, langue);
+  return assembler(en ? `Your review of ${s.gite}` : `Votre avis sur ${s.gite}`, [
+    { p: bonjour(langue, s.prenom) },
+    {
+      p: en
+        ? `You stayed at ${s.gite}, ${plage}. If you wish, you can review your stay: a rating out of 5 and, if you like, a comment.`
+        : `Vous avez séjourné à ${s.gite} du ${plage}. Si vous le souhaitez, vous pouvez donner votre avis sur ce séjour : une note sur 5 et, si vous le voulez, un commentaire.`,
+    },
+    {
+      p: en
+        ? `It will be published on the gîte's page, signed “${d.signature}”, with the month of your stay.`
+        : `Il sera publié sur la page du gîte, signé « ${d.signature} », avec le mois de votre séjour.`,
+    },
+    { bouton: en ? "Leave my review" : "Donner mon avis", lien: d.lienAvis },
+    { note: en ? `This link is personal and works until ${fin}.` : `Ce lien est personnel et valable jusqu'au ${fin}.` },
+    ...piedClient(langue, s, adresseContact),
+  ]);
+}
+
+/** L'avis retiré par les propriétaires, avec son motif (politique des avis). */
+export function texteAvisRetrait(
+  langue: Langue,
+  s: Sejour,
+  d: { publieLe: string; motif: string; aLaDemande: boolean; lienPolitique: string },
+  adresseContact: string,
+): Contenu {
+  const en = langue === "en";
+  const date = fmtDateLongue(d.publieLe, langue);
+  const phrase = en
+    ? d.aLaDemande
+      ? `Your review of ${s.gite} dated ${date} has been removed from our website, at your request.`
+      : `Your review of ${s.gite} dated ${date} has been removed from our website, for the following reason: ${d.motif}.`
+    : d.aLaDemande
+      ? `Votre avis du ${date} sur ${s.gite} a été retiré du site, à votre demande.`
+      : `Votre avis du ${date} sur ${s.gite} a été retiré du site, pour le motif suivant : ${d.motif}.`;
+  return assembler(en ? `Your review of ${s.gite} has been removed` : `Votre avis sur ${s.gite} a été retiré`, [
+    { p: bonjour(langue, s.prenom) },
+    { p: phrase, gras: true },
+    { note: en ? `Our review policy (in French): ${d.lienPolitique}` : `Notre politique des avis : ${d.lienPolitique}` },
+    ...piedClient(langue, s, adresseContact),
+  ]);
+}
+
+/** Alerte « avis » : un client vient de laisser un avis, déjà publié. */
+export function texteAlerteAvis(
+  s: Sejour,
+  c: FicheClient,
+  a: { note: number; commentaire: string | null; signature: string },
+  lienGestion: string,
+): Contenu {
+  return assembler(`Nouvel avis ${a.note}/5 — ${c.nom} — ${s.gite}`, [
+    { p: `${c.nom} vient de laisser un avis. Il est publié sur la page du gîte.`, gras: true },
+    {
+      liste: [
+        `Note : ${a.note}/5`,
+        a.commentaire ? `Commentaire : « ${a.commentaire} »` : "Commentaire : aucun",
+        `Signé : ${a.signature}`,
+        `Réservation : ${s.reference}`,
+        `${s.gite}, du ${plageDates(s.arrivee, s.depart, "fr")}`,
+      ],
+    },
+    {
+      p:
+        "Vous ne pouvez le retirer que pour l'un des motifs de la politique des avis : propos injurieux, avis hors sujet, " +
+        "données personnelles, demande de son auteur. Un avis critique ou mal noté ne se retire pas.",
+    },
+    { bouton: "Ouvrir les avis", lien: lienGestion },
   ]);
 }
 

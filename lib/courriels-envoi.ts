@@ -32,16 +32,22 @@
 // Phase 4, lot 3 (D-31) : le courriel des coordonnées bancaires relit le
 // compte et la date limite à l'envoi ; sans compte, il est abandonné et les
 // propriétaires sont alertés.
+//
+// Phase 6 (D-40) : l'invitation à donner son avis relit, à l'envoi, que le
+// séjour n'est pas annulé, qu'aucun avis n'est déposé et que le lien est
+// encore ouvert ; le courriel du retrait relit que l'avis est retiré.
 import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { courriels, documents, gites, options_sejour, paiements, reglages, retenues, TYPES_FACTURE, type TypeFacture } from "@/db/schema";
+import { avis, courriels, documents, gites, options_sejour, paiements, reglages, retenues, TYPES_FACTURE, type TypeFacture } from "@/db/schema";
+import { finLienAvis, LIBELLES_MOTIF, lienAvis, signatureAvis } from "@/lib/avis";
 import { jourBlocage, jourLevee, lireReglagesCaution } from "@/lib/caution";
 import { centimesDepuisNumeric } from "@/lib/centimes";
 import { aujourdhuiParis } from "@/lib/dates-civiles";
 import type { ContratEmis, ResultatEmission } from "@/lib/contrat";
 import { inscrireContratARelancer, inscrireProbleme, QUOI_CAUTION, type QuoiCaution } from "@/lib/courriels";
 import {
+  texteAlerteAvis,
   texteAlerteCaution,
   texteAlerteProbleme,
   texteAlerteReservation,
@@ -54,6 +60,8 @@ import {
   texteCautionRetenue,
   texteCautionVirement,
   texteAlerteSignature,
+  texteAvisInvitation,
+  texteAvisRetrait,
   texteConfirmation,
   texteContrat,
   texteContratSigne,
@@ -112,6 +120,8 @@ export const OBJETS_CLIENT = new Set<string>([
   "caution_rendue",
   "option",
   "contrat_signe",
+  "avis_invitation",
+  "avis_retrait",
 ]);
 
 type Courriel = typeof courriels.$inferSelect;
@@ -685,6 +695,56 @@ async function preparer(tx: Executeur, c: Courriel, origine: string): Promise<Pr
         piecesJointes: [
           { nom: `${doc.numero}-signe.pdf`, contenu: await getStorage().read(cheminContratSigne(resa.id, doc.numero)) },
         ],
+      };
+    }
+
+    // Phase 6 (D-40) : les avis des clients.
+    case "avis_invitation": {
+      if (!resa) return { abandon: "réservation absente" };
+      if (!enCours(resa)) return { abandon: `réservation au statut « ${resa.statut} »` };
+      const [depose] = await tx.select({ id: avis.id }).from(avis).where(eq(avis.reservation_id, resa.id));
+      if (depose) return { abandon: "avis déjà déposé" };
+      const [r] = await tx.select({ jours: reglages.avis_lien_jours }).from(reglages).where(eq(reglages.id, 1));
+      if (!r) throw new Error("ligne de réglages absente");
+      const fin = finLienAvis(resa.date_depart, r.jours);
+      if (aujourdhuiParis() > fin) return { abandon: "lien de l'avis expiré" };
+      return {
+        contenu: texteAvisInvitation(
+          langue,
+          sejour(resa),
+          { lienAvis: lienAvis(origine, langue, resa.jeton_suivi), signature: signatureAvis(resa.client_prenom, resa.client_nom), finValidite: fin },
+          await adresseReponse(tx),
+        ),
+      };
+    }
+
+    case "avis_retrait": {
+      if (!resa) return { abandon: "réservation absente" };
+      const [a] = await tx.select().from(avis).where(eq(avis.id, String(d.avisId ?? "")));
+      if (!a) return { abandon: "avis introuvable (effacé)" };
+      if (!a.retire_at || !a.motif_retrait) return { abandon: "avis plus retiré au moment de l'envoi" };
+      return {
+        contenu: texteAvisRetrait(
+          langue,
+          sejour(resa),
+          {
+            publieLe: aujourdhuiParis(a.created_at),
+            motif: LIBELLES_MOTIF[a.motif_retrait][langue],
+            aLaDemande: a.motif_retrait === "demande_auteur",
+            lienPolitique: `${origine}${lien(langue, "/legal/avis")}`,
+          },
+          await adresseReponse(tx),
+        ),
+      };
+    }
+
+    case "alerte_avis": {
+      if (!resa) return { abandon: "réservation absente" };
+      const [a] = await tx.select().from(avis).where(eq(avis.id, String(d.avisId ?? "")));
+      if (!a) return { abandon: "avis introuvable (effacé)" };
+      if (a.retire_at) return { abandon: "avis déjà retiré" };
+      return {
+        contenu: texteAlerteAvis(sejour(resa), ficheClient(resa), a, `${origine}/gestion/avis`),
       };
     }
 

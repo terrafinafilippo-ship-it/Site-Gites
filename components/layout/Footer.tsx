@@ -18,6 +18,7 @@ const TEXTES: Bilingue<{
   cgv: string;
   confidentialite: string;
   cookies: string;
+  politiqueAvis: string;
   mentionsCourt: string;
   cgvCourt: string;
 }> = {
@@ -39,6 +40,7 @@ const TEXTES: Bilingue<{
     cgv: "CGV & annulation",
     confidentialite: "Confidentialité",
     cookies: "Cookies",
+    politiqueAvis: "Politique des avis",
     mentionsCourt: "Mentions",
     cgvCourt: "CGV",
   },
@@ -60,6 +62,7 @@ const TEXTES: Bilingue<{
     cgv: "Terms & cancellation",
     confidentialite: "Privacy",
     cookies: "Cookies",
+    politiqueAvis: "Review policy",
     mentionsCourt: "Legal notice",
     cgvCourt: "Terms",
   },
@@ -97,7 +100,7 @@ export default function Footer({ langue }: { langue: Langue }) {
             <h5>{t.decouvrir}</h5>
             <ul>
               <li><Link href={l("/activites")}>{t.activites}</Link></li>
-              <li><Link href={l("/activites#avis")}>{t.avis}</Link></li>
+              <li><Link href={l("/#avis")}>{t.avis}</Link></li>
               <li><Link href={l("/contact")}>{t.bonsCadeaux}</Link></li>
               <li><Link href={l("/contact")}>{t.contact}</Link></li>
             </ul>
@@ -109,6 +112,7 @@ export default function Footer({ langue }: { langue: Langue }) {
               <li><Link href={l("/legal/cgv")}>{t.cgv}</Link></li>
               <li><Link href={l("/legal/privacy")}>{t.confidentialite}</Link></li>
               <li><Link href={l("/legal/cookies")}>{t.cookies}</Link></li>
+              <li><Link href={l("/legal/avis")}>{t.politiqueAvis}</Link></li>
             </ul>
           </div>
         </div>

@@ -19,6 +19,9 @@
 //   - Phase 5, lot 4 : option posée au téléphone → son lien au client ;
 //     back-office → facture ou contrat signé renvoyés (même document, même
 //     numéro, une clé nouvelle à chaque renvoi).
+//   - Phase 6 (D-40) : tâches automatiques (lib/avis.ts) → l'invitation à
+//     donner son avis ; avis déposé → alerte « avis » ; avis retiré depuis le
+//     back-office → son motif au client.
 // L'ENVOI est ailleurs (lib/courriels-envoi.ts), après la réponse : ce module
 // ne fait qu'écrire, sans réseau, et reste léger (lib/paiement.ts l'importe).
 //
@@ -449,4 +452,38 @@ export async function inscrireContratSigne(executeur: Executeur, reservationId: 
     langue: c.langue === "en" ? "en" : "fr",
   });
   return true;
+}
+
+// ─── Avis des clients (Phase 6, D-40) ────────────────────────────────────────
+
+/** L'invitation à donner son avis, après le départ (lib/avis.ts) : une par réservation. */
+export async function inscrireAvisInvitation(executeur: Executeur, reservationId: string): Promise<void> {
+  const c = await client(executeur, reservationId);
+  if (!c?.email) return;
+  await inscrire(executeur, {
+    objet: "avis_invitation",
+    cle: `avis_invitation:${reservationId}`,
+    reservationId,
+    destinataire: c.email,
+    langue: c.langue === "en" ? "en" : "fr",
+  });
+}
+
+/** L'avis retiré par les propriétaires : son motif au client. */
+export async function inscrireAvisRetrait(executeur: Executeur, reservationId: string, avisId: string): Promise<void> {
+  const c = await client(executeur, reservationId);
+  if (!c?.email) return;
+  await inscrire(executeur, {
+    objet: "avis_retrait",
+    cle: `avis_retrait:${avisId}`,
+    reservationId,
+    destinataire: c.email,
+    langue: c.langue === "en" ? "en" : "fr",
+    donnees: { avisId },
+  });
+}
+
+/** Un client vient de laisser un avis, publié tout de suite : alerte « avis ». */
+export async function inscrireAlerteAvis(executeur: Executeur, reservationId: string, avisId: string): Promise<void> {
+  await alerter(executeur, "avis", "alerte_avis", avisId, reservationId, { avisId });
 }

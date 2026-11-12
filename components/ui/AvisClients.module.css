@@ -1,0 +1,85 @@
+/* Avis des clients du site sur la fiche d'un gîte (Phase 6, D-40). */
+
+.entete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 24px;
+  margin-top: 14px;
+}
+.resume {
+  font-size: 17px;
+  color: var(--color-gray-medium);
+}
+.resume strong {
+  font-family: var(--tw-font-serif);
+  font-size: 32px;
+  font-weight: 400;
+  color: var(--color-charcoal);
+}
+
+.controle {
+  max-width: 760px;
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-gray-medium);
+}
+.controle a {
+  color: var(--color-charcoal);
+  text-decoration: underline;
+}
+
+.liste {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 20px;
+  margin-top: 28px;
+}
+
+.avis {
+  background: #fff;
+  border: 1px solid #e3dfd1;
+  border-radius: var(--radius-default);
+  padding: 24px;
+  overflow-wrap: anywhere;
+}
+.tete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.etoiles {
+  display: inline-flex;
+  gap: 2px;
+}
+.pleine {
+  fill: var(--color-gold-taupe);
+}
+.vide {
+  fill: none;
+  stroke: var(--color-gold-taupe);
+  stroke-width: 1.5;
+}
+.dates {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--color-gray-medium);
+}
+.commentaire {
+  margin-top: 12px;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.suite {
+  margin-top: 24px;
+}
+.suite summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--color-charcoal);
+  text-decoration: underline;
+}

@@ -141,6 +141,20 @@
       "when": 1794462743431,
       "tag": "0019_sauna",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794505027333,
+      "tag": "0020_avis_provisoire_retiree",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794505089463,
+      "tag": "0021_avis",
+      "breakpoints": true
     }
   ]
 }

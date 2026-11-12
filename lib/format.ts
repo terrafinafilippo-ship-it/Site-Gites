@@ -149,6 +149,14 @@ export const fmtDateAvecJour = (iso: string, langue: Langue = 'fr'): string =>
     timeZone: 'UTC',
   });
 
+/** « mars 2027 » / « March 2027 ». Date civile lue en UTC. */
+export const fmtMoisAnnee = (iso: string, langue: Langue = 'fr'): string =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString(LOCALE[langue], {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+
 /** « 17 octobre 2026 » / « 17 October 2026 ». Date civile lue en UTC : aucun décalage de fuseau. */
 export const fmtDateLongue = (iso: string, langue: Langue = 'fr'): string =>
   new Date(`${iso}T00:00:00Z`).toLocaleDateString(LOCALE[langue], {
@@ -170,11 +178,7 @@ export const fmtDateCourte = (iso: string, langue: Langue = 'fr'): string =>
 
 /** « Octobre 2026 » / « October 2026 » : titre d'un mois de calendrier (date civile aaaa-mm-jj). */
 export const fmtMois = (iso: string, langue: Langue = 'fr'): string => {
-  const t = new Date(`${iso.slice(0, 7)}-01T00:00:00Z`).toLocaleDateString(LOCALE[langue], {
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
+  const t = fmtMoisAnnee(`${iso.slice(0, 7)}-01`, langue);
   return t.charAt(0).toUpperCase() + t.slice(1);
 };
 
@@ -184,13 +188,15 @@ export const INITIALES_JOURS: Record<Langue, readonly string[]> = {
   en: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
 };
 
-/** Note sur 5 : « 4,9 » / « 4.9 ». */
-export const fmtNote = (note: number, langue: Langue = 'fr'): string =>
-  langue === 'en' ? note.toFixed(1) : note.toFixed(1).replace('.', ',');
-
 /** Note sur 5 lue en CENTIÈMES (réglages) : 497 → « 4,97 » / « 4.97 », 500 → « 5 ». Passe par le texte. */
 export const fmtNoteCentiemes = (centiemes: number, langue: Langue = 'fr'): string =>
   fmtTauxCentiemes(centiemes, langue).replace(/\s?%$/, '');
+
+/** Note sur 5 lue en CENTIÈMES, affichée au dixième : 500 → « 5,0 », 470 → « 4,7 » / « 4.7 ». En entiers. */
+export const fmtNoteDixiemes = (centiemes: number, langue: Langue = 'fr'): string => {
+  const dixiemes = Math.round(centiemes / 10);
+  return `${Math.trunc(dixiemes / 10)}${langue === 'en' ? '.' : ','}${dixiemes % 10}`;
+};
 
 export const computeNbNuits =(arrivee: string, depart: string): number => {
   if (!arrivee || !depart) return 0;

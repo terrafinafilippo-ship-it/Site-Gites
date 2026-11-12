@@ -2,8 +2,9 @@
 //
 // CRÉATION SEULE (Phase 5, lot 4, réponse 11 A du cadrage de la phase) : un
 // gîte absent est créé avec les valeurs de ce fichier ; un gîte déjà en base
-// n'est JAMAIS touché. Capacité, ménage, caution, équipements, téléphone et
-// spa se modifient dans le back-office (fiche du gîte) : un seed rejoué ne
+// n'est JAMAIS touché. Capacité, ménage, caution, équipements, téléphone,
+// spa, sauna et chiffres Gîtes de France (Phase 6, D-40 : ceux du site au
+// 12 novembre 2026) se modifient dans le back-office (fiche du gîte) : un seed rejoué ne
 // doit pas écraser ce que les propriétaires y ont saisi. La clé naturelle est
 // ref_gdf (référence Gîtes de France).
 //
@@ -49,6 +50,9 @@ export const GITES_SEED: GiteSeedCentimes[] = [
     capacite_max: 4,
     caution: 50000, // centimes (500,00 €)
     equipements_specifiques: null,
+    gdf_note_centiemes: 500,
+    gdf_avis_nombre: 16,
+    gdf_recommandation_pct: 100,
   },
   {
     ...communs,
@@ -58,6 +62,9 @@ export const GITES_SEED: GiteSeedCentimes[] = [
     capacite_max: 2,
     caution: 40000, // centimes (400,00 €)
     equipements_specifiques: null,
+    gdf_note_centiemes: 500,
+    gdf_avis_nombre: 22,
+    gdf_recommandation_pct: 100,
   },
   {
     ...communs,
@@ -68,6 +75,9 @@ export const GITES_SEED: GiteSeedCentimes[] = [
     caution: 50000, // centimes (500,00 €)
     equipements_specifiques: "Sauna privatif",
     a_sauna: true,
+    gdf_note_centiemes: 490,
+    gdf_avis_nombre: 8,
+    gdf_recommandation_pct: 100,
   },
 ];
 

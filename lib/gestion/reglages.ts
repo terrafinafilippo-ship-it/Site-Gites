@@ -177,12 +177,36 @@ export const RUBRIQUES: Rubrique[] = [
   },
   {
     id: "avis",
-    titre: "Avis affichés sur le site",
-    aide: "La note et le nombre d'avis vont ensemble : vides tous les deux, les chiffres des avis sont masqués.",
+    titre: "Note Gîtes de France affichée à l'accueil",
+    aide: "La note et le nombre d'avis vont ensemble : vides tous les deux, ces chiffres sont masqués. Ceux de chaque gîte se saisissent sur sa fiche.",
     champs: [
       { cle: "avis_note_centiemes", libelle: "Note sur 5 (par exemple 4,97)", sorte: "texte", vide: "Vide : chiffres masqués." },
       { cle: "avis_nombre", libelle: "Nombre d'avis", sorte: "entier", min: 0, max: 100000, unite: "avis", vide: "" },
       { cle: "avis_recommandation_pct", libelle: "Recommandation", sorte: "entier", min: 0, max: 100, unite: "%", vide: "" },
+    ],
+  },
+  {
+    id: "avis_clients",
+    titre: "Avis de vos clients",
+    aide: "Le courriel qui invite le client à donner son avis, et la durée de son lien. Les règles de publication sont celles de la politique des avis.",
+    champs: [
+      {
+        cle: "avis_courriel_jours",
+        libelle: "Courriel d'invitation envoyé",
+        sorte: "entier",
+        min: 0,
+        max: 60,
+        unite: "jours après le départ",
+        aide: "1 : le lendemain du départ.",
+      },
+      {
+        cle: "avis_lien_jours",
+        libelle: "Le lien reste valable",
+        sorte: "entier",
+        min: 1,
+        max: 365,
+        unite: "jours après le départ",
+      },
     ],
   },
   {
@@ -303,6 +327,11 @@ function lireSaisie(rubrique: Rubrique, saisie: Record<string, string>): { valeu
     if (bic !== null && !FORME_BIC.test(bic)) erreurs.virement_bic = "Un BIC fait 8 ou 11 caractères (par exemple AGRIFRPP882).";
     if (bic !== null && iban === null) erreurs.virement_bic = "Un BIC sans IBAN ne sert à rien.";
   }
+  if (rubrique.id === "avis_clients" && !erreurs.avis_courriel_jours && !erreurs.avis_lien_jours) {
+    if (Number(valeurs.avis_lien_jours) < Number(valeurs.avis_courriel_jours)) {
+      erreurs.avis_lien_jours = "Le lien doit rester valable au moins jusqu'au jour du courriel.";
+    }
+  }
   if (rubrique.id === "avis" && !erreurs.avis_note_centiemes && !erreurs.avis_nombre) {
     if ((valeurs.avis_note_centiemes === null) !== (valeurs.avis_nombre === null)) {
       erreurs[valeurs.avis_nombre === null ? "avis_nombre" : "avis_note_centiemes"] = "La note et le nombre d'avis vont ensemble.";
@@ -368,6 +397,7 @@ export const LIBELLES_ALERTE: Record<TypeAlerte, { titre: string; aide: string }
     aide: "Il faut intervenir (paiement remboursé, impayé, caution refusée, compte de virement modifié…). À laisser active.",
   },
   caution: { titre: "Caution", aide: "Caution bloquée, levée le lendemain, carte enregistrée." },
+  avis: { titre: "Nouvel avis", aide: "Un client vient de laisser un avis, déjà publié sur la page du gîte." },
 };
 
 export async function lireAlertes() {

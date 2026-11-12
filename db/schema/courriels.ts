@@ -57,11 +57,16 @@ export const OBJETS_COURRIEL = [
   // back-office, en pièce jointe.
   "option",
   "contrat_signe",
+  // Phase 6 (migration 0021, D-40) : l'invitation à donner son avis, après le
+  // départ ; l'avis retiré, avec son motif.
+  "avis_invitation",
+  "avis_retrait",
   // Aux propriétaires, en français.
   "alerte_reservation",
   "alerte_signature",
   "alerte_probleme",
   "alerte_caution",
+  "alerte_avis",
 ] as const;
 export type ObjetCourriel = (typeof OBJETS_COURRIEL)[number];
 
@@ -105,7 +110,8 @@ export const courriels = pgTable(
       sql`${t.objet} in ('confirmation', 'contrat', 'remboursement', 'lien_suivi', 'facture', 'solde_preavis',
           'solde_lien', 'solde_rappel', 'solde_impaye', 'caution_bloquee', 'caution_a_valider', 'caution_liberee',
           'caution_carte', 'caution_virement', 'caution_retenue', 'caution_recue', 'caution_rendue',
-          'option', 'contrat_signe', 'alerte_reservation', 'alerte_signature', 'alerte_probleme', 'alerte_caution')`,
+          'option', 'contrat_signe', 'avis_invitation', 'avis_retrait',
+          'alerte_reservation', 'alerte_signature', 'alerte_probleme', 'alerte_caution', 'alerte_avis')`,
     ),
     check("courriels_statut_check", sql`${t.statut} in ('a_envoyer', 'envoye', 'echec')`),
     check("courriels_langue_check", sql`${t.langue} in ('fr', 'en')`),

@@ -3,7 +3,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import ImageSlot from "@/components/ui/ImageSlot";
 import { GITES, GITE_IDS, type GiteData, type GiteId } from "@/lib/data/gites";
-import { fmtNote, fmtPrix } from "@/lib/format";
+import { resumer } from "@/lib/avis";
+import { fmtNoteDixiemes, fmtPrix } from "@/lib/format";
 import {
   capaciteTotale,
   chiffresDuGite,
@@ -39,7 +40,8 @@ const TEXTES: Bilingue<{
   titrePage: string;
   rangees: Record<GiteId, RowContent>;
   personnes: (n: number) => string;
-  avis: (n: number) => string;
+  avisGdf: (n: number) => string;
+  avisClients: (n: number) => string;
   reco: (n: number) => string;
   des: (prix: string) => string;
   laSemaine: string;
@@ -73,7 +75,8 @@ const TEXTES: Bilingue<{
       },
     },
     personnes: (n) => `${n} personnes`,
-    avis: (n) => `${n} avis`,
+    avisGdf: (n) => `${n} avis Gîtes de France`,
+    avisClients: (n) => `${n} avis clients`,
     reco: (n) => `${n} % reco`,
     des: (prix) => `Dès ${prix}`,
     laSemaine: "la semaine TTC",
@@ -112,7 +115,8 @@ const TEXTES: Bilingue<{
       },
     },
     personnes: (n) => `${n} people`,
-    avis: (n) => `${n} reviews`,
+    avisGdf: (n) => `${n} Gîtes de France reviews`,
+    avisClients: (n) => (n === 1 ? "1 guest review" : `${n} guest reviews`),
     reco: (n) => `${n}% recommend`,
     des: (prix) => `From ${prix}`,
     laSemaine: "per week, incl. tax",
@@ -135,7 +139,7 @@ const TEXTES: Bilingue<{
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const langue = langueDe((await params).lang);
-  return metadonnees(langue, "/gites", TEXTES[langue].titrePage);
+  return metadonnees(langue, "/gites", TEXTES[langue].titrePage, TEXTES[langue].intro(null));
 }
 
 function GiteRow({
@@ -152,7 +156,10 @@ function GiteRow({
   chiffres: ChiffresGite | null;
 }) {
   const t = TEXTES[langue];
-  const rating = fmtNote(gite.rating, langue);
+  // Chiffres Gîtes de France de la fiche (D-40) ; vidés par les propriétaires,
+  // les avis des clients du site prennent leur place.
+  const gdf = chiffres?.gdf ?? null;
+  const site = resumer((chiffres?.avis ?? []).map((a) => a.note));
   const plancher = chiffres?.plancherSemaine ?? null;
   const toutesCaps =
     chiffres !== null ? [t.personnes(chiffres.capaciteMax), ...contenu.caps] : contenu.caps;
@@ -175,16 +182,32 @@ function GiteRow({
               ))}
             </div>
             <p className={styles.giteRowLead}>{contenu.lead}</p>
-            <div className={styles.giteRowProof}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="12 2 15 9 22 9 17 14 19 21 12 17 5 21 7 14 2 9 9 9" />
-              </svg>
-              <strong>{rating}/5</strong>
-              <span className={styles.sep} />
-              <span>{t.avis(gite.reviews)}</span>
-              <span className={styles.sep} />
-              <span>{t.reco(gite.reco)}</span>
-            </div>
+            {(gdf || site.moyenneCentiemes !== null) && (
+              <div className={styles.giteRowProof}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="12 2 15 9 22 9 17 14 19 21 12 17 5 21 7 14 2 9 9 9" />
+                </svg>
+                {gdf ? (
+                  <>
+                    <strong>{fmtNoteDixiemes(gdf.noteCentiemes, langue)}/5</strong>
+                    <span className={styles.sep} />
+                    <span>{t.avisGdf(gdf.nombre)}</span>
+                    {gdf.recommandationPct !== null && (
+                      <>
+                        <span className={styles.sep} />
+                        <span>{t.reco(gdf.recommandationPct)}</span>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <strong>{fmtNoteDixiemes(site.moyenneCentiemes ?? 0, langue)}/5</strong>
+                    <span className={styles.sep} />
+                    <span>{t.avisClients(site.nombre)}</span>
+                  </>
+                )}
+              </div>
+            )}
             <div className={styles.giteRowFoot}>
               <div className={styles.giteRowPrice}>
                 {plancher !== null && (

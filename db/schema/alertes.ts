@@ -15,13 +15,18 @@
 //                     demain, ou une carte vient d'être enregistrée pour elle
 //                     (art. 6.6). Créée active, avec les destinataires de
 //                     'probleme'. Un refus de la banque est un 'probleme'.
+//   - 'avis'        : (Phase 6, migration 0021, D-40) un client vient de
+//                     laisser un avis, publié tout de suite : les
+//                     propriétaires le lisent, et le retirent s'il tombe sous
+//                     un motif affiché. Créée active, avec les destinataires
+//                     de 'probleme'.
 //
 // Les lignes sont créées par la migration : le code ne les crée jamais. Une
 // alerte absente ou coupée n'est simplement pas envoyée.
 import { sql } from "drizzle-orm";
 import { boolean, check, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
-export const TYPES_ALERTE = ["reservation", "signature", "probleme", "caution"] as const;
+export const TYPES_ALERTE = ["reservation", "signature", "probleme", "caution", "avis"] as const;
 export type TypeAlerte = (typeof TYPES_ALERTE)[number];
 
 export const alertes = pgTable(
@@ -33,7 +38,7 @@ export const alertes = pgTable(
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    check("alertes_type_check", sql`${t.type} in ('reservation', 'signature', 'probleme', 'caution')`),
+    check("alertes_type_check", sql`${t.type} in ('reservation', 'signature', 'probleme', 'caution', 'avis')`),
     check("alertes_destinataires_check", sql`not ${t.active} or cardinality(${t.destinataires}) > 0`),
   ],
 );

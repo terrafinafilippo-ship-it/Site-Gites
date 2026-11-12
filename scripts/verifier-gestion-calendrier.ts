@@ -43,6 +43,7 @@ import { fermerNuits, leverOption, lireCalendrierGestion, poserOption, rouvrirNu
 import { cheminDocument, libelleRenvoi, listerDocuments, renvoyerDocument } from "../lib/gestion/documents";
 import { enregistrerGite, lireGitesGestion, lireSaisieGite, type SaisieGite } from "../lib/gestion/gites";
 import type { Acteur } from "../lib/gestion/journal";
+import { noteLisible } from "../lib/gestion/reglages";
 import { empreinte as empreinteJeton } from "../lib/gestion/secrets";
 import { remplacerMessagerie, type Message } from "../lib/messagerie";
 import { texteConsentement } from "../lib/constantes";
@@ -126,7 +127,19 @@ async function seed(armu: string): Promise<void> {
 
 async function fiches(): Promise<void> {
   console.log("--- 2. La fiche d'un gîte");
-  const base: SaisieGite = { capacite: "4", menage: "80", caution: "500", equipements: "Sauna privatif", telephone: "06 79 33 23 51", spa: true, sauna: false };
+  const base: SaisieGite = {
+    capacite: "4",
+    menage: "80",
+    caution: "500",
+    equipements: "Sauna privatif",
+    telephone: "06 79 33 23 51",
+    spa: true,
+    sauna: false,
+    gdfNote: "4,9",
+    gdfNombre: "8",
+    gdfReco: "100",
+    gdfLien: "",
+  };
   const refus = (s: Partial<SaisieGite>) => {
     const r = lireSaisieGite({ ...base, ...s });
     return r.ok ? "" : r.message;
@@ -135,6 +148,19 @@ async function fiches(): Promise<void> {
   noter(refus({ menage: "abc" }).startsWith("Le ménage n'est pas valable") && refus({ menage: "1000" }) !== "" && refus({ menage: "0" }) === "", "ménage : texte et 1 000 € refusés, 0 € accepté");
   noter(refus({ caution: "0" }).startsWith("La caution n'est pas valable") && refus({ caution: "10000" }) !== "" && refus({ caution: "500,50" }) === "", "caution : 0 et 10 000 € refusés, 500,50 € accepté");
   noter(refus({ telephone: "" }).includes("imprimé au contrat") && refus({ equipements: "x".repeat(301) }).includes("300 caractères"), "téléphone vide, équipements trop longs : refusés");
+  // Phase 6 (D-40) : les chiffres Gîtes de France de la fiche.
+  noter(
+    refus({ gdfNote: "5,1" }).startsWith("La note Gîtes de France va de 0 à 5") &&
+      refus({ gdfNombre: "" }).includes("vont ensemble") &&
+      refus({ gdfNote: "" }).includes("vont ensemble") &&
+      refus({ gdfNote: "", gdfNombre: "", gdfReco: "" }) === "" &&
+      refus({ gdfReco: "101" }).startsWith("La recommandation Gîtes de France") &&
+      refus({ gdfLien: "http://www.gites-de-france.com/x" }).includes("https://") &&
+      refus({ gdfLien: "https://www.gites-de-france.com/fr/ardeche/laphine" }) === "",
+    "Gîtes de France : note 5,1, note sans nombre, 101 %, lien en http refusés ; tout vide et lien https acceptés",
+  );
+  const luGdf = lireSaisieGite({ ...base, gdfNote: "4,9" });
+  noter(luGdf.ok && luGdf.valeurs.gdfNote === 490 && luGdf.valeurs.gdfNombre === 8 && luGdf.valeurs.gdfReco === 100, "« 4,9 » → 490 centièmes", luGdf);
   const lu = lireSaisieGite({ ...base, menage: "80,5", equipements: "  Sauna   privatif " });
   noter(lu.ok && lu.valeurs.menage === 8050 && lu.valeurs.equipements === "Sauna privatif", "« 80,5 » → 8 050 centimes ; espaces resserrés", lu);
 
@@ -147,7 +173,23 @@ async function fiches(): Promise<void> {
     telephone: mv.telephone,
     spa: !mv.spa,
     sauna: mv.sauna,
+    gdfNote: noteLisible(mv.gdfNote),
+    gdfNombre: mv.gdfNombre === null ? "" : String(mv.gdfNombre),
+    gdfReco: mv.gdfReco === null ? "" : String(mv.gdfReco),
+    gdfLien: mv.gdfLien,
   };
+  noter(mv.gdfNote === 490 && mv.gdfNombre === 8 && mv.gdfReco === 100 && mv.gdfLien === "", "La Maison Vieille : 4,9 sur 8 avis Gîtes de France, 100 %, sans page (seed)", mv);
+  const planGdf = await enregistrerGite(mv.id, { ...saisieMv, spa: mv.spa, menage: "80", caution: "500", gdfNote: "", gdfNombre: "", gdfReco: "" }, ACTEUR, null);
+  noter(
+    planGdf.etape === "plan" &&
+      planGdf.lignes[0] === "Note Gîtes de France : 4,90 → vide." &&
+      planGdf.lignes[1] === "Avis Gîtes de France : 8 → vide." &&
+      planGdf.lignes[2] === "Recommandation Gîtes de France : 100 % → vide." &&
+      planGdf.lignes.some((l) => l.includes("les avis de vos clients prennent leur place")) &&
+      !planGdf.lignes.some((l) => l.includes("imprimés au contrat")),
+    "vider les chiffres Gîtes de France : récapitulatif, sans la phrase du contrat",
+    planGdf,
+  );
   const plan = await enregistrerGite(mv.id, saisieMv, ACTEUR, null);
   noter(
     plan.etape === "plan" &&

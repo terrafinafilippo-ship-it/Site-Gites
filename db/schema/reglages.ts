@@ -177,6 +177,11 @@ export const reglages = pgTable(
     // plateforme, en pour cent entiers, pour chiffrer les commissions évitées.
     // NULL : pas encore saisi, la ligne invite à le saisir.
     commission_taux: integer(),
+    // Avis des clients (Phase 6, migration 0021, D-40), en jours après le
+    // départ : le courriel qui invite à donner son avis (1 = le lendemain,
+    // choix du gérant du 12 novembre 2026), la fin de validité de son lien.
+    avis_courriel_jours: integer().notNull().default(1),
+    avis_lien_jours: integer().notNull().default(30),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -251,5 +256,10 @@ export const reglages = pgTable(
     check("reglages_tarifs_horizon_check", sql`${t.tarifs_horizon_mois} between 1 and 36`),
     check("reglages_option_duree_check", sql`${t.option_duree_jours} between 1 and 30`),
     check("reglages_commission_check", sql`${t.commission_taux} is null or ${t.commission_taux} between 1 and 50`),
+    check(
+      "reglages_avis_delais_check",
+      sql`${t.avis_courriel_jours} between 0 and 60 and ${t.avis_lien_jours} between 1 and 365
+          and ${t.avis_lien_jours} >= ${t.avis_courriel_jours}`,
+    ),
   ],
 );

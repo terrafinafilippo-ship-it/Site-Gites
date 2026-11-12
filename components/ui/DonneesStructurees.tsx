@@ -3,8 +3,11 @@
 // coordonnées de la page Contact, chambres et surface de lib/data/gites.ts,
 // capacité de la base.
 //
-// AUCUNE NOTE n'y figure : celles de Gîtes de France sont recopiées d'un autre
-// site, ce que Google refuse. Les ajouter exposerait à une action manuelle.
+// AUCUNE NOTE n'y figure. Celles de Gîtes de France sont recopiées d'un autre
+// site, ce que Google refuse ; celles des clients du site (D-40) sont des avis
+// sur l'établissement publiés par l'établissement lui-même, que Google ignore
+// pour un hébergement (avis « auto-promotionnels », règles des extraits
+// d'avis). Les ajouter n'apporterait rien et exposerait à une action manuelle.
 import { GITES, type GiteId } from "@/lib/data/gites";
 import { lien, type Langue } from "@/lib/i18n/langues";
 import { NOM_SITE, origineSite, PRESENTATION_SITE } from "@/lib/i18n/metadonnees";

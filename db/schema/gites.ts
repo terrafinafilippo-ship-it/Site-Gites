@@ -9,7 +9,13 @@
 // equipements_specifiques, a_spa, a_sauna, caution, contact_arrivee_tel.
 // Les clés de cet objet sont volontairement en snake_case et identiques aux
 // colonnes SQL : une ligne lue par Drizzle a exactement la forme attendue.
-import { boolean, integer, numeric, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+//
+// Phase 6 (migration 0021, D-40) : les chiffres Gîtes de France du gîte (note,
+// nombre d'avis, recommandation, adresse de sa page), saisis sur la fiche du
+// back-office ; vides, le site ne les affiche pas. Ils étaient écrits en dur
+// dans lib/data/gites.ts.
+import { sql } from "drizzle-orm";
+import { boolean, check, integer, numeric, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 export const gites = pgTable(
   "gites",
@@ -34,10 +40,25 @@ export const gites = pgTable(
     a_sauna: boolean().notNull().default(false),
     contact_arrivee_tel: text(),
     actif: boolean().notNull().default(true),
+    // Note Gîtes de France en CENTIÈMES (490 = 4,9/5), comme reglages.avis_note_centiemes.
+    gdf_note_centiemes: integer(),
+    gdf_avis_nombre: integer(),
+    gdf_recommandation_pct: integer(),
+    // Page du gîte sur le site de Gîtes de France (lien « Lire les avis »).
+    gdf_lien: text(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     unique("gites_ref_gdf_key").on(t.ref_gdf),
     unique("gites_slug_key").on(t.slug),
+    // La note et le nombre d'avis vont ensemble : l'un sans l'autre ne s'affiche pas.
+    check(
+      "gites_gdf_check",
+      sql`(${t.gdf_note_centiemes} is null) = (${t.gdf_avis_nombre} is null)
+          and (${t.gdf_note_centiemes} is null or ${t.gdf_note_centiemes} between 0 and 500)
+          and (${t.gdf_avis_nombre} is null or ${t.gdf_avis_nombre} >= 0)
+          and (${t.gdf_recommandation_pct} is null or ${t.gdf_recommandation_pct} between 0 and 100)
+          and (${t.gdf_lien} is null or ${t.gdf_lien} ~ '^https://[^[:space:]]+$')`,
+    ),
   ],
 );

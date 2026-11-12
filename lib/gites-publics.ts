@@ -39,12 +39,19 @@
 // une nuit sans tarif est « non réservable en ligne ». Il disparaît si l'une
 // des deux lectures échoue (« CALENDRIER ILLISIBLE ») : un calendrier tout
 // blanc annoncerait libres des nuits qu'on ne sait pas lire.
+//
+// LES AVIS (Phase 6, D-40) : les chiffres Gîtes de France de chaque gîte
+// (fiche du back-office, gites.gdf_*) et les avis publiés par les clients du
+// site (table `avis`, lib/avis.ts). Un avis déposé appelle
+// revalidateTag('gites') : il s'affiche tout de suite. Avis illisibles
+// (« AVIS ILLISIBLES ») : la liste est vide, le reste de la fiche s'affiche.
 import { unstable_cache } from "next/cache";
 
 import { eq } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { gites, reglages } from "@/db/schema";
+import { lireAvisPublies, type AvisPublie } from "@/lib/avis";
 import { centimesDepuisNumeric } from "@/lib/centimes";
 import { GITES, isGiteId, type GiteId } from "@/lib/data/gites";
 import { ajouterJours, aujourdhuiParis, nombreDeNuits, premierJourDuMois } from "@/lib/dates-civiles";
@@ -85,6 +92,20 @@ export interface ChiffresGite {
   calendrier: JourCalendrier[] | null;
   /** Taux d'acompte (%) et délai du solde (jours), réglages communs ; `null` = illisibles, masqués. */
   conditions: ConditionsPaiement | null;
+  /** Chiffres Gîtes de France de la fiche du gîte ; `null` = non saisis, masqués. */
+  gdf: ChiffresGdf | null;
+  /** Avis publiés par les clients du site, du plus récent au plus ancien. */
+  avis: AvisPublie[];
+}
+
+export interface ChiffresGdf {
+  /** Note en centièmes : 490 = 4,9/5. */
+  noteCentiemes: number;
+  nombre: number;
+  /** `null` : non renseigné, masqué. */
+  recommandationPct: number | null;
+  /** Page du gîte sur le site de Gîtes de France ; `null` : lien masqué. */
+  lien: string | null;
 }
 
 export interface ConditionsPaiement {
@@ -113,7 +134,7 @@ async function lireConditions(): Promise<ConditionsPaiement | null> {
   }
 }
 
-/** Note des avis affichée à l'accueil (réglages, lot 5). Note en centièmes : 497 = 4,97/5. */
+/** Note Gîtes de France affichée à l'accueil (réglages, lot 5). Note en centièmes : 497 = 4,97/5. */
 export interface AvisPublics {
   noteCentiemes: number;
   nombre: number;
@@ -216,14 +237,14 @@ export interface ChiffresPublics {
   /** `false` = base injoignable : toutes les pages masquent leurs chiffres. */
   disponible: boolean;
   parGite: Partial<Record<GiteId, ChiffresGite>>;
-  /** Note des avis ; `null` = masquée. */
-  avis: AvisPublics | null;
+  /** Note Gîtes de France de l'accueil (réglages) ; `null` = masquée. */
+  avisGdf: AvisPublics | null;
 }
 
 /** Ce que le cache garde : tout ChiffresPublics sauf `disponible`. */
 type ChiffresLus = Omit<ChiffresPublics, "disponible">;
 
-const PUBLICS_INDISPONIBLES: ChiffresPublics = { disponible: false, parGite: {}, avis: null };
+const PUBLICS_INDISPONIBLES: ChiffresPublics = { disponible: false, parGite: {}, avisGdf: null };
 
 /** Base visée, telle qu'elle entre dans la clé du cache (voir garde-fou 3). */
 function cibleBase(): string {
@@ -257,9 +278,14 @@ async function chargerDepuisBase(): Promise<ChiffresLus> {
       capacite_max: gites.capacite_max,
       forfait_menage: gites.forfait_menage,
       caution: gites.caution,
+      gdf_note: gites.gdf_note_centiemes,
+      gdf_nombre: gites.gdf_avis_nombre,
+      gdf_reco: gites.gdf_recommandation_pct,
+      gdf_lien: gites.gdf_lien,
     })
     .from(gites);
 
+  const avisPublies = await lireAvisDuSite();
   const tarification = await lireTarification();
   const conditions = await lireConditions();
   const aujourdhui = aujourdhuiParis();
@@ -320,6 +346,11 @@ async function chargerDepuisBase(): Promise<ChiffresLus> {
       taxe,
       calendrier: await lireCalendrier(ligne.id, ligne.slug, tarification, aujourdhui),
       conditions,
+      gdf:
+        ligne.gdf_note !== null && ligne.gdf_nombre !== null
+          ? { noteCentiemes: ligne.gdf_note, nombre: ligne.gdf_nombre, recommandationPct: ligne.gdf_reco, lien: ligne.gdf_lien }
+          : null,
+      avis: avisPublies.get(ligne.id) ?? [],
     };
   }
 
@@ -331,7 +362,17 @@ async function chargerDepuisBase(): Promise<ChiffresLus> {
     }
   }
 
-  return { parGite, avis: await lireAvis() };
+  return { parGite, avisGdf: await lireAvis() };
+}
+
+/** Avis publiés par gîte, ou aucun (panne journalisée) : la fiche s'affiche sans eux. */
+async function lireAvisDuSite(): Promise<Map<string, AvisPublie[]>> {
+  try {
+    return await lireAvisPublies(getDb());
+  } catch (erreur) {
+    console.error("[gites-publics] AVIS ILLISIBLES : avis des clients masqués.", erreur instanceof Error ? erreur.message : erreur);
+    return new Map();
+  }
 }
 
 /** Abandonne au bout de DELAI_MAX_MS : une base qui ne répond pas ne doit pas

@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
+import AvisClients from "@/components/ui/AvisClients";
 import ImageSlot from "@/components/ui/ImageSlot";
 import Badge from "@/components/ui/Badge";
 import { DonneesGite } from "@/components/ui/DonneesStructurees";
 import { GITES, GITE_IDS, isGiteId } from "@/lib/data/gites";
 import { STORIES } from "@/lib/data/stories";
 import { jourSemaineIso } from "@/lib/dates-civiles";
-import { fmtMois, fmtNote, fmtPlage, fmtPrix, fmtTaux, fmtTaxeSejour, INITIALES_JOURS } from "@/lib/format";
+import { fmtMois, fmtNoteDixiemes, fmtPlage, fmtPrix, fmtTaux, fmtTaxeSejour, INITIALES_JOURS } from "@/lib/format";
 import {
   chiffresDuGite,
   lireChiffresPublics,
@@ -139,7 +140,7 @@ const TEXTES: Bilingue<{
     avisPublies: "avis publiés",
     deRecommandation: "de recommandation",
     lireAvis: "Lire les avis sur Gîtes de France",
-    noteAvis: "Tous nos avis sont collectés et vérifiés par Gîtes de France après le séjour.",
+    noteAvis: "Ces avis sont recueillis et vérifiés par Gîtes de France après le séjour.",
     espritDuLieu: "L'esprit du lieu",
     titreEquipements: "Tout ce qu'il faut, rien de superflu.",
     resumeEquipements: "Linge fourni · chauffage compris · Wi-Fi · animaux non admis",
@@ -227,7 +228,7 @@ const TEXTES: Bilingue<{
     avisPublies: "published reviews",
     deRecommandation: "recommend us",
     lireAvis: "Read the reviews on Gîtes de France",
-    noteAvis: "All our reviews are collected and verified by Gîtes de France after the stay.",
+    noteAvis: "These reviews are collected and verified by Gîtes de France after the stay.",
     espritDuLieu: "The spirit of the place",
     titreEquipements: "Everything you need, nothing superfluous.",
     resumeEquipements: "Linen provided · heating included · Wi-Fi · no pets",
@@ -352,7 +353,6 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
   const gite = GITES[slug];
   const story = STORIES[slug][langue];
   const others = GITE_IDS.filter((g) => g !== slug).map((g) => GITES[g]);
-  const rating = fmtNote(gite.rating, langue);
   const reserveHref = l(`/reserver?gite=${slug}`);
 
   // Chiffres de la base. Tout ce qui en dépend disparaît si elle ne répond pas :
@@ -368,6 +368,8 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
   const plancher = chiffres?.plancherSemaine ?? null;
   // Calendrier réel (table disponibilites) ; masqué s'il est illisible.
   const months = chiffres?.calendrier ? buildMonths(chiffres.calendrier) : null;
+  // Chiffres Gîtes de France de la fiche du back-office (D-40) ; vides, la carte disparaît.
+  const gdf = chiffres?.gdf ?? null;
 
   const dayClass = (cls: CalMonth["days"][number]["cls"]) =>
     `${styles.calDay}${cls ? ` ${styles[cls]}` : ""}`;
@@ -459,31 +461,37 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
               </div>
               <p className={styles.identityLead}>{gite.tagline[langue]}</p>
             </div>
-            <aside className={styles.gdfCard}>
-              <div className={styles.gdfCardHead}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="12 2 15 9 22 9 17 14 19 21 12 17 5 21 7 14 2 9 9 9" />
-                </svg>
-                <div>
-                  <div className={styles.gdfCardLabel}>{t.avisVerifies}</div>
-                  <div className={styles.gdfCardBrand}>Gîtes de France</div>
+            {gdf && (
+              <aside className={styles.gdfCard}>
+                <div className={styles.gdfCardHead}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="12 2 15 9 22 9 17 14 19 21 12 17 5 21 7 14 2 9 9 9" />
+                  </svg>
+                  <div>
+                    <div className={styles.gdfCardLabel}>{t.avisVerifies}</div>
+                    <div className={styles.gdfCardBrand}>Gîtes de France</div>
+                  </div>
                 </div>
-              </div>
-              <div className={styles.gdfCardScore}>
-                {rating}<sup>/5</sup>
-              </div>
-              <div className={styles.gdfCardStats}>
-                <div><strong>{gite.reviews}</strong>{t.avisPublies}</div>
-                <div><strong>{langue === "en" ? `${gite.reco}%` : `${gite.reco} %`}</strong>{t.deRecommandation}</div>
-              </div>
-              <a href="#" className={styles.gdfCardLink}>
-                {t.lireAvis}
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M7 17L17 7M7 7h10v10" />
-                </svg>
-              </a>
-              <div className={styles.gdfCardNote}>{t.noteAvis}</div>
-            </aside>
+                <div className={styles.gdfCardScore}>
+                  {fmtNoteDixiemes(gdf.noteCentiemes, langue)}<sup>/5</sup>
+                </div>
+                <div className={styles.gdfCardStats}>
+                  <div><strong>{gdf.nombre}</strong>{t.avisPublies}</div>
+                  {gdf.recommandationPct !== null && (
+                    <div><strong>{fmtTaux(gdf.recommandationPct, langue)}</strong>{t.deRecommandation}</div>
+                  )}
+                </div>
+                {gdf.lien && (
+                  <a href={gdf.lien} className={styles.gdfCardLink} target="_blank" rel="noopener noreferrer">
+                    {t.lireAvis}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M7 17L17 7M7 7h10v10" />
+                    </svg>
+                  </a>
+                )}
+                <div className={styles.gdfCardNote}>{t.noteAvis}</div>
+              </aside>
+            )}
           </div>
         </div>
       </section>
@@ -688,6 +696,9 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
           </div>
         </div>
       </section>
+
+      {/* Avis des clients du site (D-40) ; absents tant qu'aucun n'est publié. */}
+      <AvisClients langue={langue} avis={chiffres?.avis ?? []} />
 
       {/* Cross-sell */}
       <section className={styles.crosssell}>

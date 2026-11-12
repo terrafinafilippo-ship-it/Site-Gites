@@ -1,6 +1,7 @@
 // LES FICHES DES GÎTES dans le back-office (Phase 5, lot 4, réponse 12 A du
 // cadrage de la phase) : capacité, ménage, caution, équipements particuliers,
-// téléphone pour l'arrivée, spa, sauna (point 8). Le nom et la référence Gîtes de France
+// téléphone pour l'arrivée, spa, sauna (point 8), et depuis la Phase 6 (D-40) les
+// chiffres Gîtes de France affichés sur le site. Le nom et la référence Gîtes de France
 // restent fixes (ils vivent aussi dans lib/data/gites.ts) ; les textes et les
 // photos sont en Phase 6.
 //
@@ -13,7 +14,9 @@
 //   - capacité, équipements, spa, sauna et téléphone sont imprimés au contrat, et
 //     recopiés sur la réservation quand il est émis (lib/contrat.ts, écart
 //     E-9) : la copie signée relit ces valeurs-là. Un changement vaut pour
-//     les contrats émis ensuite ; l'écran le dit.
+//     les contrats émis ensuite ; l'écran le dit ;
+//   - les chiffres Gîtes de France ne servent qu'au site : vides, il ne les
+//     affiche plus (les avis des clients du site prennent leur place).
 import { createHash } from "node:crypto";
 
 import { asc, eq } from "drizzle-orm";
@@ -24,6 +27,7 @@ import { centimesDepuisNumeric, numericDepuisCentimes } from "@/lib/centimes";
 import { fmtEuro } from "@/lib/format";
 
 import { journaliser, type Acteur } from "./journal";
+import { noteEnCentiemes, noteLisible } from "./reglages";
 import type { IssuePlan } from "./tarifs";
 
 export const CAPACITE_MAX = 20;
@@ -33,6 +37,7 @@ export const MENAGE_MAX = 99_999;
 export const CAUTION_MAX = 999_999;
 export const EQUIPEMENTS_MAX = 300;
 const FORME_TELEPHONE = /^[0-9+().\s-]{6,30}$/;
+const FORME_LIEN_GDF = /^https:\/\/\S{4,300}$/;
 
 export interface FicheGite {
   id: string;
@@ -47,6 +52,11 @@ export interface FicheGite {
   telephone: string;
   spa: boolean;
   sauna: boolean;
+  /** Note Gîtes de France en centièmes (490 = 4,9) ; `null` : non affichée. */
+  gdfNote: number | null;
+  gdfNombre: number | null;
+  gdfReco: number | null;
+  gdfLien: string;
 }
 
 export interface SaisieGite {
@@ -57,6 +67,10 @@ export interface SaisieGite {
   telephone: string;
   spa: boolean;
   sauna: boolean;
+  gdfNote: string;
+  gdfNombre: string;
+  gdfReco: string;
+  gdfLien: string;
 }
 
 function fiche(g: typeof gites.$inferSelect): FicheGite {
@@ -71,6 +85,10 @@ function fiche(g: typeof gites.$inferSelect): FicheGite {
     telephone: g.contact_arrivee_tel ?? "",
     spa: g.a_spa,
     sauna: g.a_sauna,
+    gdfNote: g.gdf_note_centiemes,
+    gdfNombre: g.gdf_avis_nombre,
+    gdfReco: g.gdf_recommandation_pct,
+    gdfLien: g.gdf_lien ?? "",
   };
 }
 
@@ -102,10 +120,28 @@ export function lireSaisieGite(s: SaisieGite): Lu {
   if (!FORME_TELEPHONE.test(telephone)) {
     return { ok: false, message: "Le téléphone pour l'arrivée est obligatoire (chiffres, espaces, +, tirets) : il est imprimé au contrat." };
   }
-  return { ok: true, valeurs: { capacite, menage, caution, equipements, telephone, spa: s.spa, sauna: s.sauna } };
+  // Les chiffres Gîtes de France : vides, le site ne les affiche pas.
+  const gdfNote = s.gdfNote.trim() === "" ? null : noteEnCentiemes(s.gdfNote);
+  if (s.gdfNote.trim() !== "" && gdfNote === null) return { ok: false, message: "La note Gîtes de France va de 0 à 5 (par exemple 4,9)." };
+  const gdfNombre = s.gdfNombre.trim() === "" ? null : /^\d{1,6}$/.test(s.gdfNombre.trim()) ? Number(s.gdfNombre.trim()) : Number.NaN;
+  if (Number.isNaN(gdfNombre)) return { ok: false, message: "Le nombre d'avis Gîtes de France est un nombre entier." };
+  if ((gdfNote === null) !== (gdfNombre === null)) {
+    return { ok: false, message: "La note et le nombre d'avis Gîtes de France vont ensemble : remplissez les deux, ou videz les deux." };
+  }
+  const gdfReco = s.gdfReco.trim() === "" ? null : /^\d{1,3}$/.test(s.gdfReco.trim()) ? Number(s.gdfReco.trim()) : Number.NaN;
+  if (gdfReco !== null && !(gdfReco >= 0 && gdfReco <= 100)) return { ok: false, message: "La recommandation Gîtes de France va de 0 à 100 %." };
+  const gdfLien = s.gdfLien.trim();
+  if (gdfLien !== "" && !FORME_LIEN_GDF.test(gdfLien)) {
+    return { ok: false, message: "L'adresse de la page Gîtes de France commence par https:// (copiez-la depuis la barre d'adresse)." };
+  }
+  return {
+    ok: true,
+    valeurs: { capacite, menage, caution, equipements, telephone, spa: s.spa, sauna: s.sauna, gdfNote, gdfNombre, gdfReco, gdfLien },
+  };
 }
 
 const ouiNon = (b: boolean) => (b ? "oui" : "non");
+const ouVide = (v: string) => v || "vide";
 const cite = (t: string) => (t ? `« ${t} »` : "aucun");
 
 function empreinte(lignes: string[]): string {
@@ -132,7 +168,15 @@ export async function enregistrerGite(id: string, saisie: SaisieGite, acteur: Ac
     if (avant.telephone !== v.telephone) lignes.push(`Téléphone pour l'arrivée : ${avant.telephone || "aucun"} → ${v.telephone}.`);
     if (avant.spa !== v.spa) lignes.push(`Spa : ${ouiNon(avant.spa)} → ${ouiNon(v.spa)}.`);
     if (avant.sauna !== v.sauna) lignes.push(`Sauna : ${ouiNon(avant.sauna)} → ${ouiNon(v.sauna)}.`);
+    if (avant.gdfNote !== v.gdfNote) lignes.push(`Note Gîtes de France : ${ouVide(noteLisible(avant.gdfNote))} → ${ouVide(noteLisible(v.gdfNote))}.`);
+    if (avant.gdfNombre !== v.gdfNombre) lignes.push(`Avis Gîtes de France : ${avant.gdfNombre ?? "vide"} → ${v.gdfNombre ?? "vide"}.`);
+    const pct = (n: number | null) => (n === null ? "vide" : `${n} %`);
+    if (avant.gdfReco !== v.gdfReco) lignes.push(`Recommandation Gîtes de France : ${pct(avant.gdfReco)} → ${pct(v.gdfReco)}.`);
+    if (avant.gdfLien !== v.gdfLien) lignes.push(`Page Gîtes de France : ${ouVide(avant.gdfLien)} → ${ouVide(v.gdfLien)}.`);
     if (lignes.length === 0) return { etape: "fait" as const, message: "Aucun changement." };
+    if (v.gdfNote === null && avant.gdfNote !== null) {
+      lignes.push("Sans note Gîtes de France, le site n'affiche plus ces chiffres pour ce gîte ; les avis de vos clients prennent leur place.");
+    }
 
     if (avant.menage !== v.menage || avant.caution !== v.caution) {
       lignes.push("Les réservations déjà faites gardent leur ménage et leur caution.");
@@ -157,6 +201,10 @@ export async function enregistrerGite(id: string, saisie: SaisieGite, acteur: Ac
         contact_arrivee_tel: v.telephone,
         a_spa: v.spa,
         a_sauna: v.sauna,
+        gdf_note_centiemes: v.gdfNote,
+        gdf_avis_nombre: v.gdfNombre,
+        gdf_recommandation_pct: v.gdfReco,
+        gdf_lien: v.gdfLien || null,
       })
       .where(eq(gites.id, id));
     await journaliser(tx, {

@@ -4,8 +4,9 @@ import type { ReactNode } from "react";
 import { DonneesSite } from "@/components/ui/DonneesStructurees";
 import ImageSlot from "@/components/ui/ImageSlot";
 import GiteCard from "@/components/ui/GiteCard";
+import { resumer } from "@/lib/avis";
 import { GITES, GITE_IDS, type GiteId } from "@/lib/data/gites";
-import { fmtNoteCentiemes, fmtPrix, fmtTaux } from "@/lib/format";
+import { fmtNoteCentiemes, fmtNoteDixiemes, fmtPrix, fmtTaux } from "@/lib/format";
 import { capaciteTotale, chiffresDuGite, lireChiffresPublics } from "@/lib/gites-publics";
 import { langueDe, lien, type Bilingue } from "@/lib/i18n/langues";
 import { metadonnees } from "@/lib/i18n/metadonnees";
@@ -61,6 +62,7 @@ const TEXTES: Bilingue<{
   surtitreConfiance: string;
   avisVerifies: string;
   recommandation: string;
+  avisClients: (n: number) => string;
   labellises: string;
   surtitreActivites: string;
   titreActivites: ReactNode;
@@ -126,6 +128,7 @@ const TEXTES: Bilingue<{
     surtitreConfiance: "La confiance de nos hôtes",
     avisVerifies: "Avis vérifiés Gîtes de France",
     recommandation: "de recommandation",
+    avisClients: (n) => `sur ${n} avis de nos clients`,
     labellises: "Labellisés depuis",
     surtitreActivites: "Activités & découverte",
     titreActivites: <>À cinq minutes,<br />ou à cinq pas.</>,
@@ -198,6 +201,7 @@ const TEXTES: Bilingue<{
     surtitreConfiance: "Our guests' trust",
     avisVerifies: "Verified Gîtes de France reviews",
     recommandation: "recommend us",
+    avisClients: (n) => (n === 1 ? "from 1 review by our guests" : `from ${n} reviews by our guests`),
     labellises: "Labelled since",
     surtitreActivites: "Activities & discovery",
     titreActivites: <>Five minutes away,<br />or five steps.</>,
@@ -236,8 +240,10 @@ export default async function HomePage({ params }: { params: Promise<Params> }) 
   const l = (chemin: string) => lien(langue, chemin);
 
   const publics = await lireChiffresPublics();
-  // Note des avis : réglages (lot 5), masquée si elle n'est pas renseignée.
-  const avis = publics.avis;
+  // Note Gîtes de France : réglages (lot 5), masquée si elle n'est pas renseignée.
+  const avis = publics.avisGdf;
+  // Avis des clients du site, les trois gîtes ensemble (D-40).
+  const avisSite = resumer(GITE_IDS.flatMap((slug) => (chiffresDuGite(publics, slug)?.avis ?? []).map((a) => a.note)));
   const total = capaciteTotale(publics);
   // Fourchette « De X à Y € » : les deux bornes viennent des mêmes planchers que
   // les cartes, donc le hero ne peut pas annoncer un prix qu'aucune carte ne
@@ -393,7 +399,7 @@ export default async function HomePage({ params }: { params: Promise<Params> }) 
       </section>
 
       {/* SOCIAL PROOF DARK */}
-      <section className={styles.socialProof}>
+      <section className={styles.socialProof} id="avis">
         <div className={`wrap ${styles.socialProofInner}`}>
           <span className="eyebrow">{t.surtitreConfiance}</span>
           {avis && (
@@ -412,6 +418,12 @@ export default async function HomePage({ params }: { params: Promise<Params> }) 
               <div className={styles.socialProofStat}>
                 <strong>{fmtTaux(avis.recommandationPct, langue)}</strong>
                 <span>{t.recommandation}</span>
+              </div>
+            )}
+            {avisSite.moyenneCentiemes !== null && (
+              <div className={styles.socialProofStat}>
+                <strong>{fmtNoteDixiemes(avisSite.moyenneCentiemes, langue)}/5</strong>
+                <span>{t.avisClients(avisSite.nombre)}</span>
               </div>
             )}
             <div className={styles.socialProofStat}>

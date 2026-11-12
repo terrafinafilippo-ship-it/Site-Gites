@@ -14,11 +14,13 @@
 // Lot 1 : le solde (lib/solde.ts). Lot 2 : la caution par carte
 // (lib/caution.ts). Lot 3 : la caution par virement (lib/virement.ts, avant
 // la caution : l'alerte « à rendre » précède la fin du séjour), l'effacement
-// des tentatives abandonnées (lib/abandons.ts).
+// des tentatives abandonnées (lib/abandons.ts). Phase 6 (D-40) : l'invitation
+// à donner son avis et l'effacement des avis trop anciens (lib/avis.ts).
 import { sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { effacerAbandons, type BilanAbandons } from "@/lib/abandons";
+import { traiterAvis, type BilanAvis } from "@/lib/avis";
 import { traiterCautions, type BilanCautions } from "@/lib/caution";
 import { traiterSoldes, type BilanSoldes } from "@/lib/solde";
 import { prestataire, type Prestataire } from "@/lib/stripe";
@@ -29,6 +31,7 @@ export interface BilanTaches {
   virements: BilanVirements;
   cautions: BilanCautions;
   abandons: BilanAbandons;
+  avis: BilanAvis;
 }
 
 /** Un passage des tâches, ou `null` si un autre passage est déjà en cours. */
@@ -46,6 +49,7 @@ export async function executerTaches(
       virements: await traiterVirements(maintenant),
       cautions: await traiterCautions(maintenant, p),
       abandons: await effacerAbandons(maintenant, p),
+      avis: await traiterAvis(maintenant),
     };
   });
 }

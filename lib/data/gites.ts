@@ -21,7 +21,10 @@ export type GiteId = "laphine" | "armu" | "maison-vieille";
 // affichaient donc des chiffres que les propriétaires ne pouvaient pas
 // corriger. Ils se lisent par lib/gites-publics.ts (docs/02-decisions.md, D-13).
 // Le CALENDRIER non plus : ses dates occupées inventées (BUSY_SETS) ont laissé
-// la place à la table `disponibilites` en Phase 3.
+// la place à la table `disponibilites` en Phase 3. Ni les NOTES Gîtes de
+// France (`rating`, `reviews`, `reco`) : elles se saisissent sur la fiche du
+// gîte depuis la Phase 6 (gites.gdf_*, D-40), à côté des avis des clients du
+// site (table `avis`).
 //
 // `profil` remplace `target` : « Famille — 4 personnes » mélangeait un fait
 // commercial (le profil visé, qui est du rédactionnel) et un fait de la base
@@ -39,9 +42,6 @@ export interface GiteData {
   short: Bilingue<string>;
   bedrooms: number;
   surface: string;
-  rating: number;
-  reviews: number;
-  reco: number;
   tagline: Bilingue<string>;
   highlight: Bilingue<string>;
 }
@@ -55,9 +55,6 @@ export const GITES: Record<GiteId, GiteData> = {
     short: { fr: "Famille", en: "Family" },
     bedrooms: 2,
     surface: "70 m²",
-    rating: 5.0,
-    reviews: 16,
-    reco: 100,
     tagline: {
       fr: "L'écrin familial — spa encastré, véranda chauffée, garage privatif.",
       en: "The family retreat — built-in spa, heated veranda, private garage.",
@@ -72,9 +69,6 @@ export const GITES: Record<GiteId, GiteData> = {
     short: { fr: "Couple", en: "Couple" },
     bedrooms: 1,
     surface: "45 m²",
-    rating: 5.0,
-    reviews: 22,
-    reco: 100,
     tagline: {
       fr: "Un refuge pour deux — chambre mansardée, jacuzzi sous la véranda, cheminée d'ambiance.",
       en: "A hideaway for two — attic bedroom, jacuzzi under the veranda, decorative fireplace.",
@@ -89,9 +83,6 @@ export const GITES: Record<GiteId, GiteData> = {
     short: { fr: "Famille + sauna", en: "Family + sauna" },
     bedrooms: 2,
     surface: "85 m²",
-    rating: 4.9,
-    reviews: 8,
-    reco: 100,
     tagline: {
       fr: "La seule à conjuguer spa et sauna — pierre ancienne, volumes nobles.",
       en: "The only one with both spa and sauna — old stone, generous spaces.",

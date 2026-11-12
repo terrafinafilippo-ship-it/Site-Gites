@@ -1,0 +1,164 @@
+/* Page de l'avis d'un client (Phase 6, D-40) : l'habillage des pages client
+   du site (« Ma réservation », signature). */
+
+.page {
+  padding-block: 56px;
+}
+.colonne {
+  max-width: 760px;
+  margin: 0 auto;
+  display: grid;
+  /* minmax(0, …) : la colonne ne s'élargit jamais au-delà de l'écran du téléphone. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+}
+
+.bloc {
+  background: #fff;
+  border: 1px solid #e3dfd1;
+  border-radius: var(--radius-default);
+  padding: 32px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 520px) {
+  .bloc { padding: 22px; }
+}
+.bloc h1 {
+  font-size: clamp(28px, 3.4vw, 36px);
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+
+.sous {
+  color: var(--color-gray-medium);
+  font-size: 15px;
+}
+.lien {
+  margin-top: 16px;
+}
+.lien a {
+  color: var(--color-charcoal);
+  text-decoration: underline;
+}
+
+.formulaire {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #ebe7d8;
+}
+
+.notes {
+  border: 0;
+  padding: 0;
+  margin: 0 0 20px;
+}
+.notes legend {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-charcoal);
+  margin-bottom: 8px;
+}
+.etoiles {
+  display: flex;
+  gap: 6px;
+}
+.etoiles label {
+  position: relative;
+  cursor: pointer;
+  line-height: 0;
+}
+.etoiles input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.etoiles input:focus-visible + svg {
+  outline: 2px solid var(--color-gold-taupe);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.pleine svg {
+  fill: var(--color-gold-taupe);
+  stroke: var(--color-gold-taupe);
+  stroke-width: 1.5;
+}
+.vide svg {
+  fill: none;
+  stroke: var(--color-gold-taupe);
+  stroke-width: 1.5;
+}
+.masque {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.champ {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.champ label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-charcoal);
+}
+.champ textarea {
+  width: 100%;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.5;
+  border: 1px solid #d6d0bd;
+  border-radius: var(--radius-sharp);
+  background: #fff;
+  resize: vertical;
+}
+.champ textarea:focus {
+  outline: 2px solid var(--color-gold-taupe);
+  outline-offset: 1px;
+}
+
+.signature {
+  font-weight: 500;
+  color: var(--color-charcoal);
+}
+.information {
+  margin-top: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-gray-medium);
+}
+.information a {
+  color: var(--color-charcoal);
+  text-decoration: underline;
+}
+
+.erreur {
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: var(--color-sienna);
+  background: rgba(160, 82, 45, 0.06);
+  border: 1px solid rgba(160, 82, 45, 0.35);
+  border-radius: var(--radius-default);
+}
+
+.publier {
+  width: 100%;
+}
+
+.recu {
+  margin-top: 24px;
+  padding: 20px;
+  background: rgba(90, 140, 58, 0.08);
+  border: 1px solid rgba(90, 140, 58, 0.4);
+  border-radius: var(--radius-default);
+  font-size: 15px;
+  line-height: 1.6;
+}

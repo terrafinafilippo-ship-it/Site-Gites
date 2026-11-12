@@ -1,8 +1,12 @@
 /** Documents légaux — extraits du script inline de legal.html.
  *  Les corps sont des fragments HTML statiques rédigés en dur (aucune
- *  donnée utilisateur) ; ils sont rendus via dangerouslySetInnerHTML. */
+ *  donnée utilisateur) ; ils sont rendus via dangerouslySetInnerHTML.
+ *
+ *  La politique des avis (Phase 6, D-40) cite les règles écrites des avis
+ *  (lib/avis-regles.ts) : durée de publication, motifs de retrait. */
+import { DUREE_AVIS_ANS, LIBELLES_MOTIF } from "@/lib/avis-regles";
 
-export type LegalSection = "mentions" | "cgv" | "privacy" | "cookies";
+export type LegalSection = "mentions" | "cgv" | "privacy" | "cookies" | "avis";
 
 export interface LegalDoc {
   title: string;
@@ -10,7 +14,7 @@ export interface LegalDoc {
   body: string;
 }
 
-export const LEGAL_SECTIONS: LegalSection[] = ["mentions", "cgv", "privacy", "cookies"];
+export const LEGAL_SECTIONS: LegalSection[] = ["mentions", "cgv", "privacy", "cookies", "avis"];
 
 export function isLegalSection(s: string): s is LegalSection {
   return (LEGAL_SECTIONS as string[]).includes(s);
@@ -33,7 +37,7 @@ export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
         <p>Toute reproduction, même partielle, est interdite sans autorisation écrite préalable.</p>
       </section>
       <section><div class="legal__num">04 — Labellisation</div><h2>Gîtes de France</h2>
-        <p>Les trois gîtes (LaPhine — 07G310701, L'Armu — 07G310700, La Maison Vieille — 07G310702) sont labellisés Gîtes de France depuis 2018 et classés selon la grille fédérale. Les avis affichés sont collectés et vérifiés par Gîtes de France après chaque séjour.</p>
+        <p>Les trois gîtes (LaPhine — 07G310701, L'Armu — 07G310700, La Maison Vieille — 07G310702) sont labellisés Gîtes de France depuis 2018 et classés selon la grille fédérale. Les notes Gîtes de France affichées sont collectées et vérifiées par Gîtes de France après chaque séjour ; les avis déposés sur ce site par nos clients suivent notre <a href="/legal/avis">politique des avis</a>.</p>
       </section>
       <section><div class="legal__num">05 — Crédits</div><h2>Conception</h2>
         <p>Conception et développement : Patricia &amp; Nicolas Terrafina. Typographies : Playfair Display et Inter (Google Fonts). Icônes : Lucide.</p>
@@ -75,7 +79,7 @@ export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
   },
   privacy: {
     title: "Politique de confidentialité",
-    meta: "Conforme RGPD — mise à jour le 19 mai 2026",
+    meta: "Conforme RGPD — mise à jour le 12 novembre 2026",
     body: `
       <section><div class="legal__num">01 — Responsable</div><h2>Responsable de traitement</h2>
         <p>Patricia &amp; Nicolas Terrafina, Hameau de Samoyas, 07430 Savas. Email : contact@gitesdesamoyas.fr.</p>
@@ -85,7 +89,7 @@ export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
           <li><strong>Identité &amp; coordonnées</strong> — pour traiter votre réservation et vous joindre.</li>
           <li><strong>Données de paiement</strong> — traitées par Stripe (PCI-DSS), jamais stockées chez nous.</li>
           <li><strong>Dates et préférences</strong> — pour préparer votre séjour.</li>
-          <li><strong>Email post-séjour</strong> — pour solliciter votre avis vérifié Gîtes de France (consentement explicite).</li>
+          <li><strong>Courriel après le séjour</strong> — pour vous inviter à donner votre avis sur ce site. Si vous en déposez un, il est publié avec votre prénom, l'initiale de votre nom, votre note, votre commentaire et le mois de votre séjour, pendant ${DUREE_AVIS_ANS} ans (voir la <a href="/legal/avis">politique des avis</a>).</li>
         </ul>
       </section>
       <section><div class="legal__num">03 — Conservation</div><h2>Combien de temps ?</h2>
@@ -108,6 +112,37 @@ export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
       </section>
       <section><div class="legal__num">03 — Tiers</div><h2>Aucun autre service tiers</h2>
         <p>Pas de réseau social embarqué, pas de retargeting, pas de Google Analytics. Les polices de caractères sont servies par notre propre serveur : votre navigateur ne se connecte pas à Google pour les afficher.</p>
+      </section>
+    `,
+  },
+  avis: {
+    title: "Politique des avis",
+    meta: "Mise à jour le 12 novembre 2026",
+    body: `
+      <section><div class="legal__num">01 — Qui peut donner son avis</div><h2>Seuls nos clients, après leur séjour</h2>
+        <p>Seul un client qui a séjourné dans l'un de nos gîtes, après une réservation faite sur ce site, peut déposer un avis. Après son départ, il reçoit par courriel un lien personnel, valable une durée limitée, qui permet de déposer un seul avis pour ce séjour.</p>
+        <p>Les avis sont donc contrôlés : chacun correspond à un séjour réel, réservé et payé sur ce site.</p>
+        <p>Les notes Gîtes de France affichées sur ce site sont recueillies et vérifiées par Gîtes de France, selon ses propres règles ; nous en reprenons la note et le nombre d'avis, avec leur source.</p>
+      </section>
+      <section><div class="legal__num">02 — Contrepartie</div><h2>Aucune contrepartie</h2>
+        <p>Aucune contrepartie (réduction, cadeau, avantage) n'est proposée en échange d'un avis.</p>
+      </section>
+      <section><div class="legal__num">03 — Publication</div><h2>Publication immédiate, sans modification</h2>
+        <p>Un avis comporte une note de 1 à 5 et, si le client le souhaite, un commentaire. Il est publié dès son dépôt sur la page du gîte, signé du prénom et de l'initiale du nom du client, avec le mois du séjour et la date de l'avis. Nous ne le modifions pas.</p>
+        <p>Les avis sont classés du plus récent au plus ancien. La note moyenne affichée est celle de tous les avis publiés pour le gîte.</p>
+      </section>
+      <section><div class="legal__num">04 — Retrait</div><h2>Les seuls motifs de retrait</h2>
+        <p>Un avis publié ne peut être retiré que pour l'un des motifs suivants :</p>
+        <ul>
+          <li>${LIBELLES_MOTIF.injurieux.fr} ;</li>
+          <li>${LIBELLES_MOTIF.hors_sujet.fr} ;</li>
+          <li>${LIBELLES_MOTIF.donnees_personnelles.fr} ;</li>
+          <li>${LIBELLES_MOTIF.demande_auteur.fr}.</li>
+        </ul>
+        <p>Un avis n'est jamais retiré parce que sa note est basse ou parce qu'il est critique. Son auteur est prévenu du retrait par courriel, avec le motif.</p>
+      </section>
+      <section><div class="legal__num">05 — Durée</div><h2>${DUREE_AVIS_ANS} ans</h2>
+        <p>Un avis reste publié ${DUREE_AVIS_ANS} ans après son dépôt, puis il est effacé. Son auteur peut demander à tout moment son retrait, en écrivant à contact@gitesdesamoyas.fr.</p>
       </section>
     `,
   },

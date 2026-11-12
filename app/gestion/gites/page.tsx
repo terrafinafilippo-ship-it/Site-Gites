@@ -1,8 +1,10 @@
 // Fiches des gîtes (Phase 5, lot 4, réponse 12 A du cadrage de la phase) :
-// capacité, ménage, caution, équipements, téléphone pour l'arrivée, spa, sauna ;
+// capacité, ménage, caution, équipements, téléphone pour l'arrivée, spa, sauna,
+// et les chiffres Gîtes de France affichés sur le site (Phase 6, D-40) ;
 // enregistrés en deux temps, comme les tarifs.
 import { numericDepuisCentimes } from "@/lib/centimes";
 import { lireGitesGestion } from "@/lib/gestion/gites";
+import { noteLisible } from "@/lib/gestion/reglages";
 
 import { actionGite } from "../actions-calendrier";
 import Entete from "../Entete";
@@ -67,6 +69,31 @@ export default async function PageGites() {
                   <input name="sauna" type="checkbox" value="oui" defaultChecked={g.sauna} /> Sauna
                 </label>
               </div>
+              <fieldset className={styles.groupe}>
+                <legend>Chiffres Gîtes de France affichés sur le site</legend>
+                <p className={styles.aide}>
+                  Recopiés de la page du gîte sur le site de Gîtes de France. Vides, le site ne les affiche plus et montre les avis de vos
+                  clients à la place.
+                </p>
+                <div className={styles.ligne}>
+                  <div className={styles.champ}>
+                    <label htmlFor={`gdf-note-${g.id}`}>Note sur 5</label>
+                    <input id={`gdf-note-${g.id}`} name="gdf_note" type="text" inputMode="decimal" defaultValue={noteLisible(g.gdfNote)} className={styles.court} />
+                  </div>
+                  <div className={styles.champ}>
+                    <label htmlFor={`gdf-nombre-${g.id}`}>Nombre d&apos;avis</label>
+                    <input id={`gdf-nombre-${g.id}`} name="gdf_nombre" type="number" min={0} defaultValue={g.gdfNombre ?? ""} className={styles.court} />
+                  </div>
+                  <div className={styles.champ}>
+                    <label htmlFor={`gdf-reco-${g.id}`}>Recommandation (%)</label>
+                    <input id={`gdf-reco-${g.id}`} name="gdf_reco" type="number" min={0} max={100} defaultValue={g.gdfReco ?? ""} className={styles.court} />
+                  </div>
+                </div>
+                <div className={styles.champ}>
+                  <label htmlFor={`gdf-lien-${g.id}`}>Adresse de la page du gîte sur Gîtes de France (lien « Lire les avis »)</label>
+                  <input id={`gdf-lien-${g.id}`} name="gdf_lien" type="text" inputMode="url" maxLength={308} defaultValue={g.gdfLien} className={styles.large} />
+                </div>
+              </fieldset>
             </FormulairePlan>
           </section>
         ))}

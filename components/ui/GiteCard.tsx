@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { resumer } from "@/lib/avis";
 import type { GiteData } from "@/lib/data/gites";
-import { fmtNote, fmtPrix } from "@/lib/format";
+import { fmtNoteDixiemes, fmtPrix } from "@/lib/format";
 import type { ChiffresGite } from "@/lib/gites-publics";
 import { lien, type Bilingue, type Langue } from "@/lib/i18n/langues";
 import ImageSlot from "./ImageSlot";
@@ -9,7 +10,8 @@ import styles from "./GiteCard.module.css";
 
 const TEXTES: Bilingue<{
   personnes: (n: number) => string;
-  avis: (n: number) => string;
+  avisGdf: (n: number) => string;
+  avisClients: (n: number) => string;
   reco: (n: number) => string;
   aPartirDe: string;
   laSemaine: string;
@@ -17,7 +19,8 @@ const TEXTES: Bilingue<{
 }> = {
   fr: {
     personnes: (n) => `${n} personnes`,
-    avis: (n) => `${n} avis`,
+    avisGdf: (n) => `${n} avis Gîtes de France`,
+    avisClients: (n) => `${n} avis clients`,
     reco: (n) => `${n} % reco`,
     aPartirDe: "À partir de",
     laSemaine: "la semaine TTC",
@@ -25,7 +28,8 @@ const TEXTES: Bilingue<{
   },
   en: {
     personnes: (n) => `${n} people`,
-    avis: (n) => `${n} reviews`,
+    avisGdf: (n) => `${n} Gîtes de France reviews`,
+    avisClients: (n) => (n === 1 ? "1 guest review" : `${n} guest reviews`),
     reco: (n) => `${n}% recommend`,
     aPartirDe: "From",
     laSemaine: "per week, incl. tax",
@@ -57,7 +61,10 @@ export default function GiteCard({
   placeholder,
 }: GiteCardProps) {
   const t = TEXTES[langue];
-  const rating = fmtNote(gite.rating, langue);
+  // Chiffres Gîtes de France de la fiche (D-40) ; vidés par les propriétaires,
+  // les avis des clients du site prennent leur place.
+  const gdf = chiffres?.gdf ?? null;
+  const site = resumer((chiffres?.avis ?? []).map((a) => a.note));
   const capacite = chiffres?.capaciteMax ?? null;
   const plancher = chiffres?.plancherSemaine ?? null;
   return (
@@ -96,16 +103,32 @@ export default function GiteCard({
           </span>
         </div>
         <p className={styles.desc}>{description}</p>
-        <div className={styles.proof}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="12 2 15 9 22 9 17 14 19 21 12 17 5 21 7 14 2 9 9 9" />
-          </svg>
-          <strong>{rating}/5</strong>
-          <span className={styles.sep} />
-          <span>{t.avis(gite.reviews)}</span>
-          <span className={styles.sep} />
-          <span>{t.reco(gite.reco)}</span>
-        </div>
+        {(gdf || site.moyenneCentiemes !== null) && (
+          <div className={styles.proof}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="12 2 15 9 22 9 17 14 19 21 12 17 5 21 7 14 2 9 9 9" />
+            </svg>
+            {gdf ? (
+              <>
+                <strong>{fmtNoteDixiemes(gdf.noteCentiemes, langue)}/5</strong>
+                <span className={styles.sep} />
+                <span>{t.avisGdf(gdf.nombre)}</span>
+                {gdf.recommandationPct !== null && (
+                  <>
+                    <span className={styles.sep} />
+                    <span>{t.reco(gdf.recommandationPct)}</span>
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                <strong>{fmtNoteDixiemes(site.moyenneCentiemes ?? 0, langue)}/5</strong>
+                <span className={styles.sep} />
+                <span>{t.avisClients(site.nombre)}</span>
+              </>
+            )}
+          </div>
+        )}
         <div className={styles.foot}>
           {plancher !== null ? (
             <div className={styles.price}>
