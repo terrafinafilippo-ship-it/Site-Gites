@@ -23,11 +23,14 @@ référencement en place.
 
 ### Contenus
 1. **Page Activités** — l'existant (`app/activites/`) est à compléter.
-2. **Système d'avis** — la table `avis` existe en version provisoire. Les notes
-   et nombres d'avis affichés aujourd'hui (`lib/data/gites.ts`) n'ont **aucune
-   source vérifiable** : leur origine est à établir avant publication
-   (`docs/00-projet.md` § 2).
-3. **Habillage graphique de la page de signature**, reporté depuis la Phase 1.
+2. **Système d'avis** — **fait le 12 novembre 2026** (D-40) : invitation le
+   lendemain du départ, avis publié tout de suite, retrait pour un motif
+   affiché, politique des avis. Les chiffres Gîtes de France (ceux de
+   Gîtes de France, gérant, 12 novembre 2026) passent sur la fiche de chaque
+   gîte, avec leur source, jusqu'à ce que les avis du site les remplacent.
+3. **Habillage graphique de la page de signature**, reporté depuis la Phase 1 :
+   **fait le 12 novembre 2026** (D-39), habillage des pages client du site,
+   textes inchangés.
 4. **L'anglais** (D-22, point 13) : le site existe en anglais depuis le
    16 octobre 2026, traduit par une session. Relecture par les propriétaires ;
    réponse du juriste sur des CGV disponibles en français seulement ;
@@ -53,9 +56,12 @@ référencement en place.
    C. conso.
 
 ### SEO
-10. Balises, métadonnées, données structurées. Les balises hreflang des deux
-    langues existent déjà (`lib/i18n/metadonnees.ts`) ; elles donnent des
-    adresses relatives tant que `NEXT_PUBLIC_SITE_URL` n'est pas réglée.
+10. Balises, métadonnées, données structurées : **fait le 12 novembre 2026**
+    (D-39) — description et aperçu de partage par page (textes déjà affichés),
+    `robots.txt`, `sitemap.xml` (24 adresses depuis la politique des avis), données structurées de
+    l'établissement et de chaque gîte, sans les notes Gîtes de France. Les
+    adresses complètes dépendent de `NEXT_PUBLIC_SITE_URL`, réglée avant le
+    build.
 
 ### Relevé des valeurs sans source (9 novembre 2026)
 
@@ -70,7 +76,7 @@ lever.
 | Fiches et cartes des gîtes (`lib/data/gites.ts`) | Note, nombre d'avis, % de recommandation par gîte (5,0 · 16 avis…) | **Vrais** : avis Gîtes de France (gérant, 12 novembre 2026). Mais écrits en dur ; l'accueil, lui, lit la note des réglages. À terme, les avis laissés par les clients du site doivent les remplacer | Développement (avis des clients) |
 | ~~Mentions légales~~ | ~~« Les avis affichés sont collectés et vérifiés par Gîtes de France »~~ | **Vrai** : les chiffres viennent de Gîtes de France (gérant, 12 novembre 2026) | — |
 | Accueil | « Labellisés depuis 2018 » | Écrit en dur, aucune source dans le dépôt | Les propriétaires |
-| Politique cookies, bannière | Mesure d'audience par Matomo | Aucun Matomo n'est installé : la bannière demande un accord pour un outil absent | Développement, après décision |
+| ~~Politique cookies, bannière~~ | ~~Mesure d'audience par Matomo~~ | **Corrigé le 12 novembre 2026** (D-39) : bannière retirée, politique cookies réécrite (aucun traceur ; cookies de Stripe au paiement) | — |
 | CGV | Médiateur MTV ; contrat et factures : MEDICYS | E-2 | Les propriétaires (point 7) |
 | Confidentialité | Conservation 5 ans, rien sur la carte ni sur Brevo | Voir le périmètre exclu ci-dessous | Juriste, Phase 6 |
 | ~~Mentions légales~~ | ~~« Conception … avec l'aide d'une agence partenaire »~~ | **Retiré le 12 novembre 2026** (« c'est faux », gérant) | — |

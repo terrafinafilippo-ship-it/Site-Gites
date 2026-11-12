@@ -2038,6 +2038,91 @@ personne, à la demande du gérant.
 
 ---
 
+## Phase 6 (sans réponse extérieure) : cookies, référencement, signature (12 novembre 2026)
+
+### Ce qui a été fait
+
+- **Bannière cookies retirée** (D-39) : le site ne dépose aucun traceur ;
+  politique cookies réécrite (`lib/data/legal.ts`).
+- **Référencement** : description et aperçu de partage par page
+  (`lib/i18n/metadonnees.ts`, textes déjà affichés), `app/robots.ts`,
+  `app/sitemap.ts`, données structurées (`components/ui/DonneesStructurees.tsx`).
+- **Page de signature** habillée comme « Ma réservation »
+  (`app/[lang]/signer/[token]/page.module.css`), textes inchangés.
+
+### Ce qui a été vérifié
+
+- Plus de bannière en français ni en anglais ; politique cookies affichée.
+- `robots.txt` ; `sitemap.xml` vide et signalé sans `NEXT_PUBLIC_SITE_URL`,
+  22 adresses avec elle ; titre, description, aperçu de partage et données
+  structurées lus sur l'accueil, les fiches (fr, en), la liste des gîtes, les
+  activités, le contact.
+- Page de signature capturée (ordinateur, téléphone, erreur) sur un contrat
+  d'essai de La Maison Vieille émis par le serveur de test : sauna figé, texte
+  d'accord « relatif aux équipements spa et sauna ».
+- Parcours 23 étapes (code 0, `reference.ts` inchangé), lint, `tsc`, build.
+
+### Ce qui n'a PAS été vérifié
+
+- Les données structurées dans l'outil de test de Google (adresse publique
+  nécessaire).
+- La page de signature sous 500 pixels de large : l'outil de capture ne
+  descend pas plus bas (la page « Ma réservation », dont elle reprend les
+  styles, montre le même cadrage).
+
+### Trouvé en passant
+
+- La route qui sert les PDF (`app/api/documents`, `Readable.toWeb` dans
+  `lib/storage.ts`) inscrivait « Controller is already closed » au journal
+  quand le navigateur coupait le téléchargement. **Corrigé le même jour** : le
+  fichier est lu en entier avant d'être envoyé (quelques centaines de Ko, un
+  justificatif 10 Mo au plus) ; `readStream` est retiré du stockage. Contrôlé
+  par `db:verify`, section 7 (200, type, octets exacts, 403, 404).
+
+---
+
+## Phase 6 (sans réponse extérieure) : les avis des clients (12 novembre 2026)
+
+Réponses du gérant : 1 A, 2 A, 3 A, 4 B, 5 A (D-40).
+
+### Ce qui a été fait
+
+- **Migrations 0020 et 0021** : la table `avis` provisoire retirée (garde-fou :
+  arrêt si elle contient une ligne ; contrôle ajouté à `verify:production`),
+  puis la table définitive ; chiffres Gîtes de France sur la fiche de chaque
+  gîte (valeurs du site recopiées) ; deux réglages ; trois courriels ;
+  l'alerte « avis ».
+- **`lib/avis.ts`** : invitation le lendemain du départ (tâches
+  automatiques), lien `/avis/{jeton}` (jeton de « Ma réservation ») ouvert du
+  départ à D + 30, dépôt unique, lecture publique, retrait en deux temps,
+  effacement après 3 ans. Règles écrites dans `lib/avis-regles.ts`.
+- **Pages** : la page de dépôt et `POST /api/avis` ; les avis sur la fiche du
+  gîte (`components/ui/AvisClients.tsx`) ; la note des clients à l'accueil ;
+  les cartes des gîtes lisent les chiffres Gîtes de France en base (avec leur
+  source) et passent aux avis du site quand ils sont vidés ; la politique des
+  avis (`/legal/avis`), le pied de page (« Avis de nos hôtes » mène enfin
+  quelque part), la confidentialité et les mentions légales mises à jour.
+- **Back-office** : page « Avis » (lecture, retrait pour un motif), chiffres
+  Gîtes de France sur la fiche des gîtes, délais dans les réglages, alerte
+  « Nouvel avis ».
+- La carte Gîtes de France de la fiche avait un lien « Lire les avis » vers
+  `#` : il ne s'affiche plus que si l'adresse de la page est saisie.
+
+### Ce qui a été vérifié
+
+- `verify:avis --http` 59/0 (ajouté au parcours) ; `verify:gestion-calendrier`
+  (fiche du gîte, chiffres Gîtes de France) ; `db:verify` 255/0 (section 6o) ;
+  parcours 24 étapes (code 0, `reference.ts` inchangé), lint, `tsc`, build.
+- Captures : la page de dépôt, la fiche de L'Armu avec trois avis (4,7/5) et
+  la carte Gîtes de France (5,0/5, 22 avis).
+
+### Ce qui n'a PAS été vérifié
+
+- Le courriel d'invitation reçu dans une vraie boîte (envoi simulé).
+- La relecture des textes par un juriste (point 13).
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

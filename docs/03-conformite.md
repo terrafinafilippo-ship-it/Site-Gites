@@ -656,3 +656,41 @@ Deux points à établir, dans cet ordre :
    d'évaluation. Le choix dépend du secteur et du coût d'adhésion.
 
 **Qui peut lever :** les propriétaires — ce sont eux qui adhèrent et qui paient.
+
+---
+
+## 11. Avis en ligne — articles L.111-7-2 et D.111-16 à D.111-19 du Code de la consommation
+
+**La règle.** Qui collecte, modère ou diffuse des avis de consommateurs
+informe de façon loyale, claire et transparente sur leur publication et leur
+traitement : à côté des avis, s'ils sont contrôlés, la date de l'avis et celle
+de l'expérience, l'ordre de classement ; dans une rubrique facilement
+accessible, l'existence ou non d'une contrepartie, les délais de publication
+et de conservation, les caractéristiques du contrôle ; et il dit à l'auteur
+d'un avis écarté pourquoi. Retirer les avis négatifs, ou présenter comme
+vérifiés des avis qui ne le sont pas, est une pratique commerciale trompeuse
+(§ 5).
+
+**Où c'est implémenté (D-40).**
+- Le contrôle : seul le lien reçu après un séjour réel permet de déposer un
+  avis, un par réservation (`lib/avis.ts`, `lireLienAvis`, `deposerAvis`).
+- À côté des avis (`components/ui/AvisClients.tsx`) : « Avis vérifiés », comment,
+  l'ordre ; pour chaque avis le mois du séjour et la date de l'avis ; le lien
+  vers la politique.
+- La politique des avis (`lib/data/legal.ts`, `/legal/avis`, pied de page) :
+  qui peut déposer, aucune contrepartie, publication immédiate sans
+  modification, classement, les quatre motifs de retrait (`lib/avis-regles.ts`),
+  la durée de 3 ans.
+- Le retrait : seulement pour un motif de la liste, en deux temps, journalisé,
+  l'auteur prévenu avec le motif (`retirerAvis`, courriel `avis_retrait`).
+- Les chiffres de Gîtes de France sont présentés comme tels, avec leur source.
+- Données personnelles : la politique de confidentialité dit ce qui est publié
+  et combien de temps ; l'avis est effacé au bout de 3 ans.
+
+**Comment on vérifie.** `DB_CIBLE=test npm run verify:avis` (55 cas avec
+`--http`) ; `db:verify`, section 6o (contraintes de la table).
+
+**Écart (non bloquant).** Les textes (politique des avis, page de dépôt,
+courriels) ont été rédigés par une session et validés par le gérant, pas par
+un juriste : à relire avec les pages juridiques (point 13 de
+`docs/06-avant-premier-client.md`).

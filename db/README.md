@@ -31,6 +31,8 @@ main dans un outil graphique.
 | `migrations/0017_statistiques.sql` | Phase 5, lot 6 : taux de commission d'une plateforme pour les statistiques (`reglages.commission_taux`, pour cent entiers de 1 à 50, vide par défaut) (D-36). |
 | `migrations/0018_bebes_hors_occupants.sql` | Taxe de séjour : une nouvelle ligne naît « bébés non comptés » parmi les occupants qui se partagent le prix de la nuit (`taxes_sejour.bebes_parmi_occupants`, faux par défaut ; réponse du gérant du 11 novembre 2026). |
 | `migrations/0019_sauna.sql` | Le sauna à l'article 12 du contrat (point 8, D-38) : case `gites.a_sauna` (cochée pour La Maison Vieille) et `reservations.contrat_a_sauna`, figée à l'émission du contrat (faux pour les contrats déjà émis, qui n'ont imprimé aucune règle sauna). |
+| `migrations/0020_avis_provisoire_retiree.sql` | Avis des clients (D-40), première étape : la table `avis` provisoire de la Phase 0, jamais utilisée, est retirée. **Garde-fou** : la migration s'arrête sans rien toucher si la table contient une ligne. |
+| `migrations/0021_avis.sql` | Avis des clients (D-40) : table `avis` (un par réservation, retrait avec motif) ; chiffres Gîtes de France sur la fiche de chaque gîte (`gites.gdf_*`, valeurs du site au 12 novembre 2026 recopiées, page Gîtes de France vide) ; délais de l'invitation et de son lien en réglages (1 et 30 jours après le départ) ; courriels `avis_invitation`, `avis_retrait`, `alerte_avis` ; alerte `avis` créée active avec les destinataires de `probleme`. |
 | `index.ts` | Le client de base de données partagé par le site (pool de 10 connexions maximum). |
 | `seed.ts` | Crée les gîtes absents ; ne touche jamais un gîte existant (D-35). |
 | `verify.ts` | Auto-vérification complète, sans rien laisser en base. |
@@ -146,7 +148,7 @@ d'essai, marquée « (essai) ». **`npm run db:seed` ne touche pas à ces tables
 
 **Tables provisoires** (structure minimale)
 
-- **avis** : les avis clients affichés sur le site.
+- **avis** : les avis des clients du site (Phase 6, D-40) — un par réservation, publié au dépôt, retiré seulement avec un motif, effacé 3 ans après.
 - **audit_logs** : le journal des actions sensibles. Premier usage depuis la
   Phase 4 (D-31) : l'effacement automatique d'une tentative abandonnée
   (`effacement_tentative`, référence et dates seulement).
@@ -222,12 +224,12 @@ npm run verify:production
 
 Sans `DB_CIBLE`, par le tunnel SSH. Le script travaille dans une transaction
 **en lecture seule** : il ne peut rien écrire. Il dit quelles migrations
-manquent, refait les deux vérifications ci-dessous (0009 et 0010), compare les
+manquent, refait les vérifications ci-dessous (0009 et 0010) et celle de la 0020 (table `avis` provisoire vide), compare les
 compteurs de numérotation aux numéros déjà émis, compte le contenu et lit les
 réglages. Chaque ligne est OK, INFO, A VOIR ou BLOQUANT ; **un point BLOQUANT
 interdit d'appliquer les migrations** (code de sortie 1). Au 4 novembre 2026,
-la base réelle et `gites_test` du serveur sont à la migration 0001 (dix-huit
-migrations en attente au 12 novembre, 0002 à 0019).
+la base réelle et `gites_test` du serveur sont à la migration 0001 (vingt
+migrations en attente au 12 novembre, 0002 à 0021).
 
 ### Avant d'appliquer la migration 0009 sur une base existante
 

@@ -1927,6 +1927,105 @@ et de `docs/contrat-template.md`, relu par le juriste.
 
 ---
 
+## D-39 · Pas de bannière cookies, référencement, page de signature
+
+**Date :** 12 novembre 2026 (Phase 6, travaux sans réponse extérieure, à la
+demande du gérant).
+
+**Ce qui est décidé.**
+- **Pas de bannière cookies.** Le site ne dépose aucun traceur : polices
+  servies par le site (`next/font`), aucune mesure d'audience, aucun réseau
+  social. Seul Stripe, chargé à l'étape du paiement, dépose ses cookies de
+  sécurité, indispensables au paiement demandé. Sans traceur soumis à
+  consentement, la bannière demandait un accord pour rien (elle annonçait
+  Matomo, jamais installé) : elle est retirée, et la politique cookies dit ce
+  qui se passe vraiment.
+- **Référencement** : chaque page publique a sa description et son aperçu de
+  partage, pris dans un texte qu'elle affiche déjà (chapeau, accroche du
+  gîte) ; `robots.txt` écarte le back-office, les routes techniques et les
+  pages personnelles ; `sitemap.xml` liste les adresses publiques (22, puis 24
+  avec la politique des avis, D-40) avec leur
+  équivalent dans l'autre langue ; données structurées de l'établissement
+  (accueil) et de chaque gîte (chambres, surface, capacité de la base).
+- **Aucune note dans les données structurées** : celles de Gîtes de France
+  sont recopiées d'un autre site, ce que Google refuse ; celles des clients du
+  site (D-40) sont des avis sur l'établissement publiés par l'établissement
+  lui-même, que Google ignore pour un hébergement (avis
+  « auto-promotionnels »).
+- **Page de signature** : habillage des pages client du site (« Ma
+  réservation »), mêmes textes, même comportement.
+
+**Pourquoi.** Une demande de consentement sans objet est un texte faux ; le
+référencement est le moyen de faire réserver en direct sans plateforme.
+
+**Ce qui pourrait mal tourner.**
+- Un outil de mesure d'audience ajouté un jour impose de revenir à une
+  bannière **avant** sa mise en ligne.
+- `NEXT_PUBLIC_SITE_URL` absente au build : plan du site vide, aperçus aux
+  adresses relatives (le build l'écrit au journal).
+
+**Si on revient dessus.** Rétablir une bannière : un composant dans
+`app/[lang]/layout.tsx` et la politique cookies à réécrire.
+
+---
+
+## D-40 · Les avis des clients du site
+
+**Date :** 12 novembre 2026 (Phase 6). Réponses du gérant : 1 A, 2 A, 3 A,
+4 B, 5 A.
+
+**Ce qui est décidé.**
+- **Qui laisse un avis (1 A)** : seul un client qui a séjourné. Le lendemain
+  de son départ (réglage `avis_courriel_jours`), un courriel lui envoie un
+  lien personnel, `/avis/{jeton}`, ouvert du jour du départ jusqu'au 30e jour
+  après (réglage `avis_lien_jours`). Le jeton est celui de « Ma réservation » :
+  un seul secret par réservation. Un avis par réservation. Le site peut donc
+  écrire honnêtement « avis vérifiés ».
+- **Ce que laisse le client (2 A)** : une note de 1 à 5, un commentaire
+  facultatif (2 000 caractères), signé du prénom et de l'initiale du nom
+  (« Camille D. »), figé au dépôt.
+- **Publication (3 A)** : tout de suite. Les propriétaires reçoivent l'alerte
+  « Nouvel avis » ; ils ne peuvent retirer un avis que pour l'un des quatre
+  motifs affichés dans la politique des avis (propos injurieux, avis hors
+  sujet, données personnelles, demande de l'auteur), en deux temps, et
+  l'auteur reçoit le motif par courriel. Jamais pour une note basse.
+- **Pas de réponse publique (4 B).**
+- **Gîtes de France pendant la transition (5 A)** : leurs chiffres quittent
+  `lib/data/gites.ts` pour la fiche de chaque gîte du back-office (note,
+  nombre d'avis, recommandation, adresse de la page Gîtes de France). Ils
+  restent affichés avec leur source à côté des avis du site ; les
+  propriétaires les vident quand ils le décident, et les cartes des gîtes
+  montrent alors les avis des clients du site à la place.
+- **Durée** : un avis reste publié 3 ans, puis il est effacé par les tâches
+  automatiques. C'est une promesse écrite dans la politique des avis : une
+  constante (`lib/avis-regles.ts`), pas un réglage, comme un délai du contrat.
+- **Ce que la loi demande d'afficher** (art. L.111-7-2 et D.111-16 et suivants
+  C. conso.) : à côté des avis, le contrôle, la date de l'avis et celle du
+  séjour, l'ordre (du plus récent au plus ancien) ; dans la politique des
+  avis (`/legal/avis`), l'absence de contrepartie, la publication, les motifs
+  de retrait, la durée. Voir `docs/03-conformite.md` § 11.
+
+**Pourquoi.** Remplacer à terme des chiffres que le visiteur ne peut pas
+vérifier sur le site par des avis qu'il peut lire, déposés par des clients
+dont le séjour est réel ; et ne dépendre de Gîtes de France ni pour les
+réservations ni pour la réputation.
+
+**Ce qui pourrait mal tourner.**
+- Un avis injurieux reste en ligne jusqu'à ce que les propriétaires lisent
+  l'alerte : c'est le prix de la publication immédiate (3 A).
+- Les textes de la politique des avis, de la page de dépôt et des courriels
+  n'ont pas été relus par un juriste (point 13 de
+  `docs/06-avant-premier-client.md`).
+- Le lien « Lire les avis sur Gîtes de France » ne s'affiche qu'une fois
+  l'adresse de la page saisie sur la fiche du gîte.
+
+**Si on revient dessus.** Une modération avant publication (3 B) ajoute un
+état « en attente » à la table `avis` et un bouton « Publier » ; la politique
+des avis et le texte de la page de dépôt changent avec. Une réponse publique
+(4 A) ajoute une colonne et son affichage.
+
+---
+
 ## Décisions ouvertes
 
 Elles ne sont **pas tranchées** et ne doivent pas l'être dans le code.

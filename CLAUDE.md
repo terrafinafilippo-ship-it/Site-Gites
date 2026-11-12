@@ -34,6 +34,7 @@ DB_CIBLE=test npm run verify:solde    # solde et factures automatiques, temps si
 DB_CIBLE=test npm run verify:caution  # caution par carte, temps simulé ; --stripe : trois cartes de test (base de test)
 DB_CIBLE=test npm run verify:virement # caution par virement et fin des séjours, temps simulé (base de test)
 DB_CIBLE=test npm run verify:abandons # effacement des tentatives abandonnées (base de test)
+DB_CIBLE=test npm run verify:avis     # avis des clients : invitation, dépôt, retrait, effacement ; --http : pages (base de test)
 DB_CIBLE=test npm run verify:gestion  # back-office : connexion, code, appareils, réglages ; --http : pages (base de test)
 DB_CIBLE=test npm run verify:gestion-reservations # back-office : cautions, solde par virement, À traiter ; --http (base de test)
 DB_CIBLE=test npm run verify:gestion-tarifs # back-office : prix, périodes, barèmes, taxe de séjour ; --http (base de test)

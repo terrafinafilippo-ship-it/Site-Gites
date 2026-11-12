@@ -41,7 +41,7 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | 10 | Taxe de séjour : régime, taux, assiette (sans le ménage) et occupants (sans les bébés) **arrêtés** ; restent les tarifs 2027 | **Le service taxe de séjour** (Ardèche Grand Air) | Phase 3 |
 | 11 | Saisir les vrais tarifs, périodes, barème et réglages de taxe | **Les propriétaires**, au back-office | Avant l'ouverture (Phase 5) |
 | 12 | Durée de conservation des tentatives de réservation abandonnées | **Les propriétaires** (juriste) — l'effacement est construit | Avant l'ouverture |
-| 13 | Site en anglais : relire la traduction, faire valider l'anglais du juridique | **Les propriétaires** (relecture), **le juriste** (pages juridiques, bannière cookies) | Avant l'ouverture (Phase 6) |
+| 13 | Site en anglais : relire la traduction, faire valider l'anglais du juridique | **Les propriétaires** (relecture), **le juriste** (pages juridiques, politique des avis) | Avant l'ouverture (Phase 6) |
 | 14 | Passer Stripe en mode réel et brancher l'avis de paiement | **Les propriétaires** (compte Stripe activé), puis développement | Au déploiement |
 | 15 | Brancher les courriels réels sur le serveur déployé, DMARC en « quarantaine » | **Phase de déploiement**, puis les propriétaires (réception) | Au déploiement |
 | 16 | Annulation : confirmer le délai de remboursement du solde (48 heures) | **Arbitrage** | Avant l'ouverture |
@@ -578,7 +578,7 @@ annonce la même durée.
 ## 13. Site en anglais : relire la traduction, faire valider l'anglais du juridique
 
 **Qui peut lever :** **les propriétaires** (relecture de l'anglais), **le
-juriste** (pages juridiques et bannière cookies) · **avant l'ouverture**
+juriste** (pages juridiques, politique des avis) · **avant l'ouverture**
 (Phase 6)
 
 **La raison.** Depuis le 16 octobre 2026 (D-22), le site existe en anglais sous
@@ -591,16 +591,16 @@ gîte, `docs/03-conformite.md` § 5).
 
 Les pages juridiques, elles, ne sont **pas traduites** : en anglais, elles
 affichent le texte français avec « Available in French only ». La bannière
-cookies est traduite (un consentement doit être compris de celui qui le donne)
-mais personne n'a validé cette traduction.
+cookies, qui était traduite, n'existe plus depuis le 12 novembre 2026 : le
+site ne dépose aucun traceur, il n'a aucun consentement à demander (D-39).
 
 **L'action.**
 1. Les propriétaires relisent l'anglais page par page (accueil, gîtes, fiches,
    activités, contact, tunnel). Les textes sont, dans le code, à côté du
    français : une session peut en sortir une liste à relire.
 2. Le juriste dit si un client anglophone peut accepter des CGV qu'il n'a qu'en
-   français, valide l'anglais de la bannière cookies, et fournit (ou fait
-   faire) les traductions juridiques s'il les juge nécessaires.
+   français, et fournit (ou fait faire) les traductions juridiques s'il les
+   juge nécessaires.
 
 **Le contrôle.** Chaque page anglaise a été relue et validée par écrit ; la
 réponse du juriste sur les CGV est conservée.

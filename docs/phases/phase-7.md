@@ -28,7 +28,10 @@ mettre en ligne.
    La table `disponibilites` prévoit déjà la colonne `source`
    (`directe`, `airbnb`, `booking`, `gdf`).
 3. **Recette complète** : rejouer tous les parcours, sur toutes les phases.
-4. **DNS** et **mise en production**.
+4. **DNS** et **mise en production**. `NEXT_PUBLIC_SITE_URL` doit être réglée
+   **avant le build** : le plan du site, les aperçus de partage et les données
+   structurées s'y construisent (D-39) ; absente, le plan du site sort vide et
+   le build le signale.
 
    **Rediriger les adresses de l'ancien site.** Le site en ligne sur
    gitesdesamoyas.fr est l'**ancien site statique**, avec ses propres adresses.
