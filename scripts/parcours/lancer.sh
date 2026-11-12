@@ -47,6 +47,7 @@ etape "Solde et factures automatiques (prélèvement, lien, impayé)" env DB_CIB
 etape "Caution par carte (préautorisation, levée, trois cartes Stripe)" env DB_CIBLE=test npx tsx scripts/verifier-caution.ts --stripe --http
 etape "Caution par virement et fin des séjours (coordonnées, alertes)" env DB_CIBLE=test npx tsx scripts/verifier-virement.ts
 etape "Effacement des tentatives abandonnées" env DB_CIBLE=test npx tsx scripts/verifier-abandons.ts
+etape "Avis des clients (invitation, dépôt, retrait, pages)" env DB_CIBLE=test npx tsx scripts/verifier-avis.ts --http
 etape "Back-office : connexion, réglages, pages" env DB_CIBLE=test npx tsx scripts/verifier-gestion.ts --http
 etape "Back-office : réservations, cautions, solde, À traiter" env DB_CIBLE=test npx tsx scripts/verifier-gestion-reservations.ts --http
 etape "Back-office : tarifs, périodes, barèmes, taxe de séjour" env DB_CIBLE=test npx tsx scripts/verifier-gestion-tarifs.ts --http

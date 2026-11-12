@@ -98,10 +98,24 @@ async function migrations(c: PoolClient): Promise<{ appliquees: number; attendue
 }
 
 async function avantMigrations(c: PoolClient, appliquees: number, attendues: string[]): Promise<void> {
-  titre("3. Contrôles de db/README.md avant les migrations 0009 et 0010");
+  titre("3. Contrôles de db/README.md avant les migrations 0009, 0010 et 0020");
   const rang = (prefixe: string) => attendues.findIndex((t) => t.startsWith(prefixe));
   const r9 = rang("0009");
   const r10 = rang("0010");
+  const r20 = rang("0020");
+
+  // 0020 retire la table `avis` provisoire, et s'arrête si elle contient une ligne (D-40).
+  if (r20 >= 0 && appliquees <= r20) {
+    if (await tableExiste(c, "avis")) {
+      const n = (await c.query<{ n: number }>(`select count(*)::int as n from avis`)).rows[0].n;
+      if (n === 0) dire("OK", "avant 0020 : la table avis provisoire est vide");
+      else dire("BLOQUANT", `avant 0020 : la table avis provisoire contient ${n} ligne(s) — la migration s'arrêterait ; ne rien supprimer, prévenir le développeur`);
+    } else {
+      dire("INFO", "avant 0020 : pas de table avis, rien à contrôler");
+    }
+  } else {
+    dire("INFO", "0020 déjà appliquée : contrôle sans objet");
+  }
 
   if (r9 >= 0 && appliquees <= r9) {
     if (await tableExiste(c, "factures")) {

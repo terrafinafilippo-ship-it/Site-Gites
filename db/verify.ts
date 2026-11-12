@@ -61,6 +61,8 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
   gites: [
     "id", "nom", "ref_gdf", "slug", "adresse", "capacite_max", "forfait_menage", "caution",
     "equipements_specifiques", "a_spa", "a_sauna", "contact_arrivee_tel", "actif", "created_at",
+    // Chiffres Gîtes de France (Phase 6, migration 0021, D-40).
+    "gdf_note_centiemes", "gdf_avis_nombre", "gdf_recommandation_pct", "gdf_lien",
   ],
   reservations: [
     "id", "gite_id", "reference", "jeton_suivi", "statut", "numero_contrat",
@@ -116,7 +118,11 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     // Option posée au téléphone (Phase 5, lot 4, migration 0015).
     "option_id",
   ],
-  avis: ["id", "gite_id", "source", "note", "commentaire", "auteur", "date_sejour", "publie", "created_at"],
+  // Avis des clients (Phase 6, migrations 0020 et 0021, D-40).
+  avis: [
+    "id", "reservation_id", "gite_id", "note", "commentaire", "signature", "langue", "date_sejour", "created_at",
+    "retire_at", "motif_retrait",
+  ],
   audit_logs: ["id", "table_cible", "ligne_id", "action", "acteur", "details", "created_at"],
   // Tarification (Phase 3, lot 1 — D-17 et D-18).
   baremes: ["id", "nom", "created_at"],
@@ -156,6 +162,8 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     "option_duree_jours",
     // Statistiques, lot 6 (migration 0017).
     "commission_taux",
+    // Avis des clients (Phase 6, migration 0021).
+    "avis_courriel_jours", "avis_lien_jours",
     "updated_at",
   ],
   taxes_sejour: [
@@ -288,13 +296,13 @@ async function verifierSchema(client: PoolClient): Promise<void> {
   }
   noter("1", idx.includes("disponibilites_reservation_id_idx"), "index disponibilites_reservation_id_idx présent");
 
-  // Courriels : les quatre alertes existent (le code ne les crée jamais), et
+  // Courriels : les cinq alertes existent (le code ne les crée jamais), et
   // les adresses d'expédition et de réponse sont renseignées.
   const lignesAlertes = await client.query<{ type: string }>(`select type from alertes order by type`);
   noter(
     "1",
-    lignesAlertes.rows.map((r) => r.type).join(",") === "caution,probleme,reservation,signature",
-    "alertes : les quatre lignes (caution, probleme, reservation, signature)",
+    lignesAlertes.rows.map((r) => r.type).join(",") === "avis,caution,probleme,reservation,signature",
+    "alertes : les cinq lignes (avis, caution, probleme, reservation, signature)",
     lignesAlertes.rows.map((r) => r.type).join(", "),
   );
   const adresses = await client.query<{ e: string; r: string }>(
@@ -1115,6 +1123,60 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
         `insert into courriels (reservation_id, objet, cle, destinataire, langue) values ($1, $2, $3, 'a@example.invalid', 'fr')`, [resaId, objet, `verify:${objet}`],
       );
       noter("6n", c.erreur === null, `courriel « ${objet} » accepté`, codePg(c.erreur));
+    }
+
+    // ── 6o. Avis des clients (Phase 6, migrations 0020 et 0021, D-40) ──
+    titre("6o. Avis des clients");
+    const delaisAvis = await client.query<{ c: number; l: number }>(`select avis_courriel_jours as c, avis_lien_jours as l from reglages where id = 1`);
+    noter("6o", delaisAvis.rows[0]?.c === 1 && delaisAvis.rows[0]?.l === 30, "réglages : invitation le lendemain du départ, lien valable 30 jours", JSON.stringify(delaisAvis.rows[0]));
+    const avisOk = await attendreErreur(
+      client, "sp_avis_ok",
+      `insert into avis (reservation_id, gite_id, note, commentaire, signature, langue, date_sejour) values ($1, $2, 5, 'Parfait.', 'Camille D.', 'fr', '2099-06-05')`,
+      [resaId, giteId],
+    );
+    noter("6o", avisOk.erreur === null, "avis valable : accepté", codePg(avisOk.erreur));
+    const avisDouble = await attendreErreur(
+      client, "sp_avis_double",
+      `insert into avis (reservation_id, gite_id, note, signature, langue, date_sejour) values ($1, $2, 4, 'Camille D.', 'fr', '2099-06-05')`,
+      [resaId, giteId],
+    );
+    noter("6o", codePg(avisDouble.erreur) === "23505", "second avis pour la même réservation : refusé", codePg(avisDouble.erreur));
+    const casAvis: Array<[string, string, string, unknown[]]> = [
+      ["sp_avis_note0", "note 0 : refusée", `update avis set note = 0 where reservation_id = $1`, [resaId]],
+      ["sp_avis_note6", "note 6 : refusée", `update avis set note = 6 where reservation_id = $1`, [resaId]],
+      ["sp_avis_vide", "commentaire vide (au lieu d'absent) : refusé", `update avis set commentaire = '' where reservation_id = $1`, [resaId]],
+      ["sp_avis_long", "commentaire de 2 001 caractères : refusé", `update avis set commentaire = repeat('a', 2001) where reservation_id = $1`, [resaId]],
+      ["sp_avis_signature", "signature vide : refusée", `update avis set signature = ' ' where reservation_id = $1`, [resaId]],
+      ["sp_avis_retrait_seul", "retiré sans motif : refusé", `update avis set retire_at = now() where reservation_id = $1`, [resaId]],
+      ["sp_avis_motif_seul", "motif sans date de retrait : refusé", `update avis set motif_retrait = 'injurieux' where reservation_id = $1`, [resaId]],
+      ["sp_avis_motif", "motif inconnu : refusé", `update avis set retire_at = now(), motif_retrait = 'mauvaise_note' where reservation_id = $1`, [resaId]],
+      ["sp_gdf_note_seule", "note Gîtes de France sans nombre d'avis : refusée", `update gites set gdf_avis_nombre = null, gdf_note_centiemes = 490 where id = $1`, [giteId]],
+      ["sp_gdf_note", "note Gîtes de France de 5,01 : refusée", `update gites set gdf_note_centiemes = 501, gdf_avis_nombre = 1 where id = $1`, [giteId]],
+      ["sp_gdf_reco", "recommandation de 101 % : refusée", `update gites set gdf_recommandation_pct = 101 where id = $1`, [giteId]],
+      ["sp_gdf_http", "page Gîtes de France en http : refusée", `update gites set gdf_lien = 'http://www.gites-de-france.com/x' where id = $1`, [giteId]],
+      ["sp_gdf_espace", "page Gîtes de France avec une espace : refusée", `update gites set gdf_lien = 'https://www.gites-de-france.com/a b' where id = $1`, [giteId]],
+      ["sp_avis_delais", "lien de l'avis plus court que le délai du courriel : refusé", `update reglages set avis_courriel_jours = 10, avis_lien_jours = 5 where id = 1`, []],
+    ];
+    for (const [nom, quoi, sqlTexte, params] of casAvis) {
+      const e = await attendreErreur(client, nom, sqlTexte, params);
+      noter("6o", codePg(e.erreur) === "23514", quoi, codePg(e.erreur));
+    }
+    const retrait = await attendreErreur(
+      client, "sp_avis_retrait",
+      `update avis set retire_at = now(), motif_retrait = 'demande_auteur' where reservation_id = $1`, [resaId],
+    );
+    noter("6o", retrait.erreur === null, "retrait « à la demande de son auteur » : accepté", codePg(retrait.erreur));
+    const lienGdf = await attendreErreur(
+      client, "sp_gdf_lien",
+      `update gites set gdf_lien = 'https://www.gites-de-france.com/fr/auvergne-rhone-alpes/ardeche/x' where id = $1`, [giteId],
+    );
+    noter("6o", lienGdf.erreur === null, "page Gîtes de France en https : acceptée", codePg(lienGdf.erreur));
+    for (const objet of ["avis_invitation", "avis_retrait", "alerte_avis"]) {
+      const c = await attendreErreur(
+        client, `sp_${objet}`,
+        `insert into courriels (reservation_id, objet, cle, destinataire, langue) values ($1, $2, $3, 'a@example.invalid', 'fr')`, [resaId, objet, `verify:${objet}`],
+      );
+      noter("6o", c.erreur === null, `courriel « ${objet} » accepté`, codePg(c.erreur));
     }
   } finally {
     await client.query("ROLLBACK");
