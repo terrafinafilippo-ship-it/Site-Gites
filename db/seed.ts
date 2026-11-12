@@ -36,6 +36,7 @@ const communs = {
   forfait_menage: FORFAIT_MENAGE,
   contact_arrivee_tel: CONTACT_ARRIVEE_TEL,
   a_spa: true,
+  a_sauna: false,
   actif: true,
 } satisfies Partial<GiteSeedCentimes>;
 
@@ -66,6 +67,7 @@ export const GITES_SEED: GiteSeedCentimes[] = [
     capacite_max: 4,
     caution: 50000, // centimes (500,00 €)
     equipements_specifiques: "Sauna privatif",
+    a_sauna: true,
   },
 ];
 

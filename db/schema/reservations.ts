@@ -68,13 +68,14 @@ export const reservations = pgTable(
     // Numéro du contrat émis (série CTR), recopié depuis documents.numero.
     numero_contrat: text(),
     // Fiche du gîte FIGÉE à l'émission du contrat (écart E-9, migration 0016) :
-    // capacité, équipements, spa et téléphone d'arrivée imprimés au contrat,
+    // capacité, équipements, spa, sauna (migration 0019) et téléphone d'arrivée imprimés au contrat,
     // recopiés du gîte dans la même transaction que le numéro. La copie signée
     // les relit ici : une fiche modifiée entre l'envoi et la signature ne
     // change pas le contrat. NULL tant que le contrat n'est pas émis.
     contrat_capacite_max: integer(),
     contrat_equipements: text(),
     contrat_a_spa: boolean(),
+    contrat_a_sauna: boolean(),
     contrat_contact_arrivee_tel: text(),
 
     // Client principal

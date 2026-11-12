@@ -134,6 +134,13 @@
       "when": 1794436312804,
       "tag": "0018_bebes_hors_occupants",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794462743431,
+      "tag": "0019_sauna",
+      "breakpoints": true
     }
   ]
 }

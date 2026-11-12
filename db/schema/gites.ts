@@ -6,7 +6,7 @@
 //
 // Les noms de colonnes sont ceux lus par lib/montants.ts (type Gite, dérivé
 // de cette table via lib/reservations.ts) : id, nom, ref_gdf, adresse, forfait_menage, capacite_max,
-// equipements_specifiques, a_spa, caution, contact_arrivee_tel.
+// equipements_specifiques, a_spa, a_sauna, caution, contact_arrivee_tel.
 // Les clés de cet objet sont volontairement en snake_case et identiques aux
 // colonnes SQL : une ligne lue par Drizzle a exactement la forme attendue.
 import { boolean, integer, numeric, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
@@ -29,6 +29,9 @@ export const gites = pgTable(
     // Texte libre repris dans le contrat (ex. "sauna privatif").
     equipements_specifiques: text(),
     a_spa: boolean().notNull().default(false),
+    // Sauna : déclenche ses règles à l'article 12 du contrat (point 8,
+    // migration 0019). Seule La Maison Vieille en a un.
+    a_sauna: boolean().notNull().default(false),
     contact_arrivee_tel: text(),
     actif: boolean().notNull().default(true),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
