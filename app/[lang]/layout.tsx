@@ -3,7 +3,6 @@ import { Inter, Playfair_Display } from "next/font/google";
 import { notFound } from "next/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import CookieBanner from "@/components/layout/CookieBanner";
 import { ATTRIBUT_LANG, estLangue, LANGUES, type Bilingue } from "@/lib/i18n/langues";
 import { NOM_SITE } from "@/lib/i18n/metadonnees";
 import "../globals.css";
@@ -68,7 +67,6 @@ export default async function RootLayout({
         <Header langue={lang} />
         {children}
         <Footer langue={lang} />
-        <CookieBanner langue={lang} />
       </body>
     </html>
   );

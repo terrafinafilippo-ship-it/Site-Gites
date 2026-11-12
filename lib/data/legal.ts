@@ -98,19 +98,16 @@ export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
   },
   cookies: {
     title: "Politique cookies",
-    meta: "Mise à jour le 19 mai 2026",
+    meta: "Mise à jour le 12 novembre 2026",
     body: `
-      <section><div class="legal__num">01 — Principe</div><h2>Aucune case pré-cochée</h2>
-        <p>Lors de votre première visite, vous choisissez librement entre <strong>Tout refuser</strong>, <strong>Personnaliser</strong> ou <strong>Tout accepter</strong>. Le refus est aussi accessible que l'acceptation. Vous pouvez modifier ce choix à tout moment depuis le pied de page.</p>
+      <section><div class="legal__num">01 — Principe</div><h2>Aucun cookie de mesure ni de publicité</h2>
+        <p>Ce site ne dépose aucun cookie de mesure d'audience, de publicité ou de réseau social. Il n'a donc aucun consentement à vous demander : aucune bannière ne s'affiche.</p>
       </section>
-      <section><div class="legal__num">02 — Cookies techniques</div><h2>Cookies indispensables</h2>
-        <p>Strictement nécessaires au fonctionnement du site (session, panier de réservation, préférences d'affichage). Pas de consentement requis.</p>
+      <section><div class="legal__num">02 — Paiement</div><h2>Les cookies de Stripe</h2>
+        <p>À l'étape du paiement, la page charge le module de Stripe, notre prestataire de paiement. Stripe dépose alors ses propres cookies pour sécuriser la transaction et prévenir la fraude. Ils sont indispensables au paiement que vous demandez et ne servent à rien d'autre.</p>
       </section>
-      <section><div class="legal__num">03 — Cookies de mesure</div><h2>Statistiques anonymisées</h2>
-        <p>Si vous acceptez, nous utilisons Matomo (auto-hébergé, sans transfert hors UE) pour mesurer l'audience de manière anonymisée. Aucune donnée n'est partagée avec des tiers.</p>
-      </section>
-      <section><div class="legal__num">04 — Cookies tiers</div><h2>Nous n'en utilisons pas</h2>
-        <p>Pas de réseau social embarqué, pas de retargeting, pas de Google Analytics. Les seules connexions tierces concernent Stripe (paiement et dépôt de garantie).</p>
+      <section><div class="legal__num">03 — Tiers</div><h2>Aucun autre service tiers</h2>
+        <p>Pas de réseau social embarqué, pas de retargeting, pas de Google Analytics. Les polices de caractères sont servies par notre propre serveur : votre navigateur ne se connecte pas à Google pour les afficher.</p>
       </section>
     `,
   },
