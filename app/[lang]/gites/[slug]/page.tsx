@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import ImageSlot from "@/components/ui/ImageSlot";
 import Badge from "@/components/ui/Badge";
+import { DonneesGite } from "@/components/ui/DonneesStructurees";
 import { GITES, GITE_IDS, isGiteId } from "@/lib/data/gites";
 import { STORIES } from "@/lib/data/stories";
 import { jourSemaineIso } from "@/lib/dates-civiles";
@@ -35,7 +36,8 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { lang, slug } = await params;
   if (!isGiteId(slug)) return {};
-  return metadonnees(langueDe(lang), `/gites/${slug}`, GITES[slug].name);
+  const langue = langueDe(lang);
+  return metadonnees(langue, `/gites/${slug}`, GITES[slug].name, GITES[slug].tagline[langue]);
 }
 
 const TEXTES: Bilingue<{
@@ -372,6 +374,7 @@ export default async function GitePage({ params }: { params: Promise<Params> }) 
 
   return (
     <div className={styles.pageWithMobileBar}>
+      <DonneesGite langue={langue} slug={slug} capacite={capacite} />
       {/* Breadcrumb */}
       <div className={styles.crumb}>
         <div className="wrap">

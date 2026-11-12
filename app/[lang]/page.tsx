@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { DonneesSite } from "@/components/ui/DonneesStructurees";
 import ImageSlot from "@/components/ui/ImageSlot";
 import GiteCard from "@/components/ui/GiteCard";
 import { GITES, GITE_IDS, type GiteId } from "@/lib/data/gites";
@@ -252,6 +253,7 @@ export default async function HomePage({ params }: { params: Promise<Params> }) 
 
   return (
     <>
+      <DonneesSite langue={langue} />
       {/* HERO */}
       <section className={styles.hero}>
         <div className={styles.heroMedia}>

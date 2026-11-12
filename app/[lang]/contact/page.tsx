@@ -54,7 +54,7 @@ const TEXTES: Bilingue<{
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const langue = langueDe((await params).lang);
-  return metadonnees(langue, "/contact", TEXTES[langue].titrePage);
+  return metadonnees(langue, "/contact", TEXTES[langue].titrePage, TEXTES[langue].intro);
 }
 
 export default async function ContactPage({ params }: { params: Promise<Params> }) {

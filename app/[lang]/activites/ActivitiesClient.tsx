@@ -5,6 +5,7 @@ import ImageSlot from "@/components/ui/ImageSlot";
 import { ACTIVITIES, SEASON_ACCENTS, SEASON_LABELS, type Season } from "@/lib/data/activities";
 import type { Bilingue, Langue } from "@/lib/i18n/langues";
 import styles from "./page.module.css";
+import { INTRO_ACTIVITES } from "./textes";
 
 const SAISONS: Season[] = ["all", "spring", "summer", "autumn", "winter"];
 
@@ -26,8 +27,7 @@ const TEXTES: Bilingue<{
   fr: {
     surtitre: "Activités & découverte",
     titre: <>L&apos;Ardèche verte<br /></>,
-    intro:
-      "Une douzaine d'idées à la porte des gîtes — à pied, à vélo, en voiture, ou en ne bougeant pas. Le hameau de Samoyas se vit comme une parenthèse rurale, sans pour autant vous couper du monde : tout le nécessaire reste à cinq minutes.",
+    intro: INTRO_ACTIVITES.fr,
     tagSpa: "L'instant bien-être · à demeure",
     titreSpa: "L'activité que vous ne quitterez pas — votre spa privatif.",
     texteSpa:
@@ -49,8 +49,7 @@ const TEXTES: Bilingue<{
   en: {
     surtitre: "Activities & discovery",
     titre: <>Green Ardèche<br /></>,
-    intro:
-      "A dozen ideas right on the gîtes' doorstep — on foot, by bike, by car, or without moving at all. The hamlet of Samoyas is a rural interlude, without cutting you off from the world: all the essentials are five minutes away.",
+    intro: INTRO_ACTIVITES.en,
     tagSpa: "A moment of wellbeing · at home",
     titreSpa: "The activity you won't want to leave — your private spa.",
     texteSpa:
