@@ -2000,6 +2000,44 @@ personne, à la demande du gérant.
 
 ---
 
+## Hors phase : le sauna à l'article 12, les mentions légales (12 novembre 2026)
+
+### Ce qui a été décidé
+
+- Les notes des gîtes (5,0, 16 avis…) et le label 3 épis sont vrais : avis
+  Gîtes de France. À terme, les avis laissés par les clients du site doivent
+  remplacer ces chiffres. L'agence partenaire des mentions légales est fausse :
+  retirée.
+- Le sauna : une case de la fiche du gîte (D-38).
+
+### Ce qui a été fait
+
+- Migration **0019** : `gites.a_sauna` (cochée pour La Maison Vieille),
+  `reservations.contrat_a_sauna` figée à l'émission du contrat.
+- Article 12 du contrat (`ArticleEquipements`) : règles du sauna, titre et
+  paragraphes selon les deux cases, numérotation suivie.
+- Texte d'accord : l'article 12 nommé selon les équipements imprimés.
+- Back-office : case « Sauna » sur la fiche, ligne du récapitulatif.
+- Mentions légales : « avec l'aide d'une agence partenaire » retiré.
+
+### Ce qui a été vérifié
+
+- Contrat rendu pour les quatre cas (spa, spa et sauna, sauna, aucun) : règles
+  et numérotation justes, pas d'article 12 sans équipement.
+- Contrats de L'Armu et LaPhine du parcours : mot pour mot ceux d'avant ;
+  texte d'accord enregistré « relatif à l'équipement spa ».
+- `verify:gestion-calendrier` 94 cas (texte d'accord, case sauna, fiche figée),
+  `db:verify` 233/0, parcours 23 étapes (code 0, `reference.ts` inchangé),
+  lint, `tsc`, build.
+
+### Ce qui n'a PAS été vérifié
+
+- Un contrat de La Maison Vieille passé par tout le parcours (paiement,
+  signature) : le parcours ne couvre que L'Armu et LaPhine ; le rendu a été
+  contrôlé à part.
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

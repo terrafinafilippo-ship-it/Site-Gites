@@ -414,6 +414,13 @@ Les règles détaillées de fonctionnement du gîte (horaires de tranquillité, 
 
 ## Article 12 — Équipements spécifiques : spa et sauna
 
+> Ce que le contrat imprime (D-38, 12 novembre 2026) : l'article dépend des
+> cases « Spa » et « Sauna » de la fiche du gîte. Spa seul : titre « spa », pas
+> de 12.3, 12.1 sans le sauna. Spa et sauna : tout l'article ci-dessous. Ni
+> l'un ni l'autre : pas d'article 12. Le texte d'accord signé nomme les mêmes
+> équipements (« relatif à l'équipement spa », « relatif aux équipements spa et
+> sauna »).
+
 ### 12.1 — Champ d'application
 
 Le présent article s'applique à l'utilisation du spa (jacuzzi) présent dans tous les gîtes, ainsi qu'au sauna installé exclusivement dans le gîte « La Maison Vieille ».

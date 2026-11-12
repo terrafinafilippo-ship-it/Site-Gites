@@ -41,11 +41,9 @@ référencement en place.
    page de signature lisent depuis le 9 novembre 2026 (écart E-7 corrigé).
 6. **Médiateur de la consommation** (point 7) : question aux **propriétaires** —
    existe-t-il une adhésion en cours, à qui. Puis un seul organisme partout.
-7. **Article 12 du contrat — règles sauna** (point 8). Ce n'est **pas** une
-   décision ouverte : le principe est arrêté (spa interdit aux moins de 6 ans,
-   sauna aux moins de 12 ans). Il manque l'écriture, et une décision technique
-   sur le déclenchement de la section (colonne `a_sauna` ou lecture du texte
-   libre `equipements_specifiques`).
+7. **Article 12 du contrat — règles sauna** (point 8) : **fait le
+   12 novembre 2026** (D-38) — case « Sauna » sur la fiche du gîte, règles du
+   sauna à l'article 12, texte d'accord accordé au contenu de l'article.
 
 ### Légal — le reste
 8. **Mentions légales LCEN, CGV, RGPD et cookies** : les textes existent
@@ -69,13 +67,13 @@ lever.
 |---|---|---|---|
 | Mentions légales | « exploitants en nom propre », SIRET 000 000 000 00000 | Le contrat et les factures sont au nom de la SARL (E-1) | Le comptable (point 6) |
 | ~~Mentions légales, confidentialité, page Contact~~ | ~~contact@gites-samoyas.fr~~ | **Corrigé le 11 novembre 2026** : contact@gitesdesamoyas.fr (réponse du gérant), l'adresse que le contrat imprime depuis les réglages. Les pages l'écrivent en clair : si les réglages changent d'adresse, elles sont à corriger aussi | — |
-| Fiches et cartes des gîtes (`lib/data/gites.ts`) | Note, nombre d'avis, % de recommandation par gîte (5,0 · 16 avis…) | Écrits en dur ; l'accueil, lui, lit la note des réglages et la masque si elle est vide | Les propriétaires (origine des avis) |
-| Mentions légales | « Les avis affichés sont collectés et vérifiés par Gîtes de France » | Vrai seulement si les chiffres viennent de Gîtes de France | Les propriétaires |
+| Fiches et cartes des gîtes (`lib/data/gites.ts`) | Note, nombre d'avis, % de recommandation par gîte (5,0 · 16 avis…) | **Vrais** : avis Gîtes de France (gérant, 12 novembre 2026). Mais écrits en dur ; l'accueil, lui, lit la note des réglages. À terme, les avis laissés par les clients du site doivent les remplacer | Développement (avis des clients) |
+| ~~Mentions légales~~ | ~~« Les avis affichés sont collectés et vérifiés par Gîtes de France »~~ | **Vrai** : les chiffres viennent de Gîtes de France (gérant, 12 novembre 2026) | — |
 | Accueil | « Labellisés depuis 2018 » | Écrit en dur, aucune source dans le dépôt | Les propriétaires |
 | Politique cookies, bannière | Mesure d'audience par Matomo | Aucun Matomo n'est installé : la bannière demande un accord pour un outil absent | Développement, après décision |
 | CGV | Médiateur MTV ; contrat et factures : MEDICYS | E-2 | Les propriétaires (point 7) |
 | Confidentialité | Conservation 5 ans, rien sur la carte ni sur Brevo | Voir le périmètre exclu ci-dessous | Juriste, Phase 6 |
-| Mentions légales | « Conception … avec l'aide d'une agence partenaire » | Aucune agence connue | Les propriétaires |
+| ~~Mentions légales~~ | ~~« Conception … avec l'aide d'une agence partenaire »~~ | **Retiré le 12 novembre 2026** (« c'est faux », gérant) | — |
 
 ---
 

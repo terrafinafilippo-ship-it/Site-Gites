@@ -36,7 +36,7 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | 5 | Vérifier le logo sur un PDF généré **après** déploiement | Développement | Au déploiement |
 | 6 | Qui est le bailleur juridique des trois gîtes | **Le comptable** | Phase 6 |
 | 7 | Médiateur de la consommation : lequel, et adhésion en cours | **Les propriétaires** | Phase 6 |
-| 8 | Écrire les règles sauna à l'article 12 du contrat | Développement | Phase 6 |
+| ~~8~~ | ~~Écrire les règles sauna à l'article 12 du contrat~~ — **levé le 12 novembre 2026** (D-38, migration 0019) | — | — |
 | 9 | Sauvegarder le volume des PDF, et tester une restauration | **Phase de déploiement** | Au déploiement effectif — échéance tranchée le 24 septembre 2026 |
 | 10 | Taxe de séjour : régime, taux, assiette (sans le ménage) et occupants (sans les bébés) **arrêtés** ; restent les tarifs 2027 | **Le service taxe de séjour** (Ardèche Grand Air) | Phase 3 |
 | 11 | Saisir les vrais tarifs, périodes, barème et réglages de taxe | **Les propriétaires**, au back-office | Avant l'ouverture (Phase 5) |
@@ -236,8 +236,9 @@ inclure :
    conservation, tarification). Chaque ligne est OK, INFO, A VOIR ou
    BLOQUANT ; un point BLOQUANT interdit de migrer. Au 2 novembre 2026, la base
    réelle et `gites_test` du serveur sont à la migration **0001**.
-2. **Appliquer les migrations 0002 à 0018** (0012 à 0017 : le back-office,
-   Phase 5, lots 1 à 4 et 6 ; 0018 : les bébés et la taxe de séjour) :
+2. **Appliquer les migrations 0002 à 0019** (0012 à 0017 : le back-office,
+   Phase 5, lots 1 à 4 et 6 ; 0018 : les bébés et la taxe de séjour ; 0019 :
+   le sauna) :
    **le gérant** les applique lui-même
    (`npm run db:migrate`), après une sauvegarde, sur la base réelle puis sur
    `gites_test` du serveur (réponse 11B).
@@ -357,6 +358,14 @@ factures lisent depuis le 9 novembre 2026) et dans les CGV du site.
 ---
 
 ## 8. Écrire les règles sauna à l'article 12 du contrat
+
+> **Levé le 12 novembre 2026** (D-38). Une case « Sauna » sur la fiche du gîte
+> (`gites.a_sauna`, migration 0019, cochée pour La Maison Vieille), figée à
+> l'émission du contrat comme le spa. L'article 12 imprime les règles du
+> sauna de l'article 12.3 du modèle quand la case est cochée, et le texte
+> d'accord nomme les équipements que l'article 12 contient réellement.
+> Contrôle fait : contrat rendu avec spa seul (texte inchangé), spa et sauna,
+> sauna seul, ni l'un ni l'autre (pas d'article 12). Le constat d'origine :
 
 **Qui peut lever :** développement · **Phase 6**
 

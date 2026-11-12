@@ -1891,6 +1891,42 @@ cadrage de la Phase 5, réponse 8).
 
 ---
 
+## D-38 · Le sauna à l'article 12 : une case de la fiche du gîte
+
+**Date :** 12 novembre 2026 (point 8 de `docs/06-avant-premier-client.md`,
+écart E-3). Le principe était arrêté (sauna interdit aux moins de 12 ans,
+12-17 ans accompagnés) ; restait le déclenchement et l'écriture.
+
+**Ce qui est décidé.**
+- **Une case « Sauna »** sur la fiche du gîte (`gites.a_sauna`, migration
+  0019), comme le spa, plutôt qu'une lecture du texte libre « équipements
+  particuliers » : une case ne se trompe pas d'orthographe. La migration la
+  coche pour La Maison Vieille.
+- **Figée à l'émission du contrat** (`reservations.contrat_a_sauna`, comme
+  E-9) ; les contrats déjà émis reçoivent faux, ce qu'ils ont imprimé.
+- **L'article 12** reprend l'article 12.3 du modèle quand la case est cochée,
+  et nomme le sauna dans le champ d'application, la précaution médicale et la
+  décharge ; il n'est imprimé que si le gîte a un spa ou un sauna. Avec le spa
+  seul, le texte est mot pour mot celui d'avant.
+- **Le texte d'accord** nomme les équipements de l'article 12 imprimé :
+  « relatif aux équipements spa et sauna » (La Maison Vieille, la phrase
+  d'avant), « relatif à l'équipement spa » (LaPhine, L'Armu), « relatif à
+  l'équipement sauna », ou rien sans article 12.
+
+**Pourquoi.** Un équipement à risque sans règle opposable laisse la
+responsabilité du bailleur sans limite ; un accord qui cite un sauna absent
+décrit un contenu qui n'existe pas (E-3).
+
+**Ce qui pourrait mal tourner.** Une case décochée par erreur retire les règles
+du sauna des contrats suivants : le récapitulatif de la fiche l'annonce avant
+l'enregistrement (« Sauna : oui → non »).
+
+**Si on revient dessus.** Un sauna dans un autre gîte : cocher sa case. Changer
+une règle : le texte de `ArticleEquipements` (`components/pdf/ContratPDF.tsx`)
+et de `docs/contrat-template.md`, relu par le juriste.
+
+---
+
 ## Décisions ouvertes
 
 Elles ne sont **pas tranchées** et ne doivent pas l'être dans le code.

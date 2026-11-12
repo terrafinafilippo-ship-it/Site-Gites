@@ -16,7 +16,7 @@ lettres.
 |---|---|---|---|---|
 | E-1 | Identité du bailleur incohérente entre le site et les documents ; SIRET factice publié | Bloquant | 6 | Le comptable |
 | E-2 | Deux médiateurs annoncés ; adhésion non prouvée | Bloquant | 6 | Les propriétaires |
-| E-3 | Aucune règle sauna dans le contrat, alors que le consentement en fait accepter | Bloquant | 6 | Développement |
+| ~~E-3~~ | ~~Aucune règle sauna dans le contrat, alors que le consentement en fait accepter~~ — **corrigé le 12 novembre 2026** (D-38) | — | — | — |
 | E-4 | Caution par préautorisation Stripe décrite au contrat et sur le site, pas encore développée | Bloquant | 4 | Stripe (deux confirmations) + juriste + développement |
 | ~~E-5~~ | ~~Options facturées sous un intitulé générique~~ — **sans objet depuis le 3 novembre 2026** : aucune option vendue | — | — | — |
 | E-6 | Adresse IP du signataire falsifiable | Bloquant | Déploiement | Développement |
@@ -546,6 +546,19 @@ maximale 38 °C, interdiction d'alcool, tabac, nourriture et substances,
 surveillance des mineurs, **moins de 6 ans interdits**, 6-16 ans accompagnés
 dans le spa, précaution médicale, décharge de responsabilité, maintenance de
 l'eau, sanctions.
+
+> **Écart E-3 corrigé le 12 novembre 2026** (D-38, migration 0019). L'article
+> 12 est déclenché par deux cases de la fiche du gîte, `a_spa` et `a_sauna`,
+> figées à l'émission du contrat (`contrat_a_spa`, `contrat_a_sauna`). Avec le
+> sauna, il imprime ses conditions d'utilisation (moins de 12 ans interdits,
+> 12-17 ans accompagnés, ni alcool, ni tabac, ni nourriture, ni substances,
+> consignes affichées) et le nomme dans le champ d'application, la précaution
+> médicale et la décharge ; le titre devient « spa et sauna ». Avec le spa
+> seul, le texte est celui d'avant. Le texte d'accord
+> (`lib/constantes.ts`, `texteConsentement`) nomme les équipements de
+> l'article 12 imprimé : « relatif aux équipements spa et sauna » pour La
+> Maison Vieille, « relatif à l'équipement spa » pour les deux autres. Le
+> constat d'origine :
 
 **Écart E-3 (bloquant, Phase 6) — deux faces, à documenter ensemble.**
 
