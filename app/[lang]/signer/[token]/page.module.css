@@ -1,0 +1,157 @@
+/* Page de signature d'un contrat : l'habillage des pages client du site
+   (« Ma réservation », app/[lang]/suivi/page.module.css). */
+
+.page {
+  padding-block: 56px;
+}
+.colonne {
+  max-width: 760px;
+  margin: 0 auto;
+  display: grid;
+  /* minmax(0, …) : la colonne ne s'élargit jamais au-delà de l'écran du téléphone. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+}
+
+.bloc {
+  background: #fff;
+  border: 1px solid #e3dfd1;
+  border-radius: var(--radius-default);
+  padding: 32px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 520px) {
+  .bloc { padding: 22px; }
+}
+.bloc h1 {
+  font-size: clamp(28px, 3.4vw, 36px);
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+.bloc h2 {
+  font-family: var(--tw-font-serif);
+  font-size: 22px;
+  font-weight: 400;
+  margin-bottom: 14px;
+}
+.bloc p + p { margin-top: 12px; }
+
+.sous {
+  color: var(--color-gray-medium);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.recap {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px 24px;
+  margin: 20px 0 0;
+  padding-top: 20px;
+  border-top: 1px solid #ebe7d8;
+}
+.recap dt {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-gray-medium);
+}
+.recap dd {
+  margin: 4px 0 0;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--color-charcoal);
+}
+
+.apercu {
+  display: block;
+  width: 100%;
+  height: 70vh;
+  min-height: 420px;
+  border: 1px solid #e3dfd1;
+  border-radius: var(--radius-default);
+  background: #fff;
+}
+.lien {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--color-charcoal);
+  text-decoration: underline;
+}
+
+.champ {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.champ label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-charcoal);
+}
+.champ input {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 16px;
+  border: 1px solid #d6d0bd;
+  border-radius: var(--radius-sharp);
+  background: #fff;
+}
+.champ input:focus {
+  outline: 2px solid var(--color-gold-taupe);
+  outline-offset: 1px;
+}
+
+.accord {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  background: #faf8f2;
+  border: 1px solid #e3dfd1;
+  border-radius: var(--radius-default);
+  cursor: pointer;
+  line-height: 1.6;
+}
+.accord input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+}
+
+.erreur {
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: var(--color-sienna);
+  background: rgba(160, 82, 45, 0.06);
+  border: 1px solid rgba(160, 82, 45, 0.35);
+  border-radius: var(--radius-default);
+}
+
+.signer {
+  width: 100%;
+}
+
+.recu {
+  padding: 20px;
+  background: rgba(90, 140, 58, 0.08);
+  border: 1px solid rgba(90, 140, 58, 0.4);
+  border-radius: var(--radius-default);
+  font-size: 15px;
+  line-height: 1.6;
+}
+.code {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.mention {
+  margin-top: 16px;
+}

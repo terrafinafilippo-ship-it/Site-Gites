@@ -5,12 +5,14 @@
 // appel de POST /api/contrats/signer, puis écran de confirmation avec le numéro
 // du contrat et le lien vers le PDF signé.
 //
-// Mise en forme sobre et fonctionnelle (Tailwind) : l'habillage graphique est
-// le sujet de la Phase 6.
+// Habillage des pages client du site (page.module.css, Phase 6) ; les textes
+// et le comportement sont ceux de la Phase 1.
 
 import { useState } from 'react';
 
 import { EMETTEUR } from '@/lib/constantes';
+
+import styles from './page.module.css';
 
 type Etat = 'idle' | 'envoi' | 'signe' | 'erreur';
 
@@ -77,121 +79,122 @@ export function SignerForm({
   if (etat === 'signe' && resultat) {
     return (
       <Shell>
-        <p className="text-sm uppercase tracking-wide">Les Gîtes de Samoyas</p>
-        <h1 className="text-2xl font-semibold mt-2 mb-4">Contrat signé</h1>
-        <p className="leading-relaxed">
-          Merci. Votre signature du contrat <strong>{resultat.numero}</strong> a bien été
-          enregistrée.
-        </p>
-        <p className="leading-relaxed mt-3">
-          Identifiant de signature : <code className="text-sm">{resultat.signature_id}</code>
-        </p>
-        {resultat.document_signe_url ? (
-          <p className="mt-4">
-            <a
-              href={resultat.document_signe_url}
-              target="_blank"
-              rel="noreferrer"
-              className="underline font-medium"
-            >
-              Télécharger le contrat signé (PDF)
-            </a>
-            <span className="block text-sm mt-1">
-              Ce lien est valable une heure. Vous recevrez également le contrat signé par e-mail.
-            </span>
+        <div className={styles.bloc}>
+          <span className="eyebrow">Les Gîtes de Samoyas</span>
+          <h1>Contrat signé</h1>
+          <p className={styles.recu} role="status">
+            Merci. Votre signature du contrat <strong>{resultat.numero}</strong> a bien été
+            enregistrée.
           </p>
-        ) : (
-          <p className="mt-4 text-sm">Vous recevrez le contrat signé par e-mail.</p>
-        )}
+          <p className={styles.sous}>
+            Identifiant de signature : <code className={styles.code}>{resultat.signature_id}</code>
+          </p>
+          {resultat.document_signe_url ? (
+            <>
+              <p>
+                <a
+                  href={resultat.document_signe_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-primary"
+                >
+                  Télécharger le contrat signé (PDF)
+                </a>
+              </p>
+              <p className={styles.sous}>
+                Ce lien est valable une heure. Vous recevrez également le contrat signé par e-mail.
+              </p>
+            </>
+          ) : (
+            <p className={styles.sous}>Vous recevrez le contrat signé par e-mail.</p>
+          )}
+        </div>
       </Shell>
     );
   }
 
   return (
     <Shell>
-      <p className="text-sm uppercase tracking-wide">Signature de votre contrat de location</p>
-      <h1 className="text-2xl font-semibold mt-2 mb-6">Contrat {numero}</h1>
+      <div className={styles.bloc}>
+        <span className="eyebrow">Signature de votre contrat de location</span>
+        <h1>Contrat {numero}</h1>
 
-      {/* Récapitulatif */}
-      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 mb-6 p-4 border rounded">
-        <Recap label="Gîte" value={giteNom} />
-        <Recap label="Montant total du séjour" value={montantTtc} />
-        {montantOptions !== null && <Recap label="Dont options" value={montantOptions} />}
-        <Recap label="Arrivée" value={dateArrivee} />
-        <Recap label="Départ" value={dateDepart} />
-      </dl>
+        {/* Récapitulatif */}
+        <dl className={styles.recap}>
+          <Recap label="Gîte" value={giteNom} />
+          <Recap label="Montant total du séjour" value={montantTtc} />
+          {montantOptions !== null && <Recap label="Dont options" value={montantOptions} />}
+          <Recap label="Arrivée" value={dateArrivee} />
+          <Recap label="Départ" value={dateDepart} />
+        </dl>
+      </div>
 
       {/* Aperçu du contrat */}
-      <h2 className="text-base font-semibold mb-2">Votre contrat</h2>
-      {pdfUrl ? (
-        <>
-          <iframe
-            src={pdfUrl}
-            title={`Contrat ${numero}`}
-            className="w-full border rounded bg-white"
-            style={{ height: '70vh', minHeight: 420 }}
-          />
-          <p className="text-sm mt-2 mb-6">
-            <a href={pdfUrl} target="_blank" rel="noreferrer" className="underline">
+      <div className={styles.bloc}>
+        <h2>Votre contrat</h2>
+        {pdfUrl ? (
+          <>
+            <iframe src={pdfUrl} title={`Contrat ${numero}`} className={styles.apercu} />
+            <a href={pdfUrl} target="_blank" rel="noreferrer" className={styles.lien}>
               Ouvrir le PDF dans un nouvel onglet
             </a>
+          </>
+        ) : (
+          <p className={styles.sous}>
+            L&apos;aperçu du PDF est momentanément indisponible. Contactez Les Gîtes de Samoyas
+            avant de signer.
           </p>
-        </>
-      ) : (
-        <p className="text-sm mb-6">
-          L&apos;aperçu du PDF est momentanément indisponible. Contactez Les Gîtes de Samoyas
-          avant de signer.
+        )}
+      </div>
+
+      <div className={styles.bloc}>
+        {/* Identité du signataire */}
+        <div className={styles.champ}>
+          <label htmlFor="signataire_nom">Vos nom et prénom</label>
+          <input
+            id="signataire_nom"
+            name="signataire_nom"
+            value={nom}
+            onChange={(e) => setNom(e.target.value)}
+            placeholder="Prénom NOM"
+            autoComplete="name"
+            maxLength={120}
+          />
+        </div>
+
+        {/* Consentement (texte exact enregistré comme preuve) */}
+        <label className={styles.accord}>
+          <input
+            type="checkbox"
+            name="accepte"
+            checked={accepte}
+            onChange={(e) => setAccepte(e.target.checked)}
+          />
+          <span>{consentement}</span>
+        </label>
+
+        {etat === 'erreur' && (
+          <p role="alert" className={styles.erreur}>
+            {erreur}
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={signer}
+          disabled={!peutSigner}
+          className={`btn btn-primary ${styles.signer}`}
+        >
+          {etat === 'envoi' ? 'Signature en cours…' : 'Je signe le contrat'}
+        </button>
+
+        <p className={`${styles.sous} ${styles.mention}`}>
+          Signature électronique simple au sens de l&apos;article 3, point 10, du règlement
+          eIDAS, recueillie directement par la {EMETTEUR.raisonSociale}. La date, l&apos;heure, votre
+          adresse IP et l&apos;empreinte SHA-256 du document sont enregistrées comme preuve de
+          signature.
         </p>
-      )}
-
-      {/* Identité du signataire */}
-      <label htmlFor="signataire_nom" className="block font-semibold mb-1">
-        Vos nom et prénom
-      </label>
-      <input
-        id="signataire_nom"
-        name="signataire_nom"
-        value={nom}
-        onChange={(e) => setNom(e.target.value)}
-        placeholder="Prénom NOM"
-        autoComplete="name"
-        maxLength={120}
-        className="block w-full border rounded px-3 py-2 mb-5 text-base"
-      />
-
-      {/* Consentement (texte exact enregistré comme preuve) */}
-      <label className="flex items-start gap-3 border rounded p-3 mb-5 cursor-pointer">
-        <input
-          type="checkbox"
-          name="accepte"
-          checked={accepte}
-          onChange={(e) => setAccepte(e.target.checked)}
-          className="mt-1 h-4 w-4 shrink-0"
-        />
-        <span className="leading-relaxed">{consentement}</span>
-      </label>
-
-      {etat === 'erreur' && (
-        <p role="alert" className="border rounded p-3 mb-4 text-sm">
-          {erreur}
-        </p>
-      )}
-
-      <button
-        type="button"
-        onClick={signer}
-        disabled={!peutSigner}
-        className="block w-full border rounded px-4 py-3 text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {etat === 'envoi' ? 'Signature en cours…' : 'Je signe le contrat'}
-      </button>
-
-      <p className="text-sm mt-4 leading-relaxed">
-        Signature électronique simple au sens de l&apos;article 3, point 10, du règlement
-        eIDAS, recueillie directement par la {EMETTEUR.raisonSociale}. La date, l&apos;heure, votre
-        adresse IP et l&apos;empreinte SHA-256 du document sont enregistrées comme preuve de
-        signature.
-      </p>
+      </div>
     </Shell>
   );
 }
@@ -200,8 +203,8 @@ export function SignerForm({
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 py-8">
-      <div className="border rounded p-6 bg-white">{children}</div>
+    <main className={styles.page}>
+      <div className={`wrap ${styles.colonne}`}>{children}</div>
     </main>
   );
 }
@@ -209,8 +212,8 @@ function Shell({ children }: { children: React.ReactNode }) {
 function Recap({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-sm uppercase tracking-wide">{label}</dt>
-      <dd className="font-semibold m-0">{value || '—'}</dd>
+      <dt>{label}</dt>
+      <dd>{value || '—'}</dd>
     </div>
   );
 }

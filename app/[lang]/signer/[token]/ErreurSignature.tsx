@@ -1,5 +1,7 @@
 // Écran d'erreur de la page de signature : lien invalide (404), contrat déjà
-// signé (409), lien expiré (410). Présentationnel pur, mise en forme sobre.
+// signé (409), lien expiré (410). Présentationnel pur, habillage des pages
+// client du site (page.module.css).
+import styles from './page.module.css';
 
 export function ErreurSignature({
   code,
@@ -11,12 +13,14 @@ export function ErreurSignature({
   message: string;
 }) {
   return (
-    <main className="mx-auto w-full max-w-xl px-4 py-12">
-      <div className="border rounded p-6 bg-white">
-        <p className="text-sm uppercase tracking-wide">Les Gîtes de Samoyas</p>
-        <h1 className="text-2xl font-semibold mt-2 mb-3">{titre}</h1>
-        <p className="leading-relaxed">{message}</p>
-        <p className="text-sm mt-4">Code : {code}</p>
+    <main className={styles.page}>
+      <div className={`wrap ${styles.colonne}`}>
+        <div className={styles.bloc}>
+          <span className="eyebrow">Les Gîtes de Samoyas</span>
+          <h1>{titre}</h1>
+          <p className={styles.sous}>{message}</p>
+          <p className={styles.sous}>Code : {code}</p>
+        </div>
       </div>
     </main>
   );
