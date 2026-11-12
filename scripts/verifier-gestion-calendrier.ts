@@ -45,6 +45,7 @@ import { enregistrerGite, lireGitesGestion, lireSaisieGite, type SaisieGite } fr
 import type { Acteur } from "../lib/gestion/journal";
 import { empreinte as empreinteJeton } from "../lib/gestion/secrets";
 import { remplacerMessagerie, type Message } from "../lib/messagerie";
+import { texteConsentement } from "../lib/constantes";
 import { ficheContrat, type Reservation } from "../lib/montants";
 import { dernierJourOption, lireOptionParJeton } from "../lib/options-sejour";
 import { constaterPaiement, ouvrirPaiement } from "../lib/paiement";
@@ -125,7 +126,7 @@ async function seed(armu: string): Promise<void> {
 
 async function fiches(): Promise<void> {
   console.log("--- 2. La fiche d'un gîte");
-  const base: SaisieGite = { capacite: "4", menage: "80", caution: "500", equipements: "Sauna privatif", telephone: "06 79 33 23 51", spa: true };
+  const base: SaisieGite = { capacite: "4", menage: "80", caution: "500", equipements: "Sauna privatif", telephone: "06 79 33 23 51", spa: true, sauna: false };
   const refus = (s: Partial<SaisieGite>) => {
     const r = lireSaisieGite({ ...base, ...s });
     return r.ok ? "" : r.message;
@@ -145,6 +146,7 @@ async function fiches(): Promise<void> {
     equipements: mv.equipements,
     telephone: mv.telephone,
     spa: !mv.spa,
+    sauna: mv.sauna,
   };
   const plan = await enregistrerGite(mv.id, saisieMv, ACTEUR, null);
   noter(
@@ -162,15 +164,27 @@ async function fiches(): Promise<void> {
   const perime = await enregistrerGite(mv.id, saisieMv, ACTEUR, "0".repeat(32));
   noter(perime.etape === "plan" && perime.message === "La fiche a changé entre-temps : relisez avant de confirmer.", "empreinte périmée : le récapitulatif revient", perime);
   // Écart E-9 : un contrat émis imprime la fiche figée sur la réservation.
-  const giteJoint = { capacite_max: 6, equipements_specifiques: "Sauna privatif", a_spa: true, contact_arrivee_tel: "06 00 00 00 00" };
-  const figee = ficheContrat({ contrat_capacite_max: 4, contrat_equipements: null, contrat_a_spa: false, contrat_contact_arrivee_tel: "04 75 00 00 00", gites: giteJoint } as unknown as Reservation);
-  const pasEmis = ficheContrat({ contrat_capacite_max: null, contrat_equipements: null, contrat_a_spa: null, contrat_contact_arrivee_tel: null, gites: giteJoint } as unknown as Reservation);
+  const giteJoint = { capacite_max: 6, equipements_specifiques: "Sauna privatif", a_spa: true, a_sauna: true, contact_arrivee_tel: "06 00 00 00 00" };
+  const figee = ficheContrat({ contrat_capacite_max: 4, contrat_equipements: null, contrat_a_spa: false, contrat_a_sauna: false, contrat_contact_arrivee_tel: "04 75 00 00 00", gites: giteJoint } as unknown as Reservation);
+  const pasEmis = ficheContrat({ contrat_capacite_max: null, contrat_equipements: null, contrat_a_spa: null, contrat_a_sauna: null, contrat_contact_arrivee_tel: null, gites: giteJoint } as unknown as Reservation);
   noter(
-    figee.capacite_max === 4 && figee.a_spa === false && figee.equipements_specifiques === null && figee.contact_arrivee_tel === "04 75 00 00 00" &&
-      pasEmis.capacite_max === 6 && pasEmis.equipements_specifiques === "Sauna privatif" && pasEmis.a_spa === true,
+    figee.capacite_max === 4 && figee.a_spa === false && figee.a_sauna === false && figee.equipements_specifiques === null && figee.contact_arrivee_tel === "04 75 00 00 00" &&
+      pasEmis.capacite_max === 6 && pasEmis.equipements_specifiques === "Sauna privatif" && pasEmis.a_spa === true && pasEmis.a_sauna === true,
     "contrat émis : la fiche figée sur la réservation, pas celle du gîte ; pas encore émis : celle du gîte",
     { figee, pasEmis },
   );
+  const accord = (a_spa: boolean, a_sauna: boolean) => texteConsentement("CTR-2026-001", { a_spa, a_sauna });
+  const debutAccord = "Je reconnais avoir lu et j'accepte le contrat de location CTR-2026-001 et l'ensemble de ses conditions";
+  noter(
+    accord(true, true) === `${debutAccord}, y compris l'article 12 relatif aux équipements spa et sauna.` &&
+      accord(true, false) === `${debutAccord}, y compris l'article 12 relatif à l'équipement spa.` &&
+      accord(false, true) === `${debutAccord}, y compris l'article 12 relatif à l'équipement sauna.` &&
+      accord(false, false) === `${debutAccord}.`,
+    "texte d'accord : l'article 12 nommé selon le spa et le sauna du gîte (point 8)",
+    [accord(true, false), accord(false, false)],
+  );
+  const sansSauna = lireSaisieGite({ ...base, sauna: true });
+  noter(sansSauna.ok && sansSauna.valeurs.sauna === true, "la case sauna de la fiche est lue", sansSauna);
   const fait = plan.etape === "plan" ? await enregistrerGite(mv.id, saisieMv, ACTEUR, plan.empreinte) : null;
   const relu = (await lireGitesGestion()).find((g) => g.id === mv.id)!;
   noter(fait?.etape === "fait" && relu.menage === 9500 && relu.caution === 65000 && relu.spa === !mv.spa, "confirmé : ménage, caution et spa enregistrés", relu);

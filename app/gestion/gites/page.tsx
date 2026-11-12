@@ -1,5 +1,5 @@
 // Fiches des gîtes (Phase 5, lot 4, réponse 12 A du cadrage de la phase) :
-// capacité, ménage, caution, équipements, téléphone pour l'arrivée, spa ;
+// capacité, ménage, caution, équipements, téléphone pour l'arrivée, spa, sauna ;
 // enregistrés en deux temps, comme les tarifs.
 import { numericDepuisCentimes } from "@/lib/centimes";
 import { lireGitesGestion } from "@/lib/gestion/gites";
@@ -60,6 +60,11 @@ export default async function PageGites() {
               <div className={styles.champ}>
                 <label>
                   <input name="spa" type="checkbox" value="oui" defaultChecked={g.spa} /> Spa
+                </label>
+              </div>
+              <div className={styles.champ}>
+                <label>
+                  <input name="sauna" type="checkbox" value="oui" defaultChecked={g.sauna} /> Sauna
                 </label>
               </div>
             </FormulairePlan>

@@ -1,6 +1,6 @@
 // LES FICHES DES GÎTES dans le back-office (Phase 5, lot 4, réponse 12 A du
 // cadrage de la phase) : capacité, ménage, caution, équipements particuliers,
-// téléphone pour l'arrivée, spa. Le nom et la référence Gîtes de France
+// téléphone pour l'arrivée, spa, sauna (point 8). Le nom et la référence Gîtes de France
 // restent fixes (ils vivent aussi dans lib/data/gites.ts) ; les textes et les
 // photos sont en Phase 6.
 //
@@ -10,7 +10,7 @@
 // Ce qui vaut pour qui :
 //   - ménage et caution sont recopiés sur chaque réservation à sa création
 //     (lib/tunnel.ts) : un changement vaut pour les réservations suivantes ;
-//   - capacité, équipements, spa et téléphone sont imprimés au contrat, et
+//   - capacité, équipements, spa, sauna et téléphone sont imprimés au contrat, et
 //     recopiés sur la réservation quand il est émis (lib/contrat.ts, écart
 //     E-9) : la copie signée relit ces valeurs-là. Un changement vaut pour
 //     les contrats émis ensuite ; l'écran le dit.
@@ -46,6 +46,7 @@ export interface FicheGite {
   equipements: string;
   telephone: string;
   spa: boolean;
+  sauna: boolean;
 }
 
 export interface SaisieGite {
@@ -55,6 +56,7 @@ export interface SaisieGite {
   equipements: string;
   telephone: string;
   spa: boolean;
+  sauna: boolean;
 }
 
 function fiche(g: typeof gites.$inferSelect): FicheGite {
@@ -68,6 +70,7 @@ function fiche(g: typeof gites.$inferSelect): FicheGite {
     equipements: g.equipements_specifiques ?? "",
     telephone: g.contact_arrivee_tel ?? "",
     spa: g.a_spa,
+    sauna: g.a_sauna,
   };
 }
 
@@ -99,7 +102,7 @@ export function lireSaisieGite(s: SaisieGite): Lu {
   if (!FORME_TELEPHONE.test(telephone)) {
     return { ok: false, message: "Le téléphone pour l'arrivée est obligatoire (chiffres, espaces, +, tirets) : il est imprimé au contrat." };
   }
-  return { ok: true, valeurs: { capacite, menage, caution, equipements, telephone, spa: s.spa } };
+  return { ok: true, valeurs: { capacite, menage, caution, equipements, telephone, spa: s.spa, sauna: s.sauna } };
 }
 
 const ouiNon = (b: boolean) => (b ? "oui" : "non");
@@ -128,13 +131,14 @@ export async function enregistrerGite(id: string, saisie: SaisieGite, acteur: Ac
     if (avant.equipements !== v.equipements) lignes.push(`Équipements particuliers : ${cite(avant.equipements)} → ${cite(v.equipements)}.`);
     if (avant.telephone !== v.telephone) lignes.push(`Téléphone pour l'arrivée : ${avant.telephone || "aucun"} → ${v.telephone}.`);
     if (avant.spa !== v.spa) lignes.push(`Spa : ${ouiNon(avant.spa)} → ${ouiNon(v.spa)}.`);
+    if (avant.sauna !== v.sauna) lignes.push(`Sauna : ${ouiNon(avant.sauna)} → ${ouiNon(v.sauna)}.`);
     if (lignes.length === 0) return { etape: "fait" as const, message: "Aucun changement." };
 
     if (avant.menage !== v.menage || avant.caution !== v.caution) {
       lignes.push("Les réservations déjà faites gardent leur ménage et leur caution.");
     }
-    if (avant.capacite !== v.capacite || avant.equipements !== v.equipements || avant.telephone !== v.telephone || avant.spa !== v.spa) {
-      lignes.push("Capacité, équipements, téléphone et spa sont imprimés au contrat : le changement vaut pour les prochains contrats ; un contrat déjà envoyé garde ce qu'il a imprimé.");
+    if (avant.capacite !== v.capacite || avant.equipements !== v.equipements || avant.telephone !== v.telephone || avant.spa !== v.spa || avant.sauna !== v.sauna) {
+      lignes.push("Capacité, équipements, téléphone, spa et sauna sont imprimés au contrat : le changement vaut pour les prochains contrats ; un contrat déjà envoyé garde ce qu'il a imprimé.");
     }
     lignes.push("Le site affiche le changement tout de suite.");
 
@@ -152,6 +156,7 @@ export async function enregistrerGite(id: string, saisie: SaisieGite, acteur: Ac
         equipements_specifiques: v.equipements || null,
         contact_arrivee_tel: v.telephone,
         a_spa: v.spa,
+        a_sauna: v.sauna,
       })
       .where(eq(gites.id, id));
     await journaliser(tx, {

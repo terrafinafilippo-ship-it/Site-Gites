@@ -115,6 +115,7 @@ export async function actionGite(id: string, precedent: EtatPlan, f: FormData): 
         equipements: texte(f, "equipements"),
         telephone: texte(f, "telephone"),
         spa: texte(f, "spa") === "oui",
+        sauna: texte(f, "sauna") === "oui",
       },
       a,
       texte(f, "confirmation") || null,
