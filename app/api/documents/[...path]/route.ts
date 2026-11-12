@@ -6,7 +6,12 @@
 //      (protection contre la traversée de répertoire, qui permettrait de lire
 //      n'importe quel fichier du serveur) ;
 //   2. vérifie l'expiration puis la signature HMAC du lien ;
-//   3. renvoie le fichier en flux avec le bon Content-Type.
+//   3. renvoie le fichier avec le bon Content-Type.
+//
+// Le fichier est lu en entier avant d'être envoyé (un PDF fait quelques
+// centaines de Ko, un justificatif 10 Mo au plus) : servi en flux, il
+// inscrivait « Controller is already closed » au journal chaque fois que le
+// navigateur coupait le téléchargement (aperçu refermé, page quittée).
 //
 // Codes de retour : 400 chemin invalide, 403 lien expiré ou falsifié,
 // 404 fichier absent, 500 configuration manquante.
@@ -66,10 +71,10 @@ export async function GET(
     return refus(403, "Lien invalide.");
   }
 
-  // ── 3. Fichier en flux ───────────────────────────────────────────────────
-  let flux: ReadableStream<Uint8Array>;
+  // ── 3. Fichier ───────────────────────────────────────────────────────────
+  let contenu: Buffer;
   try {
-    flux = await getStorage().readStream(chemin);
+    contenu = await getStorage().read(chemin);
   } catch (erreur) {
     if (isStorageError(erreur, "INTROUVABLE")) {
       return refus(404, "Document introuvable.");
@@ -80,10 +85,11 @@ export async function GET(
   const nomFichier = chemin.slice(chemin.lastIndexOf("/") + 1);
   const extension = nomFichier.slice(nomFichier.lastIndexOf(".")).toLowerCase();
 
-  return new Response(flux, {
+  return new Response(new Uint8Array(contenu), {
     status: 200,
     headers: {
       "Content-Type": TYPES_MIME[extension] ?? "application/octet-stream",
+      "Content-Length": String(contenu.length),
       "Content-Disposition": `inline; filename="${nomFichier}"`,
       "Cache-Control": "private, no-store",
       "X-Content-Type-Options": "nosniff",

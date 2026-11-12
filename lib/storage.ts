@@ -31,10 +31,8 @@
  *   d'expiration, vérifié par app/api/documents/[...path]/route.ts.
  */
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
-import { createReadStream } from "node:fs";
 import { access, link, mkdir, open, readFile, rename, rm } from "node:fs/promises";
 import path from "node:path";
-import { Readable } from "node:stream";
 
 export const STORAGE_PATH_DEFAUT = "/data/documents";
 /** Durée de validité par défaut d'une URL signée : 1 heure. */
@@ -81,10 +79,8 @@ export interface StorageProvider {
   /** Supprime un fichier. Sans erreur si le fichier n'existe pas. */
   delete(chemin: string): Promise<void>;
   exists(chemin: string): Promise<boolean>;
-  /** Contenu complet (ex. pour hacher les octets exacts d'un PDF stocké). */
+  /** Contenu complet : pour hacher les octets exacts d'un PDF stocké, ou le servir. */
   read(chemin: string): Promise<Buffer>;
-  /** Flux de lecture, pour servir un fichier sans le charger en mémoire. */
-  readStream(chemin: string): Promise<ReadableStream<Uint8Array>>;
 }
 
 // ─── Chemins ──────────────────────────────────────────────────────────────────
@@ -267,14 +263,6 @@ export class DiskStorage implements StorageProvider {
       }
       throw erreur;
     }
-  }
-
-  async readStream(chemin: string): Promise<ReadableStream<Uint8Array>> {
-    const absolu = this.resoudre(chemin);
-    if (!(await existeFichier(absolu))) {
-      throw new StorageError("INTROUVABLE", `Fichier introuvable : ${chemin}`);
-    }
-    return Readable.toWeb(createReadStream(absolu)) as unknown as ReadableStream<Uint8Array>;
   }
 }
 
