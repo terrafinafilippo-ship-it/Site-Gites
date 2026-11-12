@@ -376,6 +376,7 @@ export interface FicheContrat {
   capacite_max: number | null;
   equipements_specifiques: string | null;
   a_spa: boolean | null;
+  a_sauna: boolean | null;
   contact_arrivee_tel: string | null;
 }
 
@@ -390,6 +391,7 @@ export function ficheContrat(resa: Reservation): FicheContrat {
       capacite_max: resa.contrat_capacite_max,
       equipements_specifiques: resa.contrat_equipements,
       a_spa: resa.contrat_a_spa,
+      a_sauna: resa.contrat_a_sauna,
       contact_arrivee_tel: resa.contrat_contact_arrivee_tel,
     };
   }
@@ -398,6 +400,7 @@ export function ficheContrat(resa: Reservation): FicheContrat {
     capacite_max: gite?.capacite_max ?? null,
     equipements_specifiques: gite?.equipements_specifiques ?? null,
     a_spa: gite?.a_spa ?? null,
+    a_sauna: gite?.a_sauna ?? null,
     contact_arrivee_tel: gite?.contact_arrivee_tel ?? null,
   };
 }
@@ -432,6 +435,7 @@ export function mapContratData(
     giteCapaciteMax: fiche.capacite_max ?? 0,
     giteEquipementsSpecifiques: fiche.equipements_specifiques ?? '',
     giteASpa: fiche.a_spa ?? false,
+    giteASauna: fiche.a_sauna ?? false,
     // Montant FIGÉ sur la réservation (Phase 4, lot 2), jamais une valeur par
     // défaut : lib/contrat.ts refuse de créer un contrat sans lui.
     cautionMontant: cautionDe(resa),

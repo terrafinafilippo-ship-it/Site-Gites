@@ -155,6 +155,7 @@ export async function emettreContrat(reservationId: string): Promise<ResultatEmi
           contrat_capacite_max: fiche.capacite_max,
           contrat_equipements: fiche.equipements_specifiques,
           contrat_a_spa: fiche.a_spa,
+          contrat_a_sauna: fiche.a_sauna,
           contrat_contact_arrivee_tel: fiche.contact_arrivee_tel,
         })
         .where(eq(reservations.id, reservationId))

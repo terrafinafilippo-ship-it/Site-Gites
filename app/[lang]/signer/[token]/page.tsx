@@ -15,7 +15,7 @@ import { eq } from 'drizzle-orm';
 import { getDb } from '@/db';
 import { documents } from '@/db/schema';
 import { getStorage } from '@/lib/storage';
-import { calculerMontants } from '@/lib/montants';
+import { calculerMontants, ficheContrat } from '@/lib/montants';
 import { chargerReservationAvecGite } from '@/lib/reservations';
 import { fmtDateFr, fmtEuro } from '@/lib/format';
 import { texteConsentement } from '@/lib/constantes';
@@ -116,7 +116,7 @@ export default async function SignerPage({
       dateDepart={fmtDateFr(resa.date_depart)}
       montantTtc={fmtEuro(montants.totalTtc)}
       montantOptions={montants.options !== 0 ? fmtEuro(montants.options) : null}
-      consentement={texteConsentement(doc.numero)}
+      consentement={texteConsentement(doc.numero, ficheContrat(resa))}
       pdfUrl={pdfUrl}
     />
   );

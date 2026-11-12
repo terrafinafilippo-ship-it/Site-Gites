@@ -61,10 +61,29 @@ export const HEURE_LIMITE_ARRIVEE_DEFAUT = '20:00';
 // Texte de consentement EXACT : affiché au signataire ET enregistré mot pour mot
 // dans `signatures.consentement_texte`. Toute modification change la preuve de
 // consentement — ne pas reformuler sans décision métier.
-export const texteConsentement = (numeroContrat: string): string =>
-  `Je reconnais avoir lu et j'accepte le contrat de location ${numeroContrat} ` +
-  `et l'ensemble de ses conditions, y compris l'article 12 relatif aux ` +
-  `équipements spa et sauna.`;
+//
+// L'article 12 cité est celui que le contrat imprime (point 8) : il nomme les
+// équipements de la fiche figée du gîte (lib/montants.ts, ficheContrat). Avec
+// spa et sauna, la phrase est celle d'avant le point 8.
+export const texteConsentement = (
+  numeroContrat: string,
+  equipements: { a_spa: boolean | null; a_sauna: boolean | null },
+): string => {
+  const spa = equipements.a_spa === true;
+  const sauna = equipements.a_sauna === true;
+  const article12 =
+    spa && sauna
+      ? ", y compris l'article 12 relatif aux équipements spa et sauna"
+      : spa
+        ? ", y compris l'article 12 relatif à l'équipement spa"
+        : sauna
+          ? ", y compris l'article 12 relatif à l'équipement sauna"
+          : "";
+  return (
+    `Je reconnais avoir lu et j'accepte le contrat de location ${numeroContrat} ` +
+    `et l'ensemble de ses conditions${article12}.`
+  );
+};
 
 // ─── Numérotation ─────────────────────────────────────────────────────────────
 // Le numéro est généré EXCLUSIVEMENT par la fonction SQL `creer_facture` (série FAC).

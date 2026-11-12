@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm';
 import { getDb } from '@/db';
 import { documents, signatures } from '@/db/schema';
 import { cheminContratSigne, getStorage, isStorageError } from '@/lib/storage';
-import { calculerMontants, mapContratData } from '@/lib/montants';
+import { calculerMontants, ficheContrat, mapContratData } from '@/lib/montants';
 import { chargerReservationAvecGite } from '@/lib/reservations';
 import { fmtDateFr } from '@/lib/format';
 import { texteConsentement } from '@/lib/constantes';
@@ -137,7 +137,7 @@ export async function POST(request: Request) {
   }
   const documentHash = createHash('sha256').update(octetsNonSignes).digest('hex');
 
-  const consentement = texteConsentement(doc.numero);
+  const consentement = texteConsentement(doc.numero, ficheContrat(resa));
   const cheminSigne = cheminContratSigne(doc.reservation_id, doc.numero);
   const logo = chargerLogo(); // null si illisible : le contrat signé sort sans logo
 

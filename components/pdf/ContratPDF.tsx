@@ -418,6 +418,7 @@ export type ContratData = {
   giteCapaciteMax: number;
   giteEquipementsSpecifiques: string;
   giteASpa: boolean;
+  giteASauna: boolean;
   cautionMontant: number;
 
   dateArrivee: string;
@@ -485,6 +486,105 @@ const LIBELLE_CAUTION = {
 const GERANT = `${EMETTEUR.gerant.civilite} ${EMETTEUR.gerant.prenom} ${EMETTEUR.gerant.nom.toUpperCase()}`;
 
 // ─── Sous-composants ────────────────────────────────
+// Article 12 : les règles du spa et du sauna, selon la fiche du gîte figée à
+// l'émission du contrat (point 8 ; texte de docs/contrat-template.md, art. 12).
+// Un gîte avec spa seul imprime le texte de la v4 ; le sauna ajoute ses
+// conditions d'utilisation et se nomme dans 12.1, la précaution médicale et la
+// décharge. La numérotation suit les paragraphes imprimés.
+function ArticleEquipements({ spa, sauna }: { spa: boolean; sauna: boolean }) {
+  const titre = spa && sauna ? 'spa et sauna' : sauna ? 'sauna' : 'spa';
+  const equipements = spa && sauna ? 'le spa et le sauna' : sauna ? 'le sauna' : 'le spa';
+  const paragraphes: { titre: string; texte: React.ReactNode }[] = [];
+  paragraphes.push({
+    titre: "Champ d'application",
+    texte:
+      spa && sauna
+        ? "Le présent article s'applique à l'utilisation du spa (jacuzzi) et du sauna présents dans le gîte."
+        : sauna
+          ? "Le présent article s'applique à l'utilisation du sauna présent dans le gîte."
+          : "Le présent article s'applique à l'utilisation du spa (jacuzzi) présent dans le gîte.",
+  });
+  if (spa) {
+    paragraphes.push({
+      titre: sauna ? "Conditions d'utilisation du spa" : "Conditions d'utilisation",
+      texte: (
+        <>
+          (i) Température max 38 °C (réglage verrouillé) ; (ii){' '}
+          <Text style={styles.pBold}>interdiction absolue</Text>{' '}
+          d&apos;alcool, tabac, nourriture, substances psychotropes dans
+          ou à proximité immédiate du spa ; (iii) surveillance permanente
+          des mineurs par un adulte ;{' '}
+          <Text style={styles.pBold}>
+            utilisation par enfants de moins de 6 ans interdite
+          </Text>{' '}
+          ; pour 6-16 ans, présence active d&apos;un adulte dans le spa
+          obligatoire ; (iv) respect du nombre max d&apos;utilisateurs
+          simultanés affiché.
+        </>
+      ),
+    });
+  }
+  if (sauna) {
+    paragraphes.push({
+      titre: "Conditions d'utilisation du sauna",
+      texte: (
+        <>
+          (i){' '}
+          <Text style={styles.pBold}>
+            interdiction d&apos;accès aux enfants de moins de 12 ans
+          </Text>{' '}
+          ; (ii) mineurs de 12 à 17 ans : accompagnement obligatoire par un
+          adulte ; (iii) <Text style={styles.pBold}>interdiction</Text>{' '}
+          d&apos;alcool, tabac, nourriture, substances psychotropes ; (iv)
+          respect strict des consignes affichées (températures, hygrométrie).
+        </>
+      ),
+    });
+  }
+  paragraphes.push({
+    titre: 'Précaution médicale',
+    texte: sauna
+      ? `Il appartient à chaque utilisateur de vérifier, le cas échéant auprès de son médecin, l'absence de contre-indication à l'utilisation ${spa ? 'du spa et du sauna' : 'du sauna'} (grossesse, problème cardiovasculaire, traitement en cours).`
+      : "Il appartient à chaque utilisateur de vérifier, le cas échéant auprès de son médecin, l'absence de contre-indication (grossesse, problème cardiovasculaire, traitement en cours).",
+  });
+  paragraphes.push({
+    titre: 'Décharge de responsabilité',
+    texte: (
+      <>
+        {`Le Locataire et les occupants utilisent ${equipements} `}
+        <Text style={styles.pBold}>sous leur propre responsabilité</Text>
+        , en pleine conscience des risques (brûlures, glissades,
+        malaises, déshydratation, légionellose en cas de non-respect de
+        l&apos;hygiène). Le Locataire s&apos;engage à respecter et
+        faire respecter les règles d&apos;utilisation par l&apos;ensemble
+        des occupants.
+      </>
+    ),
+  });
+  if (spa) {
+    paragraphes.push({
+      titre: 'Maintenance et eau du spa',
+      texte:
+        "Le Bailleur procède à l'entretien et au contrôle régulier de la qualité de l'eau entre chaque location. En cas d'anomalie pendant le séjour (couleur, odeur, mousse, dysfonctionnement), le Locataire en avise immédiatement le Bailleur et suspend l'utilisation jusqu'à intervention.",
+    });
+  }
+  paragraphes.push({
+    titre: 'Sanctions',
+    texte:
+      "Tout manquement grave (produits prohibés, mise en danger de mineurs) autorise le Bailleur à interdire l'accès aux équipements pour la durée restante du séjour, sans remboursement.",
+  });
+  return (
+    <View style={styles.art}>
+      <ArtTitle num="Art. 12" title={`Équipements spécifiques : ${titre}`} />
+      {paragraphes.map((para, i) => (
+        <Text key={para.titre} style={styles.p}>
+          <Text style={styles.pBold}>{`12.${i + 1} ${para.titre} —`}</Text> {para.texte}
+        </Text>
+      ))}
+    </View>
+  );
+}
+
 function ArtHead({ data, logo }: { data: ContratData; logo: Buffer | null }) {
   return (
     <View style={styles.artHead}>
@@ -1792,61 +1892,8 @@ export function ContratPDF({
           </Text>
         </View>
 
-        {data.giteASpa && (
-          <View style={styles.art}>
-            <ArtTitle num="Art. 12" title="Équipements spécifiques : spa" />
-            <Text style={styles.p}>
-              <Text style={styles.pBold}>12.1 Champ d&apos;application —</Text>{' '}
-              Le présent article s&apos;applique à l&apos;utilisation du spa
-              (jacuzzi) présent dans le gîte.
-            </Text>
-            <Text style={styles.p}>
-              <Text style={styles.pBold}>12.2 Conditions d&apos;utilisation —</Text>{' '}
-              (i) Température max 38 °C (réglage verrouillé) ; (ii){' '}
-              <Text style={styles.pBold}>interdiction absolue</Text>{' '}
-              d&apos;alcool, tabac, nourriture, substances psychotropes dans
-              ou à proximité immédiate du spa ; (iii) surveillance permanente
-              des mineurs par un adulte ;{' '}
-              <Text style={styles.pBold}>
-                utilisation par enfants de moins de 6 ans interdite
-              </Text>{' '}
-              ; pour 6-16 ans, présence active d&apos;un adulte dans le spa
-              obligatoire ; (iv) respect du nombre max d&apos;utilisateurs
-              simultanés affiché.
-            </Text>
-            <Text style={styles.p}>
-              <Text style={styles.pBold}>12.3 Précaution médicale —</Text> Il
-              appartient à chaque utilisateur de vérifier, le cas échéant
-              auprès de son médecin, l&apos;absence de contre-indication
-              (grossesse, problème cardiovasculaire, traitement en cours).
-            </Text>
-            <Text style={styles.p}>
-              <Text style={styles.pBold}>
-                12.4 Décharge de responsabilité —
-              </Text>{' '}
-              Le Locataire et les occupants utilisent le spa{' '}
-              <Text style={styles.pBold}>sous leur propre responsabilité</Text>
-              , en pleine conscience des risques (brûlures, glissades,
-              malaises, déshydratation, légionellose en cas de non-respect de
-              l&apos;hygiène). Le Locataire s&apos;engage à respecter et
-              faire respecter les règles d&apos;utilisation par l&apos;ensemble
-              des occupants.
-            </Text>
-            <Text style={styles.p}>
-              <Text style={styles.pBold}>12.5 Maintenance et eau du spa —</Text>{' '}
-              Le Bailleur procède à l&apos;entretien et au contrôle régulier
-              de la qualité de l&apos;eau entre chaque location. En cas
-              d&apos;anomalie pendant le séjour (couleur, odeur, mousse,
-              dysfonctionnement), le Locataire en avise immédiatement le
-              Bailleur et suspend l&apos;utilisation jusqu&apos;à intervention.
-            </Text>
-            <Text style={styles.p}>
-              <Text style={styles.pBold}>12.6 Sanctions —</Text> Tout
-              manquement grave (produits prohibés, mise en danger de mineurs)
-              autorise le Bailleur à interdire l&apos;accès aux équipements
-              pour la durée restante du séjour, sans remboursement.
-            </Text>
-          </View>
+        {(data.giteASpa || data.giteASauna) && (
+          <ArticleEquipements spa={data.giteASpa} sauna={data.giteASauna} />
         )}
 
         <View style={styles.art}>
