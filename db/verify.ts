@@ -60,7 +60,7 @@ const pad3 = (n: number): string => String(n).padStart(3, "0");
 const COLONNES_ATTENDUES: Record<string, string[]> = {
   gites: [
     "id", "nom", "ref_gdf", "slug", "adresse", "capacite_max", "forfait_menage", "caution",
-    "equipements_specifiques", "a_spa", "contact_arrivee_tel", "actif", "created_at",
+    "equipements_specifiques", "a_spa", "a_sauna", "contact_arrivee_tel", "actif", "created_at",
   ],
   reservations: [
     "id", "gite_id", "reference", "jeton_suivi", "statut", "numero_contrat",
@@ -87,7 +87,7 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     // Réservation faite par le lien d'une option (Phase 5, lot 4, migration 0015).
     "option_id",
     // Fiche du gîte figée à l'émission du contrat (écart E-9, migration 0016).
-    "contrat_capacite_max", "contrat_equipements", "contrat_a_spa", "contrat_contact_arrivee_tel",
+    "contrat_capacite_max", "contrat_equipements", "contrat_a_spa", "contrat_a_sauna", "contrat_contact_arrivee_tel",
     "created_at", "updated_at",
   ],
   documents: [

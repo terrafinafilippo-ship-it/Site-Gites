@@ -74,6 +74,7 @@ async function main(): Promise<void> {
         await pool.query<{ egale: boolean }>(
           `select (r.contrat_capacite_max = g.capacite_max
                    and r.contrat_a_spa = g.a_spa
+                   and r.contrat_a_sauna = g.a_sauna
                    and r.contrat_contact_arrivee_tel is not distinct from g.contact_arrivee_tel
                    and r.contrat_equipements is not distinct from g.equipements_specifiques) as egale
              from reservations r join gites g on g.id = r.gite_id where r.reference = $1`,
