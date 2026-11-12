@@ -36,7 +36,7 @@ export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
         <p>Les trois gîtes (LaPhine — 07G310701, L'Armu — 07G310700, La Maison Vieille — 07G310702) sont labellisés Gîtes de France depuis 2018 et classés selon la grille fédérale. Les avis affichés sont collectés et vérifiés par Gîtes de France après chaque séjour.</p>
       </section>
       <section><div class="legal__num">05 — Crédits</div><h2>Conception</h2>
-        <p>Conception et développement : Patricia &amp; Nicolas Terrafina, avec l'aide d'une agence partenaire. Typographies : Playfair Display et Inter (Google Fonts). Icônes : Lucide.</p>
+        <p>Conception et développement : Patricia &amp; Nicolas Terrafina. Typographies : Playfair Display et Inter (Google Fonts). Icônes : Lucide.</p>
       </section>
     `,
   },
