@@ -2121,6 +2121,26 @@ Réponses du gérant : 1 A, 2 A, 3 A, 4 B, 5 A (D-40).
 - Le courriel d'invitation reçu dans une vraie boîte (envoi simulé).
 - La relecture des textes par un juriste (point 13).
 
+## Phase 6 : le bailleur est la SARL, factures sur demande décidées (14 novembre 2026)
+
+Réponses du gérant aux questions préparées pour le comptable (D-41).
+
+### Ce qui a été fait
+
+- Mentions légales, CGV (version 5), confidentialité et pied de page au nom de
+  la SARL DE LA VOUTE, lus dans `EMETTEUR` : capital, siège, RCS, SIRET,
+  directeur de la publication (le gérant). Le SIRET factice et le code APE
+  disparaissent. Points 6 et 17 levés, écart E-1 corrigé.
+- Le médiateur MTV retiré des CGV (gérant : rien de non confirmé) ; elles
+  n'en citent plus aucun jusqu'à l'adhésion (point 7).
+- Décidé, pas encore construit : les factures seulement sur demande (bouton
+  sur la fiche de la réservation), l'avoir (suite `AV`, envoyé
+  automatiquement), la facture de retenue sur caution.
+
+### Ce qui a été vérifié
+
+- lint, `tsc`, build ; les pages juridiques relues à l'écran.
+
 ---
 
 ## Avant le premier client réel

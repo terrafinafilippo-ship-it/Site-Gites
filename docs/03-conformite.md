@@ -14,7 +14,7 @@ lettres.
 
 | # | Écart | Gravité | Phase | Qui peut lever |
 |---|---|---|---|---|
-| E-1 | Identité du bailleur incohérente entre le site et les documents ; SIRET factice publié | Bloquant | 6 | Le comptable |
+| ~~E-1~~ | ~~Identité du bailleur incohérente entre le site et les documents ; SIRET factice publié~~ — **corrigé le 14 novembre 2026** (D-41) | — | — | — |
 | E-2 | Deux médiateurs annoncés ; adhésion non prouvée | Bloquant | 6 | Les propriétaires |
 | ~~E-3~~ | ~~Aucune règle sauna dans le contrat, alors que le consentement en fait accepter~~ — **corrigé le 12 novembre 2026** (D-38) | — | — | — |
 | E-4 | Caution par préautorisation Stripe décrite au contrat et sur le site, pas encore développée | Bloquant | 4 | Stripe (deux confirmations) + juriste + développement |
@@ -345,7 +345,7 @@ Toute modification du texte du contrat s'accompagne d'un changement de
 émis : c'est elle qui dit quel client a signé quel texte. Version en cours :
 `v4` (30 octobre 2026, D-27).
 
-**Écart E-1 (bloquant, Phase 6) — identité du professionnel.** Voir § 9.
+**Écart E-1 — identité du professionnel : corrigé le 14 novembre 2026** (D-41). Voir § 9.
 
 **Écart E-8 (non bloquant, Phase 6) — « la semaine, tout compris ».** Le titre du
 bloc tarifs de la fiche gîte (`app/gites/[slug]/page.tsx`) annonce un prix
@@ -410,7 +410,11 @@ du linge de maison, réception de la clientèle.
 **Où c'est implémenté.** La mention « Exonération de TVA, article 261 D 4° du
 CGI » est imprimée sur les **deux factures** et dans le contrat.
 
-**Écart — décision différée (voir `docs/02-decisions.md`, DO-01).** La mention
+**Tranché le 14 novembre 2026 par le gérant (D-41) : les factures restent sans
+TVA.** Deux prestations sur quatre sont fournies (le linge, l'accueil) ;
+l'exonération ne tombe qu'à trois. À faire confirmer au comptable à
+l'occasion ; à revoir si un petit-déjeuner ou un ménage en cours de séjour
+était proposé. Pour mémoire, l'écart tel qu'il était décrit : la mention
 est affichée **sans que la qualification ait été validée**. Deux éléments
 appelaient une vérification : le **forfait ménage de 80 € facturé
 systématiquement** — supprimé le 12 novembre 2026 (D-37, forfait à 0 €) — et
@@ -603,8 +607,12 @@ confiance dans l'économie numérique, art. 6-III).
 **Où c'est implémenté.** `lib/data/legal.ts`, section `mentions`, servie par
 `app/legal/[section]/page.tsx`.
 
-**Écart E-1 (bloquant, Phase 6).** Les mentions publiées annoncent un éditeur
-qui **n'est pas** celui des documents contractuels :
+**Écart E-1 — corrigé le 14 novembre 2026 (D-41).** Le bailleur est la SARL
+DE LA VOUTE : les mentions légales (éditeur, capital, siège, RCS, SIRET,
+directeur de la publication), les CGV, la confidentialité et le pied de page
+lisent `EMETTEUR` (`lib/constantes.ts`). Pour mémoire, l'état d'avant — les
+mentions publiées annonçaient un éditeur qui **n'était pas** celui des
+documents contractuels :
 
 | | Mentions légales du site | Contrat et factures |
 |---|---|---|
@@ -637,8 +645,10 @@ un **abonnement payant** auprès d'un médiateur référencé.
 - `lib/constantes.ts`, `MENTIONS.mediateur` : **MEDICYS** (73 Bd de Clichy,
   75009 Paris), imprimé par le contrat et les trois factures (E-7 corrigé le
   9 novembre 2026).
-- Les CGV du site (`lib/data/legal.ts`) annoncent **MTV — Médiation Tourisme
-  Voyage** (BP 80303, 75823 Paris Cedex 17).
+- Les CGV du site (`lib/data/legal.ts`) annonçaient **MTV — Médiation Tourisme
+  Voyage** (BP 80303, 75823 Paris Cedex 17) ; **retiré le 14 novembre 2026**
+  (gérant : aucune information non confirmée) — les CGV ne citent plus aucun
+  médiateur jusqu'à l'adhésion.
 
 **Écart E-2 (bloquant, Phase 6).** Deux médiateurs différents sont annoncés au
 même client selon le document qu'il lit. Un seul peut être le bon.

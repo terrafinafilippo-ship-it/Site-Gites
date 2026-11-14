@@ -2026,11 +2026,71 @@ des avis et le texte de la page de dépôt changent avec. Une réponse publique
 
 ---
 
+## D-41 · Bailleur, TVA et factures sur demande
+
+**Date :** 13 et 14 novembre 2026. Réponses du gérant aux questions préparées
+pour le comptable (points 6, 17 et 19 de `docs/06-avant-premier-client.md`).
+
+**Ce qui est décidé.**
+- **Le bailleur est la SARL DE LA VOUTE**, sous l'enseigne « Les Gîtes de
+  Samoyas » (tranche DO-01, corrige E-1). Les mentions légales (éditeur,
+  capital, siège, RCS, SIRET, directeur de la publication : le gérant), les
+  CGV, la confidentialité et le pied de page lisent `EMETTEUR`
+  (`lib/constantes.ts`), comme le contrat et les factures. Le code APE n'est
+  pas affiché : il n'est pas obligatoire. **Fait le 14 novembre 2026.**
+- **Les factures restent sans TVA** (art. 261 D 4° CGI). Des quatre
+  prestations de type hôtelier, deux sont fournies (le linge, l'accueil) ;
+  l'exonération ne tombe qu'à trois. Elle serait à revoir si un petit-déjeuner
+  ou un ménage en cours de séjour était proposé.
+- **Séjour payé en une fois** : une seule facture « FACTURE » du total
+  (D-29 confirmée, point 17 levé).
+- **Les factures ne se font que sur demande** (remplace l'émission
+  automatique de D-28 et D-29). Plus aucune facture ni courriel « Votre
+  facture » après un paiement. Sur la fiche de la réservation, une fois le
+  séjour entièrement payé, un bouton « Créer et envoyer la facture » : **une
+  seule facture du séjour entier** (1 A), au nom et à l'adresse de la
+  réservation, modifiables avant la création pour une entreprise (nom,
+  adresse, SIREN) (2 A). Le numéro n'est frappé qu'à la création : la suite
+  reste sans trou. *À construire.*
+- **Avoir** : seulement si une facture a été faite ; du montant remboursé ;
+  une suite à part, `AV-{année}-{seq}`, par `prochain_numero`. Il imprime : le
+  numéro et la date, l'émetteur, le client, **la ou les factures qu'il
+  corrige**, l'objet (annulation du séjour, gîte, dates, contrat), le montant
+  remboursé selon l'article 7.2 du contrat, le mode et la date du
+  remboursement, la mention de TVA des factures (exemple validé le
+  14 novembre). Créé et **envoyé automatiquement** à l'annulation (3 A) : le
+  client a déjà demandé sa facture. *À construire, avec le lot 5 de la
+  Phase 5.*
+- **Retenue sur caution** : une facture sur demande (bouton sur la caution
+  retenue), dans la suite des factures, avec la phrase « Somme non soumise à
+  la TVA : dédommagement d'un dégât, sans service rendu en échange. » (une
+  retenue n'est pas une location). *À construire.*
+
+**Pourquoi.** En neuf ans, seules des entreprises ont demandé une facture. La
+facture n'est obligatoire qu'envers un professionnel (art. 289 CGI) ; un
+particulier a son contrat signé et les courriels qui confirment chaque
+paiement. Moins de courriels inutiles, et les propriétaires gardent la main.
+
+**Ce qui pourrait mal tourner.**
+- Ces réponses sont celles du gérant, pas du comptable : l'exonération et la
+  phrase de la facture de retenue sont à lui faire confirmer à l'occasion.
+- À partir de septembre 2027, les factures entre entreprises passent par une
+  plateforme agréée : savoir avec le comptable, avant cette date, si ces
+  locations sont concernées.
+
+**Si on revient dessus.** Rétablir l'émission automatique, c'est rappeler
+`inscrireFacture` après chaque paiement, comme avant D-41.
+
+---
+
 ## Décisions ouvertes
 
 Elles ne sont **pas tranchées** et ne doivent pas l'être dans le code.
 
-### DO-01 · Qui est le bailleur juridique des trois gîtes ?
+### ~~DO-01 · Qui est le bailleur juridique des trois gîtes ?~~
+
+**Tranchée le 14 novembre 2026 : D-41** (la SARL DE LA VOUTE). Conservée pour
+mémoire.
 
 **La question.** Les trois gîtes sont-ils loués par la **SARL DE LA VOUTE**, ou
 par Patricia et Nicolas Terrafina **en nom propre** ?

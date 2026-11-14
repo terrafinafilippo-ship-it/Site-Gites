@@ -37,7 +37,9 @@ référencement en place.
    traductions juridiques s'il les demande.
 
 ### Légal — les trois points bloquants
-5. **Identité du bailleur** (point 6) : question au **comptable**, dans ses trois
+5. **Identité du bailleur** (point 6) : **fait le 14 novembre 2026** (D-41) — la
+   SARL DE LA VOUTE, factures sans TVA ; mentions légales, CGV, confidentialité
+   et pied de page alignés. Pour mémoire : question au **comptable**, dans ses trois
    volets — qui exploite, comment les revenus sont déclarés, l'exonération de TVA
    de l'art. 261 D 4° CGI tient-elle. Puis alignement des mentions légales, des
    CGV, et de `lib/constantes.ts`, que le contrat, les trois factures et la
@@ -71,13 +73,13 @@ lever.
 
 | Où | Ce qui s'affiche | Pourquoi c'est faux ou douteux | Qui |
 |---|---|---|---|
-| Mentions légales | « exploitants en nom propre », SIRET 000 000 000 00000 | Le contrat et les factures sont au nom de la SARL (E-1) | Le comptable (point 6) |
+| ~~Mentions légales, pied de page~~ | ~~« exploitants en nom propre », SIRET 000 000 000 00000~~ | **Corrigé le 14 novembre 2026** (D-41) : la SARL DE LA VOUTE, ses vrais numéros, lus dans `EMETTEUR` | — |
 | ~~Mentions légales, confidentialité, page Contact~~ | ~~contact@gites-samoyas.fr~~ | **Corrigé le 11 novembre 2026** : contact@gitesdesamoyas.fr (réponse du gérant), l'adresse que le contrat imprime depuis les réglages. Les pages l'écrivent en clair : si les réglages changent d'adresse, elles sont à corriger aussi | — |
 | ~~Fiches et cartes des gîtes (`lib/data/gites.ts`)~~ | ~~Note, nombre d'avis, % de recommandation par gîte (5,0 · 16 avis…)~~ | **Vrais** : avis Gîtes de France (gérant, 12 novembre 2026). **Sortis du code le 12 novembre 2026** (D-40) : saisis sur la fiche de chaque gîte du back-office, affichés avec leur source à côté des avis des clients du site | — |
 | ~~Mentions légales~~ | ~~« Les avis affichés sont collectés et vérifiés par Gîtes de France »~~ | **Vrai** : les chiffres viennent de Gîtes de France (gérant, 12 novembre 2026) | — |
 | Accueil | « Labellisés depuis 2018 » | Écrit en dur, aucune source dans le dépôt | Les propriétaires |
 | ~~Politique cookies, bannière~~ | ~~Mesure d'audience par Matomo~~ | **Corrigé le 12 novembre 2026** (D-39) : bannière retirée, politique cookies réécrite (aucun traceur ; cookies de Stripe au paiement) | — |
-| CGV | Médiateur MTV ; contrat et factures : MEDICYS | E-2 | Les propriétaires (point 7) |
+| CGV | Médiateur MTV **retiré le 14 novembre 2026** (aucun médiateur cité jusqu'à l'adhésion) ; contrat et factures : MEDICYS | E-2 | Les propriétaires (point 7) |
 | Confidentialité | Conservation 5 ans, rien sur la carte ni sur Brevo | Voir le périmètre exclu ci-dessous | Juriste, Phase 6 |
 | ~~Mentions légales~~ | ~~« Conception … avec l'aide d'une agence partenaire »~~ | **Retiré le 12 novembre 2026** (« c'est faux », gérant) | — |
 

@@ -6,14 +6,15 @@
 
 Dix-huit points à traiter **avant qu'un vrai client signe un vrai contrat** (le
 point 1 est levé depuis le 3 novembre 2026, le point 19 ajouté le même jour ;
+le point 8 levé le 12 novembre, les points 6 et 17 le 14 novembre ;
 les numéros ne changent pas, d'autres documents les citent). Aucun
 n'empêche le logiciel de fonctionner : ils empêchent qu'il fonctionne
 **correctement le jour où il compte**.
 
 ## Qui peut lever un point
 
-Quinze des dix-huit points **ne se résolvent pas, ou pas entièrement, dans le
-dépôt** (3, 4, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 et 19). Sans cette
+Parmi les points encore ouverts, douze **ne se résolvent pas, ou pas
+entièrement, dans le dépôt** (3, 4, 7, 9, 10, 11, 12, 13, 14, 15, 16 et 18). Sans cette
 précision, une session future les lira comme des tâches techniques et cherchera
 la réponse au mauvais endroit — dans le code, où elle n'est pas.
 
@@ -34,7 +35,7 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | 3 | Caution (carte, chèque, virement) et paiement : confirmés par Stripe, contrat et texte d'accord relus par un juriste, développés et testés | **Les propriétaires** (Stripe, juriste), puis développement | Phases 3 et 4 |
 | 4 | Passer la base en configuration de production | Développement (vérification), puis **le gérant** (migrations, compte du virement) | Avant l'ouverture |
 | 5 | Vérifier le logo sur un PDF généré **après** déploiement | Développement | Au déploiement |
-| 6 | Qui est le bailleur juridique des trois gîtes | **Le comptable** | Phase 6 |
+| ~~6~~ | ~~Qui est le bailleur juridique des trois gîtes~~ — **levé le 14 novembre 2026** (D-41 : la SARL DE LA VOUTE, factures sans TVA) | — | — |
 | 7 | Médiateur de la consommation : lequel, et adhésion en cours | **Les propriétaires** | Phase 6 |
 | ~~8~~ | ~~Écrire les règles sauna à l'article 12 du contrat~~ — **levé le 12 novembre 2026** (D-38, migration 0019) | — | — |
 | 9 | Sauvegarder le volume des PDF, et tester une restauration | **Phase de déploiement** | Au déploiement effectif — échéance tranchée le 24 septembre 2026 |
@@ -45,9 +46,9 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | 14 | Passer Stripe en mode réel et brancher l'avis de paiement | **Les propriétaires** (compte Stripe activé), puis développement | Au déploiement |
 | 15 | Brancher les courriels réels sur le serveur déployé, DMARC en « quarantaine » | **Phase de déploiement**, puis les propriétaires (réception) | Au déploiement |
 | 16 | Annulation : confirmer le délai de remboursement du solde (48 heures) | **Arbitrage** | Avant l'ouverture |
-| 17 | Séjour payé en une fois : faire confirmer la facture unique | **Le comptable** | Avant l'ouverture |
+| ~~17~~ | ~~Séjour payé en une fois : faire confirmer la facture unique~~ — **levé le 14 novembre 2026** (D-41) | — | — |
 | 18 | Programmer le réveil des tâches automatiques (solde, factures, relances) | **Phase de déploiement** | Au déploiement |
-| 19 | Annulation par les propriétaires : remboursement et avoir | **Le comptable** (forme de l'avoir), puis développement | Phase 5, lot 5 |
+| 19 | Annulation par les propriétaires : remboursement et avoir | Développement (forme de l'avoir arrêtée le 14 novembre 2026, D-41) | Phase 5, lot 5 |
 
 ---
 
@@ -287,6 +288,10 @@ conteneur.
 
 ## 6. Qui est le bailleur juridique des trois gîtes
 
+> **Levé le 14 novembre 2026** (D-41) : la SARL DE LA VOUTE, enseigne « Les
+> Gîtes de Samoyas » ; factures sans TVA. Mentions légales, CGV, confidentialité
+> et pied de page alignés le même jour. Conservé pour mémoire.
+
 **Qui peut lever :** **le comptable**, avec les propriétaires · **Phase 6**
 
 **La raison.** Les documents contractuels engagent la **SARL DE LA VOUTE**
@@ -327,8 +332,9 @@ paient · **Phase 6**
 
 **La raison.** Deux médiateurs différents sont annoncés au même client selon le
 document qu'il lit : **MEDICYS** sur les factures et dans le contrat,
-**MTV — Médiation Tourisme Voyage** dans les CGV du site. Un seul peut être le
-bon.
+**MTV — Médiation Tourisme Voyage** dans les CGV du site (retiré des CGV le
+14 novembre 2026 : elles ne citent plus aucun médiateur jusqu'à l'adhésion).
+Un seul peut être le bon.
 
 **Le point important n'est pas la cohérence de rédaction.** L'adhésion à un
 dispositif de médiation est un **abonnement payant** (art. L.612-1 C. conso.).
@@ -705,6 +711,10 @@ et la date limite qui en découle (art. 7.2).
 
 ## 17. Séjour payé en une fois : faire confirmer la facture unique
 
+> **Levé le 14 novembre 2026** (D-41) : une seule facture « FACTURE » du total,
+> confirmée par le gérant. Depuis D-41, elle n'est créée que sur demande du
+> client. Conservé pour mémoire.
+
 **Qui peut lever :** **le comptable** · **avant l'ouverture**
 
 **La raison.** Un séjour payé en une fois à la réservation (D-20, D-27) ne
@@ -755,6 +765,11 @@ d'essai dont la date limite du solde est passée reçoit son courriel.
 
 ## 19. Annulation par les propriétaires : remboursement et avoir
 
+> **Forme de l'avoir arrêtée le 14 novembre 2026** (D-41) : seulement si une
+> facture a été faite, du montant remboursé, suite à part `AV-{année}-{seq}`,
+> envoyé automatiquement. Une retenue sur caution donne une facture, sur
+> demande. Reste le développement (lot 5).
+
 **Qui peut lever :** **le comptable** (la forme de l'avoir), puis
 développement · **Phase 5, lot 5**
 
@@ -787,4 +802,6 @@ Conservés pour mémoire : ils ont figuré dans cette liste et n'y figurent plus
 | Point | Levé le | Comment |
 |---|---|---|
 | 1. Nommer les options sur les documents | 3 novembre 2026 | Aucune option n'est vendue (cadrage de la Phase 5, réponse 8) : la ligne ne s'imprime qu'au-delà de 0 €, le tunnel écrit 0, le back-office n'en propose pas. À reprendre dans une session dédiée avant la première option vendue. |
+| 6. Qui est le bailleur juridique | 14 novembre 2026 | La SARL DE LA VOUTE, factures sans TVA (D-41) ; mentions légales, CGV, confidentialité et pied de page alignés. |
+| 17. Séjour payé en une fois : la facture unique | 14 novembre 2026 | Une seule facture « FACTURE » du total, confirmée par le gérant (D-41). |
 | Refermer le port PostgreSQL public | 16 septembre 2026 | Port fermé ; `DATABASE_URL` vise l'hôte interne du réseau Coolify ; accès de développement par tunnel SSH. `?sslmode=require` reste inutilisable, le serveur tournant avec `ssl = off`. Voir `docs/02-decisions.md`, D-10. |
