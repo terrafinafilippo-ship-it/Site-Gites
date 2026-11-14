@@ -3,8 +3,16 @@
  *  donnée utilisateur) ; ils sont rendus via dangerouslySetInnerHTML.
  *
  *  La politique des avis (Phase 6, D-40) cite les règles écrites des avis
- *  (lib/avis-regles.ts) : durée de publication, motifs de retrait. */
+ *  (lib/avis-regles.ts) : durée de publication, motifs de retrait.
+ *
+ *  L'identité de l'exploitant (mentions légales, CGV, confidentialité) vient
+ *  de EMETTEUR (lib/constantes.ts), comme sur le contrat et les factures. */
 import { DUREE_AVIS_ANS, LIBELLES_MOTIF } from "@/lib/avis-regles";
+import { EMETTEUR, LIGNE_CAPITAL, LIGNE_IMMATRICULATION } from "@/lib/constantes";
+
+/** « SARL DE LA VOUTE (enseigne Les Gîtes de Samoyas) ». */
+const EXPLOITANT = `${EMETTEUR.raisonSociale} (enseigne ${EMETTEUR.enseigne})`;
+const SIEGE = `${EMETTEUR.adresse}, ${EMETTEUR.codePostalVille}`;
 
 export type LegalSection = "mentions" | "cgv" | "privacy" | "cookies" | "avis";
 
@@ -23,17 +31,18 @@ export function isLegalSection(s: string): s is LegalSection {
 export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
   mentions: {
     title: "Mentions légales",
-    meta: "Mise à jour le 19 mai 2026",
+    meta: "Mise à jour le 14 novembre 2026",
     body: `
       <section><div class="legal__num">01 — Éditeur</div><h2>Éditeur du site</h2>
-        <p>Le présent site est édité par Patricia &amp; Nicolas Terrafina, exploitants des Gîtes de Samoyas en nom propre.</p>
-        <p>Hameau de Samoyas — 07430 Savas, France<br>SIRET 000 000 000 00000 — Code APE 5520Z<br>Téléphone : +33 6 79 33 23 51 — Email : contact@gitesdesamoyas.fr</p>
+        <p>Le présent site est édité par la ${EMETTEUR.raisonSociale}, ${LIGNE_CAPITAL}, sous l'enseigne « ${EMETTEUR.enseigne} ».</p>
+        <p>Siège social : ${SIEGE}, France<br>${LIGNE_IMMATRICULATION}<br>Téléphone : +33 6 79 33 23 51 — Email : contact@gitesdesamoyas.fr</p>
+        <p>Directeur de la publication : ${EMETTEUR.gerant.prenom} ${EMETTEUR.gerant.nom}, gérant.</p>
       </section>
       <section><div class="legal__num">02 — Hébergement</div><h2>Hébergeur du site</h2>
         <p>OVHcloud — 2 rue Kellermann, 59100 Roubaix, France. Le site est hébergé en France.</p>
       </section>
       <section><div class="legal__num">03 — Propriété intellectuelle</div><h2>Contenus &amp; photographies</h2>
-        <p>L'ensemble des textes, photographies et éléments graphiques présents sur ce site sont la propriété de Patricia &amp; Nicolas Terrafina, à l'exception des contenus marqués comme appartenant à des tiers (Gîtes de France, prestataires d'activités).</p>
+        <p>L'ensemble des textes, photographies et éléments graphiques présents sur ce site sont la propriété de la ${EMETTEUR.raisonSociale}, à l'exception des contenus marqués comme appartenant à des tiers (Gîtes de France, prestataires d'activités).</p>
         <p>Toute reproduction, même partielle, est interdite sans autorisation écrite préalable.</p>
       </section>
       <section><div class="legal__num">04 — Labellisation</div><h2>Gîtes de France</h2>
@@ -46,10 +55,10 @@ export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
   },
   cgv: {
     title: "Conditions générales de vente",
-    meta: "Applicables aux séjours réservés à partir du 1ᵉʳ janvier 2026 — version 4 du 29 octobre 2026",
+    meta: "Applicables aux séjours réservés à partir du 1ᵉʳ janvier 2026 — version 5 du 14 novembre 2026",
     body: `
       <section><div class="legal__num">01 — Objet</div><h2>Champ d'application</h2>
-        <p>Les présentes conditions s'appliquent à toute réservation effectuée en direct sur ce site, par téléphone ou par email auprès de Patricia &amp; Nicolas Terrafina, exploitants des Gîtes de Samoyas.</p>
+        <p>Les présentes conditions s'appliquent à toute réservation effectuée en direct sur ce site, par téléphone ou par email auprès de la ${EXPLOITANT}.</p>
       </section>
       <section><div class="legal__num">02 — Réservation &amp; paiement</div><h2>Réservation et règlement</h2>
         <p>La réservation est ferme dès le paiement en ligne de l'acompte, dont le taux est indiqué lors de la réservation et au contrat. Le contrat de location est ensuite adressé par courriel, pour signature électronique.</p>
@@ -72,17 +81,17 @@ export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
       <section><div class="legal__num">04 — Séjour</div><h2>Modalités sur place</h2>
         <p>Les heures d'arrivée et de départ sont indiquées lors de la réservation et au contrat. Linge de maison et de toilette fourni. Chauffage compris. Animaux non admis. Capacité d'accueil stricte respectée (cf. fiche de chaque gîte). La taxe de séjour s'ajoute au prix du séjour et se paie avec lui, à la réservation ; son mode de calcul figure sur la fiche de chaque gîte.</p>
       </section>
-      <section><div class="legal__num">05 — Litiges</div><h2>Médiation</h2>
-        <p>En cas de litige, vous pouvez saisir gratuitement le médiateur de la consommation MTV — Médiation Tourisme Voyage (BP 80303 — 75823 Paris Cedex 17 — mtv.travel). Tout litige relève à défaut des tribunaux français.</p>
+      <section><div class="legal__num">05 — Litiges</div><h2>Litiges</h2>
+        <p>Tout litige relève des tribunaux français.</p>
       </section>
     `,
   },
   privacy: {
     title: "Politique de confidentialité",
-    meta: "Conforme RGPD — mise à jour le 12 novembre 2026",
+    meta: "Conforme RGPD — mise à jour le 14 novembre 2026",
     body: `
       <section><div class="legal__num">01 — Responsable</div><h2>Responsable de traitement</h2>
-        <p>Patricia &amp; Nicolas Terrafina, Hameau de Samoyas, 07430 Savas. Email : contact@gitesdesamoyas.fr.</p>
+        <p>${EXPLOITANT}, ${SIEGE}. Email : contact@gitesdesamoyas.fr.</p>
       </section>
       <section><div class="legal__num">02 — Données collectées</div><h2>Quelles données, pour quoi ?</h2>
         <ul>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EMETTEUR } from "@/lib/constantes";
 import { lien, type Bilingue, type Langue } from "@/lib/i18n/langues";
 
 const TEXTES: Bilingue<{
@@ -117,7 +118,7 @@ export default function Footer({ langue }: { langue: Langue }) {
           </div>
         </div>
         <div className="ft-meta">
-          <span>© 2026 Les Gîtes de Samoyas — SIRET 000 000 000 00000</span>
+          <span>© 2026 {EMETTEUR.enseigne} — {EMETTEUR.raisonSociale} — SIRET {EMETTEUR.siret}</span>
           <span className="meta-links">
             <Link href={l("/legal/mentions")}>{t.mentionsCourt}</Link>
             <Link href={l("/legal/cgv")}>{t.cgvCourt}</Link>
