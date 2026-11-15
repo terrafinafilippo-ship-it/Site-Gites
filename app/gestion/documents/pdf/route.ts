@@ -1,4 +1,4 @@
-// GET /gestion/documents/pdf?sorte=contrat|facture&id=… (Phase 5, lot 4) :
+// GET /gestion/documents/pdf?sorte=contrat|facture|avoir&id=… (Phase 5, lot 4) :
 // « Ouvrir le PDF » depuis le back-office. Session exigée ; le PDF est servi
 // par la seule porte des documents (app/api/documents), par un lien signé de
 // cinq minutes demandé au moment du clic — une page restée ouverte ne garde
@@ -19,7 +19,7 @@ export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const sorte = url.searchParams.get("sorte");
   const id = url.searchParams.get("id") ?? "";
-  if (sorte !== "contrat" && sorte !== "facture") return new NextResponse("Document inconnu.", { status: 404 });
+  if (sorte !== "contrat" && sorte !== "facture" && sorte !== "avoir") return new NextResponse("Document inconnu.", { status: 404 });
   const chemin = await cheminDocument(sorte, id);
   if (!chemin) return new NextResponse("Ce document n'a pas de PDF.", { status: 404 });
   const lien = await getStorage().getSignedUrl(chemin, DUREE_LIEN_SECONDES);

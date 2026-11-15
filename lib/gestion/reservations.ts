@@ -12,7 +12,19 @@
 import { and, asc, desc, eq, ilike, inArray, or, sql, type SQL } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { audit_logs, courriels, documents, factures, gites, paiements, reservations, retenues } from "@/db/schema";
+import {
+  annulations,
+  audit_logs,
+  avoirs,
+  courriels,
+  documents,
+  factures,
+  gites,
+  paiements,
+  remboursements,
+  reservations,
+  retenues,
+} from "@/db/schema";
 import { lireEtatCaution, type EtatCaution } from "@/lib/caution";
 import { centimesDepuisNumeric } from "@/lib/centimes";
 import { inscrireContratRenvoye } from "@/lib/courriels";
@@ -98,6 +110,10 @@ export interface Fiche {
   paiements: (typeof paiements.$inferSelect)[];
   documents: (typeof documents.$inferSelect)[];
   factures: (typeof factures.$inferSelect)[];
+  /** Annulation depuis le back-office (Phase 5, lot 5) : la règle et son résultat, les remboursements, l'avoir. */
+  annulation: typeof annulations.$inferSelect | null;
+  remboursements: (typeof remboursements.$inferSelect)[];
+  avoir: typeof avoirs.$inferSelect | null;
   courriels: { objet: string; destinataire: string; statut: string; sujet: string | null; quand: Date }[];
   journal: (typeof audit_logs.$inferSelect)[];
 }
@@ -113,7 +129,7 @@ export async function lireFiche(id: string, maintenant: Date = new Date()): Prom
   } catch {
     // Réservation saisie sans montants complets : la fiche s'affiche quand même.
   }
-  const [lignes, docs, facs, mails, journal, [retenue]] = await Promise.all([
+  const [lignes, docs, facs, mails, journal, [retenue], [annulation], mouvements, [avoir]] = await Promise.all([
     db.select().from(paiements).where(eq(paiements.reservation_id, id)).orderBy(asc(paiements.created_at)),
     db.select().from(documents).where(eq(documents.reservation_id, id)),
     db.select().from(factures).where(eq(factures.reservation_id, id)).orderBy(asc(factures.date_emission)),
@@ -130,6 +146,9 @@ export async function lireFiche(id: string, maintenant: Date = new Date()): Prom
       .orderBy(desc(audit_logs.created_at))
       .limit(100),
     db.select().from(retenues).where(eq(retenues.reservation_id, id)),
+    db.select().from(annulations).where(eq(annulations.reservation_id, id)),
+    db.select().from(remboursements).where(eq(remboursements.reservation_id, id)).orderBy(asc(remboursements.created_at)),
+    db.select().from(avoirs).where(eq(avoirs.reservation_id, id)),
   ]);
   return {
     resa,
@@ -141,6 +160,9 @@ export async function lireFiche(id: string, maintenant: Date = new Date()): Prom
     paiements: lignes,
     documents: docs,
     factures: facs,
+    annulation: annulation ?? null,
+    remboursements: mouvements,
+    avoir: avoir ?? null,
     courriels: mails,
     journal,
   };

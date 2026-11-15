@@ -7,6 +7,7 @@ import type { Coordonnees } from "../lib/coordonnees";
 import type { Envoi, Message, Messagerie } from "../lib/messagerie";
 import { constaterPaiement, ouvrirPaiement } from "../lib/paiement";
 import { carteEnregistree } from "../lib/reglement";
+import { RemboursementRefuse } from "../lib/stripe";
 import type {
   AvisPaiement,
   DemandePaiement,
@@ -77,8 +78,21 @@ export class PrestataireSimule implements Prestataire {
     this.paiements.set(id, fait);
     return { ...fait };
   }
-  async rembourser(): Promise<{ id: string }> {
-    throw new Error("remboursement : hors de ce contrôle");
+  /** Remboursements faits (annulation, Phase 5, lot 5) : un par clé d'idempotence. */
+  readonly remboursements: { ref: string; paiement: string; montant: number | null; cle: string }[] = [];
+  /** Vrai : Stripe refuse de rembourser (paiement trop ancien, carte close…). */
+  refusRemboursement = false;
+  /** Vrai : Stripe ne répond pas (panne). */
+  panneRemboursement = false;
+  async rembourser(id: string, _motif: string, partiel?: { montant: number; cle: string }): Promise<{ id: string }> {
+    if (this.panneRemboursement) throw new Error("prestataire injoignable (simulé)");
+    if (this.refusRemboursement) throw new RemboursementRefuse("charge_expired_for_refund (simulé)");
+    const cle = partiel?.cle ?? `remboursement-${id}`;
+    const deja = this.remboursements.find((r) => r.cle === cle);
+    if (deja) return { id: deja.ref };
+    const ref = `re_lot5_${this.remboursements.length + 1}_${Date.now()}`;
+    this.remboursements.push({ ref, paiement: id, montant: partiel?.montant ?? null, cle });
+    return { id: ref };
   }
   lireAvis(): AvisPaiement | null {
     return null;

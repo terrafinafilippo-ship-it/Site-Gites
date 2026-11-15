@@ -28,3 +28,6 @@ export * from "./gestion";
 export * from "./retenues";
 // Calendrier (Phase 5, lot 4).
 export * from "./options-sejour";
+// Annulation et avoir (Phase 5, lot 5).
+export * from "./annulations";
+export * from "./avoirs";

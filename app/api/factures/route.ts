@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { verifierSecret } from '@/lib/auth';
+import { emettreAvoir } from '@/lib/avoirs';
 import { emettreFacture } from '@/lib/factures';
 import { lireEntreprise } from '@/lib/montants';
 import { getStorage } from '@/lib/storage';
@@ -31,6 +32,9 @@ const estTypeFacture = (v: unknown): v is TypeFacture =>
  * Depuis D-41, le site n'émet plus de facture tout seul : le back-office la
  * fait sur demande du client (courriel « facture »). Cette route sert au
  * parcours de non-régression et aux contrôles.
+ *
+ * type 'avoir' (Phase 5, lot 5) : émet l'avoir d'une réservation annulée et
+ * remboursée (lib/avoirs.ts), comme le courriel « avoir ».
  */
 export async function POST(request: Request) {
   // ── 0. Auth service-à-service ────────────────────────────────────────────
@@ -47,6 +51,17 @@ export async function POST(request: Request) {
 
   const reservationId = body.reservationId;
   const type = body.type;
+
+  if (type === 'avoir' && isUuid(reservationId)) {
+    const avoir = await emettreAvoir(reservationId);
+    if (!avoir.ok) return NextResponse.json({ error: avoir.message }, { status: avoir.status });
+    return NextResponse.json({
+      numero: avoir.avoir.numero,
+      type,
+      chemin_storage: avoir.avoir.chemin,
+      url: await getStorage().getSignedUrl(avoir.avoir.chemin, SIGNED_URL_TTL),
+    });
+  }
 
   if (!isUuid(reservationId) || !estTypeFacture(type)) {
     return NextResponse.json(

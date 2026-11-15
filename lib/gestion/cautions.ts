@@ -346,7 +346,8 @@ export async function noterCautionRendue(reservationId: string, acteur: Acteur, 
     if (!resa) return refus("Réservation introuvable.");
     if (!resa.caution_recue_at) return refus("La caution n'est pas notée reçue.");
     if (resa.caution_rendue_at) return refus("La caution est déjà notée rendue.");
-    if (aujourdhuiParis(maintenant) < resa.date_depart) {
+    // Réservation annulée (Phase 5, lot 5) : la caution reçue se rend tout de suite.
+    if (resa.statut !== "annulee" && aujourdhuiParis(maintenant) < resa.date_depart) {
       return refus(`La caution se rend à partir du jour du départ, le ${fmtDateLongue(resa.date_depart)}.`);
     }
     const [r] = await tx.select({ id: retenues.id }).from(retenues).where(eq(retenues.reservation_id, reservationId));

@@ -25,7 +25,7 @@
 import { and, eq, gte, inArray, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { a_traiter_faits, courriels, documents, gites, paiements, reglages, reservations } from "@/db/schema";
+import { a_traiter_faits, courriels, documents, gites, paiements, reglages, remboursements, reservations } from "@/db/schema";
 import { jourLevee, lireReglagesCaution } from "@/lib/caution";
 import { centimesDepuisNumeric } from "@/lib/centimes";
 import { OBJETS_CLIENT } from "@/lib/courriels-envoi";
@@ -97,6 +97,64 @@ export async function listerATraiter(maintenant: Date = new Date(), ex: Executeu
       ),
     );
   let compteManquant = false;
+
+  // Les réservations annulées (Phase 5, lot 5) : un remboursement par virement
+  // à faire, un remboursement par carte qui n'aboutit pas, une caution reçue à rendre.
+  const annulees = await ex
+    .select({ id: reservations.id })
+    .from(reservations)
+    .where(
+      and(
+        eq(reservations.statut, "annulee"),
+        sql`(exists (select 1 from ${remboursements} where ${remboursements.reservation_id} = ${reservations.id}
+                and ${remboursements.statut} = 'a_faire')
+             or (${reservations.caution_recue_at} is not null and ${reservations.caution_rendue_at} is null))`,
+      ),
+    );
+  for (const { id } of annulees) {
+    const resa = await chargerReservationAvecGite(id, ex);
+    if (!resa) continue;
+    const base = { reservationId: resa.id, reference: resa.reference, client: nomClient(resa), gite: resa.gites?.nom ?? null };
+    const mouvements = await ex
+      .select()
+      .from(remboursements)
+      .where(and(eq(remboursements.reservation_id, resa.id), eq(remboursements.statut, "a_faire")));
+    for (const m of mouvements) {
+      const montant = fmtEuro(centimesDepuisNumeric(m.montant));
+      if (m.mode === "virement") {
+        taches.push({
+          ...base,
+          cle: `remboursement_virement:${m.id}`,
+          titre: "Remboursement à faire par virement",
+          detail:
+            `${montant} à rembourser au client, réservation annulée` +
+            `${m.erreur ? " (la banque a refusé de rembourser la carte)" : ""}. ` +
+            "Faites le virement depuis votre banque, puis cliquez « Remboursement fait » sur la fiche.",
+          depuis: aujourdhuiParis(m.created_at),
+          gestes: ["fiche"],
+        });
+      } else if (maintenant.getTime() - m.created_at.getTime() > 3_600_000) {
+        taches.push({
+          ...base,
+          cle: `remboursement_carte:${m.id}`,
+          titre: "Remboursement sur la carte pas encore abouti",
+          detail: `${montant} à rembourser sur la carte du client : Stripe ne répond pas, le site retente tout seul. Si cela dure, prévenez le développeur.`,
+          depuis: aujourdhuiParis(m.created_at),
+          gestes: ["fiche"],
+        });
+      }
+    }
+    if (resa.caution_recue_at && !resa.caution_rendue_at && resa.caution !== null) {
+      taches.push({
+        ...base,
+        cle: `caution_a_rendre:${resa.id}`,
+        titre: "Caution à rendre",
+        detail: `${fmtEuro(resa.caution)} reçus par ${resa.moyen_caution === "virement" ? "virement" : "chèque"} : la réservation est annulée, rendez-la entière.`,
+        depuis: aujourdhuiParis(resa.updated_at),
+        gestes: ["fiche"],
+      });
+    }
+  }
 
   for (const { id } of resas) {
     const resa = await chargerReservationAvecGite(id, ex);

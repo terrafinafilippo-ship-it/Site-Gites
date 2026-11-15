@@ -61,6 +61,11 @@ export const OBJETS_COURRIEL = [
   // départ ; l'avis retiré, avec son motif.
   "avis_invitation",
   "avis_retrait",
+  // Phase 5, lot 5 (migration 0023, D-42) : la réservation annulée par les
+  // propriétaires (ce qui est rendu, et comment) ; l'avoir en PDF, quand tout
+  // est remboursé et qu'une facture avait été faite.
+  "annulation",
+  "avoir",
   // Aux propriétaires, en français.
   "alerte_reservation",
   "alerte_signature",
@@ -110,7 +115,7 @@ export const courriels = pgTable(
       sql`${t.objet} in ('confirmation', 'contrat', 'remboursement', 'lien_suivi', 'facture', 'solde_preavis',
           'solde_lien', 'solde_rappel', 'solde_impaye', 'caution_bloquee', 'caution_a_valider', 'caution_liberee',
           'caution_carte', 'caution_virement', 'caution_retenue', 'caution_recue', 'caution_rendue',
-          'option', 'contrat_signe', 'avis_invitation', 'avis_retrait',
+          'option', 'contrat_signe', 'avis_invitation', 'avis_retrait', 'annulation', 'avoir',
           'alerte_reservation', 'alerte_signature', 'alerte_probleme', 'alerte_caution', 'alerte_avis')`,
     ),
     check("courriels_statut_check", sql`${t.statut} in ('a_envoyer', 'envoye', 'echec')`),

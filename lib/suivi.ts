@@ -27,7 +27,7 @@ import { randomUUID } from "node:crypto";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { courriels, documents, paiements, reglages, reservations } from "@/db/schema";
+import { annulations, courriels, documents, paiements, reglages, remboursements, reservations } from "@/db/schema";
 import { centimesDepuisNumeric } from "@/lib/centimes";
 import { lireEtatCaution, type EtatCaution } from "@/lib/caution";
 import { lireEtatVirement } from "@/lib/virement";
@@ -101,6 +101,8 @@ export type ContratSuivi =
 export type Suivi =
   | { etat: "invalide" }
   | { etat: "rembourse"; resa: ReservationAvecGite; montant: number; fait: boolean; contact: string }
+  /** Annulée depuis le back-office (Phase 5, lot 5) : ce qui est rendu, et si c'est fait. */
+  | { etat: "annulee"; resa: ReservationAvecGite; rembourse: number; fait: boolean; contact: string }
   | {
       etat: "ouvert";
       resa: ReservationAvecGite;
@@ -187,6 +189,17 @@ export async function chargerSuivi(
       finValidite: fin,
       contact: r.contact,
     };
+  }
+  if (resa.statut === "annulee") {
+    const [a] = await ex.select({ rembourse: annulations.rembourse }).from(annulations).where(eq(annulations.reservation_id, resa.id));
+    if (a) {
+      const restants = await ex
+        .select({ id: remboursements.id })
+        .from(remboursements)
+        .where(and(eq(remboursements.reservation_id, resa.id), eq(remboursements.statut, "a_faire")))
+        .limit(1);
+      return { etat: "annulee", resa, rembourse: centimesDepuisNumeric(a.rembourse), fait: restants.length === 0, contact: r.contact };
+    }
   }
   const rembourse = payes.find((p) => p.statut === "rembourse" || p.statut === "a_rembourser");
   if (rembourse) {

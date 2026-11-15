@@ -316,6 +316,7 @@
 /* Tarifs (Phase 5, lot 3). */
 
 .champ input[type="date"],
+.champ input[type="datetime-local"],
 .champ select,
 .ligne select {
   font: inherit;

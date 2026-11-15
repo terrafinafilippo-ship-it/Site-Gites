@@ -5,7 +5,9 @@ import { jourBlocage, jourLevee, lireReglagesCaution } from "@/lib/caution";
 import { centimesDepuisNumeric } from "@/lib/centimes";
 import { aujourdhuiParis } from "@/lib/dates-civiles";
 import { fmtDateAvecJour, fmtDateLongue, fmtEuro, fmtHeure } from "@/lib/format";
+import { maintenantCivil } from "@/lib/gestion/annulation";
 import { LIBELLES_FACTURE } from "@/lib/gestion/documents";
+import { MOTIF_ANNULATION } from "@/lib/montants";
 import { lireFiche, montantDe } from "@/lib/gestion/reservations";
 import { isUuid } from "@/lib/route-helpers";
 import { dateLimiteSolde } from "@/lib/solde";
@@ -20,9 +22,11 @@ import {
   actionLienCaution,
   actionLiberer,
   actionRenvoyerContrat,
+  actionRemboursementFait,
   actionRetenir,
   actionSoldeVirement,
 } from "../../actions-reservations";
+import { actionAnnuler } from "../../actions-annulation";
 import { actionRenvoyerDocument } from "../../actions-calendrier";
 import { actionDemanderFacture } from "../../actions-factures";
 import { FormulairePlan } from "../../tarifs/Formulaires";
@@ -59,6 +63,9 @@ const ACTIONS_JOURNAL: Record<string, string> = {
   contrat_renvoye: "Contrat signé renvoyé",
   facture_renvoyee: "Facture renvoyée",
   facture_demandee: "Facture demandée par le client",
+  reservation_annulee: "Réservation annulée",
+  remboursement_fait: "Remboursement noté fait",
+  avoir_renvoye: "Avoir renvoyé",
   effacement_tentative: "Tentative effacée",
 };
 
@@ -88,8 +95,8 @@ function ChampsEntreprise({ id }: { id: string }) {
   );
 }
 
-function quand(d: Date): string {
-  return new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", dateStyle: "medium", timeStyle: "short" }).format(d);
+function quand(d: Date, fuseau = "Europe/Paris"): string {
+  return new Intl.DateTimeFormat("fr-FR", { timeZone: fuseau, dateStyle: "medium", timeStyle: "short" }).format(d);
 }
 
 /** Centimes → « 403,66 », tel qu'on le tape. */
@@ -302,7 +309,17 @@ export default async function FicheReservation({ params }: { params: Promise<{ i
                     )}
                   </div>
                 )}
-                {resa.caution_recue_at && !resa.caution_rendue_at &&
+                {resa.caution_recue_at && !resa.caution_rendue_at && resa.statut === "annulee" && (
+                  <div>
+                    <p className={styles.aide}>Réservation annulée : la caution est à rendre entière au client.</p>
+                    <GesteBouton
+                      action={actionCautionRendue.bind(null, resa.id)}
+                      libelle="Caution rendue entière"
+                      confirmation={`Vous notez la caution de ${fmtEuro(caution)} rendue entière à ${client}. Le client reçoit un courriel.`}
+                    />
+                  </div>
+                )}
+                {resa.caution_recue_at && !resa.caution_rendue_at && resa.statut !== "annulee" &&
                   (departPasse ? (
                     <div className={styles.grille}>
                       <div>
@@ -428,6 +445,92 @@ export default async function FicheReservation({ params }: { params: Promise<{ i
               </p>
             ))}
         </section>
+
+        {fiche.annulation && (
+          <section className={styles.carte}>
+            <h2>Annulation</h2>
+            <p>
+              {MOTIF_ANNULATION[fiche.annulation.initiative]}, notée le {quand(fiche.annulation.created_at)}
+              {fiche.annulation.prevenu_le ? ` ; le client avait prévenu le ${quand(new Date(`${fiche.annulation.prevenu_le.replace(" ", "T")}Z`), "UTC")}` : ""}.
+            </p>
+            <p>
+              Payé : {fmtEuro(centimesDepuisNumeric(fiche.annulation.paye))}. Gardé : {fmtEuro(centimesDepuisNumeric(fiche.annulation.conserve))}. Remboursé :{" "}
+              {fmtEuro(centimesDepuisNumeric(fiche.annulation.rembourse))}
+              {centimesDepuisNumeric(fiche.annulation.taxe_remboursee) > 0
+                ? `, dont ${fmtEuro(centimesDepuisNumeric(fiche.annulation.taxe_remboursee))} de taxe de séjour`
+                : ""}
+              .
+            </p>
+            {fiche.remboursements.length > 0 && (
+              <ul>
+                {fiche.remboursements.map((m) => {
+                  const montant = fmtEuro(centimesDepuisNumeric(m.montant));
+                  return (
+                    <li key={m.id}>
+                      {m.mode === "carte" ? "Sur la carte bancaire" : "Par virement"} : {montant} —{" "}
+                      {m.statut === "fait"
+                        ? `fait le ${quand(m.fait_at!)}`
+                        : m.mode === "carte"
+                          ? "en cours : le site retente tout seul"
+                          : "à faire depuis votre banque"}
+                      {m.erreur && <> (la banque a refusé de rembourser la carte : {m.erreur})</>}
+                      {m.mode === "virement" && m.statut === "a_faire" && (
+                        <GesteBouton
+                          action={actionRemboursementFait.bind(null, resa.id, m.id)}
+                          libelle="Remboursement fait"
+                          confirmation={`Le virement de ${montant} au client est-il parti ?${factureSejour ? " Une fois tout remboursé, l'avoir part au client." : ""}`}
+                        />
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {fiche.avoir && (
+              <p>
+                Avoir {fiche.avoir.numero} : {fmtEuro(centimesDepuisNumeric(fiche.avoir.montant))}, émis le{" "}
+                {fmtDateLongue(String(fiche.avoir.date_emission).slice(0, 10))}
+                {fiche.avoir.pdf_url && (
+                  <>
+                    {" — "}
+                    <a href={`/gestion/documents/pdf?sorte=avoir&id=${fiche.avoir.id}`} target="_blank" rel="noopener">
+                      Ouvrir le PDF
+                    </a>
+                  </>
+                )}
+                <GesteBouton
+                  action={actionRenvoyerDocument.bind(null, "avoir", fiche.avoir.id)}
+                  libelle="Renvoyer l'avoir"
+                  confirmation={`Renvoyer l'avoir ${fiche.avoir.numero} à ${resa.client_email ?? "(aucune adresse)"} ?`}
+                  discret
+                />
+              </p>
+            )}
+          </section>
+        )}
+
+        {confirmee && (
+          <section className={styles.carte}>
+            <h2>Annuler la réservation</h2>
+            <p className={styles.aide}>
+              Le montant remboursé suit l&apos;article 7 du contrat. Le récapitulatif s&apos;affiche avant de confirmer.
+            </p>
+            <FormulairePlan action={actionAnnuler.bind(null, resa.id)} libelle="Annuler la réservation" danger>
+              <div className={styles.champ}>
+                <label htmlFor="annulation-initiative">Qui annule</label>
+                <select id="annulation-initiative" name="initiative" defaultValue="client">
+                  <option value="client">Le client</option>
+                  <option value="bailleur">Nous, ou un cas de force majeure</option>
+                  <option value="absence">Le client ne s&apos;est pas présenté</option>
+                </select>
+              </div>
+              <div className={styles.champ}>
+                <label htmlFor="annulation-prevenu">Le client a prévenu le (seulement si le client annule)</label>
+                <input id="annulation-prevenu" name="prevenuLe" type="datetime-local" defaultValue={maintenantCivil()} max={maintenantCivil()} />
+              </div>
+            </FormulairePlan>
+          </section>
+        )}
 
         <section className={`${styles.carte} ${styles.defile}`}>
           <h2>Paiements</h2>

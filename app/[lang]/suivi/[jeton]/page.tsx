@@ -78,6 +78,10 @@ const TEXTES: Bilingue<{
   rembourseTitre: string;
   rembourseFait: (montant: string) => string;
   rembourseEnCours: (montant: string) => string;
+  annuleeTitre: string;
+  annuleeRembourseFait: (montant: string) => string;
+  annuleeRembourseEnCours: (montant: string) => string;
+  annuleeSansRemboursement: string;
   autresDates: string;
   solde: string;
   soldeEtat: Record<EtatSolde["etat"], string>;
@@ -133,6 +137,10 @@ const TEXTES: Bilingue<{
     rembourseTitre: "Cette réservation n'a pas pu être confirmée.",
     rembourseFait: (montant) => `Votre paiement de ${montant} a été intégralement remboursé.`,
     rembourseEnCours: (montant) => `Le remboursement intégral de votre paiement de ${montant} est en cours.`,
+    annuleeTitre: "Cette réservation est annulée.",
+    annuleeRembourseFait: (montant) => `${montant} vous ont été remboursés.`,
+    annuleeRembourseEnCours: (montant) => `Le remboursement de ${montant} est en cours.`,
+    annuleeSansRemboursement: "Aucun remboursement n'est dû selon le contrat.",
     autresDates: "Choisir d'autres dates",
     solde: "Votre solde",
     soldeEtat: { paye: "Payé", a_payer: "À régler", prelevement_prevu: "Prévu", en_cours: "En cours" },
@@ -201,6 +209,10 @@ const TEXTES: Bilingue<{
     rembourseTitre: "This booking could not be confirmed.",
     rembourseFait: (montant) => `Your payment of ${montant} has been refunded in full.`,
     rembourseEnCours: (montant) => `The full refund of your payment of ${montant} is in progress.`,
+    annuleeTitre: "This booking has been cancelled.",
+    annuleeRembourseFait: (montant) => `${montant} has been refunded to you.`,
+    annuleeRembourseEnCours: (montant) => `The refund of ${montant} is in progress.`,
+    annuleeSansRemboursement: "No refund is due under the contract.",
     autresDates: "Choose other dates",
     solde: "Your balance",
     soldeEtat: { paye: "Paid", a_payer: "To be paid", prelevement_prevu: "Scheduled", en_cours: "Processing" },
@@ -508,6 +520,30 @@ export default async function SuiviPage({
   const nomGite = resa.gites?.nom ?? "";
   const plage = t.duAu(fmtDateLongue(resa.date_arrivee, langue), fmtDateLongue(resa.date_depart, langue));
   const r = LIBELLES_RECAP[langue];
+
+  if (suivi.etat === "annulee") {
+    const montant = fmtEuro(suivi.rembourse, langue);
+    return (
+      <section className={styles.page}>
+        <div className={`wrap ${styles.colonne}`}>
+          <div className={styles.bloc}>
+            <h1>{t.annuleeTitre}</h1>
+            <p>
+              {suivi.rembourse === 0
+                ? t.annuleeSansRemboursement
+                : suivi.fait
+                  ? t.annuleeRembourseFait(montant)
+                  : t.annuleeRembourseEnCours(montant)}
+            </p>
+            <p className={styles.sous}>
+              {nomGite} · {plage} · {r.reference(resa.reference)}
+            </p>
+          </div>
+          <Contact langue={langue} adresse={suivi.contact} />
+        </div>
+      </section>
+    );
+  }
 
   if (suivi.etat === "rembourse") {
     const montant = fmtEuro(suivi.montant, langue);

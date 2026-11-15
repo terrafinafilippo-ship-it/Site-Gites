@@ -194,6 +194,16 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     "id", "gite_id", "date_arrivee", "date_depart", "client_nom", "client_email", "langue", "jeton",
     "expire_at", "levee_at", "utilisee_at", "created_at",
   ],
+  // Annulation et avoir, lot 5 (migration 0023, D-42).
+  annulations: [
+    "id", "reservation_id", "initiative", "prevenu_le", "paye", "conserve", "rembourse", "taxe_remboursee",
+    "date_arrivee", "acteur", "created_at",
+  ],
+  remboursements: [
+    "id", "reservation_id", "paiement_id", "mode", "montant", "statut", "reference_externe", "erreur",
+    "fait_at", "fait_par", "created_at",
+  ],
+  avoirs: ["id", "numero", "reservation_id", "facture_id", "montant", "date_emission", "pdf_url", "donnees", "created_at"],
 };
 
 // Quelques types sensibles (le module de contrat en dépend).
@@ -909,7 +919,59 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
       `select numero from creer_facture($1::uuid, 'retenue', 120.00, '{}'::jsonb, null)`, [resaId],
     );
     noter("6h", retenueF.erreur === null, "facture de type « retenue » acceptée (migration 0022)", codePg(retenueF.erreur));
-    for (const objet of ["facture", "solde_preavis", "solde_lien", "solde_rappel", "solde_impaye"]) {
+    // Avoir (D-41, D-42, migration 0023) : suite AV à part, par creer_avoir, un par réservation.
+    const factureTotale = await client.query<{ id: string }>(
+      `select id from factures where reservation_id = $1 and type = 'total'`, [resaId],
+    );
+    const facAvantAvoir = await client.query<{ n: number }>(
+      `select coalesce(max(dernier_numero), 0)::int as n from compteurs_documents where serie = 'FAC'`,
+    );
+    const avoir = await client.query<{ numero: string }>(
+      `select numero from creer_avoir($1::uuid, $2::uuid, 300.00, '{}'::jsonb)`, [resaId, factureTotale.rows[0]?.id],
+    );
+    const facApresAvoir = await client.query<{ n: number }>(
+      `select coalesce(max(dernier_numero), 0)::int as n from compteurs_documents where serie = 'FAC'`,
+    );
+    noter(
+      "6h",
+      /^AV-\d{4}-\d{3}$/.test(avoir.rows[0]?.numero ?? "") && facAvantAvoir.rows[0]?.n === facApresAvoir.rows[0]?.n,
+      "avoir : numéro AV-AAAA-NNN, suite à part (le compteur des factures ne bouge pas)",
+      avoir.rows[0]?.numero,
+    );
+    const avoirBis = await attendreErreur(
+      client, "sp_avoir_bis",
+      `select * from creer_avoir($1::uuid, $2::uuid, 10.00, '{}'::jsonb)`, [resaId, factureTotale.rows[0]?.id],
+    );
+    noter("6h", codePg(avoirBis.erreur) === "23505", "second avoir pour la même réservation refusé", codePg(avoirBis.erreur));
+    await client.query(`delete from avoirs where reservation_id = $1`, [resaId]);
+    const avoirZero = await attendreErreur(
+      client, "sp_avoir_zero",
+      `select * from creer_avoir($1::uuid, $2::uuid, 0, '{}'::jsonb)`, [resaId, factureTotale.rows[0]?.id],
+    );
+    noter("6h", codePg(avoirZero.erreur) === "23514", "avoir de 0 € refusé", codePg(avoirZero.erreur));
+    const partageFaux = await attendreErreur(
+      client, "sp_annulation_faux",
+      `insert into annulations (reservation_id, initiative, paye, conserve, rembourse, taxe_remboursee, date_arrivee, acteur)
+       values ($1, 'bailleur', 100.00, 10.00, 80.00, 0, current_date, 'verify')`, [resaId],
+    );
+    noter("6h", codePg(partageFaux.erreur) === "23514", "annulation : gardé + rendu différent du payé refusé", codePg(partageFaux.erreur));
+    const sansPreavis = await attendreErreur(
+      client, "sp_annulation_preavis",
+      `insert into annulations (reservation_id, initiative, paye, conserve, rembourse, taxe_remboursee, date_arrivee, acteur)
+       values ($1, 'client', 100.00, 0, 100.00, 0, current_date, 'verify')`, [resaId],
+    );
+    noter("6h", codePg(sansPreavis.erreur) === "23514", "annulation par le client sans date du préavis refusée", codePg(sansPreavis.erreur));
+    const carteSansPaiement = await attendreErreur(
+      client, "sp_remb_carte",
+      `insert into remboursements (reservation_id, mode, montant) values ($1, 'carte', 10.00)`, [resaId],
+    );
+    noter("6h", codePg(carteSansPaiement.erreur) === "23514", "remboursement par carte sans paiement refusé", codePg(carteSansPaiement.erreur));
+    const faitSansDate = await attendreErreur(
+      client, "sp_remb_fait",
+      `insert into remboursements (reservation_id, mode, montant, statut) values ($1, 'virement', 10.00, 'fait')`, [resaId],
+    );
+    noter("6h", codePg(faitSansDate.erreur) === "23514", "remboursement « fait » sans date refusé", codePg(faitSansDate.erreur));
+    for (const objet of ["facture", "solde_preavis", "solde_lien", "solde_rappel", "solde_impaye", "annulation", "avoir"]) {
       const c = await attendreErreur(
         client, `sp_${objet}`,
         `insert into courriels (reservation_id, objet, cle, destinataire, langue)

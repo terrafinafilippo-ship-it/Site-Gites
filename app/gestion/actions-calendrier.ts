@@ -139,7 +139,7 @@ export async function actionGite(id: string, precedent: EtatPlan, f: FormData): 
 // ─── Documents ───────────────────────────────────────────────────────────────
 
 export async function actionRenvoyerDocument(sorte: SorteDocument, id: string, precedent: EtatGeste): Promise<EtatGeste> {
-  if (sorte !== "contrat" && sorte !== "facture") throw new Error("sorte de document invalide");
+  if (sorte !== "contrat" && sorte !== "facture" && sorte !== "avoir") throw new Error("sorte de document invalide");
   return geste(
     precedent,
     (a) => renvoyerDocument(sorte, idValable(id), a),

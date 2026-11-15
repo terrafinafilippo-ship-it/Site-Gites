@@ -36,10 +36,29 @@
 // Phase 6 (D-40) : l'invitation à donner son avis relit, à l'envoi, que le
 // séjour n'est pas annulé, qu'aucun avis n'est déposé et que le lien est
 // encore ouvert ; le courriel du retrait relit que l'avis est retiré.
+//
+// Phase 5, lot 5 (D-42) : le courriel d'annulation relit l'annulation et ses
+// remboursements à l'envoi ; le courriel « avoir » ÉMET l'avoir
+// (lib/avoirs.ts, idempotent) et le joint en PDF.
 import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { avis, courriels, documents, gites, options_sejour, paiements, reglages, retenues, TYPES_FACTURE, type TypeFacture } from "@/db/schema";
+import {
+  annulations,
+  avis,
+  courriels,
+  documents,
+  factures,
+  gites,
+  options_sejour,
+  paiements,
+  reglages,
+  remboursements,
+  retenues,
+  TYPES_FACTURE,
+  type TypeFacture,
+} from "@/db/schema";
+import type { ResultatAvoir } from "@/lib/avoirs";
 import { finLienAvis, LIBELLES_MOTIF, lienAvis, signatureAvis } from "@/lib/avis";
 import { jourBlocage, jourLevee, lireReglagesCaution } from "@/lib/caution";
 import { centimesDepuisNumeric } from "@/lib/centimes";
@@ -60,7 +79,9 @@ import {
   texteCautionRetenue,
   texteCautionVirement,
   texteAlerteSignature,
+  texteAnnulation,
   texteAvisInvitation,
+  texteAvoir,
   texteAvisRetrait,
   texteConfirmation,
   texteContrat,
@@ -123,6 +144,8 @@ export const OBJETS_CLIENT = new Set<string>([
   "contrat_signe",
   "avis_invitation",
   "avis_retrait",
+  "annulation",
+  "avoir",
 ]);
 
 type Courriel = typeof courriels.$inferSelect;
@@ -178,6 +201,30 @@ async function emetteurFacture(): Promise<EmetteurFacture> {
 /** POUR LES CONTRÔLES SEULEMENT (scripts/verifier-solde.ts, scripts/verifier-courriels.ts). */
 export function remplacerEmetteurFacture(e: EmetteurFacture): void {
   emetteurFactureCourant = e;
+}
+
+// ─── Émission des avoirs (remplaçable pour les contrôles) ────────────────────
+
+export interface EmetteurAvoir {
+  emettre(reservationId: string): Promise<ResultatAvoir>;
+  /** Le PDF d'un avoir émis. */
+  pdf(chemin: string): Promise<Buffer>;
+}
+
+let emetteurAvoirCourant: EmetteurAvoir | null = null;
+
+/** lib/avoirs.ts tire le moteur PDF : chargé à la demande. */
+async function emetteurAvoir(): Promise<EmetteurAvoir> {
+  if (!emetteurAvoirCourant) {
+    const m = await import("@/lib/avoirs");
+    emetteurAvoirCourant = { emettre: m.emettreAvoir, pdf: m.lirePdfAvoir };
+  }
+  return emetteurAvoirCourant;
+}
+
+/** POUR LES CONTRÔLES SEULEMENT (scripts/verifier-annulation.ts). */
+export function remplacerEmetteurAvoir(e: EmetteurAvoir): void {
+  emetteurAvoirCourant = e;
 }
 
 // ─── Traitement ──────────────────────────────────────────────────────────────
@@ -517,6 +564,67 @@ async function preparer(tx: Executeur, c: Courriel, origine: string): Promise<Pr
           await adresseReponse(tx),
         ),
         piecesJointes: [{ nom: `${f.numero}.pdf`, contenu: await e.pdf(f.chemin) }],
+      };
+    }
+
+    case "annulation": {
+      if (!resa) return { abandon: "réservation absente" };
+      const [a] = await tx.select().from(annulations).where(eq(annulations.reservation_id, resa.id));
+      if (!a || resa.statut !== "annulee") return { abandon: "réservation non annulée" };
+      const mouvements = await tx
+        .select({ mode: remboursements.mode, montant: remboursements.montant })
+        .from(remboursements)
+        .where(eq(remboursements.reservation_id, resa.id));
+      const somme = (mode: "carte" | "virement") =>
+        mouvements.filter((m) => m.mode === mode).reduce((s, m) => s + centimesDepuisNumeric(m.montant), 0);
+      const [facture] = await tx
+        .select({ id: factures.id })
+        .from(factures)
+        .where(and(eq(factures.reservation_id, resa.id), sql`${factures.type} in ('acompte', 'solde', 'total')`))
+        .limit(1);
+      const rembourse = centimesDepuisNumeric(a.rembourse);
+      return {
+        contenu: texteAnnulation(
+          langue,
+          sejour(resa),
+          {
+            initiative: a.initiative,
+            conserve: centimesDepuisNumeric(a.conserve),
+            rembourse,
+            taxeRemboursee: centimesDepuisNumeric(a.taxe_remboursee),
+            carte: somme("carte"),
+            virement: somme("virement"),
+            avoirASuivre: !!facture && rembourse > 0,
+          },
+          await adresseReponse(tx),
+        ),
+      };
+    }
+
+    case "avoir": {
+      if (!resa) return { abandon: "réservation absente" };
+      const e = await emetteurAvoir();
+      const r = await e.emettre(resa.id);
+      if (!r.ok) {
+        if (r.status >= 500) throw new Error(`avoir non émis : ${r.message}`);
+        return {
+          abandon: `avoir non émis : ${r.message}`,
+          alerte: (sp) => inscrireProbleme(sp, "facture_non_emise", `${resa.id}:avoir`, resa.id, { type: "avoir", erreur: r.message }),
+        };
+      }
+      const corrigees = await tx
+        .select({ numero: factures.numero })
+        .from(factures)
+        .where(and(eq(factures.reservation_id, resa.id), sql`${factures.type} in ('acompte', 'solde', 'total')`))
+        .orderBy(asc(factures.date_emission), asc(factures.numero));
+      return {
+        contenu: texteAvoir(
+          langue,
+          sejour(resa),
+          { numero: r.avoir.numero, montant: r.avoir.montant, factures: corrigees.map((f) => f.numero) },
+          await adresseReponse(tx),
+        ),
+        piecesJointes: [{ nom: `${r.avoir.numero}.pdf`, contenu: await e.pdf(r.avoir.chemin) }],
       };
     }
 

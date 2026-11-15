@@ -18,6 +18,10 @@ import { chargerTarifsFictifs } from "./tarifs-fictifs";
 
 // Toutes les tables qui référencent `reservations`, sinon TRUNCATE est refusé.
 const TABLES_A_VIDER = [
+  // Phase 5, lot 5 : annulations, remboursements, avoirs.
+  "remboursements",
+  "annulations",
+  "avoirs",
   // Phase 5, lot 2 : retenues sur la caution, lignes « À traiter » retirées.
   "retenues",
   "a_traiter_faits",

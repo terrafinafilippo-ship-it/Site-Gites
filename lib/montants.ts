@@ -157,6 +157,122 @@ export function retenueAnnulation(resa: Reservation, montants: Montants): number
   return Math.round(montants.base * (resa.taux_acompte / 100));
 }
 
+// ─── Annulation (article 7 du contrat, D-26 ; lot 5 de la Phase 5, D-42) ─────
+
+/** Qui annule : le client (art. 7.2), le Bailleur ou la force majeure (7.3, 7.4), le client absent (7.5). */
+export type InitiativeAnnulation = 'client' | 'bailleur' | 'absence';
+
+/** La règle appliquée, dans l'ordre de l'article 7. */
+export type RegleAnnulation = 'avant_solde' | 'avant_limite' | 'apres_limite' | 'bailleur' | 'absence';
+
+export interface PartageAnnulation {
+  regle: RegleAnnulation;
+  /** Centimes : payé, gardé, rendu (paye = conserve + rembourse). */
+  paye: number;
+  conserve: number;
+  rembourse: number;
+  /** La part de la taxe de séjour dans `rembourse` (toujours rendue). */
+  taxeRemboursee: number;
+  /** Date limite du solde (aaaa-mm-jj) ; `null` en paiement intégral imposé (7.2, pas de premier tiret). */
+  dateLimiteSolde: string | null;
+  /** Limite du remboursement du solde, civile (« aaaa-mm-jjThh:mm »). */
+  limiteRemboursement: string;
+}
+
+/**
+ * L'instant civil « aaaa-mm-jjThh:mm » situé `heures` avant l'arrivée, sur les
+ * valeurs civiles, sans fuseau (D-26) — le même calcul que fmtAvantArriveeFr,
+ * qui l'imprime à l'article 7.2.
+ */
+export function limiteRemboursementCivile(dateArrivee: string, heureArrivee: string, heures: number): string {
+  const [h, m] = heureArrivee.split(':').map((x) => parseInt(x, 10));
+  const t = new Date(`${dateArrivee}T00:00:00Z`);
+  t.setUTCHours(h - heures, m);
+  return t.toISOString().slice(0, 16);
+}
+
+/**
+ * Ce que le Bailleur garde et ce qu'il rend quand une réservation est annulée
+ * (article 7). `paye` : les centimes reçus du client (acompte, solde, ou
+ * total). `prevenuLe` : quand le client a prévenu, heure civile de Paris
+ * (« aaaa-mm-jjThh:mm ») — seulement pour `client`.
+ *
+ * - client, jusqu'à la date limite du solde incluse : tout est rendu ;
+ * - client, ensuite et jusqu'à la limite des heures : l'acompte sans la taxe
+ *   de séjour est gardé (retenueAnnulation) ;
+ * - client après la limite, ou absent (7.5) : tout est gardé sauf la taxe ;
+ * - Bailleur ou force majeure (7.3, 7.4) : tout est rendu.
+ * La taxe de séjour payée est rendue dans tous les cas. Un séjour dont seul
+ * l'acompte est payé (solde impayé) : la part de taxe de l'acompte est rendue.
+ */
+export function partageAnnulation(
+  resa: Reservation,
+  paye: number,
+  initiative: InitiativeAnnulation,
+  prevenuLe: string | null,
+): PartageAnnulation {
+  if (!Number.isInteger(paye) || paye < 0) throw new Error(`partageAnnulation : montant payé invalide (${paye})`);
+  const montants = calculerMontants(resa);
+  const retenue = retenueAnnulation(resa, montants);
+  const toutPaye = paye >= montants.totalTtc;
+  // La taxe comprise dans ce qui a été payé : toute la taxe, ou la part de l'acompte.
+  const taxePayee = toutPaye ? montants.taxeSejour : Math.max(0, paye - retenue);
+  const dateLimite = resa.paiement_integral && !integralChoisi(resa) ? null : ajouterJours(resa.date_arrivee, -resa.delai_solde_jours);
+  const limite = limiteRemboursementCivile(
+    resa.date_arrivee,
+    resa.heure_arrivee ?? HEURE_ARRIVEE_DEFAUT,
+    resa.delai_remboursement_solde_heures,
+  );
+
+  let regle: RegleAnnulation;
+  let conserve: number;
+  if (initiative === 'bailleur') {
+    regle = 'bailleur';
+    conserve = 0;
+  } else if (initiative === 'absence') {
+    regle = 'absence';
+    conserve = paye - taxePayee;
+  } else {
+    if (!prevenuLe || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(prevenuLe)) {
+      throw new Error(`partageAnnulation : date du préavis du client attendue (${prevenuLe})`);
+    }
+    if (dateLimite !== null && prevenuLe.slice(0, 10) <= dateLimite) {
+      regle = 'avant_solde';
+      conserve = 0;
+    } else if (prevenuLe <= limite) {
+      regle = 'avant_limite';
+      conserve = Math.min(paye, retenue);
+    } else {
+      regle = 'apres_limite';
+      conserve = paye - taxePayee;
+    }
+  }
+  const rembourse = paye - conserve;
+  return {
+    regle,
+    paye,
+    conserve,
+    rembourse,
+    taxeRemboursee: Math.min(taxePayee, rembourse),
+    dateLimiteSolde: dateLimite,
+    limiteRemboursement: limite,
+  };
+}
+
+/** L'article du contrat qui fixe ce qui est rendu, tel que l'avoir et le back-office l'impriment. */
+export const ARTICLE_ANNULATION: Record<InitiativeAnnulation, string> = {
+  client: "l'article 7.2 du contrat",
+  bailleur: 'les articles 7.3 et 7.4 du contrat',
+  absence: "l'article 7.5 du contrat",
+};
+
+/** Pourquoi le séjour est annulé, tel que l'avoir l'imprime. */
+export const MOTIF_ANNULATION: Record<InitiativeAnnulation, string> = {
+  client: 'Annulation à la demande du locataire',
+  bailleur: 'Annulation par le bailleur ou pour force majeure',
+  absence: "Absence du locataire à l'arrivée",
+};
+
 /**
  * Séjour payé en une fois PAR CHOIX du client (D-27), et non parce que
  * l'arrivée était trop proche (D-20) : la réservation a été faite AVANT la date

@@ -73,8 +73,10 @@ export interface PageStatistiques {
   annees: number[];
   gites: { id: string; nom: string }[];
   nuits: ParGite[];
-  /** Centimes, hors taxe de séjour, au mois de l'arrivée. */
+  /** Centimes, hors taxe de séjour, au mois de l'arrivée ; avec ce qui est gardé des séjours annulés. */
   sejours: ParGite[];
+  /** Centimes : la part des séjours annulés gardée (article 7), comprise dans `sejours` (Phase 5, lot 5, réponse 5 A). */
+  conserveAnnulations: number;
   reservations: { parGite: (ChiffresReservations & { giteId: string })[]; total: ChiffresReservations };
   commission: { taux: number | null; base: number; montant: number | null };
   provenance: {
@@ -255,12 +257,29 @@ export async function lireStatistiques(
     };
   });
 
+  // Séjours annulés (Phase 5, lot 5, réponse 5 A) : ce qui est gardé compte
+  // dans les séjours, au mois de l'arrivée — hors taxe de séjour, toujours
+  // rendue. Ni nuits, ni réservations, ni provenance, ni commission.
+  const gardes = await db.execute<{ gite_id: string; mois: number; montant: string }>(sql`
+    select r.gite_id, extract(month from a.date_arrivee)::int as mois, sum(a.conserve)::text as montant
+      from annulations a join reservations r on r.id = a.reservation_id
+     where a.conserve > 0 and a.date_arrivee >= ${debut}::date and a.date_arrivee < ${fin}::date
+     group by 1, 2`);
+  let conserveAnnulations = 0;
+  for (const l of gardes.rows) {
+    const montant = centimesDepuisNumeric(l.montant);
+    conserveAnnulations += montant;
+    const g = sejours.find((x) => x.giteId === l.gite_id);
+    if (g) g.mois[l.mois - 1] += montant;
+  }
+
   return {
     annee,
     annees,
     gites: listeGites,
     nuits,
     sejours,
+    conserveAnnulations,
     reservations: {
       parGite: listeGites.map((g) => ({ giteId: g.id, ...chiffres(parGiteLignes.get(g.id) ?? []) })),
       total: chiffres([...parGiteLignes.values()].flat()),

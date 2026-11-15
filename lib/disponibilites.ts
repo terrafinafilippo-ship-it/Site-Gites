@@ -138,6 +138,18 @@ export async function vendreNuits(
   return { ok: false, nuitsPrises };
 }
 
+/**
+ * Rend libres TOUTES les nuits d'une réservation, vendues ou bloquées pour
+ * elle : la réservation est annulée par les propriétaires (Phase 5, lot 5).
+ * Renvoie le nombre de nuits libérées.
+ */
+export async function libererNuits(executeur: Executeur, reservationId: string): Promise<number> {
+  const resultat = await executeur.execute(sql`
+    delete from disponibilites
+     where reservation_id = ${reservationId}::uuid and statut in ('reserve', 'verrou')`);
+  return resultat.rowCount ?? 0;
+}
+
 /** Lève le blocage d'une réservation. Renvoie le nombre de nuits libérées. */
 export async function leverBlocage(executeur: Executeur, reservationId: string): Promise<number> {
   const resultat = await executeur.execute(sql`

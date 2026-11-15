@@ -178,6 +178,42 @@ export async function inscrireFactureDemandee(
   return true;
 }
 
+/**
+ * Réservation annulée depuis le back-office (Phase 5, lot 5, D-42) : le
+ * courriel au client (ce qui est rendu, et comment), une fois par réservation.
+ */
+export async function inscrireAnnulation(executeur: Executeur, reservationId: string): Promise<boolean> {
+  const c = await client(executeur, reservationId);
+  if (!c?.email) return false;
+  await inscrire(executeur, {
+    objet: "annulation",
+    cle: `annulation:${reservationId}`,
+    reservationId,
+    destinataire: c.email,
+    langue: c.langue === "en" ? "en" : "fr",
+  });
+  return true;
+}
+
+/**
+ * Tout est remboursé et une facture avait été faite (D-41, réponse 3 A) :
+ * l'avoir part au client, une fois par réservation. Il naît à l'envoi
+ * (lib/avoirs.ts), qui refait les contrôles. `renvoi` : « Renvoyer au
+ * client » (page Documents), le même avoir sous une clé nouvelle.
+ */
+export async function inscrireAvoir(executeur: Executeur, reservationId: string, renvoi?: Date): Promise<boolean> {
+  const c = await client(executeur, reservationId);
+  if (!c?.email) return false;
+  await inscrire(executeur, {
+    objet: "avoir",
+    cle: renvoi ? `avoir:${reservationId}:renvoi:${renvoi.toISOString()}` : `avoir:${reservationId}`,
+    reservationId,
+    destinataire: c.email,
+    langue: c.langue === "en" ? "en" : "fr",
+  });
+  return true;
+}
+
 /** Courriels du solde au client, un de chaque par réservation (D-28). */
 export type ObjetSolde = "solde_preavis" | "solde_lien" | "solde_rappel";
 

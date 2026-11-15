@@ -16,10 +16,13 @@
 // la caution : l'alerte « à rendre » précède la fin du séjour), l'effacement
 // des tentatives abandonnées (lib/abandons.ts). Phase 6 (D-40) : l'invitation
 // à donner son avis et l'effacement des avis trop anciens (lib/avis.ts).
+// Phase 5, lot 5 (D-42) : les remboursements par carte d'une annulation
+// restés à faire après une panne de Stripe (lib/annulation.ts).
 import { sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { effacerAbandons, type BilanAbandons } from "@/lib/abandons";
+import { traiterRemboursements, type BilanRemboursements } from "@/lib/annulation";
 import { traiterAvis, type BilanAvis } from "@/lib/avis";
 import { traiterCautions, type BilanCautions } from "@/lib/caution";
 import { traiterSoldes, type BilanSoldes } from "@/lib/solde";
@@ -32,6 +35,7 @@ export interface BilanTaches {
   cautions: BilanCautions;
   abandons: BilanAbandons;
   avis: BilanAvis;
+  remboursements: BilanRemboursements;
 }
 
 /** Un passage des tâches, ou `null` si un autre passage est déjà en cours. */
@@ -50,6 +54,7 @@ export async function executerTaches(
       cautions: await traiterCautions(maintenant, p),
       abandons: await effacerAbandons(maintenant, p),
       avis: await traiterAvis(maintenant),
+      remboursements: await traiterRemboursements(p),
     };
   });
 }

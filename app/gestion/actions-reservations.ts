@@ -17,6 +17,7 @@ import {
   type Fichier,
   type IssueGeste,
 } from "@/lib/gestion/cautions";
+import { noterRemboursementFait } from "@/lib/gestion/annulation";
 import { acteurDe } from "@/lib/gestion/connexion";
 import type { Acteur } from "@/lib/gestion/journal";
 import { modifierCoordonnees, renvoyerLienSignature } from "@/lib/gestion/reservations";
@@ -122,6 +123,12 @@ export async function actionCoordonnees(id: string, precedent: EtatGeste, f: For
 
 export async function actionRenvoyerContrat(id: string, precedent: EtatGeste): Promise<EtatGeste> {
   return geste(precedent, idValable(id), (a) => renvoyerLienSignature(id, a));
+}
+
+/** Annulation (Phase 5, lot 5) : le virement au client est parti. */
+export async function actionRemboursementFait(reservationId: string, remboursementId: string, precedent: EtatGeste): Promise<EtatGeste> {
+  if (!isUuid(remboursementId)) throw new Error("identifiant de remboursement invalide");
+  return geste(precedent, idValable(reservationId), (a) => noterRemboursementFait(remboursementId, a));
 }
 
 export async function actionCestFait(cle: string, precedent: EtatGeste): Promise<EtatGeste> {

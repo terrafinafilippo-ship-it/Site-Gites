@@ -365,6 +365,106 @@ export function texteFacture(
   ]);
 }
 
+// ─── Annulation et avoir (Phase 5, lot 5, D-42) ──────────────────────────────
+
+/** L'article du contrat qui fixe ce qui est rendu (même table que ARTICLE_ANNULATION, lib/montants.ts). */
+const ARTICLE_ANNULATION_TEXTE: Bilingue<Record<"client" | "bailleur" | "absence", string>> = {
+  fr: { client: "l'article 7.2 du contrat", bailleur: "les articles 7.3 et 7.4 du contrat", absence: "l'article 7.5 du contrat" },
+  en: { client: "article 7.2 of the contract", bailleur: "articles 7.3 and 7.4 of the contract", absence: "article 7.5 of the contract" },
+};
+
+/** La réservation est annulée : ce qui est gardé, ce qui est rendu, et comment. */
+export function texteAnnulation(
+  langue: Langue,
+  s: Sejour,
+  a: {
+    initiative: "client" | "bailleur" | "absence";
+    conserve: number;
+    rembourse: number;
+    taxeRemboursee: number;
+    /** Rendu sur la carte, et par virement (centimes). */
+    carte: number;
+    virement: number;
+    /** Une facture a été faite : un avoir suivra. */
+    avoirASuivre: boolean;
+  },
+  adresseContact: string,
+): Contenu {
+  const en = langue === "en";
+  const e = (n: number) => fmtEuro(n, langue);
+  const article = ARTICLE_ANNULATION_TEXTE[langue][a.initiative];
+  const blocs: Bloc[] = [
+    { p: bonjour(langue, s.prenom) },
+    {
+      p: en
+        ? `Your stay at ${s.gite}, ${plageDates(s.arrivee, s.depart, langue)}, has been cancelled.`
+        : `Votre séjour à ${s.gite}, du ${plageDates(s.arrivee, s.depart, langue)}, est annulé.`,
+      gras: true,
+    },
+  ];
+  if (a.conserve > 0) {
+    blocs.push({ p: en ? `Under ${article}, we keep ${e(a.conserve)}.` : `Selon ${article}, nous conservons ${e(a.conserve)}.` });
+  }
+  if (a.rembourse === 0) {
+    blocs.push({ p: en ? `No refund is due under ${article}.` : `Aucun remboursement n'est dû selon ${article}.` });
+  } else {
+    const dont = a.taxeRemboursee > 0 ? (en ? `, including ${e(a.taxeRemboursee)} of tourist tax` : `, dont ${e(a.taxeRemboursee)} de taxe de séjour`) : "";
+    blocs.push({
+      p: en ? `We are refunding you ${e(a.rembourse)}${dont}.` : `Nous vous remboursons ${e(a.rembourse)}${dont}.`,
+      gras: true,
+    });
+    if (a.carte > 0) {
+      blocs.push({
+        p: en
+          ? `${e(a.carte)} to the bank card used for payment. When it appears on your account depends on your bank.`
+          : `${e(a.carte)} sur la carte bancaire utilisée pour le paiement. Le délai d'apparition sur votre compte dépend de votre banque.`,
+      });
+    }
+    if (a.virement > 0) {
+      blocs.push({
+        p: en
+          ? `${e(a.virement)} by bank transfer: please reply to this email with your bank details (IBAN).`
+          : `${e(a.virement)} par virement bancaire : merci de nous envoyer vos coordonnées bancaires (RIB) en réponse à ce courriel.`,
+      });
+    }
+    if (a.avoirASuivre) {
+      blocs.push({
+        p: en
+          ? "You will receive a credit note once the refund is complete."
+          : "Vous recevrez un avoir une fois le remboursement terminé.",
+      });
+    }
+  }
+  blocs.push(...piedClient(langue, s, adresseContact));
+  return assembler(en ? `Your booking has been cancelled — booking ${s.reference}` : `Votre réservation est annulée — réservation ${s.reference}`, blocs);
+}
+
+/** L'avoir en PDF, quand tout est remboursé (D-41, réponse 3 A). */
+export function texteAvoir(
+  langue: Langue,
+  s: Sejour,
+  a: { numero: string; montant: number; factures: string[] },
+  adresseContact: string,
+): Contenu {
+  const en = langue === "en";
+  const factures = a.factures.join(en ? " and " : " et ");
+  return assembler(en ? `Your credit note ${a.numero} — booking ${s.reference}` : `Votre avoir ${a.numero} — réservation ${s.reference}`, [
+    { p: bonjour(langue, s.prenom) },
+    {
+      p: en
+        ? `Here is the credit note for your cancelled stay: ${fmtEuro(a.montant, langue)} refunded.`
+        : `Voici l'avoir de votre séjour annulé : ${fmtEuro(a.montant, langue)} remboursés.`,
+      gras: true,
+    },
+    {
+      p: en
+        ? `Credit note ${a.numero} is attached (PDF, in French). It relates to invoice ${factures}. ${s.gite}, ${plageDates(s.arrivee, s.depart, langue)}.`
+        : `L'avoir n° ${a.numero} est joint à ce courriel (PDF). Il se rapporte à la facture n° ${factures}. ${s.gite}, du ${plageDates(s.arrivee, s.depart, langue)}.`,
+    },
+    ...piedClient(langue, s, adresseContact),
+  ]);
+}
+
 /** Préavis : le solde sera prélevé sur la carte enregistrée, à la date limite. */
 export function texteSoldePreavis(
   langue: Langue,

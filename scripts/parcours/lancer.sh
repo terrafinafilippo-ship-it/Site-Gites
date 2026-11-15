@@ -45,6 +45,7 @@ etape "Courriels (envoi simulé, contrat, alertes, remboursement)" env DB_CIBLE=
 etape "Page « Ma réservation » (lien secret, formulaire, limite)" env DB_CIBLE=test npx tsx scripts/verifier-suivi.ts
 etape "Solde (prélèvement, lien, impayé ; aucune facture automatique)" env DB_CIBLE=test npx tsx scripts/verifier-solde.ts --http
 etape "Factures sur demande (séjour, entreprise, retenue, vrais PDF)" env DB_CIBLE=test npx tsx scripts/verifier-factures.ts --http
+etape "Annulation (remboursement, virement, caution, vrai avoir)" env DB_CIBLE=test npx tsx scripts/verifier-annulation.ts --http
 etape "Caution par carte (préautorisation, levée, trois cartes Stripe)" env DB_CIBLE=test npx tsx scripts/verifier-caution.ts --stripe --http
 etape "Caution par virement et fin des séjours (coordonnées, alertes)" env DB_CIBLE=test npx tsx scripts/verifier-virement.ts
 etape "Effacement des tentatives abandonnées" env DB_CIBLE=test npx tsx scripts/verifier-abandons.ts

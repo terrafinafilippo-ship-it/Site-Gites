@@ -40,7 +40,17 @@ import {
   type ReglagesTunnel,
   type ResultatDevis,
 } from '../lib/devis';
-import { calculerMontants, integralChoisi, libelleTaxeSejour, montantsDesPostes, retenueAnnulation, type Reservation } from '../lib/montants';
+import {
+  calculerMontants,
+  integralChoisi,
+  libelleTaxeSejour,
+  limiteRemboursementCivile,
+  montantsDesPostes,
+  partageAnnulation,
+  retenueAnnulation,
+  type Reservation,
+} from '../lib/montants';
+import { repartirRemboursement, type PaiementRecu } from '../lib/annulation';
 import { carteEnregistree, choixComplet, modeSoldeEnBase, texteAccordCarte, toutReglerChoisi, validerChoix } from '../lib/reglement';
 import { fmtAvantArriveeFr, fmtDateLongue, fmtEuro, fmtNoteCentiemes, fmtPrix, fmtTaux, fmtTauxCentiemes, fmtTaxeSejour } from '../lib/format';
 import { cheminSansLangue, lien, type Langue } from '../lib/i18n/langues';
@@ -950,6 +960,84 @@ console.log('--- taxe de séjour affichée, paiement intégral');
     'passage à l\'heure d\'été (28 mars 2027) sans décalage : valeurs civiles',
     fmtAvantArriveeFr('2027-03-28', '18:00', 48),
   );
+
+  // Annulation par les propriétaires (Phase 5, lot 5, D-42) : article 7 du contrat.
+  // Arrivée le 20 mars 2027 à 18 h ; date limite du solde le 18 février ; 48 heures : le 18 mars à 18 h.
+  // Total 888,70 € (taxe 28,70 €), acompte 266,61 €, gardé après la date du solde 258,00 €.
+  const annul = (r: Partial<Reservation> = {}) =>
+    resa({
+      date_arrivee: '2027-03-20', date_depart: '2027-03-27', heure_arrivee: '18:00:00', delai_solde_jours: 30,
+      delai_remboursement_solde_heures: 48, created_at: new Date('2027-01-10T10:00:00Z'), ...r,
+    });
+  const verifPartage = (
+    libelle: string,
+    obtenu: ReturnType<typeof partageAnnulation>,
+    attendu: { regle: string; conserve: number; rembourse: number; taxe: number },
+  ) =>
+    noter(
+      obtenu.regle === attendu.regle && obtenu.conserve === attendu.conserve && obtenu.rembourse === attendu.rembourse &&
+        obtenu.taxeRemboursee === attendu.taxe && obtenu.conserve + obtenu.rembourse === obtenu.paye,
+      libelle,
+      obtenu,
+    );
+  verifPartage('annulation, client prévenu le 18 février à 23 h 59 (date du solde incluse), acompte payé : tout rendu, 266,61 €',
+    partageAnnulation(annul(), 26661, 'client', '2027-02-18T23:59'), { regle: 'avant_solde', conserve: 0, rembourse: 26661, taxe: 861 });
+  verifPartage('annulation, client prévenu le 19 février à 0 h, tout payé : 258,00 € gardés, 630,70 € rendus dont 28,70 € de taxe',
+    partageAnnulation(annul(), 88870, 'client', '2027-02-19T00:00'), { regle: 'avant_limite', conserve: 25800, rembourse: 63070, taxe: 2870 });
+  verifPartage('annulation, client prévenu le 18 mars à 18 h 00 pile (limite des 48 heures comprise) : acompte gardé',
+    partageAnnulation(annul(), 88870, 'client', '2027-03-18T18:00'), { regle: 'avant_limite', conserve: 25800, rembourse: 63070, taxe: 2870 });
+  verifPartage('annulation, client prévenu le 18 mars à 18 h 01 : tout gardé sauf la taxe, 28,70 € rendus',
+    partageAnnulation(annul(), 88870, 'client', '2027-03-18T18:01'), { regle: 'apres_limite', conserve: 86000, rembourse: 2870, taxe: 2870 });
+  verifPartage("annulation, solde impayé, client prévenu le 25 février : 258,00 € gardés, la taxe de l'acompte (8,61 €) rendue",
+    partageAnnulation(annul(), 26661, 'client', '2027-02-25T09:00'), { regle: 'avant_limite', conserve: 25800, rembourse: 861, taxe: 861 });
+  verifPartage("annulation, solde impayé, client prévenu la veille de l'arrivée : même résultat, 8,61 € rendus",
+    partageAnnulation(annul(), 26661, 'client', '2027-03-19T12:00'), { regle: 'apres_limite', conserve: 25800, rembourse: 861, taxe: 861 });
+  verifPartage('annulation par le bailleur ou force majeure : tout rendu, 888,70 €',
+    partageAnnulation(annul(), 88870, 'bailleur', null), { regle: 'bailleur', conserve: 0, rembourse: 88870, taxe: 2870 });
+  verifPartage("client absent à l'arrivée (7.5) : tout gardé sauf la taxe, 28,70 € rendus",
+    partageAnnulation(annul(), 88870, 'absence', null), { regle: 'absence', conserve: 86000, rembourse: 2870, taxe: 2870 });
+  const imposeAnnul = partageAnnulation(annul({ paiement_integral: true, created_at: new Date('2027-02-20T10:00:00Z') }), 88870, 'client', '2027-02-20T11:00');
+  verifPartage("paiement intégral imposé (réservé le 20 février) : pas de « tout rendu », l'acompte est gardé",
+    imposeAnnul, { regle: 'avant_limite', conserve: 25800, rembourse: 63070, taxe: 2870 });
+  noter(imposeAnnul.dateLimiteSolde === null, 'paiement intégral imposé : pas de date limite du solde', imposeAnnul.dateLimiteSolde);
+  verifPartage('paiement intégral choisi (réservé le 10 janvier), prévenu le 1er février : tout rendu, 888,70 €',
+    partageAnnulation(annul({ paiement_integral: true }), 88870, 'client', '2027-02-01T10:00'), { regle: 'avant_solde', conserve: 0, rembourse: 88870, taxe: 2870 });
+  verifPartage('rien de payé (réservation saisie à la main) : rien gardé, rien rendu',
+    partageAnnulation(annul(), 0, 'client', '2027-03-19T10:00'), { regle: 'apres_limite', conserve: 0, rembourse: 0, taxe: 0 });
+  let sansDate = false;
+  try {
+    partageAnnulation(annul(), 26661, 'client', null);
+  } catch {
+    sansDate = true;
+  }
+  noter(sansDate, 'annulation par le client sans date du préavis : refusée (erreur levée)');
+  noter(
+    limiteRemboursementCivile('2027-03-28', '18:00', 48) === '2027-03-26T18:00' &&
+      limiteRemboursementCivile('2027-03-01', '18:00:00', 50) === '2027-02-27T16:00',
+    "limite civile des heures : même calcul que l'article 7.2 imprimé (changement d'heure, changement de mois)",
+    [limiteRemboursementCivile('2027-03-28', '18:00', 48), limiteRemboursementCivile('2027-03-01', '18:00:00', 50)],
+  );
+  const recu = (id: string, type: string, montant: number, carte: boolean): PaiementRecu => ({ id, type, montant, carte, date: null });
+  const deuxCartes = repartirRemboursement([recu('s', 'solde', 62209, true), recu('a', 'acompte', 26661, true)], 63070);
+  noter(
+    JSON.stringify(deuxCartes) === JSON.stringify([
+      { mode: 'carte', paiementId: 's', montant: 62209 },
+      { mode: 'carte', paiementId: 'a', montant: 861 },
+    ]),
+    "remboursement de 630,70 € : le solde par carte (622,09 €) d'abord, puis 8,61 € sur l'acompte",
+    deuxCartes,
+  );
+  const avecVirement = repartirRemboursement([recu('s', 'solde', 62209, false), recu('a', 'acompte', 26661, true)], 63070);
+  noter(
+    JSON.stringify(avecVirement) === JSON.stringify([
+      { mode: 'carte', paiementId: 'a', montant: 26661 },
+      { mode: 'virement', paiementId: null, montant: 36409 },
+    ]),
+    "solde reçu par virement : la carte d'abord (266,61 €), le reste par virement (364,09 €)",
+    avecVirement,
+  );
+  noter(repartirRemboursement([recu('a', 'acompte', 26661, true)], 0).length === 0, 'rien à rendre : aucun remboursement');
+
   noter(
     fmtNoteCentiemes(497) === '4,97' && fmtNoteCentiemes(497, 'en') === '4.97' && fmtNoteCentiemes(500) === '5',
     'note des avis : 497 → « 4,97 » / « 4.97 », 500 → « 5 »',

@@ -120,6 +120,8 @@ export default async function PageStatistiques({ searchParams }: { searchParams:
           <p className={styles.aide}>
             Location et ménage. Chaque séjour compte en entier au mois de son arrivée. Un séjour à venir compte déjà, même si son solde
             n&apos;est pas encore payé. La taxe de séjour et la caution n&apos;en font pas partie.
+            {s.conserveAnnulations > 0 &&
+              ` Dont ${fmtEuro(s.conserveAnnulations)} gardés sur des séjours annulés, au mois de l'arrivée prévue.`}
           </p>
           <TableauMois gites={s.gites} valeurs={s.sejours} format={(n) => (n === 0 ? "—" : fmtEuro(n))} libelle="Séjours par mois d'arrivée et par gîte" />
         </section>

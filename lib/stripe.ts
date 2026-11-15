@@ -30,6 +30,13 @@ export class PaiementIndisponible extends Error {
   }
 }
 
+/**
+ * Le prestataire REFUSE de rembourser (paiement trop ancien, montant déjà
+ * rendu, carte close…) : réessayer ne servirait à rien, l'argent se rend par
+ * virement (annulation, Phase 5, lot 5). Une panne lève une autre erreur.
+ */
+export class RemboursementRefuse extends Error {}
+
 export interface DemandePaiement {
   reservationId: string;
   reference: string;
@@ -179,8 +186,12 @@ export interface Prestataire {
    * ne répond pas.
    */
   encaisserCaution(id: string, montant: number): Promise<EtatPaiement>;
-  /** Remboursement INTÉGRAL. Idempotent : un second appel ne rembourse pas deux fois. */
-  rembourser(id: string, motif: string): Promise<{ id: string }>;
+  /**
+   * Remboursement INTÉGRAL, ou de `montant` centimes (annulation, Phase 5,
+   * lot 5). Idempotent par `cle` : un second appel avec la même clé ne
+   * rembourse pas deux fois. LÈVE si le prestataire refuse ou ne répond pas.
+   */
+  rembourser(id: string, motif: string, partiel?: { montant: number; cle: string }): Promise<{ id: string }>;
   /** La carte n'est plus conservée (réservation non honorée). */
   oublierCarte(paymentMethodId: string): Promise<void>;
   /**
@@ -493,11 +504,28 @@ class PrestataireStripe implements Prestataire {
     }
   }
 
-  async rembourser(id: string, motif: string): Promise<{ id: string }> {
-    const remboursement = await this.stripe().refunds.create(
-      { payment_intent: id, reason: "requested_by_customer", metadata: { motif } },
-      { idempotencyKey: `remboursement-${id}` },
-    );
+  async rembourser(id: string, motif: string, partiel?: { montant: number; cle: string }): Promise<{ id: string }> {
+    let remboursement: Stripe.Refund;
+    try {
+      remboursement = await this.stripe().refunds.create(
+        {
+          payment_intent: id,
+          reason: "requested_by_customer",
+          metadata: { motif },
+          ...(partiel ? { amount: partiel.montant } : {}),
+        },
+        { idempotencyKey: partiel?.cle ?? `remboursement-${id}` },
+      );
+    } catch (erreur) {
+      // Demande refusée par Stripe (et non panne) : inutile de réessayer.
+      if (erreur instanceof Stripe.errors.StripeInvalidRequestError || erreur instanceof Stripe.errors.StripeCardError) {
+        throw new RemboursementRefuse(erreur.message);
+      }
+      throw erreur;
+    }
+    if (remboursement.status === "failed" || remboursement.status === "canceled") {
+      throw new RemboursementRefuse(`remboursement ${remboursement.id} : ${remboursement.failure_reason ?? remboursement.status}`);
+    }
     return { id: remboursement.id };
   }
 
