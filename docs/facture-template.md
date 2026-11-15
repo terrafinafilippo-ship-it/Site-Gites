@@ -332,9 +332,28 @@ et même pied que les autres factures, sauf :
 
 ## Cas particuliers de facturation
 
-### Facture de remboursement (annulation tolérance commerciale > J-30)
+### Avoir (annulation) — construit le 15 novembre 2026
 
-Lorsque le Bailleur procède au remboursement de l'acompte au titre de la tolérance commerciale (article 7.2 du contrat), il convient d'émettre une **facture d'avoir** (note de crédit), numérotée dans la même série :
+> **Ce que le site fait (D-41, D-42)** : un avoir seulement si une facture du
+> séjour a été faite ; **suite à part `AV-{année}-{seq}`** (fonction
+> `creer_avoir`, migration 0023), montant **positif** égal à ce qui est rendu,
+> envoyé au client quand tout est remboursé. Rendu :
+> `components/pdf/AvoirPDF.tsx`. Il imprime : « AVOIR N° AV-… », l'émetteur, le
+> destinataire de la facture corrigée (client ou entreprise), la date,
+> **« Se rapporte à la facture n° FAC-… du … »**, l'objet (annulation du séjour,
+> gîte, dates, contrat), le motif et l'article (« Annulation à la demande du
+> locataire (l'article 7.2 du contrat) », « … par le bailleur ou pour force
+> majeure (les articles 7.3 et 7.4 …) », « Absence du locataire à l'arrivée
+> (l'article 7.5 …) »), le détail (facture, conservé, dont taxe de séjour
+> remboursée, remboursé), le montant de l'avoir, chaque remboursement
+> (montant, « Carte bancaire » ou « Virement bancaire », date), l'exonération de
+> TVA (article 261 D 4°), la conservation conseillée.
+>
+> L'ancien modèle ci-dessous (même série, montant négatif, phrase de
+> tolérance commerciale) n'est **pas** celui du site ; sa phrase de tolérance
+> commerciale n'est pas imprimée (question au juriste, D-42).
+
+Ancien modèle (avant D-41) :
 
 ```
 N° AVO-{{annee}}-{{seq}}
@@ -386,7 +405,7 @@ Avec :
 
 | Variable | Description |
 |---|---|
-| `numero_avoir` | Format `AVO-{{annee}}-{{seq}}` (série séparée) |
+| `numero_avoir` | Format `AV-{{annee}}-{{seq}}` (série séparée, `creer_avoir`) |
 | `numero_facture_annulee` | Référence facture initiale annulée |
 | `montant_avoir` | Montant remboursé (positif sur l'avoir, mais signifie un crédit) |
 | `date_avoir` | Date d'émission |
@@ -395,7 +414,7 @@ Avec :
 
 ## Règles de numérotation à implémenter
 
-1. **Séquence annuelle ininterrompue par série** — chaque série (FAC, AVO, CTR) a sa propre séquence indépendante par année civile.
+1. **Séquence annuelle ininterrompue par série** — chaque série (FAC, AV, CTR) a sa propre séquence indépendante par année civile.
 2. **Pas de rupture, pas de trou** — toute facture émise est conservée même en cas d'erreur (émettre un avoir pour annuler, jamais supprimer un numéro).
 3. **Reset au 1er janvier** — `FAC-2027-001` succède à `FAC-2026-NNN`.
 4. **Verrou de séquence en base** — la génération d'un numéro doit être atomique (verrou transactionnel) pour éviter les doublons en cas de concurrence.

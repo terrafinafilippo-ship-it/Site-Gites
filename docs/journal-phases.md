@@ -2212,6 +2212,60 @@ Gérant : pas d'adhésion, donc pas de médiateur affiché (D-41).
   réclamation directe (15.1). Parcours rejoué : 25 étapes OK, contrat
   toujours sur 10 pages.
 
+## Phase 5, lot 5 : annuler une réservation, rembourser, l'avoir (15 novembre 2026)
+
+D-42, réponses du gérant : 1 A (la carte remboursée par le site), 2 A (la
+carte d'abord, le reste par virement), 3 A (le montant du contrat, sans
+geste), 4 A (seuls les propriétaires annulent), 5 A (ce qui est gardé compte
+dans les statistiques), 6 A (la date où le client a prévenu est saisie).
+
+### Ce qui a été fait
+
+- **Migration 0023** : tables `annulations`, `remboursements`, `avoirs` ;
+  fonction `creer_avoir` (suite AV par `prochain_numero`) ; courriels
+  « annulation » et « avoir ».
+- **Le calcul** (`partageAnnulation`, `lib/montants.ts`) : article 7 selon qui
+  annule et quand le client a prévenu ; la taxe de séjour payée toujours
+  rendue ; pas de « tout rendu » en paiement intégral imposé.
+- **Le geste** (`lib/gestion/annulation.ts`) : cadre « Annuler la
+  réservation » sur la fiche, en deux temps (qui, règle et date, payé, gardé,
+  rendu et comment, nuits, solde, caution, courriel, avoir, « C'est
+  définitif ») ; à la confirmation : paiement du solde ouvert annulé chez
+  Stripe, statut « annulée », nuits libérées, remboursements écrits, courriel,
+  journal, puis la carte remboursée chez Stripe et la caution bloquée levée.
+- **Le remboursement** (`lib/annulation.ts`) : la carte d'abord (le paiement
+  le plus récent d'abord), le reste par virement avec « Remboursement fait » ;
+  refus de Stripe : passage en virement ; panne : reprise par les tâches,
+  même clé, jamais deux fois.
+- **L'avoir** (`lib/avoirs.ts`, `AvoirPDF`) : quand tout est rendu, s'il y a
+  une facture ; envoyé au client, listé dans « Documents », renvoyable.
+- « À traiter » : remboursement à faire par virement, remboursement par carte
+  qui n'aboutit pas, caution reçue à rendre (rendue tout de suite, avant le
+  départ). « Ma réservation » : « Cette réservation est annulée. ».
+  Statistiques : ce qui est gardé compte dans les séjours.
+- `POST /api/factures` accepte `avoir` (parcours et contrôles).
+
+### Ce qui a été vérifié
+
+- Parcours complet : **26 étapes, toutes OK** (code 0), `reference.ts`
+  inchangé. Par étape : conversion 51, tarification **209** (17 nouveaux),
+  blocage 42, paiement 69, courriels 41, « Ma réservation » 22, solde 61,
+  factures 42, **annulation 45** (nouvelle étape, vrai avoir et pages),
+  caution par carte 86, virement 47, abandons 22, avis 59, back-office 107,
+  réservations 86, tarifs 93, calendrier 111, statistiques 28, deux parcours
+  et URL signées sans échec, contrôles en base 83, contrôles des PDF 120,
+  `db:verify` **268** (12 nouveaux : tables, avoir AV, refus).
+- lint, `tsc`, build. PDF de l'avoir relu à l'écran (un défaut corrigé :
+  « Virement bancaire » coupé dans la colonne étroite).
+
+### Ce qui n'a PAS été vérifié
+
+- Un vrai remboursement Stripe en mode test (le prestataire est simulé ; la
+  clé d'idempotence et le refus sont contrôlés par la simulation).
+- Les courriels reçus dans une vraie boîte (envoi simulé).
+- Le formulaire à l'écran avec une vraie session (la page est ouverte par
+  `verify:annulation --http`, le geste est contrôlé par la fonction).
+
 ---
 
 ## Avant le premier client réel

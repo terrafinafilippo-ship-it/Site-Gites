@@ -2093,6 +2093,74 @@ paiement. Moins de courriels inutiles, et les propriétaires gardent la main.
 
 ---
 
+## D-42 · Annuler une réservation depuis le back-office
+
+**Date :** 15 novembre 2026 (Phase 5, lot 5). Réponses du gérant : 1 A, 2 A,
+3 A, 4 A, 5 A, 6 A. La forme de l'avoir vient de D-41.
+
+**Ce qui est décidé.**
+- **Seuls les propriétaires annulent** (4 A) : le client leur écrit, comme le
+  prévoit l'article 7.2 ; pas de bouton sur « Ma réservation ».
+- **Qui annule** se choisit sur le formulaire : le client (art. 7.2), le
+  Bailleur ou la force majeure (7.3, 7.4 : tout est rendu), le client absent
+  (7.5 : tout est gardé sauf la taxe de séjour, à partir du jour de l'arrivée).
+- **La date où le client a prévenu** (6 A) est saisie, date et heure, la
+  date du jour par défaut, jamais future : c'est elle, pas le jour du clic,
+  qui choisit la règle de l'article 7.2.
+- **Le montant est toujours celui du contrat** (3 A), sans geste commercial
+  (`partageAnnulation`, `lib/montants.ts`). La taxe de séjour payée est rendue
+  dans tous les cas ; un séjour dont seul l'acompte est payé rend la part de
+  taxe de l'acompte. En paiement intégral imposé (D-20), pas de « tout rendu
+  avant la date du solde » : cette date était passée à la réservation.
+- **Le remboursement** (1 A, 2 A) : sur les paiements par carte d'abord, le
+  plus récent d'abord, jusqu'à ce que chacun a payé, par le site chez Stripe
+  dès la confirmation ; le reste (un solde reçu par virement) par virement,
+  que les propriétaires font depuis la banque puis notent « Remboursement
+  fait ». Un refus de Stripe change la part en virement ; une panne la laisse
+  « à faire », reprise par les tâches automatiques avec la même clé (jamais
+  deux fois).
+- **À la confirmation** : statut « annulée », nuits libérées, paiement du
+  solde encore ouvert annulé chez Stripe (le prélèvement prévu ne vise que
+  les réservations confirmées), caution bloquée sur la carte levée, courriel
+  d'annulation au client (gardé, rendu, sur la carte, par virement avec le
+  RIB demandé, avoir annoncé). Une caution reçue par chèque ou virement se
+  rend tout de suite (« À traiter »).
+- **L'avoir** (D-41) part quand tout est rendu, s'il existe une facture du
+  séjour : suite `AV` par `creer_avoir` (migration 0023), du montant rendu,
+  au nom du destinataire de la facture corrigée.
+- **Statistiques** (5 A) : ce qui est gardé d'un séjour annulé compte dans
+  « Séjours, hors taxe », au mois de l'arrivée prévue ; ni dans les nuits, ni
+  dans le nombre de séjours, ni dans la provenance, ni dans la commission.
+
+**Construit le 15 novembre 2026** : migration 0023 (`annulations`,
+`remboursements`, `avoirs`, `creer_avoir`, courriels « annulation » et
+« avoir »), `lib/gestion/annulation.ts` (en deux temps, comme les autres
+gestes définitifs), `lib/annulation.ts` (paiements, répartition, Stripe,
+avoir), `lib/avoirs.ts` et `AvoirPDF`, « À traiter », « Documents »,
+« Ma réservation », `scripts/verifier-annulation.ts`.
+
+**Pourquoi.** Le contrat disait déjà ce qui est rendu (D-26) ; le site ne
+savait pas annuler : tout se faisait à la main dans Stripe, sans trace, et une
+facture faite restait sans avoir. La date du préavis évite qu'un clic tardif
+change la règle au détriment du client.
+
+**Ce qui pourrait mal tourner.**
+- Les 48 heures restent à confirmer (point 16) ; les articles 7.2 à 7.5, à
+  faire relire par le juriste (point 3).
+- Stripe ne rend pas sa commission sur un remboursement.
+- L'avoir n'imprime pas la phrase de l'ancien modèle (« Remboursement à titre
+  de tolérance commerciale unilatérale du Bailleur… », `docs/facture-template.md`) :
+  l'exemple validé le 14 novembre ne la portait pas. À faire trancher par le
+  juriste avec le point 3.
+- Une part par carte qui passe en virement après le courriel au client (refus
+  de Stripe lors d'une reprise) : le client a lu « sur la carte » ; la ligne
+  « À traiter » prévient les propriétaires, qui l'appellent.
+
+**Si on revient dessus.** Un geste commercial (3 B), c'est un montant saisi
+dans le récapitulatif et une ligne de plus au journal ; l'annulation par le
+client (4 B), un bouton sur « Ma réservation » qui inscrit une demande, pas
+une annulation directe.
+
 ## Décisions ouvertes
 
 Elles ne sont **pas tranchées** et ne doivent pas l'être dans le code.

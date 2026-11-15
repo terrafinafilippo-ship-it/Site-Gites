@@ -5,9 +5,10 @@
 > (réservations, cautions, solde par virement, « À traiter », D-33) le
 > 6 novembre ; **lot 3 construit** (tarifs, D-34) et **lot 4 construit**
 > (calendrier, options, fiches des gîtes, documents, D-35) le 7 novembre ;
-> **lot 6 construit** (statistiques, D-36) le 8 novembre. Reste le lot 5, qui
-> attend la réponse du comptable. Le cadrage est en fin de fiche ; il prime sur
-> le cadre initial là où ils diffèrent.
+> **lot 6 construit** (statistiques, D-36) le 8 novembre ; **lot 5 construit**
+> (annulation et avoir, D-42) le 15 novembre, la forme de l'avoir arrêtée par
+> le gérant (D-41). Tous les lots sont construits. Le cadrage est en fin de
+> fiche ; il prime sur le cadre initial là où ils diffèrent.
 
 **Dépendances :** Phase 2 close. **Parallélisable** avec les phases 3 et 4 : ne
 dépend que de la lecture en base, pas du paiement.
@@ -193,7 +194,7 @@ contrat signé, facture d'acompte émise).
 | 2 | Réservations, cautions (libérer, retenir, chèque et virement reçus et rendus, lien de caution), solde reçu par virement, accueil « À traiter » | **construit le 6 novembre 2026** (D-33) |
 | 3 | Tarifs (lève le point 11) | **construit le 7 novembre 2026** (D-34) |
 | 4 | Calendrier (bloquer des nuits, options), fiches des gîtes, documents, seed « création seule » | **construit le 7 novembre 2026** (D-35) ; écart E-9 corrigé le 8 (migration 0016) |
-| 5 | Annulation et avoir | après la réponse du comptable |
+| 5 | Annulation et avoir | **construit le 15 novembre 2026** (D-42 ; forme de l'avoir : D-41) |
 | 6 | Statistiques | **construit le 8 novembre 2026** (D-36) |
 
 **Cadrage du lot 2, 6 novembre 2026** (exemple : Camille, L'Armu du 20 au

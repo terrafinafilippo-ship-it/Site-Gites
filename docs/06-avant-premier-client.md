@@ -48,7 +48,7 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | 16 | Annulation : confirmer le délai de remboursement du solde (48 heures) | **Arbitrage** | Avant l'ouverture |
 | ~~17~~ | ~~Séjour payé en une fois : faire confirmer la facture unique~~ — **levé le 14 novembre 2026** (D-41) | — | — |
 | 18 | Programmer le réveil des tâches automatiques (solde, factures, relances) | **Phase de déploiement** | Au déploiement |
-| 19 | Annulation par les propriétaires : remboursement et avoir | Développement (forme de l'avoir arrêtée le 14 novembre 2026, D-41) | Phase 5, lot 5 |
+| ~~19~~ | ~~Annulation par les propriétaires : remboursement et avoir~~ — **levé le 15 novembre 2026** (D-42, migration 0023) | — | — |
 
 ---
 
@@ -774,7 +774,13 @@ d'essai dont la date limite du solde est passée reçoit son courriel.
 > **Forme de l'avoir arrêtée le 14 novembre 2026** (D-41) : seulement si une
 > facture a été faite, du montant remboursé, suite à part `AV-{année}-{seq}`,
 > envoyé automatiquement. Une retenue sur caution donne une facture, sur
-> demande. Reste le développement (lot 5).
+> demande.
+>
+> **Levé le 15 novembre 2026** (D-42) : bouton « Annuler la réservation » sur
+> la fiche, en deux temps, règle de l'article 7 selon qui annule et quand le
+> client a prévenu, remboursement par carte chez Stripe puis par virement,
+> avoir quand tout est rendu ; contrôle `verify:annulation` (45 cas, vrai
+> avoir compris).
 
 **Qui peut lever :** **le comptable** (la forme de l'avoir), puis
 développement · **Phase 5, lot 5**
