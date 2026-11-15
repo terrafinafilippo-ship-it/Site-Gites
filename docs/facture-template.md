@@ -51,7 +51,9 @@ Référence contrat : {{numero_contrat}}
 
 ### Mention médiation (obligatoire en B2C — art. L.616-1 C. conso)
 
-> Conformément à l'article L.612-1 du Code de la consommation, le client peut recourir gratuitement au service de médiation **MEDICYS** (73 Boulevard de Clichy, 75009 Paris — www.medicys.fr).
+> **Retirée le 15 novembre 2026** (D-41) : aucun médiateur n'est cité tant que
+> l'adhésion n'est pas faite (point 7 de `docs/06-avant-premier-client.md`).
+> Annoncer MEDICYS sans adhésion était une information fausse.
 
 ### Pied de page (constant)
 
@@ -148,10 +150,6 @@ MENTIONS LÉGALES
   
   • Pas d'escompte pour règlement anticipé.
   
-  • Médiation de la consommation : conformément à l'article L.612-1 du Code
-    de la consommation, le client peut recourir gratuitement au service de
-    médiation MEDICYS, 73 Boulevard de Clichy, 75009 Paris (www.medicys.fr).
-
   • La présente facture constitue la pièce justificative du versement de
     l'acompte au sens de l'article 1590 du Code civil, et engage fermement
     les deux parties conformément à l'article 5.2 du contrat de location
@@ -258,10 +256,6 @@ MENTIONS LÉGALES
   
   • Pas d'escompte pour règlement anticipé.
   
-  • Médiation de la consommation : conformément à l'article L.612-1 du Code
-    de la consommation, le client peut recourir gratuitement au service de
-    médiation MEDICYS, 73 Boulevard de Clichy, 75009 Paris (www.medicys.fr).
-
   • Conservation conseillée : 10 ans.
 
 ───────────────────────────────────────────────────────────────────────────────
@@ -331,7 +325,7 @@ et même pied que les autres factures, sauf :
 - mentions : **« Somme non soumise à la TVA : dédommagement d'un dégât, sans
   service rendu en échange. »** (`MENTIONS.tvaRetenue` ; une retenue n'est pas
   une location, la phrase de l'article 261 D 4° ne s'applique pas ; validée
-  par le gérant, à faire confirmer au comptable), médiation, conservation
+  par le gérant, à faire confirmer au comptable), conservation
   conseillée 10 ans. Pas de « Pas d'escompte ».
 
 ---
@@ -425,7 +419,7 @@ Avec :
 | Montant total à payer | ✅ |
 | Mention exonération TVA + référence article | ✅ (261 D 4° CGI) |
 | Conditions d'escompte (ou absence) | ✅ (« Pas d'escompte ») |
-| Médiation conso (B2C) | ✅ (MEDICYS) |
+| Médiation conso (B2C) | ❌ retirée jusqu'à l'adhésion (point 7) |
 | Mode de paiement | ✅ |
 
 Pénalités de retard et indemnité forfaitaire de 40 € : **non applicables** en B2C (réservés aux factures B2B selon L.441-10 C. com.).

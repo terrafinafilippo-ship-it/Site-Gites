@@ -79,7 +79,7 @@ lever.
 | ~~Mentions légales~~ | ~~« Les avis affichés sont collectés et vérifiés par Gîtes de France »~~ | **Vrai** : les chiffres viennent de Gîtes de France (gérant, 12 novembre 2026) | — |
 | Accueil | « Labellisés depuis 2018 » | Écrit en dur, aucune source dans le dépôt | Les propriétaires |
 | ~~Politique cookies, bannière~~ | ~~Mesure d'audience par Matomo~~ | **Corrigé le 12 novembre 2026** (D-39) : bannière retirée, politique cookies réécrite (aucun traceur ; cookies de Stripe au paiement) | — |
-| CGV | Médiateur MTV **retiré le 14 novembre 2026** (aucun médiateur cité jusqu'à l'adhésion) ; contrat et factures : MEDICYS | E-2 | Les propriétaires (point 7) |
+| CGV, contrat, factures | Médiateur MTV **retiré des CGV le 14 novembre 2026**, MEDICYS **du contrat (v6) et des factures le 15 novembre** : aucun médiateur cité jusqu'à l'adhésion | E-2 | Les propriétaires (point 7) |
 | Confidentialité | Conservation 5 ans, rien sur la carte ni sur Brevo | Voir le périmètre exclu ci-dessous | Juriste, Phase 6 |
 | ~~Mentions légales~~ | ~~« Conception … avec l'aide d'une agence partenaire »~~ | **Retiré le 12 novembre 2026** (« c'est faux », gérant) | — |
 

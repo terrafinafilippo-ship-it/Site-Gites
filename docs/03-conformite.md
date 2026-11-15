@@ -15,7 +15,7 @@ lettres.
 | # | Écart | Gravité | Phase | Qui peut lever |
 |---|---|---|---|---|
 | ~~E-1~~ | ~~Identité du bailleur incohérente entre le site et les documents ; SIRET factice publié~~ — **corrigé le 14 novembre 2026** (D-41) | — | — | — |
-| E-2 | Deux médiateurs annoncés ; adhésion non prouvée | Bloquant | 6 | Les propriétaires |
+| E-2 | Aucune adhésion à un médiateur ; plus aucun n'est cité depuis le 15 novembre 2026 | Bloquant | 6 | Les propriétaires |
 | ~~E-3~~ | ~~Aucune règle sauna dans le contrat, alors que le consentement en fait accepter~~ — **corrigé le 12 novembre 2026** (D-38) | — | — | — |
 | E-4 | Caution par préautorisation Stripe décrite au contrat et sur le site, pas encore développée | Bloquant | 4 | Stripe (deux confirmations) + juriste + développement |
 | ~~E-5~~ | ~~Options facturées sous un intitulé générique~~ — **sans objet depuis le 3 novembre 2026** : aucune option vendue | — | — | — |
@@ -643,15 +643,21 @@ un **abonnement payant** auprès d'un médiateur référencé.
 
 **Où c'est implémenté.**
 - `lib/constantes.ts`, `MENTIONS.mediateur` : **MEDICYS** (73 Bd de Clichy,
-  75009 Paris), imprimé par le contrat et les trois factures (E-7 corrigé le
-  9 novembre 2026).
+  75009 Paris), imprimé par le contrat et les factures (E-7 corrigé le
+  9 novembre 2026) ; **retiré le 15 novembre 2026** (gérant, D-41 : aucune
+  adhésion, donc pas d'information fausse) — contrat v6 (art. 15
+  « Réclamations », 16.2 sans médiation), plus de ligne « Médiation de la
+  consommation » sur les factures.
 - Les CGV du site (`lib/data/legal.ts`) annonçaient **MTV — Médiation Tourisme
   Voyage** (BP 80303, 75823 Paris Cedex 17) ; **retiré le 14 novembre 2026**
   (gérant : aucune information non confirmée) — les CGV ne citent plus aucun
   médiateur jusqu'à l'adhésion.
 
-**Écart E-2 (bloquant, Phase 6).** Deux médiateurs différents sont annoncés au
-même client selon le document qu'il lit. Un seul peut être le bon.
+**Écart E-2 (bloquant, Phase 6).** Deux médiateurs différents étaient annoncés
+au même client selon le document qu'il lisait ; depuis le 15 novembre 2026,
+aucun n'est cité. Il reste l'obligation elle-même : adhérer, puis citer
+l'organisme sur le site, les CGV, le contrat (nouvelle version) et les
+factures.
 
 Deux points à établir, dans cet ordre :
 

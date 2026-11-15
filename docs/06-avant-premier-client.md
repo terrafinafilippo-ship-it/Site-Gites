@@ -360,6 +360,12 @@ factures lisent depuis le 9 novembre 2026) et dans les CGV du site.
 > administrative en cas de manquement) : le point reste **bloquant**, et le
 > contrat et les factures annoncent MEDICYS tant qu'aucun organisme n'est
 > choisi.
+>
+> **15 novembre 2026, gérant :** MEDICYS est retiré du contrat (v6) et des
+> factures, comme MTV des CGV : plus aucun médiateur n'est cité jusqu'à
+> l'adhésion. Le point reste **bloquant** : à l'adhésion, inscrire l'organisme
+> dans `lib/constantes.ts`, les CGV, l'art. 15 du contrat (nouvelle version)
+> et les factures.
 
 ---
 

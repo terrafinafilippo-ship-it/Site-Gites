@@ -535,7 +535,11 @@ Ces droits s'exercent par courriel à l'adresse indiquée au 14.1, accompagné d
 
 ---
 
-## Article 15 — Réclamations et médiation de la consommation
+## Article 15 — Réclamations
+
+> Contrat v6 (15 novembre 2026, D-41) : aucun médiateur cité tant que
+> l'adhésion n'est pas faite. L'ancien 15.2 (MEDICYS) est retiré, l'ancien
+> 15.3 devient 15.2.
 
 ### 15.1 — Réclamation directe
 
@@ -543,16 +547,7 @@ Toute réclamation relative à l'exécution du présent contrat doit être adres
 
 S'agissant spécifiquement de l'état du gîte ou de l'inventaire, l'article 10.2 prévoit un délai impératif de 24 heures.
 
-### 15.2 — Médiation de la consommation
-
-À défaut de résolution amiable, et conformément aux articles L.611-1 et suivants du Code de la consommation, le Locataire est informé qu'il peut recourir gratuitement à un médiateur de la consommation. Le Bailleur adhère au dispositif suivant :
-
-> **MEDICYS**
-> 73 Boulevard de Clichy, 75009 PARIS
-> Site internet : www.medicys.fr
-> Saisine en ligne possible.
-
-### 15.3 — Plateforme européenne de règlement des litiges
+### 15.2 — Plateforme européenne de règlement des litiges
 
 Pour les locataires résidant dans un État membre de l'Union européenne, une plateforme de règlement en ligne des litiges est mise à disposition par la Commission européenne : https://ec.europa.eu/consumers/odr/
 
@@ -566,7 +561,7 @@ Le présent contrat est soumis au **droit français**, à l'exclusion de toute a
 
 ### 16.2 — Juridiction compétente
 
-À défaut de résolution amiable et après tentative de médiation, tout litige relatif à la formation, l'interprétation, l'exécution ou la résiliation du présent contrat relève de la compétence exclusive des **tribunaux du ressort du lieu de situation de l'immeuble loué**, soit le **Tribunal judiciaire de Privas** (Ardèche).
+À défaut de résolution amiable, tout litige relatif à la formation, l'interprétation, l'exécution ou la résiliation du présent contrat relève de la compétence exclusive des **tribunaux du ressort du lieu de situation de l'immeuble loué**, soit le **Tribunal judiciaire de Privas** (Ardèche).
 
 Cette clause est sans préjudice de la faculté ouverte au Locataire consommateur, par les dispositions impératives du Code de la consommation, de saisir à son choix le tribunal de son domicile ou le tribunal de la résidence du défendeur.
 

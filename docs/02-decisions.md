@@ -2038,6 +2038,10 @@ pour le comptable (points 6, 17 et 19 de `docs/06-avant-premier-client.md`).
   CGV, la confidentialité et le pied de page lisent `EMETTEUR`
   (`lib/constantes.ts`), comme le contrat et les factures. Le code APE n'est
   pas affiché : il n'est pas obligatoire. **Fait le 14 novembre 2026.**
+- **Aucun médiateur cité tant que l'adhésion n'est pas faite** : MTV retiré
+  des CGV le 14 novembre 2026, MEDICYS du contrat (v6 : art. 15
+  « Réclamations », 16.2 sans médiation) et des factures le 15 novembre.
+  Rien de non confirmé n'est affiché. Le point 7 reste bloquant.
 - **Les factures restent sans TVA** (art. 261 D 4° CGI). Des quatre
   prestations de type hôtelier, deux sont fournies (le linge, l'accueil) ;
   l'exonération ne tombe qu'à trois. Elle serait à revoir si un petit-déjeuner
@@ -2129,9 +2133,10 @@ comptable, couvrant les trois volets. Voir `docs/03-conformite.md` § TVA et
 
 ### DO-02 · Quel médiateur de la consommation, et l'adhésion est-elle en cours ?
 
-**La question.** Deux médiateurs différents sont annoncés aux clients :
+**La question.** Deux médiateurs différents étaient annoncés aux clients :
 **MEDICYS** sur les factures (`lib/constantes.ts`) et **MTV — Médiation Tourisme
-Voyage** dans les CGV du site (`lib/data/legal.ts`). Lequel est le bon, et
+Voyage** dans les CGV du site (`lib/data/legal.ts`) ; tous deux retirés les 14
+et 15 novembre 2026 (D-41), faute d'adhésion. Lequel est le bon, et
 **existe-t-il une adhésion en cours**, à qui, depuis quand ?
 
 **Détail utile sans trancher :** MTV est le médiateur **du secteur du tourisme**

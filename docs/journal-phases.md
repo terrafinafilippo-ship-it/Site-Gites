@@ -2187,6 +2187,26 @@ construire avec l'annulation).
 - Le courriel de la facture reçu dans une vraie boîte (envoi simulé).
 - La phrase de TVA de la retenue et l'exonération, par le comptable.
 
+## Phase 6 : plus aucun médiateur cité (15 novembre 2026)
+
+Gérant : pas d'adhésion, donc pas de médiateur affiché (D-41).
+
+### Ce qui a été fait
+
+- Contrat **v6** : l'art. 15 devient « Réclamations » (15.2 MEDICYS retiré,
+  l'ancien 15.3 devient 15.2), l'art. 16.2 dit « À défaut de résolution
+  amiable, tout litige… » sans « après tentative de médiation ».
+- Les quatre factures (acompte, solde, séjour, retenue) n'impriment plus la
+  ligne « Médiation de la consommation ». `MENTIONS.mediateur` supprimé.
+
+### Ce qui a été vérifié
+
+- lint, `tsc`, build ; parcours complet : **25 étapes, toutes OK**,
+  `reference.ts` inchangé. Le contrat passe de 11 à 10 pages (contrôle mis à
+  jour) ; contrôles des PDF **120** (dont « aucun médiateur cité » sur chaque
+  contrat et chaque facture), `db:verify` 256. Page des art. 15 et 16 relue à
+  l'écran.
+
 ---
 
 ## Avant le premier client réel
