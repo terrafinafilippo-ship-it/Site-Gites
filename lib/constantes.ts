@@ -34,12 +34,8 @@ export const MENTIONS = {
   // Facture d'une retenue sur la caution (D-41) : un dédommagement, pas une
   // location. Phrase validée par le gérant le 14 novembre 2026.
   tvaRetenue: "Somme non soumise à la TVA : dédommagement d'un dégât, sans service rendu en échange.",
-  mediateur: {
-    nom: 'MEDICYS',
-    adresse: '73 Boulevard de Clichy',
-    codePostalVille: '75009 Paris',
-    site: 'www.medicys.fr',
-  },
+  // Aucun médiateur de la consommation n'est cité (contrat, factures, CGV)
+  // tant que l'adhésion n'est pas faite : gérant, 15 novembre 2026 (D-41).
 } as const;
 
 // ─── Paramètres financiers par défaut ─────────────────────────────────────────

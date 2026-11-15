@@ -650,13 +650,6 @@ export function FactureSoldePDF({ data, logo }: { data: FactureSoldeData; logo: 
           <View style={styles.legalItem}>
             <Text style={styles.legalBullet}>•</Text>
             <Text style={styles.legalText}>
-              <Text style={styles.legalBold}>Médiation de la consommation</Text>
-              {` : ${MENTIONS.mediateur.nom}, ${MENTIONS.mediateur.adresse}, ${MENTIONS.mediateur.codePostalVille} (${MENTIONS.mediateur.site}).`}
-            </Text>
-          </View>
-          <View style={styles.legalItem}>
-            <Text style={styles.legalBullet}>•</Text>
-            <Text style={styles.legalText}>
               La présente facture solde le contrat de location n°{' '}
               {data.numeroContrat} et clôt l&apos;intégralité des sommes dues au
               titre du séjour.

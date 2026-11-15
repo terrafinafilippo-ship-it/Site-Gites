@@ -199,13 +199,6 @@ export function FactureRetenuePDF({ data, logo }: { data: FactureRetenueData; lo
           </View>
           <View style={styles.legalItem}>
             <Text style={styles.legalBullet}>•</Text>
-            <Text style={styles.legalText}>
-              <Text style={styles.legalBold}>Médiation de la consommation</Text>
-              {` : ${MENTIONS.mediateur.nom}, ${MENTIONS.mediateur.adresse}, ${MENTIONS.mediateur.codePostalVille} (${MENTIONS.mediateur.site}).`}
-            </Text>
-          </View>
-          <View style={styles.legalItem}>
-            <Text style={styles.legalBullet}>•</Text>
             <Text style={styles.legalText}>Conservation conseillée : 10 ans.</Text>
           </View>
         </View>

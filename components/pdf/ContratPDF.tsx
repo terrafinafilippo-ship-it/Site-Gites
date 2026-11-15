@@ -942,7 +942,7 @@ export function ContratPDF({
               </Text>
               <Text style={styles.tocItem}>Art. 13 · Assurance villégiature</Text>
               <Text style={styles.tocItem}>Art. 14 · Données personnelles</Text>
-              <Text style={styles.tocItem}>Art. 15 · Médiation</Text>
+              <Text style={styles.tocItem}>Art. 15 · Réclamations</Text>
               <Text style={styles.tocItem}>Art. 16 · Loi et juridiction</Text>
             </View>
           </View>
@@ -1986,7 +1986,7 @@ export function ContratPDF({
         <View style={styles.art}>
           <ArtTitle
             num="Art. 15"
-            title="Réclamations et médiation de la consommation"
+            title="Réclamations"
           />
           <Text style={styles.p}>
             <Text style={styles.pBold}>15.1 Réclamation directe —</Text>{' '}
@@ -2000,22 +2000,7 @@ export function ContratPDF({
             l&apos;article 10.2 prévoit un délai impératif de 24 heures.
           </Text>
           <Text style={styles.p}>
-            <Text style={styles.pBold}>
-              15.2 Médiation de la consommation —
-            </Text>{' '}
-            Conformément aux articles L.611-1 et s. du Code de la
-            consommation, le Locataire peut recourir gratuitement à un
-            médiateur de la consommation. Le Bailleur adhère au dispositif
-            suivant :
-          </Text>
-          <View style={styles.callout}>
-            <Text style={styles.calloutText}>
-              <Text style={styles.pAccent}>{MENTIONS.mediateur.nom}</Text>
-              {` · ${MENTIONS.mediateur.adresse}, ${MENTIONS.mediateur.codePostalVille.toUpperCase()} · ${MENTIONS.mediateur.site} · Saisine en ligne possible.`}
-            </Text>
-          </View>
-          <Text style={styles.p}>
-            <Text style={styles.pBold}>15.3 Plateforme européenne RLL —</Text>{' '}
+            <Text style={styles.pBold}>15.2 Plateforme européenne RLL —</Text>{' '}
             Pour les locataires résidant dans un État membre de l&apos;UE,
             une plateforme de règlement en ligne des litiges est mise à
             disposition par la Commission européenne :
@@ -2037,7 +2022,7 @@ export function ContratPDF({
           </Text>
           <Text style={styles.p}>
             <Text style={styles.pBold}>16.2 Juridiction compétente —</Text> À
-            défaut de résolution amiable et après tentative de médiation, tout
+            défaut de résolution amiable, tout
             litige relatif au présent contrat relève de la compétence
             exclusive des{' '}
             <Text style={styles.pBold}>

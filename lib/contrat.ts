@@ -39,7 +39,10 @@ const DOCUMENT_TYPE = "contrat_location";
 // v5 (12 novembre 2026, D-37) : gîte sans forfait ménage (0 €) — ni ligne de
 // ménage ni art. 4.5, et l'art. 11.5 met le nettoyage du départ à la charge du
 // Locataire. Avec un forfait, le texte est celui de la v4.
-const TEMPLATE_VERSION = "v5";
+// v6 (15 novembre 2026, D-41) : aucun médiateur cité tant que l'adhésion
+// n'est pas faite — l'art. 15 devient « Réclamations » (15.2 MEDICYS retiré,
+// l'ancien 15.3 devient 15.2), l'art. 16.2 ne parle plus de médiation.
+const TEMPLATE_VERSION = "v6";
 // Le lien de signature reste valable 30 jours.
 const TOKEN_TTL_JOURS = 30;
 

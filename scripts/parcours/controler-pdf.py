@@ -78,6 +78,7 @@ def controler_facture(chemin, reference, genre):
 
     noter(pages == 1, "tient sur une seule page", f"{pages} page(s)")
     noter(images >= 1, "logo présent (au moins une image)", f"{images} image(s)")
+    noter("MEDICYS" not in texte, "aucun médiateur cité (D-41)")
 
     loc = montant(texte, "Prix de la location")
     men = montant(texte, "Forfait ménage")
@@ -124,9 +125,11 @@ def controler_contrat(chemin, reference, signe):
     nom = Path(chemin).name
     print(f"\n{nom} — contrat{' signé' if signe else ''} ({reference})")
 
-    # 11 pages depuis le contrat v3 (lot 5) : articles 5 à 7 plus longs, la
-    # liste des annexes passe seule sur la dernière page.
-    noter(pages == 11, "11 pages", f"{pages}")
+    # 11 pages depuis le contrat v3 (lot 5) ; 10 depuis le v6 (D-41), sans le
+    # paragraphe du médiateur.
+    noter(pages == 10, "10 pages", f"{pages}")
+    noter("MEDICYS" not in texte and "Médiation de la consommation" not in texte,
+          "aucun médiateur cité (D-41)")
     noter(images >= 5, "logo sur chaque en-tête (au moins 5 images)", f"{images} image(s)")
     noter(montant(texte, "Caution") == a["caution"], "caution", str(montant(texte, "Caution")))
     noter(montant(texte, "Location \\(") == a["prixLocation"], "ligne « Location »")
