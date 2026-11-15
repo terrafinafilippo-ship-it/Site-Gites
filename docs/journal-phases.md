@@ -2141,6 +2141,52 @@ Réponses du gérant aux questions préparées pour le comptable (D-41).
 
 - lint, `tsc`, build ; les pages juridiques relues à l'écran.
 
+## Phase 6 : les factures sur demande (14 novembre 2026)
+
+D-41, réponses du gérant : une facture du séjour entier (1 A), au nom du
+client ou d'une entreprise (2 A), l'avoir envoyé automatiquement (3 A, à
+construire avec l'annulation).
+
+### Ce qui a été fait
+
+- **Plus aucune facture automatique** : ni après l'acompte, ni après le solde
+  (carte ou virement), ni pour un séjour payé en une fois. Les courriels de
+  confirmation restent. « Ma réservation » ne promet plus la facture.
+- **Fiche de la réservation** : une fois le séjour entièrement payé, « Créer
+  et envoyer la facture », en deux temps (récapitulatif : montant,
+  destinataire, adresse du courriel, « ne pourra plus être supprimée »),
+  avec un volet replié « Au nom d'une entreprise » (nom, adresse, SIREN
+  facultatif). Sous une retenue faite : « Créer et envoyer la facture de
+  retenue ». Journal « Facture demandée par le client ».
+- **La facture du séjour** (`total`) sert maintenant aussi au séjour payé en
+  deux fois : elle liste les paiements reçus (acompte puis solde, même le
+  même jour) et refuse si leur somme ne fait pas le total. Sa note devient
+  « Le séjour est intégralement réglé. ». Instantané au format 4.
+- **La facture de retenue** (migration 0022, `FactureRetenuePDF`) : objet,
+  motif, caution, restitué, retenu, phrase « Somme non soumise à la TVA :
+  dédommagement d'un dégât, sans service rendu en échange. ».
+- Garde ajoutée : plus de facture d'acompte ni de solde après celle du séjour.
+
+### Ce qui a été vérifié
+
+- Parcours complet : **25 étapes, toutes OK** (code 0), `reference.ts`
+  inchangé. Par étape : conversion 51, tarification 192, blocage 42,
+  paiement 69, courriels 41, « Ma réservation » 22, solde 61, **factures sur
+  demande 42** (nouvelle étape, vraies factures par le serveur), caution par
+  carte 86, virement 47, abandons 22, avis 59, back-office 107, réservations
+  86, tarifs 93, calendrier 111, statistiques 28, deux parcours et URL
+  signées sans échec, contrôles en base 83, contrôles des PDF 112,
+  `db:verify` 256.
+- lint, `tsc`, build. Contrôle visuel des PDF : facture du séjour payé en
+  deux fois, au nom d'une entreprise, facture de retenue.
+
+### Ce qui n'a PAS été vérifié
+
+- Le bouton à l'écran avec une vraie session (les gestes sont contrôlés par
+  la fonction, les pages du back-office s'ouvrent dans `verify:gestion-*`).
+- Le courriel de la facture reçu dans une vraie boîte (envoi simulé).
+- La phrase de TVA de la retenue et l'exonération, par le comptable.
+
 ---
 
 ## Avant le premier client réel

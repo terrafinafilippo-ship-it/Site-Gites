@@ -1,6 +1,6 @@
 # Facture / Quittance — Templates
 
-> **Modèle retenu** : Modèle B — **une facture par encaissement** (1 facture d'acompte + 1 facture de solde par séjour). Séjour payé en une fois à la réservation : **une facture unique** (Template 3, D-29, à confirmer par le comptable).
+> **Modèle retenu depuis D-41 (14 novembre 2026)** : **factures sur demande seulement**. Le site n'émet plus aucune facture tout seul ; quand un client en demande une, les propriétaires cliquent « Créer et envoyer la facture » dans le back-office : **une facture unique du séjour entièrement payé** (Template 3), en une fois ou en deux, au nom du client ou d'une entreprise ; **une facture de retenue sur la caution** (Template 4). Les Templates 1 et 2 (acompte, solde — l'ancien modèle B, une facture par encaissement) ne sont plus émis par le site ; leur code reste pour le parcours de non-régression.
 > **Numérotation** : `FAC-{{annee}}-{{seq}}`, série annuelle à partir de `FAC-2026-001` (rupture avec l'ancien système GdF).
 > **Régime TVA** : exonération de plein droit (art. 261 D 4° CGI) — aucune ligne TVA.
 
@@ -274,12 +274,25 @@ Exonération de TVA — article 261 D 4° du CGI
 
 ---
 
-## Template 3 — FACTURE UNIQUE (séjour payé en une fois)
+## Template 3 — FACTURE UNIQUE (le séjour entièrement payé)
 
-> Émise le jour du paiement, quand le prix total est réglé à la réservation
-> (D-20 : arrivée à moins de 30 jours ; D-27 : « tout régler maintenant »).
-> Choix du gérant du 1er novembre 2026, à confirmer par le comptable (D-29).
+> Depuis D-41 (14 novembre 2026) : faite **sur demande du client**, par le
+> bouton « Créer et envoyer la facture » de la fiche de la réservation, une
+> fois le séjour entièrement payé — en une fois à la réservation (D-20, D-27),
+> ou acompte puis solde. Datée du jour où elle est faite. Avant D-41 : émise
+> le jour du paiement d'un séjour payé en une fois (D-29).
 > Rendu : `components/pdf/FactureTotalPDF.tsx`, type `total` dans `factures`.
+>
+> - **Destinataire** : la personne qui a réservé, ou, si les propriétaires
+>   le saisissent, **une entreprise** (raison sociale, adresse, code postal,
+>   ville, pays, SIREN facultatif « SIREN : 123 456 789 »).
+> - **Paiement** : un seul paiement, le bloc « Paiement » (mode, date,
+>   référence) ; deux paiements, le bloc « **Paiements reçus** », une ligne
+>   chacun : « Acompte : 200,60 € le 14 novembre 2026 — Carte bancaire —
+>   réf. … », puis « Solde : … — Virement bancaire — réf. … ».
+> - **Note** : « Le séjour est **intégralement réglé**. » (avant D-41 :
+>   « Le séjour est désormais intégralement réglé. Bienvenue aux Gîtes de
+>   Samoyas. », qui ne convient plus à une facture faite après le séjour).
 
 Identique à la facture de solde (Template 2), sauf :
 
@@ -293,6 +306,33 @@ Identique à la facture de solde (Template 2), sauf :
 Mentions, note « Le séjour est désormais intégralement réglé » et phrase
 « La présente facture solde le contrat de location n° … » : celles de la
 facture de solde.
+
+---
+
+## Template 4 — FACTURE DE RETENUE SUR LA CAUTION
+
+> D-41 (14 novembre 2026) : faite **sur demande du client**, par le bouton
+> « Créer et envoyer la facture de retenue », sous la retenue faite (table
+> `retenues`). Même suite `FAC`, au plus une par réservation. Rendu :
+> `components/pdf/FactureRetenuePDF.tsx`, type `retenue` dans `factures`.
+
+Même en-tête, mêmes parties (émetteur, destinataire — client ou entreprise)
+et même pied que les autres factures, sauf :
+
+- régime fiscal : « Non soumis à la TVA » ;
+- objet **« Retenue sur le dépôt de garantie »**, le gîte, les dates du
+  séjour, « Motif : … » (celui saisi à la retenue) ;
+- récapitulatif « Dépôt de garantie » : la caution et son moyen (« carte
+  bancaire, préautorisation », « chèque » ou « virement »), « Restitué »,
+  **« Retenu »** ;
+- montant facturé : **« Retenue sur le dépôt de garantie »** = le montant
+  retenu ; bloc « Règlement » : « Retenue sur le dépôt de garantie », la date
+  de la retenue ; « Acquittée » ;
+- mentions : **« Somme non soumise à la TVA : dédommagement d'un dégât, sans
+  service rendu en échange. »** (`MENTIONS.tvaRetenue` ; une retenue n'est pas
+  une location, la phrase de l'article 261 D 4° ne s'applique pas ; validée
+  par le gérant, à faire confirmer au comptable), médiation, conservation
+  conseillée 10 ans. Pas de « Pas d'escompte ».
 
 ---
 

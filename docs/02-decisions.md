@@ -2051,7 +2051,13 @@ pour le comptable (points 6, 17 et 19 de `docs/06-avant-premier-client.md`).
   seule facture du séjour entier** (1 A), au nom et à l'adresse de la
   réservation, modifiables avant la création pour une entreprise (nom,
   adresse, SIREN) (2 A). Le numéro n'est frappé qu'à la création : la suite
-  reste sans trou. *À construire.*
+  reste sans trou. **Construit le 14 novembre 2026** (migration 0022,
+  `lib/gestion/factures.ts`, `scripts/verifier-factures.ts`) : en deux temps
+  (récapitulatif, puis « Confirmer »), un volet « Au nom d'une entreprise »
+  replié au lieu d'un formulaire prérempli (même effet : sans y toucher, la
+  facture est au nom du client) ; la facture liste les paiements reçus ; sa
+  note devient « Le séjour est intégralement réglé. » (le « Bienvenue » ne
+  convenait plus à une facture faite après le séjour).
 - **Avoir** : seulement si une facture a été faite ; du montant remboursé ;
   une suite à part, `AV-{année}-{seq}`, par `prochain_numero`. Il imprime : le
   numéro et la date, l'émetteur, le client, **la ou les factures qu'il
@@ -2064,7 +2070,7 @@ pour le comptable (points 6, 17 et 19 de `docs/06-avant-premier-client.md`).
 - **Retenue sur caution** : une facture sur demande (bouton sur la caution
   retenue), dans la suite des factures, avec la phrase « Somme non soumise à
   la TVA : dédommagement d'un dégât, sans service rendu en échange. » (une
-  retenue n'est pas une location). *À construire.*
+  retenue n'est pas une location). **Construit le 14 novembre 2026.**
 
 **Pourquoi.** En neuf ans, seules des entreprises ont demandé une facture. La
 facture n'est obligatoire qu'envers un professionnel (art. 289 CGI) ; un

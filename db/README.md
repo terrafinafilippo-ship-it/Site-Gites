@@ -36,6 +36,7 @@ main dans un outil graphique.
 | `index.ts` | Le client de base de données partagé par le site (pool de 10 connexions maximum). |
 | `seed.ts` | Crée les gîtes absents ; ne touche jamais un gîte existant (D-35). |
 | `verify.ts` | Auto-vérification complète, sans rien laisser en base. |
+| `migrations/0022_facture_retenue.sql` | Factures sur demande (D-41) : le type de facture `retenue` (facture d'une retenue sur la caution, même suite FAC, une par réservation). |
 | `migrate.ts` | Applique les migrations en attente. |
 | `env.ts` | Charge `.env.local` pour les scripts. |
 
@@ -228,8 +229,8 @@ manquent, refait les vérifications ci-dessous (0009 et 0010) et celle de la 002
 compteurs de numérotation aux numéros déjà émis, compte le contenu et lit les
 réglages. Chaque ligne est OK, INFO, A VOIR ou BLOQUANT ; **un point BLOQUANT
 interdit d'appliquer les migrations** (code de sortie 1). Au 4 novembre 2026,
-la base réelle et `gites_test` du serveur sont à la migration 0001 (vingt
-migrations en attente au 12 novembre, 0002 à 0021).
+la base réelle et `gites_test` du serveur sont à la migration 0001 (vingt et
+une migrations en attente au 14 novembre, 0002 à 0022).
 
 ### Avant d'appliquer la migration 0009 sur une base existante
 
