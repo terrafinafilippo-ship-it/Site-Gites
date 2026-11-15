@@ -903,6 +903,12 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
       `select * from creer_facture($1::uuid, 'avoir', 1000.00, '{}'::jsonb, null)`, [resaId],
     );
     noter("6h", codePg(typeInconnu.erreur) === "23514", "type de facture inconnu refusé", codePg(typeInconnu.erreur));
+    // Facture de retenue sur la caution (D-41, migration 0022) : même suite FAC.
+    const retenueF = await attendreErreur(
+      client, "sp_facture_retenue",
+      `select numero from creer_facture($1::uuid, 'retenue', 120.00, '{}'::jsonb, null)`, [resaId],
+    );
+    noter("6h", retenueF.erreur === null, "facture de type « retenue » acceptée (migration 0022)", codePg(retenueF.erreur));
     for (const objet of ["facture", "solde_preavis", "solde_lien", "solde_rappel", "solde_impaye"]) {
       const c = await attendreErreur(
         client, `sp_${objet}`,

@@ -29,7 +29,8 @@ import { renvoyerLienSignature } from "./reservations";
 export const LIBELLES_FACTURE: Record<TypeFacture, string> = {
   acompte: "Facture d'acompte",
   solde: "Facture de solde",
-  total: "Facture du séjour (réglé en une fois)",
+  total: "Facture du séjour",
+  retenue: "Facture de retenue sur la caution",
 };
 
 export type SorteDocument = "contrat" | "facture";

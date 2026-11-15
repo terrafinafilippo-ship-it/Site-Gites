@@ -4,19 +4,35 @@ import { EMETTEUR, LIGNE_CAPITAL, LIGNE_IMMATRICULATION, MENTIONS } from '@/lib/
 import { fmtEuro } from '@/lib/format';
 import { C, styles } from './FactureSoldePDF';
 
-// FACTURE UNIQUE d'un séjour payé en une fois à la réservation (Phase 4,
-// lot 1, D-29 : réponse (a) du gérant à la question posée au comptable, à
-// confirmer par lui). Mêmes styles et même mise en page que FactureSoldePDF ;
+// FACTURE UNIQUE du séjour (Phase 4, lot 1, D-29). Depuis D-41 (14 novembre
+// 2026), elle n'est faite que sur demande du client, une fois le séjour
+// entièrement payé, en une fois ou en deux (acompte puis solde) : le bloc de
+// paiement liste chaque paiement reçu. Elle peut être établie au nom d'une
+// entreprise (raison sociale, adresse, SIREN), saisi dans le back-office.
+// Mêmes styles et même mise en page que FactureSoldePDF ;
 // différences : titre « Facture », objet sans « Acompte sur » ni « Solde
 // sur », pas de ligne d'acompte déduit, le montant facturé est le prix total.
 // Les phrases sont celles, déjà validées, des factures d'acompte et de solde.
 //
 // Polices natives react-pdf : Helvetica / Helvetica-Bold (corps), Times-Bold (titres).
 
+/** Un paiement reçu, tel que la facture l'imprime. `montant` en CENTIMES. */
+export type LignePaiementFacture = {
+  /** « Acompte », « Solde » ou « Prix total du séjour ». */
+  objet: string;
+  mode: string;
+  date: string;
+  reference: string;
+  montant: number;
+};
+
 export type FactureTotalData = {
   numeroFacture: string;
   numeroContrat: string;
   dateEmission: string;
+  // Facture au nom d'une entreprise (D-41) : remplace la personne qui a réservé.
+  clientRaisonSociale?: string;
+  clientSiren?: string; // « 123 456 789 »
   // Client
   clientNom: string;
   clientPrenom: string;
@@ -48,10 +64,8 @@ export type FactureTotalData = {
   libelleTaxeSejour: string;
   montantTaxeSejour: number;
   totalTtc: number;
-  // Paiement du prix total
-  modePaiement: string;
-  datePaiement: string;
-  referenceTransaction: string;
+  // Les paiements reçus, dans l'ordre (un seul pour un séjour payé en une fois).
+  paiements: LignePaiementFacture[];
 };
 
 // `logo` : octets PNG lus sur le disque (lib/logo.ts), ou null → PDF sans logo.
@@ -92,10 +106,14 @@ export function FactureTotalPDF({ data, logo }: { data: FactureTotalData; logo: 
           </View>
           <View style={styles.party}>
             <Text style={styles.partyLabel}>Destinataire</Text>
-            <Text style={styles.partyWho}>
-              {data.clientCivilite} {data.clientNom} {data.clientPrenom}
-            </Text>
-            {data.clientNomDeux && (
+            {data.clientRaisonSociale ? (
+              <Text style={styles.partyWho}>{data.clientRaisonSociale}</Text>
+            ) : (
+              <Text style={styles.partyWho}>
+                {data.clientCivilite} {data.clientNom} {data.clientPrenom}
+              </Text>
+            )}
+            {!data.clientRaisonSociale && data.clientNomDeux && (
               <Text style={styles.partyWho}>
                 {data.clientCiviliteDeux || 'Monsieur'} {data.clientNomDeux}
                 {data.clientPrenomDeux ? ` ${data.clientPrenomDeux}` : ''}
@@ -106,6 +124,7 @@ export function FactureTotalPDF({ data, logo }: { data: FactureTotalData; logo: 
               {data.clientCodePostal} {data.clientVille}
             </Text>
             <Text style={styles.partyLine}>{data.clientPays}</Text>
+            {data.clientSiren && <Text style={styles.partySmall}>SIREN : {data.clientSiren}</Text>}
             <Text style={styles.partySmall}>Courriel : {data.clientEmail}</Text>
           </View>
         </View>
@@ -195,27 +214,41 @@ export function FactureTotalPDF({ data, logo }: { data: FactureTotalData; logo: 
 
         {/* NOTE */}
         <Text style={styles.futureNote}>
-          Le séjour est désormais{' '}
-          <Text style={styles.futureNoteBold}>intégralement réglé</Text>. Bienvenue aux
-          Gîtes de Samoyas.
+          Le séjour est <Text style={styles.futureNoteBold}>intégralement réglé</Text>.
         </Text>
 
         {/* PAYMENT */}
         <View style={styles.payment} wrap={false}>
           <View style={styles.paymentDetails}>
-            <Text style={styles.paymentH3}>Paiement</Text>
-            <View style={styles.paymentRow}>
-              <Text style={styles.paymentDt}>Mode :</Text>
-              <Text style={styles.paymentDd}>{data.modePaiement}</Text>
-            </View>
-            <View style={styles.paymentRow}>
-              <Text style={styles.paymentDt}>Date :</Text>
-              <Text style={styles.paymentDd}>{data.datePaiement}</Text>
-            </View>
-            <View style={styles.paymentRow}>
-              <Text style={styles.paymentDt}>Référence :</Text>
-              <Text style={styles.paymentDd}>{data.referenceTransaction}</Text>
-            </View>
+            {data.paiements.length === 1 ? (
+              <>
+                <Text style={styles.paymentH3}>Paiement</Text>
+                <View style={styles.paymentRow}>
+                  <Text style={styles.paymentDt}>Mode :</Text>
+                  <Text style={styles.paymentDd}>{data.paiements[0].mode}</Text>
+                </View>
+                <View style={styles.paymentRow}>
+                  <Text style={styles.paymentDt}>Date :</Text>
+                  <Text style={styles.paymentDd}>{data.paiements[0].date}</Text>
+                </View>
+                <View style={styles.paymentRow}>
+                  <Text style={styles.paymentDt}>Référence :</Text>
+                  <Text style={styles.paymentDd}>{data.paiements[0].reference}</Text>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.paymentH3}>Paiements reçus</Text>
+                {data.paiements.map((p, i) => (
+                  <View key={i} style={styles.paymentRow}>
+                    <Text style={styles.paymentDt}>{`${p.objet} :`}</Text>
+                    <Text style={styles.paymentDd}>
+                      {`${fmtEuro(p.montant)} le ${p.date} — ${p.mode} — réf. ${p.reference}`}
+                    </Text>
+                  </View>
+                ))}
+              </>
+            )}
           </View>
           <View style={styles.acquitted}>
             <Text style={styles.acquittedText}>Acquittée</Text>

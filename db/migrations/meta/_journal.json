@@ -155,6 +155,13 @@
       "when": 1794505089463,
       "tag": "0021_avis",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794678707835,
+      "tag": "0022_facture_retenue",
+      "breakpoints": true
     }
   ]
 }

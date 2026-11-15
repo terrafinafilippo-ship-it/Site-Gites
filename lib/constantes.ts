@@ -31,6 +31,9 @@ export const LIGNE_IMMATRICULATION = `RCS ${EMETTEUR.villeRcs} ${EMETTEUR.siren}
 // ─── Mentions légales obligatoires ────────────────────────────────────────────
 export const MENTIONS = {
   articleTva: 'article 261 D 4° du Code général des impôts',
+  // Facture d'une retenue sur la caution (D-41) : un dédommagement, pas une
+  // location. Phrase validée par le gérant le 14 novembre 2026.
+  tvaRetenue: "Somme non soumise à la TVA : dédommagement d'un dégât, sans service rendu en échange.",
   mediateur: {
     nom: 'MEDICYS',
     adresse: '73 Boulevard de Clichy',

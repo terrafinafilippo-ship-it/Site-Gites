@@ -23,8 +23,8 @@
 //
 // SOLDE (Phase 4, lot 1, D-28) : le même constat sert au paiement du solde
 // (prélèvement ou lien, lib/solde.ts). Il ne touche pas aux nuits ni au statut
-// de la réservation, déjà confirmée : il inscrit le paiement reçu et sa
-// facture. Un solde reçu pour une réservation qui n'est plus confirmée est
+// de la réservation, déjà confirmée : il inscrit le paiement reçu (sans
+// facture depuis D-41 : elle se fait sur demande du client). Un solde reçu pour une réservation qui n'est plus confirmée est
 // remboursé, sans courriel au client (les propriétaires sont alertés) et sans
 // oublier la carte, qui sert encore à la caution.
 //
@@ -41,7 +41,7 @@ import { and, desc, eq, inArray, isNull, lte } from "drizzle-orm";
 import { getDb } from "@/db";
 import { options_sejour, paiements, reservations, textes_accord, type StatutPaiement } from "@/db/schema";
 import { centimesDepuisNumeric, numericDepuisCentimes } from "@/lib/centimes";
-import { inscrireApresPaiement, inscrireFacture, inscrireProbleme, inscrireRemboursement } from "@/lib/courriels";
+import { inscrireApresPaiement, inscrireProbleme, inscrireRemboursement } from "@/lib/courriels";
 import { constaterCaution, type IssueCaution } from "@/lib/caution";
 import { leverBlocage, vendreNuits } from "@/lib/disponibilites";
 import type { Langue } from "@/lib/i18n/langues";
@@ -155,7 +155,7 @@ export async function annulerPaiementsOuverts(
 export type IssuePaiement =
   /** Payé, nuits vendues : la réservation est confirmée. */
   | { issue: "CONFIRMEE"; reservationId: string }
-  /** Solde payé (Phase 4) : inscrit, sa facture suit par courriel. */
+  /** Solde payé (Phase 4) : inscrit. */
   | { issue: "SOLDE_RECU"; reservationId: string }
   /** Pas encore payé (carte à saisir, authentification, refus) : rien n'est engagé. */
   | { issue: "EN_ATTENTE" | "EN_COURS" | "ECHOUE" | "ANNULE"; reservationId: string }
@@ -302,7 +302,7 @@ type LignePaiement = typeof paiements.$inferSelect;
 
 /**
  * Constat d'un paiement du SOLDE (ligne verrouillée par l'appelant). Payé :
- * inscrit, et sa facture. La réservation doit être confirmée (ou terminée) ;
+ * inscrit. La réservation doit être confirmée (ou terminée) ;
  * sinon remboursement intégral.
  */
 async function constaterSolde(tx: Executeur, ligne: LignePaiement, etat: EtatPaiement): Promise<IssuePaiement> {
@@ -330,7 +330,7 @@ async function constaterSolde(tx: Executeur, ligne: LignePaiement, etat: EtatPai
     throw new ARembourser(`solde reçu pour une réservation au statut « ${resa?.statut ?? "absente"} »`);
   }
   await tx.update(paiements).set({ statut: "reussi", date_paiement: new Date() }).where(eq(paiements.id, ligne.id));
-  await inscrireFacture(tx, reservationId, "solde");
+  // Plus de facture de solde automatique (D-41) : sur demande du client.
   console.info(`[paiement] solde reçu (${etat.id})`);
   return { issue: "SOLDE_RECU", reservationId };
 }

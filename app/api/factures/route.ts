@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { verifierSecret } from '@/lib/auth';
 import { emettreFacture } from '@/lib/factures';
+import { lireEntreprise } from '@/lib/montants';
 import { getStorage } from '@/lib/storage';
 import { isUuid } from '@/lib/route-helpers';
 import { TYPES_FACTURE, type TypeFacture } from '@/db/schema';
@@ -20,14 +21,16 @@ const estTypeFacture = (v: unknown): v is TypeFacture =>
 /**
  * POST /api/factures
  * En-tête : x-service-secret = DOCUMENT_SERVICE_SECRET
- * Body : { reservationId: string, type: 'acompte' | 'solde' | 'total' }
+ * Body : { reservationId: string, type: 'acompte' | 'solde' | 'total' | 'retenue',
+ *          entreprise?: { raisonSociale, adresse, codePostal, ville, pays, siren } }
  *
  * Émet (ou ré-émet) la facture correspondante (lib/factures.ts) :
  *   1. La facture EXISTE dès que la ligne SQL est validée (fonction creer_facture).
  *   2. Le PDF est un simple rendu de cette ligne ; en cas d'échec on ré-émet
  *      pour le MÊME numéro (idempotent), aucun numéro construit côté JS.
- * Depuis la Phase 4, le paiement constaté émet aussi sa facture tout seul
- * (courriel « facture ») : un appel ici ensuite renvoie la même facture.
+ * Depuis D-41, le site n'émet plus de facture tout seul : le back-office la
+ * fait sur demande du client (courriel « facture »). Cette route sert au
+ * parcours de non-régression et aux contrôles.
  */
 export async function POST(request: Request) {
   // ── 0. Auth service-à-service ────────────────────────────────────────────
@@ -35,7 +38,7 @@ export async function POST(request: Request) {
   if (refus) return refus;
 
   // ── 1. Validation du corps ──────────────────────────────────────────────
-  let body: { reservationId?: unknown; type?: unknown };
+  let body: { reservationId?: unknown; type?: unknown; entreprise?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -47,13 +50,13 @@ export async function POST(request: Request) {
 
   if (!isUuid(reservationId) || !estTypeFacture(type)) {
     return NextResponse.json(
-      { error: "Paramètres requis : reservationId (uuid) et type ('acompte' | 'solde' | 'total')." },
+      { error: "Paramètres requis : reservationId (uuid) et type ('acompte' | 'solde' | 'total' | 'retenue')." },
       { status: 400 },
     );
   }
 
   // ── 2. Émission ─────────────────────────────────────────────────────────
-  const resultat = await emettreFacture(reservationId, type);
+  const resultat = await emettreFacture(reservationId, type, lireEntreprise(body.entreprise));
   if (!resultat.ok) return NextResponse.json({ error: resultat.message }, { status: resultat.status });
 
   // ── 3. URL signée courte pour test/affichage immédiat ───────────────────

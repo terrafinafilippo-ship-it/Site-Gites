@@ -8,6 +8,7 @@
 //   - contrat signé (POST /api/contrats/signer) → alerte « signature » ;
 //   - lien « Ma réservation » redemandé (lib/suivi.ts) → courriel au client ;
 //   - Phase 4, lot 1 (D-28, D-29) : paiement constaté → la facture en PDF ;
+//     depuis D-41, seulement sur demande du client, depuis le back-office ;
 //     tâches automatiques (lib/solde.ts) → préavis du prélèvement, lien pour
 //     payer le solde, rappel, solde impayé (client et alerte « À TRAITER ») ;
 //   - Phase 4, lot 2 (D-16) : caution bloquée, à valider, levée (client),
@@ -34,6 +35,7 @@
 import { eq } from "drizzle-orm";
 
 import { alertes, courriels, reservations, type ObjetCourriel, type TypeAlerte, type TypeFacture } from "@/db/schema";
+import type { EntrepriseFacture } from "@/lib/montants";
 import type { Executeur } from "@/lib/reservations";
 
 /** Ce qu'une alerte « À TRAITER » signale. */
@@ -145,25 +147,35 @@ export async function inscrireApresPaiement(executeur: Executeur, reservationId:
     });
   }
   await alerter(executeur, "reservation", "alerte_reservation", reservationId, reservationId);
-  // La facture de ce paiement (D-29) : unique pour un séjour payé en une fois.
-  await inscrireFacture(executeur, reservationId, c.integral ? "total" : "acompte");
+  // Plus de facture automatique (D-41) : elle se fait sur demande du client,
+  // depuis le back-office (inscrireFactureDemandee).
 }
 
 /**
- * Paiement constaté → sa facture, émise à l'envoi du courriel et jointe en
- * PDF (lib/courriels-envoi.ts). Une par réservation et par type.
+ * Facture demandée par le client (D-41), depuis le back-office : émise à
+ * l'envoi du courriel et jointe en PDF (lib/courriels-envoi.ts), au nom de
+ * l'entreprise si elle est donnée. `quand` distingue deux demandes (une
+ * facture refusée à l'émission peut être redemandée) ; la facture, elle,
+ * reste unique par réservation et par type.
  */
-export async function inscrireFacture(executeur: Executeur, reservationId: string, type: TypeFacture): Promise<void> {
+export async function inscrireFactureDemandee(
+  executeur: Executeur,
+  reservationId: string,
+  type: "total" | "retenue",
+  entreprise: EntrepriseFacture | null,
+  quand: Date,
+): Promise<boolean> {
   const c = await client(executeur, reservationId);
-  if (!c?.email) return;
+  if (!c?.email) return false;
   await inscrire(executeur, {
     objet: "facture",
-    cle: `facture:${reservationId}:${type}`,
+    cle: `facture:${reservationId}:${type}:demande:${quand.toISOString()}`,
     reservationId,
     destinataire: c.email,
     langue: c.langue === "en" ? "en" : "fr",
-    donnees: { type },
+    donnees: { type, ...(entreprise ? { entreprise } : {}) },
   });
+  return true;
 }
 
 /** Courriels du solde au client, un de chaque par réservation (D-28). */

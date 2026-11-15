@@ -13,8 +13,8 @@
 //     d'aboutir, il est constaté et le virement est refusé ;
 //   - une ligne `paiements` « solde » réussie, prestataire « virement », datée
 //     du jour de réception, avec la référence lue sur le relevé (facultative) ;
-//   - la facture de solde part au client (même chemin que le paiement en
-//     ligne, lib/courriels.ts) : elle imprime « Virement bancaire » ;
+//   - aucune facture ne part (D-41) : la facture du séjour se fait sur
+//     demande du client, et imprime alors ce paiement « Virement bancaire » ;
 //   - le prélèvement prévu n'a plus lieu (le solde est payé, lib/solde.ts).
 //
 // MONTANTS EN CENTIMES ENTIERS.
@@ -23,7 +23,6 @@ import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { paiements } from "@/db/schema";
 import { numericDepuisCentimes } from "@/lib/centimes";
-import { inscrireFacture } from "@/lib/courriels";
 import { aujourdhuiParis } from "@/lib/dates-civiles";
 import { fmtEuro } from "@/lib/format";
 import { constaterPaiement } from "@/lib/paiement";
@@ -92,7 +91,6 @@ export async function noterSoldeVirement(
         reference_externe: reference,
         date_paiement: sql`(${saisie.date}::date + time '12:00') at time zone 'Europe/Paris'`,
       });
-      await inscrireFacture(tx, reservationId, "solde");
       await journaliser(tx, {
         table: "reservations",
         ligne: reservationId,
@@ -105,5 +103,5 @@ export async function noterSoldeVirement(
     if (isUniqueViolation(erreur)) return refus("Cette référence de virement est déjà enregistrée sur un autre paiement.");
     throw erreur;
   }
-  return { ok: true, message: `Solde de ${fmtEuro(saisie.montant)} noté reçu par virement. La facture de solde part au client.` };
+  return { ok: true, message: `Solde de ${fmtEuro(saisie.montant)} noté reçu par virement.` };
 }

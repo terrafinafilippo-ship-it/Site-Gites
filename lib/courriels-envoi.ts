@@ -80,6 +80,7 @@ import {
 import { isGiteId } from "@/lib/data/gites";
 import { calculerMontants } from "@/lib/montants";
 import type { ResultatFacture } from "@/lib/factures";
+import { lireEntreprise, type EntrepriseFacture } from "@/lib/montants";
 import { lien, type Langue } from "@/lib/i18n/langues";
 import { messagerie } from "@/lib/messagerie";
 import { recapitulatif } from "@/lib/recapitulatif";
@@ -158,7 +159,7 @@ export function remplacerEmetteurContrat(e: EmetteurContrat): void {
 // ─── Émission des factures (remplaçable pour les contrôles) ──────────────────
 
 export interface EmetteurFacture {
-  emettre(reservationId: string, type: TypeFacture): Promise<ResultatFacture>;
+  emettre(reservationId: string, type: TypeFacture, entreprise?: EntrepriseFacture | null): Promise<ResultatFacture>;
   /** Le PDF d'une facture émise. */
   pdf(chemin: string): Promise<Buffer>;
 }
@@ -495,7 +496,8 @@ async function preparer(tx: Executeur, c: Courriel, origine: string): Promise<Pr
       const type = String(d.type ?? "");
       if (!(TYPES_FACTURE as readonly string[]).includes(type)) return { abandon: `type de facture inconnu (${type})` };
       const e = await emetteurFacture();
-      const r = await e.emettre(resa.id, type as TypeFacture);
+      // Facture demandée au nom d'une entreprise (D-41) : rangée dans le courriel.
+      const r = await e.emettre(resa.id, type as TypeFacture, lireEntreprise(d.entreprise));
       if (!r.ok) {
         // Erreur passagère (rendu, écriture) : retentée. Refus métier : rien
         // n'est numéroté ; les propriétaires sont prévenus.

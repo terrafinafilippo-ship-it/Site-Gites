@@ -256,7 +256,7 @@ export function FormulaireSoldeVirement({
           <div className={styles.confirmation}>
             <p>
               <strong>
-                Vous notez le solde de {recap.montant} reçu par virement le {recap.date}. La facture de solde part au client. C&apos;est
+                Vous notez le solde de {recap.montant} reçu par virement le {recap.date}. C&apos;est
                 définitif.
               </strong>
             </p>

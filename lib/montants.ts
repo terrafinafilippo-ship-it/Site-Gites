@@ -14,7 +14,8 @@
 
 import type { FactureAcompteData } from '@/components/pdf/FactureAcomptePDF';
 import type { FactureSoldeData } from '@/components/pdf/FactureSoldePDF';
-import type { FactureTotalData } from '@/components/pdf/FactureTotalPDF';
+import type { FactureTotalData, LignePaiementFacture } from '@/components/pdf/FactureTotalPDF';
+import type { FactureRetenueData } from '@/components/pdf/FactureRetenuePDF';
 import type { ContratData } from '@/components/pdf/ContratPDF';
 import type { GiteRow, ReservationAvecGite } from '@/lib/reservations';
 import {
@@ -169,9 +170,40 @@ export function integralChoisi(resa: Reservation): boolean {
 }
 
 // ─── Contexte de génération (fourni par la route après creer_facture) ─────────
+/**
+ * Facture au nom d'une entreprise (D-41), saisie dans le back-office : elle
+ * remplace, sur la facture, le nom et l'adresse de la personne qui a réservé.
+ */
+export interface EntrepriseFacture {
+  raisonSociale: string;
+  adresse: string;
+  codePostal: string;
+  ville: string;
+  pays: string;
+  /** « 123 456 789 », ou null. */
+  siren: string | null;
+}
+
+/** Relit une entreprise rangée telle quelle (données d'un courriel), ou null. */
+export function lireEntreprise(v: unknown): EntrepriseFacture | null {
+  if (!v || typeof v !== 'object') return null;
+  const o = v as Record<string, unknown>;
+  const texte = (x: unknown) => (typeof x === 'string' ? x : '');
+  if (!texte(o.raisonSociale)) return null;
+  return {
+    raisonSociale: texte(o.raisonSociale),
+    adresse: texte(o.adresse),
+    codePostal: texte(o.codePostal),
+    ville: texte(o.ville),
+    pays: texte(o.pays),
+    siren: texte(o.siren) || null,
+  };
+}
+
 export interface FactureContext {
-  // 'total' : facture unique d'un séjour payé en une fois (D-29).
-  type: 'acompte' | 'solde' | 'total';
+  // 'total' : facture unique du séjour entièrement payé (D-29, D-41) ;
+  // 'retenue' : facture d'une retenue sur la caution (D-41).
+  type: 'acompte' | 'solde' | 'total' | 'retenue';
   // numéro + date d'émission AUTORITAIRES, issus de la ligne `factures`
   numeroFacture: string;
   dateEmission: string; // déjà formaté FR
@@ -189,10 +221,22 @@ export interface FactureContext {
     datePaiement: string; // date d'encaissement de l'acompte, formatée
     montant: number; // centimes, lu sur la ligne `factures` de l'acompte
   };
+  // Facture au nom d'une entreprise (D-41) ; absente : la personne qui a réservé.
+  entreprise?: EntrepriseFacture;
+  // Facture unique (D-41) : les paiements reçus, dans l'ordre.
+  paiements?: LignePaiementFacture[];
+  // Facture de retenue (D-41) : la ligne `retenues`, montants en centimes.
+  retenue?: {
+    motif: string;
+    moyenCaution: string;
+    dateRetenue: string;
+    montantCaution: number;
+    montantRetenu: number;
+  };
 }
 
 /** Données d'une facture, selon son type. */
-export type FactureData = FactureAcompteData | FactureSoldeData | FactureTotalData;
+export type FactureData = FactureAcompteData | FactureSoldeData | FactureTotalData | FactureRetenueData;
 
 /**
  * Construit l'objet de données du PDF (forme exacte de FactureAcompteData,
@@ -222,7 +266,21 @@ export function mapFactureData(
 ): FactureData {
   if (ctx.type === 'acompte') return mapAcompteData(resa, montants, ctx);
   if (ctx.type === 'total') return mapTotalData(resa, montants, ctx);
+  if (ctx.type === 'retenue') return mapRetenueData(resa, ctx);
   return mapSoldeData(resa, montants, ctx);
+}
+
+/** Le destinataire imprimé quand la facture est au nom d'une entreprise (D-41). */
+function champsEntreprise(e: EntrepriseFacture | undefined) {
+  if (!e) return {};
+  return {
+    clientRaisonSociale: e.raisonSociale,
+    ...(e.siren ? { clientSiren: e.siren } : {}),
+    clientAdresse: e.adresse,
+    clientCodePostal: e.codePostal,
+    clientVille: e.ville,
+    clientPays: e.pays,
+  };
 }
 
 // Champs partagés client + gîte + séjour.
@@ -300,6 +358,7 @@ function mapTotalData(
 ): FactureTotalData {
   return {
     ...champsCommuns(resa),
+    ...champsEntreprise(ctx.entreprise),
     numeroFacture: ctx.numeroFacture,
     dateEmission: ctx.dateEmission,
 
@@ -309,9 +368,52 @@ function mapTotalData(
     montantTaxeSejour: m.taxeSejour,
     totalTtc: m.totalTtc,
 
-    modePaiement: resa.mode_paiement ?? '',
-    datePaiement: ctx.datePaiement,
-    referenceTransaction: ctx.referenceTransaction ?? resa.reference_transaction ?? '',
+    // Sans ligne `paiements` (réservation saisie à la main) : un seul
+    // paiement, celui inscrit sur la réservation, comme avant D-41.
+    paiements: ctx.paiements ?? [
+      {
+        objet: 'Prix total du séjour',
+        mode: ctx.modePaiement ?? resa.mode_paiement ?? '',
+        date: ctx.datePaiement,
+        reference: ctx.referenceTransaction ?? resa.reference_transaction ?? '',
+        montant: m.totalTtc,
+      },
+    ],
+  };
+}
+
+function mapRetenueData(resa: Reservation, ctx: FactureContext): FactureRetenueData {
+  const r = ctx.retenue;
+  if (!r) throw new Error('facture de retenue sans retenue');
+  const communs = champsCommuns(resa);
+  return {
+    numeroContrat: communs.numeroContrat,
+    clientCivilite: communs.clientCivilite,
+    clientNom: communs.clientNom,
+    clientPrenom: communs.clientPrenom,
+    clientCiviliteDeux: communs.clientCiviliteDeux,
+    clientNomDeux: communs.clientNomDeux,
+    clientPrenomDeux: communs.clientPrenomDeux,
+    clientAdresse: communs.clientAdresse,
+    clientCodePostal: communs.clientCodePostal,
+    clientVille: communs.clientVille,
+    clientPays: communs.clientPays,
+    clientEmail: communs.clientEmail,
+    giteNom: communs.giteNom,
+    giteRefGdf: communs.giteRefGdf,
+    giteAdresse: communs.giteAdresse,
+    dateArrivee: communs.dateArrivee,
+    dateDepart: communs.dateDepart,
+    ...champsEntreprise(ctx.entreprise),
+    numeroFacture: ctx.numeroFacture,
+    dateEmission: ctx.dateEmission,
+
+    motif: r.motif,
+    moyenCaution: r.moyenCaution,
+    dateRetenue: r.dateRetenue,
+    montantCaution: r.montantCaution,
+    montantRetenu: r.montantRetenu,
+    montantRestitue: r.montantCaution - r.montantRetenu,
   };
 }
 
@@ -350,9 +452,13 @@ function mapSoldeData(
  *   2 = montants en CENTIMES ENTIERS + champs d'auto-description ;
  *   3 = idem, la taxe de séjour décrite par son libellé imprimé
  *       (`libelleTaxeSejour`) au lieu d'un taux (`tauxTaxeSejour`), le
- *       23 octobre 2026.
+ *       23 octobre 2026 ;
+ *   4 = idem ; la facture unique liste ses paiements (`paiements`) au lieu
+ *       d'un seul (`modePaiement`, `datePaiement`, `referenceTransaction`),
+ *       une facture peut être au nom d'une entreprise (`clientRaisonSociale`,
+ *       `clientSiren`), et la facture de retenue existe (D-41, 14 novembre 2026).
  */
-export const INSTANTANE_FORMAT_VERSION = 3;
+export const INSTANTANE_FORMAT_VERSION = 4;
 
 /**
  * Objet figé dans factures.donnees : les données exactes du PDF, en centimes,

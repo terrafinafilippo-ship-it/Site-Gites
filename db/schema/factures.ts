@@ -16,6 +16,15 @@
 //     émissions simultanées (courriel automatique et route) ne peuvent pas
 //     frapper deux numéros. La seconde échoue, et l'incrément du compteur
 //     s'annule avec elle (même transaction) : aucun trou.
+//
+// D-41 (14 novembre 2026, migration 0022) : les factures ne se font plus que
+// SUR DEMANDE du client, depuis le back-office :
+//   - 'total' devient la facture unique de tout séjour entièrement payé (en
+//     une ou deux fois), qui liste les paiements reçus ;
+//   - 'retenue' : la facture d'une retenue sur la caution (table `retenues`),
+//     dans la même suite FAC.
+// 'acompte' et 'solde' ne sont plus émises par le site ; leur code reste
+// (parcours de non-régression, retour possible à l'émission automatique).
 import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
@@ -34,7 +43,7 @@ import {
 
 import { reservations } from "./reservations";
 
-export const TYPES_FACTURE = ["acompte", "solde", "total"] as const;
+export const TYPES_FACTURE = ["acompte", "solde", "total", "retenue"] as const;
 export type TypeFacture = (typeof TYPES_FACTURE)[number];
 
 export const factures = pgTable(
@@ -66,6 +75,6 @@ export const factures = pgTable(
     unique("factures_numero_key").on(t.numero),
     index("factures_reservation_id_idx").on(t.reservation_id),
     uniqueIndex("factures_resa_type_uidx").on(t.reservation_id, t.type),
-    check("factures_type_check", sql`${t.type} in ('acompte', 'solde', 'total')`),
+    check("factures_type_check", sql`${t.type} in ('acompte', 'solde', 'total', 'retenue')`),
   ],
 );

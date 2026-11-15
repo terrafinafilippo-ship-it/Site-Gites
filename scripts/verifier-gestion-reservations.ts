@@ -10,7 +10,7 @@
 //      retenue (le reste rendu), alertes du virement arrêtées, courriels ;
 //   5. le lien de caution (art. 6.6) ;
 //   6. le SOLDE reçu par virement : montant exact, date, paiement en ligne
-//      ouvert annulé, facture inscrite, solde payé ;
+//      ouvert annulé, aucune facture (D-41 : sur demande), solde payé ;
 //   7. la liste « À TRAITER » : chaque ligne apparaît quand il faut agir et
 //      disparaît quand c'est fait ; « C'est fait » ; arrivées et départs ;
 //      « Renvoyer le lien de signature » ;
@@ -305,8 +305,8 @@ async function controles(): Promise<void> {
   noter(sv.ok && JSON.stringify(pv) === JSON.stringify({ statut: "reussi", prestataire: "virement", ref: "VIR SEPA ESSAI 42" }), "solde noté reçu : paiement « virement », référence du relevé", { sv, pv });
   noter(p.annulations === annulationsAvant + 1, "le paiement en ligne ouvert est annulé (le client ne paiera pas deux fois)");
   noter((await lireEtatSolde(db, (await chargerReservationAvecGite(f.id))!))?.etat === "paye", "le solde est payé");
-  const fac = await db.execute(sql`select count(*)::int as n from courriels where reservation_id = ${f.id}::uuid and objet = 'facture' and donnees->>'type' = 'solde'`);
-  noter((fac.rows[0] as { n: number }).n === 1, "la facture de solde est inscrite pour le client");
+  const fac = await db.execute(sql`select count(*)::int as n from courriels where reservation_id = ${f.id}::uuid and objet = 'facture'`);
+  noter((fac.rows[0] as { n: number }).n === 0 && sv.message === `Solde de ${fmtEuro(soldeF.montant)} noté reçu par virement.`, "aucune facture inscrite (D-41 : sur demande du client)", sv.message);
   noter(!(await noterSoldeVirement(f.id, { date: AUJ, montant: soldeF.montant, reference: "" }, ACTEUR, p)).ok, "noté deux fois : refusé (déjà payé)");
   // Ce que la facture de solde imprimera (sans en émettre une : un numéro légal ne se rend pas).
   const resaF2 = (await chargerReservationAvecGite(f.id))!;

@@ -510,17 +510,13 @@ async function partieHttp(): Promise<void> {
     "alerte « réservation » envoyée, avec le numéro du contrat",
     envoyes.map((c) => `${c.objet} ${c.statut}`),
   );
-  // Phase 4, lot 1 : la facture d'acompte, émise par le serveur (vrai PDF, numéro légal) et jointe.
-  const fac = envoyes.find((c) => c.objet === "facture");
-  const ligneFac = await ligne<{ numero: string; type: string; pdf: string | null; montant: string }>(sql`
-    select numero, type, pdf_url as pdf, montant_ttc::text as montant
-      from factures where reservation_id = ${String(ok.corps.id)}::uuid`);
+  // D-41 : plus de facture automatique après un paiement (sur demande du client, depuis le back-office).
+  const nbFactures = await ligne<{ n: number }>(sql`
+    select count(*)::int as n from factures where reservation_id = ${String(ok.corps.id)}::uuid`);
   noter(
-    fac?.statut === "envoye" && !!ligneFac && ligneFac.type === "acompte" && /^FAC-\d{4}-\d{3,}$/.test(ligneFac.numero) &&
-      ligneFac.pdf === `factures/${ligneFac.numero}.pdf` && (fac.sujet ?? "").startsWith(`Votre facture ${ligneFac.numero} — `) &&
-      ligneFac.montant === numericDepuisCentimes((ok.corps.devis as { aRegler: number }).aRegler),
-    "facture d'acompte émise par le serveur (numéro légal, PDF, montant payé) et envoyée",
-    { fac: fac?.sujet, ligneFac },
+    !envoyes.some((c) => c.objet === "facture") && nbFactures?.n === 0,
+    "aucune facture créée ni envoyée après le paiement (D-41 : sur demande)",
+    { envoyes: envoyes.map((c) => c.objet), nbFactures },
   );
   noter((await page(`/reserver/confirmation?payment_intent=${pi}&payment_intent_client_secret=faux`)).status === 404, "retour avec un faux secret : 404");
 

@@ -1,12 +1,14 @@
-// Contrôle du SOLDE et des FACTURES automatiques (Phase 4, lot 1, D-28,
-// D-29), sur la base de TEST.
+// Contrôle du SOLDE (Phase 4, lot 1, D-28), sur la base de TEST. Depuis D-41
+// (14 novembre 2026), aucun paiement n'inscrit plus de facture : elle se fait
+// sur demande du client (scripts/verifier-factures.ts) ; le courriel
+// « facture » reste contrôlé ici (refus à l'émission, anglais).
 //
 // Le prestataire de paiement, la messagerie et l'émission des factures sont
 // SIMULÉS (le moteur PDF ne se charge pas sous tsx ; la vraie facture est
 // émise par le serveur, voir verifier-paiement.ts --http). La logique est la
 // vraie, et le temps est fixé : chaque passage des tâches reçoit sa date.
 //   1. prélèvement : préavis 7 jours avant, prélèvement le jour de la date
-//      limite, une seule fois ; factures d'acompte et de solde ;
+//      limite, une seule fois ; aucune facture (D-41) ;
 //   2. prélèvement refusé : impayé (client et alerte) tout de suite, seconde
 //      alerte 3 jours après, une seule ; le client paie ensuite par le lien,
 //      sur le même paiement ;
@@ -334,7 +336,7 @@ async function controles(): Promise<void> {
   const a = await reserver(p, "armu", samediDans(10), { moyenCaution: "carte", modeSolde: "prelevement" });
   const limA = await limiteDe(a);
   const soldeA = await montantSolde(a);
-  noter((await courrielsDe(a.id)).some((c) => c.cle === `facture:${a.id}:acompte`), "paiement de l'acompte constaté : sa facture est inscrite");
+  noter(compter(await courrielsDe(a.id), "facture") === 0, "paiement de l'acompte constaté : aucune facture inscrite (D-41)");
   await passage(p, ajouterJours(limA, -8));
   noter(compter(await courrielsDe(a.id), "solde_preavis") === 0, "8 jours avant la date limite : aucun préavis");
   await passage(p, ajouterJours(limA, -7));
@@ -363,21 +365,12 @@ async function controles(): Promise<void> {
   await passage(p, ajouterJours(limA, 1));
   noter(p.prelevements.size === 1 && (await lignesSolde(a.id)).length === 1, "passages suivants : aucun second prélèvement");
   const cA = await courrielsDe(a.id);
-  noter(cA.some((c) => c.cle === `facture:${a.id}:solde`), "solde reçu : facture de solde inscrite");
+  noter(compter(cA, "facture") === 0, "solde reçu : aucune facture inscrite (D-41)");
   noter(compter(cA, "solde_impaye") === 0 && compter(cA, "alerte_probleme") === 0, "aucun impayé, aucune alerte");
   noter((await etatSolde(a.id))?.etat === "paye", "« Ma réservation » : solde payé");
 
   const envA = await envoyer(m);
-  const factures = envA.filter((x) => x.etiquette === "facture");
-  const facSolde = factures.find((x) => x.texte.includes("Nous avons bien reçu le solde"));
-  noter(factures.length === 1 && !!facSolde, "facture de solde envoyée (celle de l'acompte est partie avec le préavis)", factures.map((x) => x.sujet));
-  noter(
-    !!facSolde && facSolde.sujet.startsWith("Votre facture FAC-SIMULE-") &&
-      facSolde.piecesJointes?.length === 1 && facSolde.piecesJointes[0].nom.endsWith(".pdf") &&
-      facSolde.texte.includes(`/suivi/`),
-    "facture de solde : sujet, PDF joint, lien « Ma réservation »",
-    facSolde?.sujet,
-  );
+  noter(!envA.some((x) => x.etiquette === "facture"), "aucune facture envoyée (D-41 : sur demande du client)", envA.map((x) => x.etiquette));
 
   console.log("--- 2. prélèvement refusé");
   const b = await reserver(p, "laphine", samediDans(10), { moyenCaution: "carte", modeSolde: "prelevement" });
@@ -423,7 +416,7 @@ async function controles(): Promise<void> {
   p.regler(piB!, "reussi");
   noter((await constaterPaiement(piB!, p)).issue === "SOLDE_RECU", "paiement constaté : « solde reçu »");
   noter((await etatSolde(b.id))?.etat === "paye" && (await lignesSolde(b.id)).length === 1, "solde payé, toujours une seule ligne");
-  noter((await courrielsDe(b.id)).some((c) => c.cle === `facture:${b.id}:solde`), "facture de solde inscrite");
+  noter(compter(await courrielsDe(b.id), "facture") === 0, "aucune facture inscrite (D-41)");
 
   console.log("--- 3. paiement par le lien");
   const c = await reserver(p, "maison-vieille", samediDans(10), { moyenCaution: "cheque", modeSolde: "lien" });
@@ -467,8 +460,8 @@ async function controles(): Promise<void> {
   noter(compter(await courrielsDe(c.id), "alerte_probleme", "solde_impaye") === 1, "solde payé : plus aucune relance");
   const envC2 = await envoyer(m);
   noter(
-    !envC2.some((x) => x.etiquette === "solde_impaye") && envC2.some((x) => x.etiquette === "facture"),
-    "l'impayé encore en attente ne part pas (payé entre-temps) ; la facture part",
+    !envC2.some((x) => x.etiquette === "solde_impaye") && !envC2.some((x) => x.etiquette === "facture"),
+    "l'impayé encore en attente ne part pas (payé entre-temps) ; aucune facture (D-41)",
     envC2.map((x) => x.etiquette),
   );
   noter(
@@ -523,7 +516,7 @@ async function controles(): Promise<void> {
 
   console.log("--- 7. ce qui ne se suit pas");
   const integral = await reserver(p, "armu", samediDans(1), { moyenCaution: "carte", modeSolde: "prelevement" });
-  noter((await courrielsDe(integral.id)).some((x) => x.cle === `facture:${integral.id}:total`), "séjour payé en une fois : facture « total » inscrite");
+  noter(compter(await courrielsDe(integral.id), "facture") === 0, "séjour payé en une fois : aucune facture inscrite (D-41)");
   await passage(p, aujourdhuiParis());
   noter(
     (await courrielsDe(integral.id)).every((x) => !x.objet.startsWith("solde_")) && (await lignesSolde(integral.id)).length === 0,
@@ -581,9 +574,12 @@ async function controles(): Promise<void> {
   await passage(p, ajouterJours(limK, -7));
   const envK = (await envoyer(m)).filter((x) => x.destinataire === EMAIL_ESSAI);
   await passage(p, limK);
+  // La facture du séjour, demandée par le client (D-41) : inscrite comme le fait le back-office.
+  await db.execute(sql`insert into courriels (objet, cle, reservation_id, destinataire, langue, donnees)
+                        values ('facture', ${`facture:${k.id}:total:essai`}, ${k.id}::uuid, ${EMAIL_ESSAI}, 'en', '{"type":"total"}')`);
   envK.push(...(await envoyer(m)).filter((x) => x.destinataire === EMAIL_ESSAI));
   const preavisK = envK.find((x) => x.etiquette === "solde_preavis");
-  const factureK = envK.find((x) => x.etiquette === "facture" && x.texte.includes("balance"));
+  const factureK = envK.find((x) => x.etiquette === "facture" && x.texte.includes("paid in full"));
   noter(!!preavisK && preavisK.sujet.startsWith("Balance payment on "), "préavis en anglais", preavisK?.sujet);
   noter(
     !!factureK && factureK.sujet.startsWith("Your invoice ") && factureK.texte.includes("(PDF, in French)"),

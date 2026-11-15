@@ -22,6 +22,7 @@
     "verify:virement": "tsx scripts/verifier-virement.ts",
     "verify:abandons": "tsx scripts/verifier-abandons.ts",
     "verify:avis": "tsx scripts/verifier-avis.ts",
+    "verify:factures": "tsx scripts/verifier-factures.ts",
     "verify:production": "tsx scripts/verifier-production.ts",
     "verify:gestion": "tsx scripts/verifier-gestion.ts",
     "verify:gestion-reservations": "tsx scripts/verifier-gestion-reservations.ts",

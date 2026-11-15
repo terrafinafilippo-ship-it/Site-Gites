@@ -142,7 +142,7 @@ const TEXTES: Bilingue<{
       passee ? `Solde de ${m}, qui était à régler au plus tard le ${date}.` : `Solde de ${m}, à régler au plus tard le ${date}.`,
     soldeRefuse: "Le prélèvement a été refusé par votre banque : vous pouvez régler le solde en ligne.",
     soldeEnCours: "Votre banque traite le paiement du solde. Rechargez cette page dans quelques instants.",
-    retourRecu: "Paiement du solde reçu — merci ! Votre facture vous est envoyée par courriel.",
+    retourRecu: "Paiement du solde reçu — merci !",
     retourEnCours: "Votre banque traite le paiement. Rechargez cette page dans quelques instants.",
     retourEchec: "Votre paiement n'a pas abouti : aucune somme n'a été prélevée.",
     caution: "Votre caution",
@@ -210,7 +210,7 @@ const TEXTES: Bilingue<{
       passee ? `Balance of ${m}, which was due by ${date}.` : `Balance of ${m}, to be paid by ${date} at the latest.`,
     soldeRefuse: "The charge was declined by your bank: you can pay the balance online.",
     soldeEnCours: "Your bank is processing the balance payment. Reload this page in a few moments.",
-    retourRecu: "Balance payment received — thank you! Your invoice is being sent to you by email.",
+    retourRecu: "Balance payment received — thank you!",
     retourEnCours: "Your bank is processing the payment. Reload this page in a few moments.",
     retourEchec: "Your payment did not go through: nothing has been charged.",
     caution: "Your security deposit",
@@ -437,7 +437,7 @@ export default async function SuiviPage({
   let suivi = await chargerSuivi(jeton);
 
   // Retour d'un paiement du solde : revérifié chez Stripe, et seulement s'il
-  // concerne CETTE réservation. Les courriels (facture) partent après la réponse.
+  // concerne CETTE réservation. Les courriels partent après la réponse.
   let retour: string | null = null;
   const p = await searchParams;
   const paiementId = texte(p, "payment_intent");

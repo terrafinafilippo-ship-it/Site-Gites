@@ -24,6 +24,8 @@ import {
   actionSoldeVirement,
 } from "../../actions-reservations";
 import { actionRenvoyerDocument } from "../../actions-calendrier";
+import { actionDemanderFacture } from "../../actions-factures";
+import { FormulairePlan } from "../../tarifs/Formulaires";
 import Entete from "../../Entete";
 import styles from "../../gestion.module.css";
 import { exigerSession } from "../../outils";
@@ -56,8 +58,35 @@ const ACTIONS_JOURNAL: Record<string, string> = {
   lien_signature_renvoye: "Lien de signature renvoyé",
   contrat_renvoye: "Contrat signé renvoyé",
   facture_renvoyee: "Facture renvoyée",
+  facture_demandee: "Facture demandée par le client",
   effacement_tentative: "Tentative effacée",
 };
+
+/**
+ * « Au nom d'une entreprise » (D-41, réponse 2 A) : replié, la facture est au
+ * nom du client ; le nom de l'entreprise saisi, elle est à son nom.
+ */
+function ChampsEntreprise({ id }: { id: string }) {
+  const champs: [string, string, string?][] = [
+    ["raisonSociale", "Nom de l'entreprise"],
+    ["adresse", "Adresse"],
+    ["codePostal", "Code postal"],
+    ["ville", "Ville"],
+    ["pays", "Pays", "France"],
+    ["siren", "SIREN (facultatif)"],
+  ];
+  return (
+    <details className={styles.replie}>
+      <summary>Au nom d&apos;une entreprise</summary>
+      {champs.map(([nom, libelle, defaut]) => (
+        <div key={nom} className={styles.champ}>
+          <label htmlFor={`${id}-${nom}`}>{libelle}</label>
+          <input id={`${id}-${nom}`} name={nom} type="text" defaultValue={defaut} />
+        </div>
+      ))}
+    </details>
+  );
+}
 
 function quand(d: Date): string {
   return new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", dateStyle: "medium", timeStyle: "short" }).format(d);
@@ -82,6 +111,11 @@ export default async function FicheReservation({ params }: { params: Promise<{ i
   const departPasse = aujourdhui >= resa.date_depart;
   const contrat = fiche.documents.find((d) => d.type === "contrat_location") ?? null;
   const caution = resa.caution ?? 0;
+  // Facture du séjour sur demande (D-41) : une fois le séjour entièrement payé.
+  const factureSejour = fiche.factures.find((f) => f.type === "total" || f.type === "acompte" || f.type === "solde") ?? null;
+  const sejourPaye = resa.paiement_integral || fiche.paiements.some((p) => p.type === "solde" && p.statut === "reussi");
+  const enCoursOuFini = resa.statut === "confirmee" || resa.statut === "terminee";
+  const factureRetenue = fiche.factures.find((f) => f.type === "retenue") ?? null;
   const liens = retenue
     ? await Promise.all(retenue.pieces.map(async (p) => ({ ...p, url: await getStorage().getSignedUrl(p.chemin, 3600) })))
     : [];
@@ -317,6 +351,16 @@ export default async function FicheReservation({ params }: { params: Promise<{ i
                 )}
               </div>
             )}
+            {retenue?.faite_at && !factureRetenue && enCoursOuFini && (
+              <div>
+                <p className={styles.aide}>
+                  Facture de la retenue : seulement si le client la demande. Au nom de {client}, envoyée à {resa.client_email ?? "(aucune adresse)"}.
+                </p>
+                <FormulairePlan action={actionDemanderFacture.bind(null, resa.id, "retenue")} libelle="Créer et envoyer la facture de retenue">
+                  <ChampsEntreprise id="retenue" />
+                </FormulairePlan>
+              </div>
+            )}
           </section>
         )}
 
@@ -367,6 +411,22 @@ export default async function FicheReservation({ params }: { params: Promise<{ i
           {confirmee && contrat && contrat.statut !== "signe" && (
             <GesteBouton action={actionRenvoyerContrat.bind(null, resa.id)} libelle="Renvoyer le lien de signature" discret />
           )}
+          {!factureSejour && enCoursOuFini &&
+            (sejourPaye ? (
+              <div>
+                <p className={styles.aide}>
+                  Pas encore de facture : elle n&apos;est faite que si le client la demande. Au nom de {client}, envoyée à{" "}
+                  {resa.client_email ?? "(aucune adresse)"}.
+                </p>
+                <FormulairePlan action={actionDemanderFacture.bind(null, resa.id, "total")} libelle="Créer et envoyer la facture">
+                  <ChampsEntreprise id="sejour" />
+                </FormulairePlan>
+              </div>
+            ) : (
+              <p className={styles.aide}>
+                Pas de facture : si le client en demande une, elle se fera ici une fois le séjour entièrement payé.
+              </p>
+            ))}
         </section>
 
         <section className={`${styles.carte} ${styles.defile}`}>

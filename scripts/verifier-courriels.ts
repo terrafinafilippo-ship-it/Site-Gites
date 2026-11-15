@@ -20,8 +20,8 @@
 //      alerte ; paiement inconnu du site : alerte seule ;
 //   8. alerte « contrat signé » ; alerte coupée : rien n'est inscrit ;
 //   9. garde des adresses de test et texte échappé dans le HTML.
-// Depuis la Phase 4 (lot 1), chaque paiement inscrit aussi sa facture
-// (émission simulée ici, contrôlée par scripts/verifier-solde.ts).
+// Depuis D-41 (14 novembre 2026), un paiement n'inscrit plus de facture : elle
+// se fait sur demande du client (scripts/verifier-factures.ts).
 //
 // REFUSE de s'exécuter si DB_CIBLE ne vaut pas "test". Les lignes créées sont
 // supprimées au début et à la fin ; les alertes de la base de test sont
@@ -296,9 +296,9 @@ async function controles(): Promise<void> {
   noter(
     inscrits.filter((c) => c.objet === "confirmation").length === 1 &&
       inscrits.filter((c) => c.objet === "alerte_reservation").length === 1 &&
-      inscrits.filter((c) => c.objet === "facture").length === 1 &&
-      inscrits.length === 3,
-    "paiement constaté quatre fois : une confirmation, une alerte « réservation » et une facture, pas plus",
+      inscrits.filter((c) => c.objet === "facture").length === 0 &&
+      inscrits.length === 2,
+    "paiement constaté quatre fois : une confirmation et une alerte « réservation », pas plus ; aucune facture (D-41)",
     inscrits.map((c) => c.objet),
   );
   noter(
@@ -315,8 +315,8 @@ async function controles(): Promise<void> {
   const conf = envoyes.find((x) => x.destinataire === EMAIL_ESSAI && x.etiquette === "confirmation");
   const alerte = envoyes.find((x) => x.destinataire === PROPRIETAIRES);
   noter(
-    bilan.envoyes === 3 && envoyes.length === 3 && envoyes.some((x) => x.etiquette === "facture") && e.emis === 1,
-    "trois courriels envoyés (confirmation, alerte, facture), un contrat créé",
+    bilan.envoyes === 2 && envoyes.length === 2 && !envoyes.some((x) => x.etiquette === "facture") && e.emis === 1,
+    "deux courriels envoyés (confirmation, alerte), un contrat créé, aucune facture",
     { bilan, emis: e.emis },
   );
   noter(
@@ -489,8 +489,8 @@ async function controles(): Promise<void> {
   await payer(integral, p);
   const objetsIntegral = (await courrielsDe(integral.id)).map((c) => `${c.objet}${c.genre ? `:${c.genre}` : ""}`).sort();
   noter(
-    JSON.stringify(objetsIntegral) === JSON.stringify(["alerte_reservation", "confirmation", "facture"]),
-    "inscrits : confirmation, alerte « réservation » et facture, plus d'alerte « contrat à envoyer à la main » (lot 5)",
+    JSON.stringify(objetsIntegral) === JSON.stringify(["alerte_reservation", "confirmation"]),
+    "inscrits : confirmation et alerte « réservation », sans facture (D-41) ni alerte « contrat à envoyer à la main » (lot 5)",
     objetsIntegral,
   );
   await traiterCourriels(ORIGINE);
@@ -573,8 +573,8 @@ async function controles(): Promise<void> {
   await payer(coupe, p);
   await db.execute(sql`update alertes set active = true where type = 'reservation'`);
   noter(
-    (await courrielsDe(coupe.id)).map((c) => c.objet).sort().join() === "confirmation,facture",
-    "alerte « réservation » coupée : seules la confirmation et la facture sont inscrites",
+    (await courrielsDe(coupe.id)).map((c) => c.objet).sort().join() === "confirmation",
+    "alerte « réservation » coupée : seule la confirmation est inscrite",
     (await courrielsDe(coupe.id)).map((c) => c.objet),
   );
   await traiterCourriels(ORIGINE);
