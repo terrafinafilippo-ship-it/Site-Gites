@@ -1999,13 +1999,6 @@ export function ContratPDF({
             spécifiquement de l&apos;état du gîte ou de l&apos;inventaire,
             l&apos;article 10.2 prévoit un délai impératif de 24 heures.
           </Text>
-          <Text style={styles.p}>
-            <Text style={styles.pBold}>15.2 Plateforme européenne RLL —</Text>{' '}
-            Pour les locataires résidant dans un État membre de l&apos;UE,
-            une plateforme de règlement en ligne des litiges est mise à
-            disposition par la Commission européenne :
-            https://ec.europa.eu/consumers/odr/
-          </Text>
         </View>
 
         <View style={styles.art}>

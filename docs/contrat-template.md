@@ -540,16 +540,16 @@ Ces droits s'exercent par courriel à l'adresse indiquée au 14.1, accompagné d
 > Contrat v6 (15 novembre 2026, D-41) : aucun médiateur cité tant que
 > l'adhésion n'est pas faite. L'ancien 15.2 (MEDICYS) est retiré, l'ancien
 > 15.3 devient 15.2.
+>
+> Contrat v7 (15 novembre 2026, gérant) : le 15.2 (plateforme européenne de
+> règlement en ligne des litiges, fermée par la Commission en juillet 2025)
+> est retiré.
 
 ### 15.1 — Réclamation directe
 
 Toute réclamation relative à l'exécution du présent contrat doit être adressée au Bailleur, dans les meilleurs délais, par courriel à `{{contact_email}}` ou par courrier postal à l'adresse du siège social. Le Bailleur s'engage à apporter une réponse dans un délai raisonnable n'excédant pas trente (30) jours.
 
 S'agissant spécifiquement de l'état du gîte ou de l'inventaire, l'article 10.2 prévoit un délai impératif de 24 heures.
-
-### 15.2 — Plateforme européenne de règlement des litiges
-
-Pour les locataires résidant dans un État membre de l'Union européenne, une plateforme de règlement en ligne des litiges est mise à disposition par la Commission européenne : https://ec.europa.eu/consumers/odr/
 
 ---
 

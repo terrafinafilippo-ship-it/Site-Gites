@@ -2206,6 +2206,11 @@ Gérant : pas d'adhésion, donc pas de médiateur affiché (D-41).
   jour) ; contrôles des PDF **120** (dont « aucun médiateur cité » sur chaque
   contrat et chaque facture), `db:verify` 256. Page des art. 15 et 16 relue à
   l'écran.
+- Puis, le même jour (gérant), contrat **v7** : l'art. 15.2, qui renvoyait à
+  la plateforme européenne de règlement en ligne des litiges (fermée par la
+  Commission en juillet 2025), est retiré ; l'art. 15 ne garde que la
+  réclamation directe (15.1). Parcours rejoué : 25 étapes OK, contrat
+  toujours sur 10 pages.
 
 ---
 

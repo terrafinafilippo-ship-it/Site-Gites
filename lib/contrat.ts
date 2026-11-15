@@ -42,7 +42,10 @@ const DOCUMENT_TYPE = "contrat_location";
 // v6 (15 novembre 2026, D-41) : aucun médiateur cité tant que l'adhésion
 // n'est pas faite — l'art. 15 devient « Réclamations » (15.2 MEDICYS retiré,
 // l'ancien 15.3 devient 15.2), l'art. 16.2 ne parle plus de médiation.
-const TEMPLATE_VERSION = "v6";
+// v7 (15 novembre 2026, gérant) : l'art. 15.2 (plateforme européenne de
+// règlement en ligne des litiges, fermée par la Commission en juillet 2025)
+// est retiré ; l'art. 15 ne garde que la réclamation directe.
+const TEMPLATE_VERSION = "v7";
 // Le lien de signature reste valable 30 jours.
 const TOKEN_TTL_JOURS = 30;
 
