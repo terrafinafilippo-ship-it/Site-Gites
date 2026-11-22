@@ -21,8 +21,9 @@
 // SUR DEMANDE du client, depuis le back-office :
 //   - 'total' devient la facture unique de tout séjour entièrement payé (en
 //     une ou deux fois), qui liste les paiements reçus ;
-//   - 'retenue' : la facture d'une retenue sur la caution (table `retenues`),
-//     dans la même suite FAC.
+//   - 'retenue' : la facture d'une retenue sur la caution, dans la même
+//     suite FAC — RETIRÉE par la migration 0024 (comptable, 19 novembre 2026 :
+//     pas de facture pour une retenue).
 // 'acompte' et 'solde' ne sont plus émises par le site ; leur code reste
 // (parcours de non-régression, retour possible à l'émission automatique).
 import { sql } from "drizzle-orm";
@@ -43,7 +44,7 @@ import {
 
 import { reservations } from "./reservations";
 
-export const TYPES_FACTURE = ["acompte", "solde", "total", "retenue"] as const;
+export const TYPES_FACTURE = ["acompte", "solde", "total"] as const;
 export type TypeFacture = (typeof TYPES_FACTURE)[number];
 
 export const factures = pgTable(
@@ -75,6 +76,6 @@ export const factures = pgTable(
     unique("factures_numero_key").on(t.numero),
     index("factures_reservation_id_idx").on(t.reservation_id),
     uniqueIndex("factures_resa_type_uidx").on(t.reservation_id, t.type),
-    check("factures_type_check", sql`${t.type} in ('acompte', 'solde', 'total', 'retenue')`),
+    check("factures_type_check", sql`${t.type} in ('acompte', 'solde', 'total')`),
   ],
 );

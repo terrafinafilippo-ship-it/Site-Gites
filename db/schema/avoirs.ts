@@ -2,10 +2,10 @@
 // lot 5, migration 0023, D-41 et D-42). Seulement si une facture a été faite
 // pour le séjour ; du montant remboursé ; au plus un par réservation.
 //
-// Suite de numéros À PART, AV-AAAA-NNN (D-41), sans trou ni doublon : les
-// lignes sont créées EXCLUSIVEMENT par la fonction SQL creer_avoir (migration
-// 0023), qui obtient le numéro par prochain_numero('AV', année) dans la même
-// transaction — jamais par un INSERT applicatif. Comme une facture, un avoir
+// Numéro pris dans la SUITE DES FACTURES, FAC-AAAA-NNN (comptable, migration
+// 0024 ; suite AV à part de la 0023 à la 0024), sans trou ni doublon : les
+// lignes sont créées EXCLUSIVEMENT par la fonction SQL creer_avoir, qui obtient
+// le numéro par prochain_numero('FAC', année) dans la même transaction — jamais par un INSERT applicatif. Comme une facture, un avoir
 // EXISTE dès que la ligne est validée ; le PDF n'en est qu'un rendu (pdf_url
 // NULL tant qu'il n'est pas produit, ré-émis pour le MÊME numéro).
 import { sql } from "drizzle-orm";
@@ -18,7 +18,7 @@ export const avoirs = pgTable(
   "avoirs",
   {
     id: uuid().primaryKey().defaultRandom(),
-    // AV-AAAA-NNN, attribué par creer_avoir.
+    // FAC-AAAA-NNN, attribué par creer_avoir (suite des factures).
     numero: text().notNull(),
     reservation_id: uuid()
       .notNull()

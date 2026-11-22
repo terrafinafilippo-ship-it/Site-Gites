@@ -1,6 +1,6 @@
 // Écran d'erreur de la page de signature : lien invalide (404), contrat déjà
-// signé (409), lien expiré (410). Présentationnel pur, habillage des pages
-// client du site (page.module.css).
+// signé (409), lien expiré ou réservation annulée (410). Présentationnel pur,
+// habillage des pages client du site (page.module.css).
 import styles from './page.module.css';
 
 export function ErreurSignature({

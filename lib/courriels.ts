@@ -161,7 +161,7 @@ export async function inscrireApresPaiement(executeur: Executeur, reservationId:
 export async function inscrireFactureDemandee(
   executeur: Executeur,
   reservationId: string,
-  type: "total" | "retenue",
+  type: "total",
   entreprise: EntrepriseFacture | null,
   quand: Date,
 ): Promise<boolean> {

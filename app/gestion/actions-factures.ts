@@ -1,6 +1,6 @@
 "use server";
 // Les ACTIONS du back-office pour les factures sur demande (D-41) : « Créer et
-// envoyer la facture » (séjour ou retenue), en deux temps. Le courriel, qui
+// envoyer la facture » du séjour, en deux temps. Le courriel, qui
 // crée la facture et la joint, part après la réponse.
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
@@ -27,7 +27,7 @@ export async function actionDemanderFacture(
   const session = await exigerSession();
   const suivant = precedent.version + 1;
   const refus = (message: string): EtatPlan => ({ version: suivant, etape: "refus", message, lignes: [], empreinte: "" });
-  if (!isUuid(reservationId) || (type !== "total" && type !== "retenue")) return refus("Réservation introuvable.");
+  if (!isUuid(reservationId) || type !== "total") return refus("Réservation introuvable.");
   const saisie = lireEntrepriseSaisie({
     raisonSociale: champ(f, "raisonSociale"),
     adresse: champ(f, "adresse"),

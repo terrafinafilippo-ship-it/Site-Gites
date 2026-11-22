@@ -6,7 +6,8 @@ import { C, styles } from './FactureSoldePDF';
 
 // AVOIR d'une réservation annulée et remboursée (D-41, D-42), envoyé au
 // client quand tout est remboursé, seulement si une facture avait été faite.
-// Suite de numéros à part (AV-AAAA-NNN), même mise en page que les factures.
+// Numéro pris dans la suite des factures (FAC-AAAA-NNN, migration 0024), même
+// mise en page que les factures.
 //
 // La seule mention imposée est le renvoi à la facture corrigée (« Se rapporte
 // à la facture n° … du … ») ; le reste suit l'exemple validé par le gérant le

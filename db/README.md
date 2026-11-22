@@ -38,6 +38,7 @@ main dans un outil graphique.
 | `verify.ts` | Auto-vérification complète, sans rien laisser en base. |
 | `migrations/0022_facture_retenue.sql` | Factures sur demande (D-41) : le type de facture `retenue` (facture d'une retenue sur la caution, même suite FAC, une par réservation). |
 | `migrations/0023_annulation.sql` | Annulation (D-42) : tables `annulations`, `remboursements`, `avoirs` ; fonction `creer_avoir` (suite AV, par `prochain_numero`) ; courriels « annulation » et « avoir ». |
+| `migrations/0024_suite_avoirs_delai_72h.sql` | Réponses du comptable (D-43) : `creer_avoir` prend le numéro dans la suite des factures (FAC) ; le type de facture `retenue` est retiré (la migration échoue si une facture de retenue existe : ne rien supprimer, prévenir le développeur) ; le solde remboursé jusqu'à 72 heures avant l'arrivée (réglage passé de 48 à 72). |
 | `migrate.ts` | Applique les migrations en attente. |
 | `env.ts` | Charge `.env.local` pour les scripts. |
 
@@ -230,8 +231,8 @@ manquent, refait les vérifications ci-dessous (0009 et 0010) et celle de la 002
 compteurs de numérotation aux numéros déjà émis, compte le contenu et lit les
 réglages. Chaque ligne est OK, INFO, A VOIR ou BLOQUANT ; **un point BLOQUANT
 interdit d'appliquer les migrations** (code de sortie 1). Au 4 novembre 2026,
-la base réelle et `gites_test` du serveur sont à la migration 0001 (vingt-deux
-migrations en attente au 15 novembre, 0002 à 0023).
+la base réelle et `gites_test` du serveur sont à la migration 0001 (vingt-trois
+migrations en attente au 20 novembre, 0002 à 0024).
 
 ### Avant d'appliquer la migration 0009 sur une base existante
 
@@ -371,7 +372,8 @@ volume persistant du VPS et doivent être sauvegardés à part.
    migrations publiées après la date de la sauvegarde, s'il y en a.
 5. **Contrôler** : `npm run db:verify`, puis vérifier à la main que le dernier
    numéro de `compteurs_documents` correspond bien au dernier numéro présent
-   dans `factures` et dans `documents` (série `CTR`). Si des factures ont été
+   dans `factures` et `avoirs` (série `FAC`, commune depuis la migration 0024)
+   et dans `documents` (série `CTR`). Si des factures ont été
    émises entre la sauvegarde et la panne, elles doivent être ressaisies
    **avant** toute nouvelle émission, sinon la numérotation reprendrait sur des
    numéros déjà utilisés.

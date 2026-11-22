@@ -170,12 +170,15 @@ async function compteurs(c: PoolClient): Promise<void> {
   );
   if (lignes.rows.length === 0) dire("OK", "aucun compteur : la première facture sera FAC-AAAA-001, le premier contrat CTR-AAAA-001");
   for (const l of lignes.rows) {
-    const table = l.serie === "FAC" ? "factures" : "documents";
-    const presents = (await tableExiste(c, table))
+    // Les avoirs prennent leur numéro dans la suite des factures (migration 0024).
+    const tables = l.serie === "FAC" ? ["factures", "avoirs"] : ["documents"];
+    const presentes: string[] = [];
+    for (const t of tables) if (await tableExiste(c, t)) presentes.push(t);
+    const presents = presentes.length
       ? (
           await c.query<{ n: number; max: number | null }>(
             `select count(*)::int as n, max(split_part(numero, '-', 3)::int) as max
-               from ${table} where numero like $1`,
+               from (${presentes.map((t) => `select numero from ${t}`).join(" union all ")}) s where numero like $1`,
             [`${l.serie}-${l.annee}-%`],
           )
         ).rows[0]
@@ -229,7 +232,7 @@ async function apresMigrations(c: PoolClient): Promise<void> {
     ? "compte de la caution par virement : saisi"
     : "compte de la caution par virement : vide — à saisir avant l'ouverture (sans lui, le client ne reçoit pas les coordonnées)");
   dire(r.abandon === null ? "A VOIR" : "OK", r.abandon === null
-    ? "durée de conservation des tentatives abandonnées : vide, rien n'est effacé (réponse du juriste attendue, point 12)"
+    ? "durée de conservation des tentatives abandonnées : vide, rien n'est effacé — 30 jours fixés par le juriste, à saisir dans Réglages (point 12)"
     : `tentatives abandonnées effacées après ${r.abandon} jours`);
 
   const a = await c.query<{ type: string; active: boolean; destinataires: string[] }>(

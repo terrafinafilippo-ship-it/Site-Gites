@@ -7,12 +7,12 @@
 //      inscrit, journal ; pas deux demandes à la fois ; courriel envoyé avec
 //      le PDF ; facture déjà faite : « Renvoyer la facture » ;
 //   3. séjour payé en une fois, au nom d'une entreprise ;
-//   4. facture de retenue : refusée sans retenue, puis faite ;
+//   4. retenue sur la caution : aucune facture (comptable, migration 0024) ;
 //   5. réservation annulée : refusée ;
 //   6. (--http, serveur sur 3001) les VRAIES factures, par /api/factures :
-//      deux paiements listés, entreprise et SIREN, facture de retenue et sa
-//      phrase de TVA, idempotence, refus sans numéro consommé, suite sans
-//      trou ; le texte des PDF est lu (pypdf).
+//      deux paiements listés, entreprise et SIREN, type « retenue » refusé,
+//      idempotence, refus sans numéro consommé, suite sans trou ; le texte
+//      des PDF est lu (pypdf).
 //
 // Les parties 1 à 5 simulent le prestataire, la messagerie et l'émission
 // (le moteur PDF ne se charge pas sous tsx) ; la logique est la vraie.
@@ -119,7 +119,7 @@ async function controles(): Promise<Ids> {
   remplacerEmetteurFacture({
     emettre: async (_id, type, entreprise) => {
       appels.push({ type, entreprise: entreprise ?? null });
-      return { ok: true, facture: { numero: "FAC-SIMULE-042", type, montant: type === "retenue" ? 12000 : 98765, chemin: "factures/FAC-SIMULE-042.pdf" } };
+      return { ok: true, facture: { numero: "FAC-SIMULE-042", type, montant: 98765, chemin: "factures/FAC-SIMULE-042.pdf" } };
     },
     pdf: async () => Buffer.from("%PDF-simule"),
   });
@@ -174,7 +174,7 @@ async function controles(): Promise<Ids> {
   const fait = await demanderFacture(a.id, "total", null, ACTEUR, plan.etape === "plan" ? plan.empreinte : null);
   const inscrits = await courrielsFacture(a.id);
   noter(
-    fait.etape === "fait" && fait.message === `La facture est créée et part à ${EMAIL} dans un instant.` &&
+    fait.etape === "fait" && fait.message === `La facture est créée et part à ${EMAIL} dans un instant. Rechargez la page (F5) pour la voir et ouvrir son PDF.` &&
       inscrits.length === 1 && inscrits[0].donnees.type === "total" && !("entreprise" in inscrits[0].donnees),
     "confirmé : un courriel « facture » inscrit (séjour, au nom du client)",
     { fait, inscrits },
@@ -219,31 +219,15 @@ async function controles(): Promise<Ids> {
   await envoyer();
   noter(appels.length === 2 && memes(appels[1].entreprise, ent), "émission demandée au nom de l'entreprise", appels[1]);
 
-  console.log("--- 4. Facture de retenue");
+  console.log("--- 4. Retenue sur la caution : aucune facture");
   const c = await reserver(p, coordonnees(EMAIL, "Chloé", "Retenue"), "maison-vieille", samediDans(48), "cheque");
   await envoyer();
-  const sansRetenue = await demanderFacture(c.id, "retenue", null, ACTEUR, null);
-  noter(sansRetenue.etape === "refus" && sansRetenue.message.startsWith("Aucune retenue"), "sans retenue : refusé", sansRetenue);
   await noterCautionRecue(c.id, AUJ, ACTEUR);
   await sejourFini(c.id);
   const ret = await retenirCaution(c.id, { montant: 12000, motif: "Vitre de la cuisine cassée", fichiers: [] }, ACTEUR, p);
   noter(ret.ok, "retenue de 120 € sur le chèque", ret);
   await envoyer();
-  const planC = await demanderFacture(c.id, "retenue", null, ACTEUR, null);
-  noter(
-    planC.etape === "plan" && planC.lignes[0].replace(/ | /g, " ") === "Facture de la retenue sur la caution : 120,00 €, au nom de Chloé RETENUE.",
-    "récapitulatif : 120,00 €, au nom du client",
-    planC,
-  );
-  await demanderFacture(c.id, "retenue", null, ACTEUR, planC.etape === "plan" ? planC.empreinte : null);
-  const envC = await envoyer();
-  const facC = envC.find((x) => x.etiquette === "facture");
-  noter(
-    !!facC && facC.texte.replace(/ | /g, " ").includes("Voici la facture de la retenue sur votre dépôt de garantie : 120,00 €."),
-    "courriel : « Voici la facture de la retenue sur votre dépôt de garantie : 120,00 €. »",
-    facC?.texte,
-  );
-  noter(appels.length === 3 && appels[2].type === "retenue", "émission demandée pour la retenue", appels[2]);
+  noter((await courrielsFacture(c.id)).length === 0 && appels.length === 2, "retenue faite : aucune facture inscrite ni émise", appels);
 
   console.log("--- 5. Réservation annulée");
   await db.execute(sql`update reservations set statut = 'annulee' where id = ${c.id}::uuid`);
@@ -337,27 +321,15 @@ async function partieHttp(ids: Ids): Promise<void> {
     pdfB.slice(0, 400),
   );
 
+  const avantRetenue = await dernierNumero();
   const c = await emettre(ids.retenue, "retenue");
-  const fc = c.corps.numero ? await ligneFacture(c.corps.numero) : undefined;
-  const pdfC = fc ? textePdf(await getStorage().read(fc.pdf_url)) : "";
-  const cautionC = (await chargerReservationAvecGite(ids.retenue))!.caution ?? 0;
-  noter(
-    c.status === 200 && fc?.type === "retenue" && centimesDepuisNumeric(fc.montant) === 12000 && fc.donnees.montantRestitue === cautionC - 12000,
-    "facture de retenue : 120,00 €, le reste restitué",
-    fc && { ...fc, donnees: undefined },
-  );
-  noter(
-    pdfC.includes("Retenue sur le dépôt de garantie") && pdfC.includes("Vitre de la cuisine cassée") &&
-      pdfC.includes("Somme non soumise à la TVA : dédommagement d'un dégât, sans service rendu en échange.") && !pdfC.includes("261 D"),
-    "PDF : objet, motif, phrase de TVA de la retenue (pas l'article 261 D 4°)",
-    pdfC.slice(0, 600),
-  );
+  noter(c.status === 400 && (await dernierNumero()) === avantRetenue, "type « retenue » refusé (400), aucun numéro consommé", c);
 
   const suffixe = (n?: string) => Number(n?.split("-").pop());
   noter(
-    suffixe(b.corps.numero) === suffixe(a.corps.numero) + 1 && suffixe(c.corps.numero) === suffixe(b.corps.numero) + 1,
-    "trois factures, trois numéros qui se suivent, sans trou",
-    [a.corps.numero, b.corps.numero, c.corps.numero],
+    suffixe(b.corps.numero) === suffixe(a.corps.numero) + 1,
+    "deux factures, deux numéros qui se suivent, sans trou",
+    [a.corps.numero, b.corps.numero],
   );
 }
 

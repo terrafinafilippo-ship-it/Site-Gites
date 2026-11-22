@@ -20,7 +20,8 @@
 //   8. (--http, serveur sur 3001) le VRAI avoir, par /api/factures : numéro
 //      AV, PDF lu (pypdf), idempotence, refus sans numéro consommé ; les
 //      pages : la fiche annulée, le formulaire d'annulation, « Documents »,
-//      « Ma réservation ».
+//      « Ma réservation » ; le lien de signature d'une réservation annulée
+//      (page et enregistrement refusés).
 //
 // Les parties 1 à 7 simulent le prestataire, la messagerie et l'émission
 // (le moteur PDF ne se charge pas sous tsx) ; la logique est la vraie.
@@ -395,9 +396,10 @@ function textePdf(octets: Buffer): string {
   return plat(execFileSync("python", ["-c", code], { input: octets }).toString("utf-8"));
 }
 
-async function dernierAv(): Promise<number> {
+// Les avoirs prennent leur numéro dans la suite des factures (migration 0024).
+async function dernierFac(): Promise<number> {
   const r = await db.execute(sql`select coalesce(max(dernier_numero), 0)::int as n from compteurs_documents
-                                  where serie = 'AV' and annee = extract(year from now() at time zone 'Europe/Paris')::int`);
+                                  where serie = 'FAC' and annee = extract(year from now() at time zone 'Europe/Paris')::int`);
   return (r.rows[0] as { n: number }).n;
 }
 
@@ -414,9 +416,9 @@ async function partieHttp(ids: Ids): Promise<void> {
     return { status: r.status, corps: (await r.json()) as { numero?: string; error?: string } };
   };
 
-  const avant = await dernierAv();
+  const avant = await dernierFac();
   const sans = await emettre(ids.sansFacture);
-  noter(sans.status === 409 && (await dernierAv()) === avant, "sans facture : 409, aucun numéro AV consommé", sans);
+  noter(sans.status === 409 && (await dernierFac()) === avant, "sans facture : 409, aucun numéro consommé", sans);
 
   const a = await emettre(ids.avecFacture);
   const ligne = a.corps.numero
@@ -428,9 +430,9 @@ async function partieHttp(ids: Ids): Promise<void> {
   const mB = calculerMontants(resaB);
   const numeroFac = ((await db.execute(sql`select numero from factures where reservation_id = ${ids.avecFacture}::uuid`)).rows[0] as { numero: string }).numero;
   noter(
-    a.status === 200 && /^AV-\d{4}-\d{3}$/.test(a.corps.numero ?? "") && centimesDepuisNumeric(ligne?.montant ?? "0") === mB.totalTtc &&
-      (await dernierAv()) === avant + 1,
-    "avoir émis : numéro AV-AAAA-NNN, montant = remboursé",
+    a.status === 200 && /^FAC-\d{4}-\d{3}$/.test(a.corps.numero ?? "") && centimesDepuisNumeric(ligne?.montant ?? "0") === mB.totalTtc &&
+      (await dernierFac()) === avant + 1,
+    "avoir émis : numéro FAC-AAAA-NNN (suite des factures), montant = remboursé",
     { a, montant: ligne?.montant },
   );
   const pdf = ligne ? textePdf(await getStorage().read(ligne.pdf_url)) : "";
@@ -443,7 +445,7 @@ async function partieHttp(ids: Ids): Promise<void> {
     pdf.slice(0, 1200),
   );
   const bis = await emettre(ids.avecFacture);
-  noter(bis.status === 200 && bis.corps.numero === a.corps.numero && (await dernierAv()) === avant + 1, "deuxième appel : le même avoir, aucun numéro de plus", bis);
+  noter(bis.status === 200 && bis.corps.numero === a.corps.numero && (await dernierFac()) === avant + 1, "deuxième appel : le même avoir, aucun numéro de plus", bis);
 
   // Les pages, avec une session posée directement en base.
   const jeton = `essai-annulation-${Date.now()}`;
@@ -476,6 +478,32 @@ async function partieHttp(ids: Ids): Promise<void> {
     suivi.status === 200 && sh.includes("Cette réservation est annulée.") && sh.includes(plat(`${fmtEuro(mB.totalTtc)} vous ont été remboursés.`)),
     "« Ma réservation » : « Cette réservation est annulée. » et le montant remboursé",
     suivi.status,
+  );
+
+  // Le lien de signature reçu avant l'annulation : plus rien ne se signe.
+  const jetonSignature = `essaiannulation${Date.now()}`;
+  await db.execute(sql`insert into documents (reservation_id, type, numero, url_pdf, statut, token, token_expire_at)
+                       values (${ids.sansFacture}::uuid, 'contrat_location', 'CL-ESSAI-ANNULE', 'contrats/essai-annule.pdf', 'genere',
+                               ${jetonSignature}, now() + interval '30 days')`);
+  const motif = "La réservation liée au contrat CL-ESSAI-ANNULE est annulée : ce contrat ne peut plus être signé.";
+  const pageSignature = await fetch(`${ORIGINE}/signer/${jetonSignature}`);
+  const ps = plat((await pageSignature.text()).replace(/<!-- -->/g, "").replace(/&#x27;|&#39;/g, "'"));
+  noter(
+    pageSignature.status === 200 && ps.includes("Réservation annulée") && ps.includes(motif) && !ps.includes("Je reconnais avoir lu"),
+    "page de signature d'une réservation annulée : « Réservation annulée », aucun formulaire",
+    pageSignature.status,
+  );
+  const signer = await fetch(`${ORIGINE}/api/contrats/signer`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ token: jetonSignature, signataire_nom: "Camille Annule", accepte: true }),
+  });
+  const corpsSigner = (await signer.json()) as { error?: string };
+  const preuves = ((await db.execute(sql`select count(*)::int as n from signatures where reservation_id = ${ids.sansFacture}::uuid`)).rows[0] as { n: number }).n;
+  noter(
+    signer.status === 410 && (corpsSigner.error ?? "").startsWith(motif) && preuves === 0,
+    "signature d'une réservation annulée refusée (410), aucune preuve écrite",
+    { status: signer.status, corpsSigner, preuves },
   );
 }
 

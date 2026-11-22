@@ -3,8 +3,9 @@
 // cliquent « Créer et envoyer la facture » sur la fiche de la réservation.
 //
 //   - « total » : la facture du séjour entier, une fois le séjour entièrement
-//     payé (en une fois, ou acompte puis solde) ;
-//   - « retenue » : la facture d'une retenue faite sur la caution.
+//     payé (en une fois, ou acompte puis solde).
+// La facture d'une retenue sur la caution a été retirée le 19 novembre 2026
+// (comptable : pas de facture pour une retenue ; migration 0024).
 //
 // En deux temps, comme les autres gestes définitifs du back-office : le
 // premier envoi revient avec le récapitulatif (montant, destinataire,
@@ -21,8 +22,7 @@ import { createHash } from "node:crypto";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { courriels, factures, paiements, reservations, retenues } from "@/db/schema";
-import { centimesDepuisNumeric } from "@/lib/centimes";
+import { courriels, factures, paiements, reservations } from "@/db/schema";
 import { inscrireFactureDemandee } from "@/lib/courriels";
 import { fmtEuro } from "@/lib/format";
 import { calculerMontants, type EntrepriseFacture } from "@/lib/montants";
@@ -31,7 +31,7 @@ import { chargerReservationAvecGite } from "@/lib/reservations";
 import { journaliser, type Acteur } from "./journal";
 import type { IssuePlan } from "./tarifs";
 
-export type TypeFactureDemandee = "total" | "retenue";
+export type TypeFactureDemandee = "total";
 
 /** Ce que le formulaire « Au nom d'une entreprise » envoie, tel quel. */
 export interface SaisieEntreprise {
@@ -108,7 +108,7 @@ export async function demanderFacture(
       .where(
         and(
           eq(factures.reservation_id, reservationId),
-          inArray(factures.type, type === "total" ? ["total", "acompte", "solde"] : ["retenue"]),
+          inArray(factures.type, ["total", "acompte", "solde"]),
         ),
       );
     if (deja.length > 0) {
@@ -128,26 +128,19 @@ export async function demanderFacture(
       .limit(1);
     if (enCours.length > 0) return { etape: "refus" as const, message: "Cette facture est déjà en cours d'envoi." };
 
-    let montant: number;
-    if (type === "total") {
-      if (!resa.paiement_integral) {
-        const [solde] = await tx
-          .select({ id: paiements.id })
-          .from(paiements)
-          .where(and(eq(paiements.reservation_id, reservationId), eq(paiements.type, "solde"), eq(paiements.statut, "reussi")))
-          .limit(1);
-        if (!solde) return { etape: "refus" as const, message: "Le solde n'est pas encore reçu : la facture se fait une fois le séjour entièrement payé." };
-      }
-      montant = calculerMontants(resa).totalTtc;
-    } else {
-      const [r] = await tx.select().from(retenues).where(eq(retenues.reservation_id, reservationId)).limit(1);
-      if (!r?.faite_at) return { etape: "refus" as const, message: "Aucune retenue n'a été faite sur la caution : pas de facture de retenue." };
-      montant = centimesDepuisNumeric(r.montant);
+    if (!resa.paiement_integral) {
+      const [solde] = await tx
+        .select({ id: paiements.id })
+        .from(paiements)
+        .where(and(eq(paiements.reservation_id, reservationId), eq(paiements.type, "solde"), eq(paiements.statut, "reussi")))
+        .limit(1);
+      if (!solde) return { etape: "refus" as const, message: "Le solde n'est pas encore reçu : la facture se fait une fois le séjour entièrement payé." };
     }
+    const montant = calculerMontants(resa).totalTtc;
 
     const client = [resa.client_prenom, resa.client_nom?.toUpperCase()].filter(Boolean).join(" ") || "le client";
     const lignes = [
-      `${type === "total" ? "Facture du séjour" : "Facture de la retenue sur la caution"} : ${fmtEuro(montant)}, au nom de ${entreprise ? entreprise.raisonSociale : client}.`,
+      `Facture du séjour : ${fmtEuro(montant)}, au nom de ${entreprise ? entreprise.raisonSociale : client}.`,
       ...(entreprise
         ? [`Adresse : ${entreprise.adresse}, ${entreprise.codePostal} ${entreprise.ville}, ${entreprise.pays}${entreprise.siren ? ` — SIREN ${entreprise.siren}` : ""}.`]
         : []),
@@ -166,6 +159,6 @@ export async function demanderFacture(
       acteur,
       details: { type, entreprise: entreprise?.raisonSociale ?? null },
     });
-    return { etape: "fait" as const, message: `La facture est créée et part à ${resa.client_email} dans un instant.` };
+    return { etape: "fait" as const, message: `La facture est créée et part à ${resa.client_email} dans un instant. Rechargez la page (F5) pour la voir et ouvrir son PDF.` };
   });
 }

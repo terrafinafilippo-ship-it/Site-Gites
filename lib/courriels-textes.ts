@@ -325,12 +325,12 @@ function piedClient(langue: Langue, s: Sejour, adresseContact: string): Bloc[] {
 /**
  * Une facture, en pièce jointe (PDF, en français comme le contrat, D-22).
  * Depuis D-41, envoyée seulement sur demande du client : la facture du séjour
- * (« total ») ou celle d'une retenue sur la caution (« retenue »).
+ * (« total »). La facture de retenue est retirée depuis la migration 0024.
  */
 export function texteFacture(
   langue: Langue,
   s: Sejour,
-  f: { numero: string; type: "acompte" | "solde" | "total" | "retenue"; montant: number },
+  f: { numero: string; type: "acompte" | "solde" | "total"; montant: number },
   lienSuivi: string,
   adresseContact: string,
 ): Contenu {
@@ -345,10 +345,6 @@ export function texteFacture(
         ? en
           ? `Here is the invoice for your stay, paid in full: ${montant}.`
           : `Voici la facture de votre séjour, réglé en totalité : ${montant}.`
-        : f.type === "retenue"
-          ? en
-            ? `Here is the invoice for the amount kept from your security deposit: ${montant}.`
-            : `Voici la facture de la retenue sur votre dépôt de garantie : ${montant}.`
         : en
           ? `Here is the invoice for your down payment: ${montant}.`
           : `Voici la facture de votre acompte : ${montant}.`;

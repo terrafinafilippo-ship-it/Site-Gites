@@ -5,12 +5,12 @@ import { after, NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 
 import { getDb } from '@/db';
-import { documents, signatures } from '@/db/schema';
+import { documents, reservations, signatures } from '@/db/schema';
 import { cheminContratSigne, getStorage, isStorageError } from '@/lib/storage';
 import { calculerMontants, ficheContrat, mapContratData } from '@/lib/montants';
 import { chargerReservationAvecGite } from '@/lib/reservations';
 import { fmtDateFr } from '@/lib/format';
-import { texteConsentement } from '@/lib/constantes';
+import { messageContratAnnule, texteConsentement } from '@/lib/constantes';
 import { inscrireSignature } from '@/lib/courriels';
 import { traiterCourriels } from '@/lib/courriels-envoi';
 import { isUniqueViolation, messageErreur, resolveSiteOrigin } from '@/lib/route-helpers';
@@ -111,6 +111,10 @@ export async function POST(request: Request) {
       { status: 404 },
     );
   }
+  // Réservation annulée (D-42) : son contrat ne se signe plus.
+  if (resa.statut === 'annulee') {
+    return NextResponse.json({ error: messageContratAnnule(doc.numero) }, { status: 410 });
+  }
 
   let contactEmail: string;
   try {
@@ -144,7 +148,17 @@ export async function POST(request: Request) {
   // ── 6 → 8. Transaction : preuve, PDF signé, statut ───────────────────────
   try {
     const sig = await db.transaction(async (tx) => {
-      // 6. Preuve de signature (une seule ligne par document : index unique).
+      // 6. La réservation relue sous verrou partagé : une annulation confirmée
+      //    pendant la signature (lib/gestion/annulation.ts, verrou exclusif)
+      //    passe avant ou après, jamais entre les deux.
+      const [encore] = await tx
+        .select({ statut: reservations.statut })
+        .from(reservations)
+        .where(eq(reservations.id, doc.reservation_id))
+        .for('share');
+      if (encore?.statut === 'annulee') throw new EchecSignature(410, messageContratAnnule(doc.numero));
+
+      // Preuve de signature (une seule ligne par document : index unique).
       const [inseree] = await tx
         .insert(signatures)
         .values({

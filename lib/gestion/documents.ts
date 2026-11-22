@@ -13,7 +13,7 @@
 //     la fiche si elle a changé.
 // Pas d'export pour le comptable pour l'instant (réponse 5 B).
 //
-// Phase 5, lot 5 (D-42) : les avoirs (suite AV) s'y ajoutent, ouverts et
+// Phase 5, lot 5 (D-42) : les avoirs s'y ajoutent, ouverts et
 // renvoyés comme une facture.
 import { and, desc, eq, sql, type SQL } from "drizzle-orm";
 
@@ -33,7 +33,6 @@ export const LIBELLES_FACTURE: Record<TypeFacture, string> = {
   acompte: "Facture d'acompte",
   solde: "Facture de solde",
   total: "Facture du séjour",
-  retenue: "Facture de retenue sur la caution",
 };
 
 export type SorteDocument = "contrat" | "facture" | "avoir";

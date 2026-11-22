@@ -22,7 +22,7 @@ const estTypeFacture = (v: unknown): v is TypeFacture =>
 /**
  * POST /api/factures
  * En-tête : x-service-secret = DOCUMENT_SERVICE_SECRET
- * Body : { reservationId: string, type: 'acompte' | 'solde' | 'total' | 'retenue',
+ * Body : { reservationId: string, type: 'acompte' | 'solde' | 'total' | 'avoir',
  *          entreprise?: { raisonSociale, adresse, codePostal, ville, pays, siren } }
  *
  * Émet (ou ré-émet) la facture correspondante (lib/factures.ts) :
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
 
   if (!isUuid(reservationId) || !estTypeFacture(type)) {
     return NextResponse.json(
-      { error: "Paramètres requis : reservationId (uuid) et type ('acompte' | 'solde' | 'total' | 'retenue')." },
+      { error: "Paramètres requis : reservationId (uuid) et type ('acompte' | 'solde' | 'total' | 'avoir')." },
       { status: 400 },
     );
   }

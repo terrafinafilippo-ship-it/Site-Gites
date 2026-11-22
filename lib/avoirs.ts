@@ -10,7 +10,8 @@
 // Son montant est celui qui a été rendu.
 //
 //   1. L'avoir EXISTE dès que la ligne SQL est validée (fonction creer_avoir,
-//      qui frappe le numéro AV dans la même transaction).
+//      qui frappe le numéro dans la même transaction, dans la suite des
+//      factures FAC depuis la migration 0024).
 //   2. Le PDF est un simple rendu de cette ligne ; en cas d'échec on ré-émet
 //      pour le MÊME numéro (idempotent).
 //   3. Un seul avoir par réservation (index unique) : deux émissions

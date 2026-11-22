@@ -853,8 +853,8 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
     );
     noter(
       "6g",
-      reglagesLot5.rows[0]?.h === 48,
-      "réglages : solde remboursé jusqu'à 48 heures avant l'arrivée",
+      reglagesLot5.rows[0]?.h === 72,
+      "réglages : solde remboursé jusqu'à 72 heures avant l'arrivée (migration 0024)",
       JSON.stringify(reglagesLot5.rows[0]),
     );
     noter(
@@ -913,13 +913,15 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
       `select * from creer_facture($1::uuid, 'avoir', 1000.00, '{}'::jsonb, null)`, [resaId],
     );
     noter("6h", codePg(typeInconnu.erreur) === "23514", "type de facture inconnu refusé", codePg(typeInconnu.erreur));
-    // Facture de retenue sur la caution (D-41, migration 0022) : même suite FAC.
+    // Facture de retenue sur la caution : créée par la migration 0022, retirée
+    // par la 0024 (comptable : pas de facture pour une retenue).
     const retenueF = await attendreErreur(
       client, "sp_facture_retenue",
       `select numero from creer_facture($1::uuid, 'retenue', 120.00, '{}'::jsonb, null)`, [resaId],
     );
-    noter("6h", retenueF.erreur === null, "facture de type « retenue » acceptée (migration 0022)", codePg(retenueF.erreur));
-    // Avoir (D-41, D-42, migration 0023) : suite AV à part, par creer_avoir, un par réservation.
+    noter("6h", codePg(retenueF.erreur) === "23514", "facture de type « retenue » refusée (migration 0024)", codePg(retenueF.erreur));
+    // Avoir (D-41, D-42, migrations 0023 et 0024) : par creer_avoir, un par réservation,
+    // numéroté dans la suite des factures (FAC), depuis la migration 0024.
     const factureTotale = await client.query<{ id: string }>(
       `select id from factures where reservation_id = $1 and type = 'total'`, [resaId],
     );
@@ -934,8 +936,9 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
     );
     noter(
       "6h",
-      /^AV-\d{4}-\d{3}$/.test(avoir.rows[0]?.numero ?? "") && facAvantAvoir.rows[0]?.n === facApresAvoir.rows[0]?.n,
-      "avoir : numéro AV-AAAA-NNN, suite à part (le compteur des factures ne bouge pas)",
+      /^FAC-\d{4}-\d{3}$/.test(avoir.rows[0]?.numero ?? "") && facApresAvoir.rows[0]?.n === (facAvantAvoir.rows[0]?.n ?? 0) + 1 &&
+        avoir.rows[0]?.numero.endsWith(`-${pad3(facApresAvoir.rows[0]?.n ?? 0)}`),
+      "avoir : numéro FAC-AAAA-NNN, le suivant de la suite des factures (migration 0024)",
       avoir.rows[0]?.numero,
     );
     const avoirBis = await attendreErreur(

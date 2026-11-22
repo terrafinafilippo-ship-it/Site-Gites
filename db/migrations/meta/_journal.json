@@ -169,6 +169,13 @@
       "when": 1794780664717,
       "tag": "0023_annulation",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1795191811245,
+      "tag": "0024_suite_avoirs_delai_72h",
+      "breakpoints": true
     }
   ]
 }

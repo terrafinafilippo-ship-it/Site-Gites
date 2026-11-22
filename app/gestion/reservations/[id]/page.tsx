@@ -122,7 +122,6 @@ export default async function FicheReservation({ params }: { params: Promise<{ i
   const factureSejour = fiche.factures.find((f) => f.type === "total" || f.type === "acompte" || f.type === "solde") ?? null;
   const sejourPaye = resa.paiement_integral || fiche.paiements.some((p) => p.type === "solde" && p.statut === "reussi");
   const enCoursOuFini = resa.statut === "confirmee" || resa.statut === "terminee";
-  const factureRetenue = fiche.factures.find((f) => f.type === "retenue") ?? null;
   const liens = retenue
     ? await Promise.all(retenue.pieces.map(async (p) => ({ ...p, url: await getStorage().getSignedUrl(p.chemin, 3600) })))
     : [];
@@ -368,16 +367,6 @@ export default async function FicheReservation({ params }: { params: Promise<{ i
                 )}
               </div>
             )}
-            {retenue?.faite_at && !factureRetenue && enCoursOuFini && (
-              <div>
-                <p className={styles.aide}>
-                  Facture de la retenue : seulement si le client la demande. Au nom de {client}, envoyée à {resa.client_email ?? "(aucune adresse)"}.
-                </p>
-                <FormulairePlan action={actionDemanderFacture.bind(null, resa.id, "retenue")} libelle="Créer et envoyer la facture de retenue">
-                  <ChampsEntreprise id="retenue" />
-                </FormulairePlan>
-              </div>
-            )}
           </section>
         )}
 
@@ -526,7 +515,7 @@ export default async function FicheReservation({ params }: { params: Promise<{ i
               </div>
               <div className={styles.champ}>
                 <label htmlFor="annulation-prevenu">Le client a prévenu le (seulement si le client annule)</label>
-                <input id="annulation-prevenu" name="prevenuLe" type="datetime-local" defaultValue={maintenantCivil()} max={maintenantCivil()} />
+                <input id="annulation-prevenu" name="prevenuLe" type="datetime-local" defaultValue={maintenantCivil()} />
               </div>
             </FormulairePlan>
           </section>

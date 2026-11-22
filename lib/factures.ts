@@ -1,12 +1,13 @@
-// ÉMISSION D'UNE FACTURE (acompte, solde, total du séjour, ou retenue sur la
-// caution) : la ligne légale, puis son PDF.
+// ÉMISSION D'UNE FACTURE (acompte, solde ou total du séjour) : la ligne
+// légale, puis son PDF.
 //
 // Depuis D-41 (14 novembre 2026), le site n'émet plus de facture tout seul :
 // les propriétaires la font sur demande du client, depuis le back-office
 // (lib/gestion/factures.ts), une fois le séjour entièrement payé (« total »,
-// qui liste les paiements reçus) ou la retenue faite (« retenue »), au nom de
-// la personne qui a réservé ou d'une entreprise. « acompte » et « solde »
-// restent émissibles par la route (parcours de non-régression).
+// qui liste les paiements reçus), au nom de la personne qui a réservé ou d'une
+// entreprise. « acompte » et « solde » restent émissibles par la route
+// (parcours de non-régression). La facture de retenue sur la caution est
+// retirée depuis la migration 0024 (comptable : pas de facture pour une retenue).
 //
 // Déplacée de app/api/factures/route.ts en Phase 4 (lot 1) pour que le
 // paiement constaté puisse émettre sa facture tout seul (courriel « facture »,
@@ -28,11 +29,10 @@ import { renderToBuffer } from '@react-pdf/renderer';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import { getDb } from '@/db';
-import { documents, factures, paiements, retenues, type TypeFacture } from '@/db/schema';
+import { documents, factures, paiements, type TypeFacture } from '@/db/schema';
 import { getStorage } from '@/lib/storage';
 import {
   calculerMontants,
-  cautionDe,
   instantaneFacture,
   mapFactureData,
   paiementImprime,
@@ -50,21 +50,12 @@ import { chargerLogo } from '@/lib/logo';
 import { FactureAcomptePDF, type FactureAcompteData } from '@/components/pdf/FactureAcomptePDF';
 import { FactureSoldePDF, type FactureSoldeData } from '@/components/pdf/FactureSoldePDF';
 import { FactureTotalPDF, type FactureTotalData, type LignePaiementFacture } from '@/components/pdf/FactureTotalPDF';
-import { FactureRetenuePDF, type FactureRetenueData } from '@/components/pdf/FactureRetenuePDF';
 
 // Type enregistré dans la table `documents` (registre back-office).
 const DOC_TYPE: Record<TypeFacture, string> = {
   acompte: 'facture_acompte',
   solde: 'facture_solde',
   total: 'facture_total',
-  retenue: 'facture_retenue',
-};
-
-/** Le moyen de la caution, tel que la facture de retenue l'imprime. */
-const MOYEN_CAUTION: Record<'carte' | 'cheque' | 'virement', string> = {
-  carte: 'carte bancaire, préautorisation',
-  cheque: 'chèque',
-  virement: 'virement',
 };
 
 // Ligne `factures` telle que lue par Drizzle : montant_ttc en TEXTE ("173.00",
@@ -88,7 +79,7 @@ const refus = (status: number, message: string): ResultatFacture => ({ ok: false
 
 /**
  * Émet (ou ré-émet) la facture `type` de la réservation. Ne lève pas : les
- * erreurs sont dans le résultat. `entreprise` (facture unique ou de retenue) :
+ * erreurs sont dans le résultat. `entreprise` (facture unique) :
  * le destinataire imprimé à la place de la personne qui a réservé ; une
  * facture déjà émise garde le sien.
  */
@@ -112,8 +103,8 @@ export async function emettreFacture(
       "Réservation payée en totalité : ni facture d'acompte ni facture de solde, mais une facture unique (type 'total'). Aucune facture n'est émise.",
     );
   }
-  // Facture unique ou de retenue (D-41) : seulement pour un séjour réel.
-  if ((type === 'total' || type === 'retenue') && resa.statut !== 'confirmee' && resa.statut !== 'terminee') {
+  // Facture unique (D-41) : seulement pour un séjour réel.
+  if (type === 'total' && resa.statut !== 'confirmee' && resa.statut !== 'terminee') {
     return refus(409, `Réservation au statut « ${resa.statut} » : aucune facture n'est émise.`);
   }
 
@@ -171,40 +162,17 @@ export async function emettreFacture(
     }
   }
 
-  // ── 3 quater. Facture de retenue : la retenue faite (D-41) ──────────────
-  let retenue: FactureContext['retenue'];
-  if (type === 'retenue') {
-    const [r] = await db.select().from(retenues).where(eq(retenues.reservation_id, reservationId)).limit(1);
-    if (!r?.faite_at) return refus(409, "Aucune retenue n'a été faite sur la caution de cette réservation : pas de facture de retenue.");
-    let montantCaution: number;
-    try {
-      montantCaution = cautionDe(resa);
-    } catch (e) {
-      return refus(409, `${messageErreur(e)} : pas de facture de retenue.`);
-    }
-    retenue = {
-      motif: r.motif,
-      moyenCaution: MOYEN_CAUTION[r.moyen],
-      dateRetenue: fmtDateFr(aujourdhuiParis(r.faite_at)),
-      montantCaution,
-      montantRetenu: centimesDepuisNumeric(r.montant),
-    };
-  }
-
   // Paiement intégral : calculerMontants donne acompte = total, solde = 0.
   const montantTtc =
     type === 'solde'
       ? montants.solde
       : type === 'total'
         ? montants.totalTtc
-        : type === 'retenue' && retenue
-          ? retenue.montantRetenu
-          : montants.acompte;
+        : montants.acompte;
 
   // Le destinataire : celui demandé, ou celui d'une facture dont le PDF avait échoué.
-  const ent =
-    type === 'total' || type === 'retenue' ? (entreprise ?? (existante ? entrepriseDe(existante.donnees) : null)) : null;
-  const extras = { entreprise: ent ?? undefined, paiements: lignesPaiement, retenue };
+  const ent = type === 'total' ? (entreprise ?? (existante ? entrepriseDe(existante.donnees) : null)) : null;
+  const extras = { entreprise: ent ?? undefined, paiements: lignesPaiement };
 
   // ── 3 bis. Garde : acompte + solde = total, sinon aucune facture n'est émise ─
   // En centimes entiers cette égalité est exacte par construction ; la garde
@@ -236,7 +204,7 @@ export async function emettreFacture(
     }
   }
 
-  const paiement = type === 'retenue' ? null : await paiementFacture(db, reservationId, type);
+  const paiement = await paiementFacture(db, reservationId, type);
 
   // ── 4. Obtenir la ligne facture (existante ou nouvelle via creer_facture) ─
   let facture: FactureRow;
@@ -303,9 +271,7 @@ export async function emettreFacture(
         ? createElement(FactureAcomptePDF, { data: data as FactureAcompteData, logo })
         : type === 'total'
           ? createElement(FactureTotalPDF, { data: data as FactureTotalData, logo })
-          : type === 'retenue'
-            ? createElement(FactureRetenuePDF, { data: data as FactureRetenueData, logo })
-            : createElement(FactureSoldePDF, { data: data as FactureSoldeData, logo });
+          : createElement(FactureSoldePDF, { data: data as FactureSoldeData, logo });
     // Les composants renvoient un <Document> ; createElement perd cette
     // information de type, on caste vers la signature attendue par renderToBuffer.
     pdf = await renderToBuffer(element as Parameters<typeof renderToBuffer>[0]);
@@ -480,7 +446,7 @@ function contexte(
   resa: Reservation,
   factureAcompte: FactureRow | null,
   paiement: PaiementFacture | null,
-  extras: Pick<FactureContext, 'entreprise' | 'paiements' | 'retenue'>,
+  extras: Pick<FactureContext, 'entreprise' | 'paiements'>,
   override: { numeroFacture: string; dateEmission: string },
 ): FactureContext {
   const imprime = paiementImprime(paiement);

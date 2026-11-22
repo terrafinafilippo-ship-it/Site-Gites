@@ -31,9 +31,6 @@ export const LIGNE_IMMATRICULATION = `RCS ${EMETTEUR.villeRcs} ${EMETTEUR.siren}
 // ─── Mentions légales obligatoires ────────────────────────────────────────────
 export const MENTIONS = {
   articleTva: 'article 261 D 4° du Code général des impôts',
-  // Facture d'une retenue sur la caution (D-41) : un dédommagement, pas une
-  // location. Phrase validée par le gérant le 14 novembre 2026.
-  tvaRetenue: "Somme non soumise à la TVA : dédommagement d'un dégât, sans service rendu en échange.",
   // Aucun médiateur de la consommation n'est cité (contrat, factures, CGV)
   // tant que l'adhésion n'est pas faite : gérant, 15 novembre 2026 (D-41).
 } as const;
@@ -83,6 +80,12 @@ export const texteConsentement = (
     `et l'ensemble de ses conditions${article12}.`
   );
 };
+
+// Réservation annulée (Phase 5, lot 5, D-42) : son contrat ne se signe plus.
+// Même phrase sur la page de signature et dans le refus de l'enregistrement.
+export const messageContratAnnule = (numeroContrat: string): string =>
+  `La réservation liée au contrat ${numeroContrat} est annulée : ce contrat ne peut plus être signé. ` +
+  'Pour toute question, contactez Les Gîtes de Samoyas.';
 
 // ─── Numérotation ─────────────────────────────────────────────────────────────
 // Le numéro est généré EXCLUSIVEMENT par la fonction SQL `creer_facture` (série FAC).

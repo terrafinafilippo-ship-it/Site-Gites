@@ -15,7 +15,6 @@
 import type { FactureAcompteData } from '@/components/pdf/FactureAcomptePDF';
 import type { FactureSoldeData } from '@/components/pdf/FactureSoldePDF';
 import type { FactureTotalData, LignePaiementFacture } from '@/components/pdf/FactureTotalPDF';
-import type { FactureRetenueData } from '@/components/pdf/FactureRetenuePDF';
 import type { ContratData } from '@/components/pdf/ContratPDF';
 import type { GiteRow, ReservationAvecGite } from '@/lib/reservations';
 import {
@@ -317,9 +316,9 @@ export function lireEntreprise(v: unknown): EntrepriseFacture | null {
 }
 
 export interface FactureContext {
-  // 'total' : facture unique du séjour entièrement payé (D-29, D-41) ;
-  // 'retenue' : facture d'une retenue sur la caution (D-41).
-  type: 'acompte' | 'solde' | 'total' | 'retenue';
+  // 'total' : facture unique du séjour entièrement payé (D-29, D-41). La
+  // facture de retenue (D-41) est retirée depuis la migration 0024.
+  type: 'acompte' | 'solde' | 'total';
   // numéro + date d'émission AUTORITAIRES, issus de la ligne `factures`
   numeroFacture: string;
   dateEmission: string; // déjà formaté FR
@@ -341,18 +340,10 @@ export interface FactureContext {
   entreprise?: EntrepriseFacture;
   // Facture unique (D-41) : les paiements reçus, dans l'ordre.
   paiements?: LignePaiementFacture[];
-  // Facture de retenue (D-41) : la ligne `retenues`, montants en centimes.
-  retenue?: {
-    motif: string;
-    moyenCaution: string;
-    dateRetenue: string;
-    montantCaution: number;
-    montantRetenu: number;
-  };
 }
 
 /** Données d'une facture, selon son type. */
-export type FactureData = FactureAcompteData | FactureSoldeData | FactureTotalData | FactureRetenueData;
+export type FactureData = FactureAcompteData | FactureSoldeData | FactureTotalData;
 
 /**
  * Construit l'objet de données du PDF (forme exacte de FactureAcompteData,
@@ -382,7 +373,6 @@ export function mapFactureData(
 ): FactureData {
   if (ctx.type === 'acompte') return mapAcompteData(resa, montants, ctx);
   if (ctx.type === 'total') return mapTotalData(resa, montants, ctx);
-  if (ctx.type === 'retenue') return mapRetenueData(resa, ctx);
   return mapSoldeData(resa, montants, ctx);
 }
 
@@ -495,41 +485,6 @@ function mapTotalData(
         montant: m.totalTtc,
       },
     ],
-  };
-}
-
-function mapRetenueData(resa: Reservation, ctx: FactureContext): FactureRetenueData {
-  const r = ctx.retenue;
-  if (!r) throw new Error('facture de retenue sans retenue');
-  const communs = champsCommuns(resa);
-  return {
-    numeroContrat: communs.numeroContrat,
-    clientCivilite: communs.clientCivilite,
-    clientNom: communs.clientNom,
-    clientPrenom: communs.clientPrenom,
-    clientCiviliteDeux: communs.clientCiviliteDeux,
-    clientNomDeux: communs.clientNomDeux,
-    clientPrenomDeux: communs.clientPrenomDeux,
-    clientAdresse: communs.clientAdresse,
-    clientCodePostal: communs.clientCodePostal,
-    clientVille: communs.clientVille,
-    clientPays: communs.clientPays,
-    clientEmail: communs.clientEmail,
-    giteNom: communs.giteNom,
-    giteRefGdf: communs.giteRefGdf,
-    giteAdresse: communs.giteAdresse,
-    dateArrivee: communs.dateArrivee,
-    dateDepart: communs.dateDepart,
-    ...champsEntreprise(ctx.entreprise),
-    numeroFacture: ctx.numeroFacture,
-    dateEmission: ctx.dateEmission,
-
-    motif: r.motif,
-    moyenCaution: r.moyenCaution,
-    dateRetenue: r.dateRetenue,
-    montantCaution: r.montantCaution,
-    montantRetenu: r.montantRetenu,
-    montantRestitue: r.montantCaution - r.montantRetenu,
   };
 }
 

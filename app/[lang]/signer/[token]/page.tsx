@@ -18,7 +18,7 @@ import { getStorage } from '@/lib/storage';
 import { calculerMontants, ficheContrat } from '@/lib/montants';
 import { chargerReservationAvecGite } from '@/lib/reservations';
 import { fmtDateFr, fmtEuro } from '@/lib/format';
-import { texteConsentement } from '@/lib/constantes';
+import { messageContratAnnule, texteConsentement } from '@/lib/constantes';
 import { SignerForm } from './SignerForm';
 import { ErreurSignature } from './ErreurSignature';
 
@@ -96,6 +96,9 @@ export default async function SignerPage({
         message="Impossible de retrouver la réservation associée à ce contrat. Contactez Les Gîtes de Samoyas."
       />
     );
+  }
+  if (resa.statut === 'annulee') {
+    return <ErreurSignature code={410} titre="Réservation annulée" message={messageContratAnnule(doc.numero)} />;
   }
 
   const montants = calculerMontants(resa);

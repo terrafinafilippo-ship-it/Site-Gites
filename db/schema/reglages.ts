@@ -137,8 +137,9 @@ export const reglages = pgTable(
     suivi_validite_jours: integer().notNull().default(30),
     suivi_demandes_max: integer().notNull().default(3),
     suivi_demandes_minutes: integer().notNull().default(60),
-    // Annulation (lot 5, migration 0008, D-26) : en heures avant l'heure d'arrivée.
-    delai_remboursement_solde_heures: integer().notNull().default(48),
+    // Annulation (lot 5, migration 0008, D-26) : en heures avant l'heure d'arrivée ;
+    // 72 depuis la migration 0024 (point 16, gérant, 19 novembre 2026).
+    delai_remboursement_solde_heures: integer().notNull().default(72),
     // Avis (lot 5) : note en CENTIÈMES (497 = 4,97/5), comme un taux de lib/decimaux.ts.
     avis_note_centiemes: integer(),
     avis_nombre: integer(),
