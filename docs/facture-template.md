@@ -1,8 +1,8 @@
 # Facture / Quittance — Templates
 
-> **Modèle retenu depuis D-41 (14 novembre 2026)** : **factures sur demande seulement**. Le site n'émet plus aucune facture tout seul ; quand un client en demande une, les propriétaires cliquent « Créer et envoyer la facture » dans le back-office : **une facture unique du séjour entièrement payé** (Template 3), en une fois ou en deux, au nom du client ou d'une entreprise ; **une facture de retenue sur la caution** (Template 4). Les Templates 1 et 2 (acompte, solde — l'ancien modèle B, une facture par encaissement) ne sont plus émis par le site ; leur code reste pour le parcours de non-régression.
-> **Numérotation** : `FAC-{{annee}}-{{seq}}`, série annuelle à partir de `FAC-2026-001` (rupture avec l'ancien système GdF).
-> **Régime TVA** : exonération de plein droit (art. 261 D 4° CGI) — aucune ligne TVA.
+> **Modèle retenu depuis D-41 (14 novembre 2026)** : **factures sur demande seulement**. Le site n'émet plus aucune facture tout seul ; quand un client en demande une, les propriétaires cliquent « Créer et envoyer la facture » dans le back-office : **une facture unique du séjour entièrement payé** (Template 3), en une fois ou en deux, au nom du client ou d'une entreprise. La facture de retenue sur la caution (Template 4) est retirée depuis le 20 novembre 2026 (D-43 : pas de facture pour une retenue). Les Templates 1 et 2 (acompte, solde — l'ancien modèle B, une facture par encaissement) ne sont plus émis par le site ; leur code reste pour le parcours de non-régression.
+> **Numérotation** : `FAC-{{annee}}-{{seq}}`, série annuelle à partir de `FAC-2026-001` (rupture avec l'ancien système GdF) ; les avoirs prennent leur numéro dans la même série depuis D-43.
+> **Régime TVA** : exonération de plein droit (art. 261 D 4° CGI) — aucune ligne TVA ; confirmée par le comptable le 19 novembre 2026 (D-43).
 
 ---
 
@@ -303,8 +303,12 @@ facture de solde.
 
 ---
 
-## Template 4 — FACTURE DE RETENUE SUR LA CAUTION
+## Template 4 — FACTURE DE RETENUE SUR LA CAUTION (retirée)
 
+> **Retirée le 20 novembre 2026** (D-43, migration 0024) : le comptable dit
+> qu'une retenue ne donne pas de facture. Le bouton, l'émission, le PDF et le
+> courriel n'existent plus ; ce qui suit est conservé pour mémoire.
+>
 > D-41 (14 novembre 2026) : faite **sur demande du client**, par le bouton
 > « Créer et envoyer la facture de retenue », sous la retenue faite (table
 > `retenues`). Même suite `FAC`, au plus une par réservation. Rendu :
@@ -335,10 +339,11 @@ et même pied que les autres factures, sauf :
 ### Avoir (annulation) — construit le 15 novembre 2026
 
 > **Ce que le site fait (D-41, D-42)** : un avoir seulement si une facture du
-> séjour a été faite ; **suite à part `AV-{année}-{seq}`** (fonction
-> `creer_avoir`, migration 0023), montant **positif** égal à ce qui est rendu,
+> séjour a été faite ; **numéro pris dans la suite des factures,
+> `FAC-{année}-{seq}`** (fonction `creer_avoir` ; suite à part `AV` de la
+> migration 0023 à la 0024, D-43), montant **positif** égal à ce qui est rendu,
 > envoyé au client quand tout est remboursé. Rendu :
-> `components/pdf/AvoirPDF.tsx`. Il imprime : « AVOIR N° AV-… », l'émetteur, le
+> `components/pdf/AvoirPDF.tsx`. Il imprime : « AVOIR N° FAC-… », l'émetteur, le
 > destinataire de la facture corrigée (client ou entreprise), la date,
 > **« Se rapporte à la facture n° FAC-… du … »**, l'objet (annulation du séjour,
 > gîte, dates, contrat), le motif et l'article (« Annulation à la demande du
@@ -405,7 +410,7 @@ Avec :
 
 | Variable | Description |
 |---|---|
-| `numero_avoir` | Format `AV-{{annee}}-{{seq}}` (série séparée, `creer_avoir`) |
+| `numero_avoir` | Format `FAC-{{annee}}-{{seq}}` (suite des factures depuis D-43, `creer_avoir`) |
 | `numero_facture_annulee` | Référence facture initiale annulée |
 | `montant_avoir` | Montant remboursé (positif sur l'avoir, mais signifie un crédit) |
 | `date_avoir` | Date d'émission |

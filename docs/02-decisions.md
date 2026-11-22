@@ -739,7 +739,8 @@ l'article 6 du contrat qui doit dire ce qui se passe ensuite.
 **Ce que cette décision ne règle pas.** La rédaction de l'article 6 du contrat
 (trois moyens, client arrivé sans caution) et sa relecture par un juriste ;
 l'enregistrement comptable d'une caution reçue par virement, qui arrive
-réellement sur le compte de la société (question au comptable) ; la collecte
+réellement sur le compte de la société (question au comptable — close le
+19 novembre 2026, il l'enregistre lui-même, D-43) ; la collecte
 de l'IBAN du client pour la restitution.
 
 **Si on revient dessus.** Les trois moyens seront décrits dans le contrat et
@@ -1101,7 +1102,8 @@ séjourne aux gîtes.
   il est **conservé** ensuite ;
 - le solde est **remboursé jusqu'à 48 heures avant l'arrivée**. Ce délai
   « reste à voir », le gérant ne décidant pas seul : point 16 de
-  `docs/06-avant-premier-client.md` ;
+  `docs/06-avant-premier-client.md` (**72 heures depuis le 19 novembre 2026,
+  D-43**) ;
 - la date limite de l'acompte **est** celle du solde (pas un réglage à part) ;
 - un séjour payé en une fois suit la même règle : la part de l'acompte est
   conservée, le reste remboursé jusqu'à 48 heures avant ;
@@ -1446,7 +1448,8 @@ bancaire à protéger pour un usage de quelques jours.
 - Sans la tâche programmée (point 18), ni courriel ni alerte.
 - Tant que la durée de conservation est vide, rien n'est effacé (point 12).
 - Une caution reçue par virement arrive sur le compte de la société :
-  l'enregistrement comptable reste une question au comptable (D-19).
+  l'enregistrement comptable reste une question au comptable (D-19) — close,
+  D-43.
 
 **Si on revient dessus.** Changer le compte, le nombre de jours du courriel
 ou la durée de conservation : un réglage. Changer le délai du virement (3 jours
@@ -2063,7 +2066,8 @@ pour le comptable (points 6, 17 et 19 de `docs/06-avant-premier-client.md`).
   note devient « Le séjour est intégralement réglé. » (le « Bienvenue » ne
   convenait plus à une facture faite après le séjour).
 - **Avoir** : seulement si une facture a été faite ; du montant remboursé ;
-  une suite à part, `AV-{année}-{seq}`, par `prochain_numero`. Il imprime : le
+  une suite à part, `AV-{année}-{seq}`, par `prochain_numero` (**remplacé par
+  D-43** : numéro pris dans la suite des factures, FAC). Il imprime : le
   numéro et la date, l'émetteur, le client, **la ou les factures qu'il
   corrige**, l'objet (annulation du séjour, gîte, dates, contrat), le montant
   remboursé selon l'article 7.2 du contrat, le mode et la date du
@@ -2084,6 +2088,8 @@ paiement. Moins de courriels inutiles, et les propriétaires gardent la main.
 **Ce qui pourrait mal tourner.**
 - Ces réponses sont celles du gérant, pas du comptable : l'exonération et la
   phrase de la facture de retenue sont à lui faire confirmer à l'occasion.
+  **Réponse le 19 novembre 2026 (D-43)** : l'exonération tient ; pas de
+  facture pour une retenue (retirée) ; l'avoir dans la suite des factures.
 - À partir de septembre 2027, les factures entre entreprises passent par une
   plateforme agréée : savoir avec le comptable, avant cette date, si ces
   locations sont concernées.
@@ -2126,11 +2132,18 @@ paiement. Moins de courriels inutiles, et les propriétaires gardent la main.
   RIB demandé, avoir annoncé). Une caution reçue par chèque ou virement se
   rend tout de suite (« À traiter »).
 - **L'avoir** (D-41) part quand tout est rendu, s'il existe une facture du
-  séjour : suite `AV` par `creer_avoir` (migration 0023), du montant rendu,
+  séjour : suite `AV` par `creer_avoir` (migration 0023 ; suite des factures
+  depuis la migration 0024, D-43), du montant rendu,
   au nom du destinataire de la facture corrigée.
 - **Statistiques** (5 A) : ce qui est gardé d'un séjour annulé compte dans
   « Séjours, hors taxe », au mois de l'arrivée prévue ; ni dans les nuits, ni
   dans le nombre de séjours, ni dans la provenance, ni dans la commission.
+- **Le contrat d'une réservation annulée ne se signe plus** (clôture de la
+  phase, 18 novembre 2026, réponse 1 A) : la page de signature affiche
+  « Réservation annulée » au lieu du formulaire, et l'enregistrement de la
+  signature est refusé (410), même si l'annulation tombe pendant la signature
+  (réservation relue sous verrou). Phrase unique : `messageContratAnnule`
+  (`lib/constantes.ts`).
 
 **Construit le 15 novembre 2026** : migration 0023 (`annulations`,
 `remboursements`, `avoirs`, `creer_avoir`, courriels « annulation » et
@@ -2146,12 +2159,14 @@ change la règle au détriment du client.
 
 **Ce qui pourrait mal tourner.**
 - Les 48 heures restent à confirmer (point 16) ; les articles 7.2 à 7.5, à
-  faire relire par le juriste (point 3).
+  faire relire par le juriste (point 3). **Levé le 19 novembre 2026 (D-43)** :
+  72 heures ; contrat relu sans remarque.
 - Stripe ne rend pas sa commission sur un remboursement.
 - L'avoir n'imprime pas la phrase de l'ancien modèle (« Remboursement à titre
   de tolérance commerciale unilatérale du Bailleur… », `docs/facture-template.md`) :
   l'exemple validé le 14 novembre ne la portait pas. À faire trancher par le
-  juriste avec le point 3.
+  juriste avec le point 3. **Tranché (D-43)** : contrat relu sans remarque,
+  l'avoir reste sans cette phrase.
 - Une part par carte qui passe en virement après le courriel au client (refus
   de Stripe lors d'une reprise) : le client a lu « sur la carte » ; la ligne
   « À traiter » prévient les propriétaires, qui l'appellent.
@@ -2160,6 +2175,53 @@ change la règle au détriment du client.
 dans le récapitulatif et une ligne de plus au journal ; l'annulation par le
 client (4 B), un bouton sur « Ma réservation » qui inscrit une demande, pas
 une annulation directe.
+
+## D-43 · Réponses du comptable et du juriste ; le solde remboursé jusqu'à 72 heures
+
+**Date :** 19 novembre 2026 (réponses rapportées par le gérant) ; construit
+le 20 novembre (migration 0024). Choix du gérant : 1 A, 2 A.
+
+**Ce qui est décidé.**
+- **TVA** (comptable) : l'exonération de l'article 261 D 4° du CGI tient ;
+  les factures restent sans TVA (confirme D-41).
+- **Pas de facture pour une retenue sur la caution** (comptable) : le bouton,
+  l'émission, le PDF et le courriel de la facture de retenue sont retirés
+  (choix 2 A) ; la migration 0024 retire le type `retenue` des factures. Le
+  courriel au client avec le montant retenu et les justificatifs reste : ce
+  n'est pas une facture.
+- **L'avoir a son propre numéro, dans la suite des factures** (comptable) :
+  `FAC-{année}-{seq}`, sur un document intitulé « Avoir » (choix 1 A ; pas de
+  préfixe AV, pour qu'aucun trou n'apparaisse dans la liste des FAC).
+  `creer_avoir` prend son numéro par `prochain_numero('FAC', année)`
+  (migration 0024). Remplace la suite `AV` de D-41 et D-42.
+- **La caution reçue par virement** : le comptable l'enregistre lui-même ;
+  la question de D-19 est close.
+- **Le solde est remboursé jusqu'à 72 heures avant l'arrivée** (gérant,
+  point 16 levé), au lieu de 48 : la migration 0024 passe le réglage à 72 (il
+  n'est pas modifiable au back-office, cadrage de la Phase 5, réponse P). Les
+  réservations déjà faites gardent leur délai.
+- **Le juriste** a relu le contrat, sans remarque : les articles 6 et 7, y
+  compris les questions qui lui étaient posées (point 3), restent tels quels,
+  et l'avoir reste sans la phrase « tolérance commerciale » (D-42). Les
+  conditions générales en français seulement lui conviennent (point 13). Il
+  fixe à **30 jours** la conservation des tentatives abandonnées (point 12) :
+  un réglage, saisi par le gérant sur la base réelle.
+
+**Ce qui reste ouvert.**
+- Facture électronique entre entreprises (septembre 2027) : le comptable
+  demande plus de temps.
+- Médiateur de la consommation (point 7) : plus tard, aucun n'est cité d'ici
+  là.
+- La politique de confidentialité doit annoncer les 30 jours (Phase 6).
+
+**Ce qui pourrait mal tourner.** Une facture de retenue émise sur une base
+avant la migration 0024 la ferait échouer (aucune sur la base réelle au
+19 novembre 2026) : une facture ne se supprime jamais, il faudrait une autre
+migration. Une session qui lirait D-41 sans D-43 croirait encore à la suite
+AV : D-41 et D-42 renvoient ici.
+
+**Si on revient dessus.** Rétablir une facture de retenue, c'est une
+migration qui rend le type, et le code retiré le 20 novembre (historique git).
 
 ## Décisions ouvertes
 

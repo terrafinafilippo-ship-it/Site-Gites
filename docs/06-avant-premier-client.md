@@ -6,15 +6,15 @@
 
 Dix-huit points à traiter **avant qu'un vrai client signe un vrai contrat** (le
 point 1 est levé depuis le 3 novembre 2026, le point 19 ajouté le même jour ;
-le point 8 levé le 12 novembre, les points 6 et 17 le 14 novembre ;
-les numéros ne changent pas, d'autres documents les citent). Aucun
+le point 8 levé le 12 novembre, les points 6 et 17 le 14 novembre, le
+point 19 le 15 novembre, le point 16 le 19 novembre ; les numéros ne changent pas, d'autres documents les citent). Aucun
 n'empêche le logiciel de fonctionner : ils empêchent qu'il fonctionne
 **correctement le jour où il compte**.
 
 ## Qui peut lever un point
 
-Parmi les points encore ouverts, douze **ne se résolvent pas, ou pas
-entièrement, dans le dépôt** (3, 4, 7, 9, 10, 11, 12, 13, 14, 15, 16 et 18). Sans cette
+Parmi les points encore ouverts, onze **ne se résolvent pas, ou pas
+entièrement, dans le dépôt** (3, 4, 7, 9, 10, 11, 12, 13, 14, 15 et 18). Sans cette
 précision, une session future les lira comme des tâches techniques et cherchera
 la réponse au mauvais endroit — dans le code, où elle n'est pas.
 
@@ -32,7 +32,7 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 |---|---|---|---|
 | ~~1~~ | ~~Nommer les options sur les documents~~ — **levé le 3 novembre 2026** (aucune option vendue) | — | — |
 | 2 | Rendre l'adresse IP du signataire non falsifiable | Développement | Au déploiement |
-| 3 | Caution (carte, chèque, virement) et paiement : confirmés par Stripe, contrat et texte d'accord relus par un juriste, développés et testés | **Les propriétaires** (Stripe, juriste), puis développement | Phases 3 et 4 |
+| 3 | Caution (carte, chèque, virement) et paiement : confirmés par Stripe, contrat relu par le juriste sans remarque (19 novembre 2026), développés et testés ; reste la trace écrite de Stripe | **Les propriétaires** (trace écrite) | Avant l'ouverture |
 | 4 | Passer la base en configuration de production | Développement (vérification), puis **le gérant** (migrations, compte du virement) | Avant l'ouverture |
 | 5 | Vérifier le logo sur un PDF généré **après** déploiement | Développement | Au déploiement |
 | ~~6~~ | ~~Qui est le bailleur juridique des trois gîtes~~ — **levé le 14 novembre 2026** (D-41 : la SARL DE LA VOUTE, factures sans TVA) | — | — |
@@ -41,13 +41,13 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | 9 | Sauvegarder le volume des PDF, et tester une restauration | **Phase de déploiement** | Au déploiement effectif — échéance tranchée le 24 septembre 2026 |
 | 10 | Taxe de séjour : régime, taux, assiette (sans le ménage) et occupants (sans les bébés) **arrêtés** ; restent les tarifs 2027 | **Le service taxe de séjour** (Ardèche Grand Air) | Phase 3 |
 | 11 | Saisir les vrais tarifs, périodes, barème et réglages de taxe | **Les propriétaires**, au back-office | Avant l'ouverture (Phase 5) |
-| 12 | Durée de conservation des tentatives de réservation abandonnées | **Les propriétaires** (juriste) — l'effacement est construit | Avant l'ouverture |
-| 13 | Site en anglais : relire la traduction, faire valider l'anglais du juridique | **Les propriétaires** (relecture), **le juriste** (pages juridiques, politique des avis) | Avant l'ouverture (Phase 6) |
+| 12 | Durée de conservation des tentatives de réservation abandonnées — **30 jours** (juriste, 19 novembre 2026) ; restent la saisie et la politique de confidentialité | **Le gérant** (réglage), puis développement (Phase 6) | Avant l'ouverture |
+| 13 | Site en anglais : relire la traduction — le juriste accepte les pages juridiques en français seulement (19 novembre 2026) | **Les propriétaires** (relecture) | Avant l'ouverture (Phase 6) |
 | 14 | Passer Stripe en mode réel et brancher l'avis de paiement | **Les propriétaires** (compte Stripe activé), puis développement | Au déploiement |
 | 15 | Brancher les courriels réels sur le serveur déployé, DMARC en « quarantaine » | **Phase de déploiement**, puis les propriétaires (réception) | Au déploiement |
-| 16 | Annulation : confirmer le délai de remboursement du solde (48 heures) | **Arbitrage** | Avant l'ouverture |
+| ~~16~~ | ~~Annulation : confirmer le délai de remboursement du solde~~ — **levé le 19 novembre 2026** (D-43 : 72 heures, migration 0024) | — | — |
 | ~~17~~ | ~~Séjour payé en une fois : faire confirmer la facture unique~~ — **levé le 14 novembre 2026** (D-41) | — | — |
-| 18 | Programmer le réveil des tâches automatiques (solde, factures, relances) | **Phase de déploiement** | Au déploiement |
+| 18 | Programmer le réveil des tâches automatiques (solde, cautions, relances, remboursements) | **Phase de déploiement** | Au déploiement |
 | ~~19~~ | ~~Annulation par les propriétaires : remboursement et avoir~~ — **levé le 15 novembre 2026** (D-42, migration 0023) | — | — |
 
 ---
@@ -98,6 +98,12 @@ l'adresse **réelle**, pas celle de l'en-tête.
 ---
 
 ## 3. Caution Stripe : confirmée, relue, développée et testée
+
+> **Condition 3 remplie le 19 novembre 2026** (D-43) : le juriste a relu le
+> contrat, sans remarque — les cinq questions ci-dessous comprises, et
+> l'avoir sans la phrase « tolérance commerciale ». Les conditions 1, 2 et 4
+> sont remplies. **Reste seulement la trace écrite des réponses de Stripe**
+> (« Reste à faire » plus bas).
 
 **Qui peut lever :** **les propriétaires** pour les deux premières conditions,
 puis développement · **Phase 4**
@@ -237,9 +243,11 @@ inclure :
    conservation, tarification). Chaque ligne est OK, INFO, A VOIR ou
    BLOQUANT ; un point BLOQUANT interdit de migrer. Au 2 novembre 2026, la base
    réelle et `gites_test` du serveur sont à la migration **0001**.
-2. **Appliquer les migrations 0002 à 0019** (0012 à 0017 : le back-office,
+2. **Appliquer les migrations 0002 à 0024** (0012 à 0017 : le back-office,
    Phase 5, lots 1 à 4 et 6 ; 0018 : les bébés et la taxe de séjour ; 0019 :
-   le sauna) :
+   le sauna ; 0020 et 0021 : les avis ; 0022 : la facture de retenue ; 0023 :
+   l'annulation et l'avoir ; 0024 : l'avoir dans la suite des factures, la
+   facture de retenue retirée, le solde remboursé jusqu'à 72 heures, D-43) :
    **le gérant** les applique lui-même
    (`npm run db:migrate`), après une sauvegarde, sur la base réelle puis sur
    `gites_test` du serveur (réponse 11B).
@@ -554,6 +562,13 @@ CALÉE », ni « BARÈME » ; un séjour de test se chiffre dans le tunnel.
 
 ## 12. Durée de conservation des tentatives de réservation abandonnées
 
+> **Durée fixée le 19 novembre 2026 par le juriste : 30 jours** (D-43). Restent :
+> la saisir dans Réglages › « Tentatives de réservation abandonnées » sur la
+> base réelle (le gérant), et l'écrire dans la politique de confidentialité
+> (Phase 6). Les deux cas laissés hors de l'effacement (tentative payée en
+> retard puis remboursée, journal des courriels) n'ont pas reçu de réponse à
+> part : ils restent tels quels.
+
 **Qui peut lever :** **les propriétaires**, avec leur juriste (la durée) ·
 **avant l'ouverture** — l'effacement automatique est construit (Phase 4,
 lot 3, D-31)
@@ -588,6 +603,10 @@ annonce la même durée.
 ---
 
 ## 13. Site en anglais : relire la traduction, faire valider l'anglais du juridique
+
+> **Le juriste, le 19 novembre 2026** (D-43) : les CGV et les pages juridiques
+> en français seulement conviennent ; aucune traduction juridique. Reste la
+> relecture de l'anglais par les propriétaires (action 1).
 
 **Qui peut lever :** **les propriétaires** (relecture de l'anglais), **le
 juriste** (pages juridiques, politique des avis) · **avant l'ouverture**
@@ -696,6 +715,11 @@ l'enregistrement `_dmarc` lu dans le DNS dit `p=quarantine`.
 
 ## 16. Annulation : confirmer le délai de remboursement du solde
 
+> **Levé le 19 novembre 2026** (D-43) : **72 heures** avant l'arrivée. La
+> migration 0024 passe le réglage à 72 (il n'est pas modifiable au
+> back-office) ; les réservations déjà faites gardent le leur. Conservé pour
+> mémoire.
+
 **Qui peut lever :** **arbitrage** (le gérant et la personne qui décide avec
 lui) · **avant l'ouverture**
 
@@ -763,7 +787,8 @@ ne se fait, et rien ne le signale.**
    interne ; à défaut de `curl`, la même requête par `node -e` et `fetch`).
 
 **Le contrôle.** Le journal de la tâche dans Coolify montre une réponse `200`
-avec un bilan (`soldes`, `virements`, `cautions`, `abandons`, `courriels`)
+avec un bilan (`soldes`, `virements`, `cautions`, `abandons`, `avis`,
+`remboursements`, `courriels`)
 toutes les 15 minutes ; une réservation
 d'essai dont la date limite du solde est passée reçoit son courriel.
 
@@ -781,6 +806,10 @@ d'essai dont la date limite du solde est passée reçoit son courriel.
 > client a prévenu, remboursement par carte chez Stripe puis par virement,
 > avoir quand tout est rendu ; contrôle `verify:annulation` (45 cas, vrai
 > avoir compris).
+>
+> **Réponse du comptable le 19 novembre 2026** (D-43) : l'avoir prend son
+> numéro dans la suite des factures (FAC), et une retenue ne donne pas de
+> facture (retirée, migration 0024).
 
 **Qui peut lever :** **le comptable** (la forme de l'avoir), puis
 développement · **Phase 5, lot 5**

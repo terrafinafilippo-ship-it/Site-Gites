@@ -266,7 +266,8 @@ stockage du serveur (`retenues/…`) et joints au courriel du client. Ils peuven
 montrer des personnes ou des objets personnels : leur durée de conservation est
 la même question au juriste que celle des tentatives (point 12). Le motif et
 le montant restent dans `retenues`, avec qui les a saisis. Aucune facture n'est
-émise pour une retenue tant que le comptable n'a pas répondu (point 19).
+émise pour une retenue : réponse du comptable le 19 novembre 2026 (D-43,
+migration 0024).
 
 **Page « Ma réservation » (Phase 3, lot 4, D-25).** Les données d'un séjour
 (adresse du gîte, dates, montants, contrat signé) sont montrées à qui détient
@@ -412,9 +413,9 @@ CGI » est imprimée sur les **deux factures** et dans le contrat.
 
 **Tranché le 14 novembre 2026 par le gérant (D-41) : les factures restent sans
 TVA.** Deux prestations sur quatre sont fournies (le linge, l'accueil) ;
-l'exonération ne tombe qu'à trois. À faire confirmer au comptable à
-l'occasion ; à revoir si un petit-déjeuner ou un ménage en cours de séjour
-était proposé. Pour mémoire, l'écart tel qu'il était décrit : la mention
+l'exonération ne tombe qu'à trois. **Confirmé par le comptable le
+19 novembre 2026** (D-43) ; à revoir si un petit-déjeuner ou un ménage en
+cours de séjour était proposé. Pour mémoire, l'écart tel qu'il était décrit : la mention
 est affichée **sans que la qualification ait été validée**. Deux éléments
 appelaient une vérification : le **forfait ménage de 80 € facturé
 systématiquement** — supprimé le 12 novembre 2026 (D-37, forfait à 0 €) — et

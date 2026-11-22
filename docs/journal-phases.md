@@ -2266,6 +2266,145 @@ dans les statistiques), 6 A (la date où le client a prévenu est saisie).
 - Le formulaire à l'écran avec une vraie session (la page est ouverte par
   `verify:annulation --http`, le geste est contrôlé par la fonction).
 
+## Phase 5 : clôture (16 au 18 novembre 2026)
+
+Réponses du gérant : 1 A (le contrat d'une réservation annulée ne se signe
+plus), 2 A (la borne du champ « Le client a prévenu le » retirée), 3 A (les
+textes du lot 5 remontrés), 4 A (les deux angles morts notés, rien de
+construit), et ses essais à l'écran **avant** de clore.
+
+### Ce qui a été fait
+
+- **Signature d'une réservation annulée** (D-42) : la page `/signer/{jeton}`
+  affiche « Réservation annulée » au lieu du formulaire ; l'enregistrement
+  répond 410, y compris quand l'annulation tombe pendant la signature
+  (réservation relue sous verrou partagé dans la transaction). Phrase unique
+  `messageContratAnnule` (`lib/constantes.ts`).
+- **Le champ de l'heure du préavis** accepte une heure plus tardive que
+  l'ouverture de la page (le refus d'une date future reste au serveur).
+- **La confirmation d'une facture** ajoute « Rechargez la page (F5) pour la
+  voir et ouvrir son PDF. » : la facture est écrite juste après la réponse,
+  la page affichée ne la montrait pas (vu par le gérant à l'essai 7.4).
+- `verify:annulation --http` : 2 cas de plus (page et enregistrement de la
+  signature refusés), **47**.
+- Documentation : fiche de phase close (critères et preuves, seed, points
+  hérités, reports, questions ouvertes), une ligne dans D-42, checklist
+  (point 19 dans l'en-tête, migrations 0002 à 0023, bilan des tâches),
+  architecture (scripts, 47 cas), README du parcours.
+
+### Textes validés par le gérant
+
+- Nouveau : « **Réservation annulée** — La réservation liée au contrat
+  {numéro} est annulée : ce contrat ne peut plus être signé. Pour toute
+  question, contactez Les Gîtes de Samoyas. »
+- Nouveau : « La facture est créée et part à {courriel} dans un instant.
+  Rechargez la page (F5) pour la voir et ouvrir son PDF. »
+- Les textes du lot 5, remontrés en une fois : récapitulatif de
+  l'annulation, courriel d'annulation et courriel de l'avoir (français et
+  anglais), PDF de l'avoir et ses trois motifs, « Ma réservation », lignes
+  « À traiter ».
+
+### Ce qui a été vérifié
+
+- **Essais à l'écran du gérant** (guide en dix essais, base de test,
+  Stripe en mode test, courriels écrits dans des fichiers) : connexion, code
+  et appareil reconnu, `/gestion/reglages` fermé en navigation privée ; prix
+  changé visible tout de suite sur la fiche publique ; périodes (découpage,
+  mardi refusé, copie d'une année) ; calendrier (bloquer, débloquer, option
+  et son lien, levée) ; fiche d'un gîte ; réservations prises comme un
+  client ; fiche d'une réservation, solde et caution par virement, factures
+  et leur PDF ; annulations (« Nous » remboursée sur la carte chez Stripe en
+  mode test, client tard avec avoir, carte puis virement avec « Remboursement
+  fait » et « Caution rendue entière ») ; vieux lien de signature ;
+  « Ma réservation » ; client absent (récapitulatif sans confirmer) ;
+  « Documents » ; statistiques et registre ; affichage téléphone. Tous bons.
+- lint, `tsc`, build ; `db:verify` **268** ; parcours complet : **26 étapes,
+  toutes OK** (code 0), `reference.ts` inchangé. Par étape : conversion 51,
+  tarification 209, blocage 42, paiement 69, courriels 41, « Ma
+  réservation » 22, solde 61, factures 42, **annulation 47**, caution par
+  carte 86, virement 47, abandons 22, avis 59, back-office 107,
+  réservations 86, tarifs 93, calendrier 111, statistiques 28, deux parcours
+  et URL signées sans échec, contrôles en base 83, contrôles des PDF 120,
+  `db:verify` 268.
+
+### Ce qui n'a PAS été vérifié
+
+- Les courriels reçus dans une vraie boîte (écrits dans des fichiers).
+- Le critère 1 par un contrôle automatique : les contrôles appellent les
+  fonctions, pas les actions ; la preuve est l'essai à l'écran.
+
+### Reporté et ouvert
+
+- Reportés après l'ouverture : les bons cadeaux ; l'accueil plus loin dans
+  le temps (le mois prochain, 6 mois, 1 an), demandé par le gérant pendant
+  ses essais.
+- Questions ouvertes : aucune facture possible pour la somme gardée après
+  une annulation ; « client absent » à noter avant le passage en
+  « terminée » (3 jours après le départ). Détail : `docs/phases/phase-5.md`,
+  « Clôture ».
+
+## Réponses du comptable et du juriste, 72 heures (19 et 20 novembre 2026)
+
+D-43. Comptable : l'exonération de TVA tient ; pas de facture pour une
+retenue ; l'avoir a son numéro dans la suite des factures ; la caution par
+virement, il l'enregistre lui-même ; la facture électronique, il demande plus
+de temps. Juriste : contrat relu sans remarque, CGV en français seulement
+acceptées, 30 jours de conservation des tentatives abandonnées. Gérant :
+72 heures pour le solde (point 16), médiateur plus tard, choix 1 A (avoir
+`FAC-…`) et 2 A (facture de retenue retirée entièrement). Stripe : le compte
+est activé (partie 1 faite par le gérant), restent les clés réelles et l'avis
+de paiement au déploiement.
+
+### Ce qui a été fait
+
+- **Migration 0024** : `creer_avoir` par `prochain_numero('FAC', année)` ;
+  type `retenue` retiré de `factures_type_check` ; réglage du délai de
+  remboursement du solde à 72 (défaut et ligne existante si elle valait 48).
+- **Facture de retenue retirée** : bouton de la fiche, action, émission
+  (`lib/factures.ts`, `lib/gestion/factures.ts`), données (`lib/montants.ts`),
+  `FactureRetenuePDF` supprimé, texte du courriel, libellé des documents,
+  mention `tvaRetenue`. Le courriel de la retenue (montant, justificatifs)
+  reste.
+- `verify:production` compte factures **et** avoirs dans la suite FAC ;
+  message des 30 jours.
+- Contrôles adaptés : `db:verify` (avoir FAC suivant, retenue refusée,
+  72 heures), `verify:annulation` (compteur FAC), `verify:factures` (retenue
+  sans facture, type refusé par la route).
+- Documentation : D-43 (et renvois dans D-19, D-26, D-41, D-42), checklist
+  (points 3, 12, 13, 16, 19, migrations 0002 à 0024), conformité, architecture,
+  README de la base et du parcours, modèles de facture et de contrat.
+- Guide de l'étape 2 pour le gérant (`.data/guide-base-reelle.md`, hors git).
+
+### Textes
+
+- Retirés : le bouton et la phrase « Facture de la retenue : seulement si le
+  client la demande… », le courriel « Voici la facture de la retenue sur
+  votre dépôt de garantie : … », le PDF de la facture de retenue et sa phrase
+  de TVA.
+- Changés sans texte nouveau : le contrat imprime « 72 heures » à
+  l'article 7.2 (le chiffre vient du réglage) ; l'avoir porte un numéro
+  `FAC-…` sous le titre « Avoir ».
+
+### Ce qui a été vérifié
+
+- lint, `tsc`, build ; migration 0024 appliquée sur la base de test (réglage
+  à 72, type `retenue` refusé). Parcours complet : **26 étapes, toutes OK**
+  (code 0), `reference.ts` inchangé. Par étape : conversion 51, tarification
+  209, blocage 42, paiement 69, courriels 41, « Ma réservation » 22, solde 61,
+  **factures 38**, annulation 47 (avoir `FAC-…`), caution par carte 86,
+  virement 47, abandons 22, avis 59, back-office 107, réservations 86, tarifs
+  93, calendrier 111, statistiques 28, deux parcours et URL signées sans
+  échec, contrôles en base 83, contrôles des PDF 120, `db:verify` 268.
+- Le premier passage du parcours a échoué à `db:verify`, qui attendait encore
+  48 heures : contrôle corrigé, parcours rejoué en entier.
+
+### Ce qui n'a PAS été vérifié
+
+- La migration 0024 sur la base réelle (étape 2, par le gérant).
+- Un contrat imprimé avec « 72 heures » lu à l'écran : les deux réservations
+  de référence gardent 48 heures (recopié à leur création) ; le chiffre vient
+  du réglage, contrôlé à 72 par `db:verify`.
+
 ---
 
 ## Avant le premier client réel

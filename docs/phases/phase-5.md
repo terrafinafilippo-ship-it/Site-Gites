@@ -1,13 +1,14 @@
 # Phase 5 — Back-office Patricia et Nicolas
 
-> **État au 8 novembre 2026 :** phase **ouverte** le 3 novembre ; **lot 1
-> construit** (connexion et réglages, D-32) le 4 novembre ; **lot 2 construit**
-> (réservations, cautions, solde par virement, « À traiter », D-33) le
-> 6 novembre ; **lot 3 construit** (tarifs, D-34) et **lot 4 construit**
-> (calendrier, options, fiches des gîtes, documents, D-35) le 7 novembre ;
-> **lot 6 construit** (statistiques, D-36) le 8 novembre ; **lot 5 construit**
-> (annulation et avoir, D-42) le 15 novembre, la forme de l'avoir arrêtée par
-> le gérant (D-41). Tous les lots sont construits. Le cadrage est en fin de
+> **Phase close le 18 novembre 2026.** Ouverte le 3 novembre ; **lot 1**
+> (connexion et réglages, D-32) le 4 novembre ; **lot 2** (réservations,
+> cautions, solde par virement, « À traiter », D-33) le 6 novembre ; **lot 3**
+> (tarifs, D-34) et **lot 4** (calendrier, options, fiches des gîtes,
+> documents, D-35) le 7 novembre ; **lot 6** (statistiques, D-36) le
+> 8 novembre ; **lot 5** (annulation et avoir, D-42) le 15 novembre, la forme
+> de l'avoir arrêtée par le gérant (D-41). Essais à l'écran par le gérant le
+> 18 novembre. Les critères, leur preuve et les questions laissées ouvertes
+> sont dans « Clôture », juste avant le cadrage. Le cadrage est en fin de
 > fiche ; il prime sur le cadre initial là où ils diffèrent.
 
 **Dépendances :** Phase 2 close. **Parallélisable** avec les phases 3 et 4 : ne
@@ -142,6 +143,47 @@ d'afficher une fiche quand la base ne répond pas. `lib/gites-publics.ts`
 journalise une ligne `INCOHÉRENCE` si les valeurs divergent. Si le back-office
 rend ces champs modifiables, il faudra reporter la modification dans le code —
 ou décider que la fiche dégradée n'affiche plus de nom.
+
+---
+
+## Clôture du 18 novembre 2026
+
+**Les critères d'acceptation :**
+
+| # | Critère | Tenu ? | Preuve |
+|---|---|---|---|
+| 1 | Un tarif changé se voit sur le site | **Oui, tout de suite** | Chaque enregistrement de tarif, de période, de barème, de taxe, de fiche de gîte, de calendrier et d'avis appelle `revalidateTag("gites")` (`app/gestion/actions-tarifs.ts`, `actions-calendrier.ts`, `actions-avis.ts`, et `actions.ts` pour les réglages des avis). Les contrôles appellent les fonctions, pas les actions : la preuve est l'essai à l'écran du gérant (prix de « Basse saison » de L'Armu changé, visible sur la fiche publique au rechargement) |
+| 2 | Rien d'accessible sans connexion | **Oui** | Le middleware renvoie à la connexion sans témoin de session ; chaque page et chaque action appelle `exigerSession()`. `verify:gestion --http` (témoin absent ou inventé refusé) ; essai à l'écran en navigation privée sur `/gestion/reglages` |
+| 3 | Une option nommée apparaît sous son libellé | **Sans objet** | Rien n'est vendu (cadrage, réponse 8) : la ligne « Options » ne s'imprime qu'au-delà de 0 €, le tunnel écrit 0, le back-office n'en propose pas. Point 1 de `docs/06-avant-premier-client.md` levé le 3 novembre ; rien n'a été construit |
+| 4 | Le parcours passe toujours | **Oui** | 26 étapes OK, `reference.ts` inchangé (`docs/journal-phases.md`, clôture de la Phase 5) |
+
+**Le point de vigilance (le seed)** est réglé par la réponse 11 A :
+`db:seed` ne crée que les gîtes absents et ne touche jamais un gîte existant
+(`db/seed.ts`). Une valeur changée au back-office n'est plus écrasée.
+
+**Les deux points hérités de la Phase 2 :**
+- le drapeau `actif` refuse la réservation en ligne (`lib/tunnel.ts`) ; il
+  n'est pas proposé au back-office : un gîte fermé se gère en bloquant ses
+  nuits (réponse 10) ;
+- le nom et la référence Gîtes de France ne se modifient pas au back-office
+  (réponse 12 A) : les deux domiciles ne peuvent pas diverger par ce chemin.
+
+**Reporté après l'ouverture :**
+- les **bons cadeaux** (réponse 9 A) ;
+- **l'accueil plus loin dans le temps** (gérant, 18 novembre, pendant ses
+  essais) : sous « Les 7 prochains jours », d'autres lignes pour le mois
+  prochain, dans 6 mois et dans 1 an, avec le détail si possible, pour avoir
+  une idée de l'avenir même si on les regarde rarement. Rien n'est construit ;
+  à cadrer dans une session dédiée.
+
+**Questions ouvertes, sans rien construire (réponse 4 A) :**
+- **Après une annulation, aucune facture n'est possible pour la somme
+  gardée.** Le site refuse toute facture sur une réservation annulée : une
+  entreprise qui annule tard et perd son acompte ne peut pas en obtenir une.
+  À trancher par le gérant ou le comptable.
+- **« Client absent » se note avant que le séjour passe « terminé »**, soit
+  au plus tard 3 jours après le départ (`LEVEE_JOURS`). Après, la taxe de
+  séjour due au client (article 7.5) se rend à la main.
 
 ---
 

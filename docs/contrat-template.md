@@ -286,7 +286,7 @@ Conformément à la nature juridique d'acompte définie à l'article 5.2, la ré
 
 ### 7.2 — Tolérance commerciale du Bailleur
 
-> Contrat v3 (29 octobre 2026, D-26) : règle du gérant. Les 48 heures restent à confirmer (point 16 de `docs/06-avant-premier-client.md`) ; le qualificatif « révocable » est une question au juriste (point 3).
+> Contrat v3 (29 octobre 2026, D-26) : règle du gérant. Les 48 heures restent à confirmer (point 16 de `docs/06-avant-premier-client.md`) ; le qualificatif « révocable » est une question au juriste (point 3). **Le 19 novembre 2026 (D-43)** : 72 heures ; contrat relu par le juriste, sans remarque.
 
 À titre de **geste commercial unilatéral et révocable**, le Bailleur consent au Locataire les modalités suivantes en cas d'annulation à l'initiative de ce dernier, dûment notifiée par courriel ou courrier recommandé :
 
@@ -678,7 +678,7 @@ Fait à distance, par signature électronique, le {{date_signature}}.
 
 | Variable | Description |
 |---|---|
-| `delai_remboursement_solde` | 48 heures (réglage recopié sur la réservation, D-26) |
+| `delai_remboursement_solde` | 72 heures depuis la migration 0024 (D-43 ; 48 avant) — réglage recopié sur la réservation (D-26) |
 | `limite_remboursement_solde` | Computé : jour et heure d'arrivée − ce délai (« 18 mars 2027 à 18 h 00 ») |
 | `retenue_annulation` | Computé : taux d'acompte × prix hors taxe de séjour, arrondi au centime (`retenueAnnulation`) |
 
