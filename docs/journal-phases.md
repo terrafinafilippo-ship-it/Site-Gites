@@ -2407,6 +2407,48 @@ de paiement au déploiement.
 
 ---
 
+## Phase 4 : clôture, la base réelle migrée (25 novembre 2026)
+
+Le gérant a mené seul, guidé pas à pas, la lecture et la migration de la base
+réelle (point 4, étapes 1 et 2). Avant cela, il a retrouvé l'accès au
+serveur : nouvelle clé SSH sans phrase de passe (`~/.ssh/id_gites`, alias
+`gites` dans `~/.ssh/config`), inscrite depuis le mode secours d'OVH ;
+connexion par clé seulement, inchangée. Mot de passe de Coolify réinitialisé
+depuis le serveur (`php artisan root:reset-password`) : Coolify n'a pas de
+messagerie, donc pas de « mot de passe oublié ».
+
+### Ce qui a été fait
+
+- `verify:production` sur la base réelle : 2 migrations sur 25 (0001), les
+  trois contrôles d'avant 0009, 0010 et 0020 OK, aucun compteur, aucune
+  réservation ni document. **Aucun point bloquant.**
+- Sauvegarde de la base du projet dans Coolify (« Backup Now », réussie).
+- `db:migrate` sur la base réelle : 25 migrations sur 25 (jusqu'à
+  `0024_suite_avoirs_delai_72h`).
+- Second `verify:production` : 25 migrations, conditions « acompte 30 %,
+  solde 30 jours avant, virement de caution 3 jours avant, solde remboursé
+  jusqu'à 72 heures avant », expéditeur et cinq alertes vers contact@, cautions
+  des trois gîtes (L'Armu 400 €, La Maison Vieille 500 €, LaPhine 500 €).
+  Aucun point bloquant ; trois points à voir, tous attendus : compte du
+  virement vide, durée de conservation vide, tarification vide.
+- `db:migrate` sur `gites_test` du serveur : 25 migrations sur 25.
+- Deux scripts hors git pour le gérant : `.data/tunnel.ps1` (lit l'adresse du
+  conteneur, qui change à chaque redémarrage, et ouvre le tunnel) et
+  `.data/base-reelle.ps1` (`verifier`, `migrer`, `migrer-test` : lit
+  `.env.local` et vise le tunnel, sans rien afficher ni recopier).
+
+### Ce qui n'a PAS été fait
+
+- Le compte du back-office, le compte du virement, les 30 jours, les tarifs :
+  le jour de la mise en ligne, sur le site déployé (point 4, étapes 3 et 4 ;
+  points 11 et 12).
+- Les réglages du déploiement (hôte interne, volume, `DB_CIBLE` absente) et la
+  séparation des rôles PostgreSQL (point 4).
+- Le retrait des deux anciennes clés SSH du serveur, et la messagerie de
+  Coolify.
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

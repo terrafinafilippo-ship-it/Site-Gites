@@ -1,12 +1,15 @@
 # Phase 4 — Cycle de paiement complet
 
-**État :** ouverte le 1er novembre 2026. **Lot 1 (le réveil, le solde, les
+**État :** **close le 25 novembre 2026** — la base réelle lue par
+`verify:production` (aucun point bloquant), sauvegardée dans Coolify, puis
+migrée de 0001 à 0024 par le gérant, `gites_test` du serveur aussi.
+Ouverte le 1er novembre 2026. **Lot 1 (le réveil, le solde, les
 factures) livré le 1er novembre 2026** (D-28, D-29). **Lot 2 (la caution par
 carte) livré le 2 novembre 2026** (D-30). **Lot 3 (chèque et virement,
 tentatives abandonnées, vérification de la base réelle) livré le 3 novembre
-2026** (D-31). Bilans : `docs/journal-phases.md`. Reste, avant la clôture :
+2026** (D-31). Bilans : `docs/journal-phases.md`. Restait, avant la clôture :
 lancer `verify:production` sur la base réelle avec le gérant (tunnel ouvert
-par lui), puis il applique les migrations 0002 à 0011.
+par lui), puis il applique les migrations — fait le 25 novembre 2026.
 
 **Dépendances :** Phase 3 close — sans acompte réel, il n'y a pas de carte
 enregistrée sur laquelle agir.

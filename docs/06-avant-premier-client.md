@@ -33,7 +33,7 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | ~~1~~ | ~~Nommer les options sur les documents~~ — **levé le 3 novembre 2026** (aucune option vendue) | — | — |
 | 2 | Rendre l'adresse IP du signataire non falsifiable | Développement | Au déploiement |
 | 3 | Caution (carte, chèque, virement) et paiement : confirmés par Stripe, contrat relu par le juriste sans remarque (19 novembre 2026), développés et testés ; reste la trace écrite de Stripe | **Les propriétaires** (trace écrite) | Avant l'ouverture |
-| 4 | Passer la base en configuration de production | Développement (vérification), puis **le gérant** (migrations, compte du virement) | Avant l'ouverture |
+| 4 | Passer la base en configuration de production — base réelle vérifiée et migrée jusqu'à 0024 (25 novembre 2026) ; restent le compte du back-office, le compte du virement, les réglages du déploiement et la séparation des rôles | **Le gérant** (compte du back-office, compte du virement), puis phase de déploiement | Avant l'ouverture |
 | 5 | Vérifier le logo sur un PDF généré **après** déploiement | Développement | Au déploiement |
 | ~~6~~ | ~~Qui est le bailleur juridique des trois gîtes~~ — **levé le 14 novembre 2026** (D-41 : la SARL DE LA VOUTE, factures sans TVA) | — | — |
 | 7 | Médiateur de la consommation : lequel, et adhésion en cours | **Les propriétaires** | Phase 6 |
@@ -243,6 +243,8 @@ inclure :
    conservation, tarification). Chaque ligne est OK, INFO, A VOIR ou
    BLOQUANT ; un point BLOQUANT interdit de migrer. Au 2 novembre 2026, la base
    réelle et `gites_test` du serveur sont à la migration **0001**.
+   **Fait le 25 novembre 2026** : aucun point bloquant, base vide (aucune
+   réservation, aucun document, aucun compteur).
 2. **Appliquer les migrations 0002 à 0024** (0012 à 0017 : le back-office,
    Phase 5, lots 1 à 4 et 6 ; 0018 : les bébés et la taxe de séjour ; 0019 :
    le sauna ; 0020 et 0021 : les avis ; 0022 : la facture de retenue ; 0023 :
@@ -250,7 +252,10 @@ inclure :
    facture de retenue retirée, le solde remboursé jusqu'à 72 heures, D-43) :
    **le gérant** les applique lui-même
    (`npm run db:migrate`), après une sauvegarde, sur la base réelle puis sur
-   `gites_test` du serveur (réponse 11B).
+   `gites_test` du serveur (réponse 11B). **Fait le 25 novembre 2026**, après
+   une sauvegarde Coolify : les deux bases sont à **0024** ; le second
+   `verify:production` ne laisse que trois points à voir, les saisies du
+   gérant (compte du virement, 30 jours, tarification).
 3. **Créer le compte du back-office** : le gérant lance
    `npm run gestion:compte -- contact@gitesdesamoyas.fr` sur la base réelle
    (avec `NEXT_PUBLIC_SITE_URL` à l'adresse publique), puis ouvre le lien reçu à
