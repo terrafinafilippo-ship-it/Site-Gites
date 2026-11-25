@@ -56,18 +56,20 @@ export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
   },
   cgv: {
     title: "Conditions générales de vente",
-    meta: "Applicables aux séjours réservés à partir du 1ᵉʳ janvier 2026 — version 5 du 14 novembre 2026",
+    meta: "Applicables aux séjours réservés à partir du 1ᵉʳ janvier 2026 — version 6 du 26 novembre 2026",
     body: `
       <section><div class="legal__num">01 — Objet</div><h2>Champ d'application</h2>
         <p>Les présentes conditions s'appliquent à toute réservation effectuée en direct sur ce site, par téléphone ou par email auprès de la ${EXPLOITANT}.</p>
       </section>
       <section><div class="legal__num">02 — Réservation &amp; paiement</div><h2>Réservation et règlement</h2>
         <p>La réservation est ferme dès le paiement en ligne de l'acompte, dont le taux est indiqué lors de la réservation et au contrat. Le contrat de location est ensuite adressé par courriel, pour signature électronique.</p>
-        <p>Le solde est dû au plus tard à la date indiquée au contrat. Lors de la réservation, le client choisit de le régler par prélèvement automatique sur la carte bancaire enregistrée, à cette date, ou par paiement en ligne, au plus tard à cette date. Une réservation faite après cette date est payée en totalité dès la réservation.</p>
-        <p>Un dépôt de garantie, dont le montant figure sur la fiche de chaque gîte et au contrat, est constitué au choix du client : par préautorisation sur sa carte bancaire, la veille du départ, sans débit sauf dégât constaté ; par chèque remis à l'arrivée, qui n'est pas encaissé sauf dégât constaté ; ou par virement reçu avant l'arrivée, à la date indiquée au contrat. Il est restitué au plus tard 3 jours après le départ (article 6 du contrat).</p>
+        <p>Le solde est dû au plus tard à la date indiquée au contrat. Lors de la réservation, le client choisit de le régler par prélèvement automatique sur la carte bancaire enregistrée, à cette date, ou par paiement en ligne, au plus tard à cette date ; il peut aussi régler la totalité du séjour dès la réservation. Une réservation faite après cette date est payée en totalité dès la réservation.</p>
+        <p>À défaut de versement du solde à la date limite, et après une mise en demeure par courriel restée sans effet pendant 48 heures, le bailleur peut considérer le contrat comme résilié ; l'acompte lui reste alors acquis (article 5.3 du contrat).</p>
+        <p>Lors du paiement à la réservation, le client autorise le bailleur à conserver, via son prestataire de paiement Stripe, les données de la carte bancaire utilisée, pour le dépôt de garantie et, s'il a choisi le prélèvement automatique, pour le règlement du solde. Ces données sont supprimées dès la mainlevée ou l'encaissement du dépôt de garantie, et au plus tard 7 jours après le départ (voir la <a href="/legal/privacy">politique de confidentialité</a>).</p>
+        <p>Un dépôt de garantie, dont le montant figure sur la fiche de chaque gîte et au contrat, est constitué au choix du client : par préautorisation sur sa carte bancaire, la veille du départ, sans débit sauf dégât constaté ; par chèque remis à l'arrivée, qui n'est pas encaissé sauf dégât constaté ; ou par virement reçu avant l'arrivée, à la date indiquée au contrat. Si le chèque ou le virement manque à l'arrivée, le dépôt de garantie est constitué par carte bancaire, au moyen d'un lien adressé au client. Il est restitué au plus tard 3 jours après le départ (article 6 du contrat).</p>
       </section>
       <section><div class="legal__num">03 — Annulation</div><h2>Conditions d'annulation</h2>
-        <p>Toute annulation doit être notifiée par écrit (courriel ou courrier). Elle suit l'article 7 du contrat, qui indique les dates et montants exacts :</p>
+        <p>Toute annulation doit être notifiée par écrit (courriel ou courrier recommandé). Elle suit l'article 7 du contrat, qui indique les dates et montants exacts :</p>
         <table>
           <thead><tr><th>Annulation</th><th>Remboursement</th></tr></thead>
           <tbody>
@@ -77,12 +79,17 @@ export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
           </tbody>
         </table>
         <p>La taxe de séjour n'est due qu'en cas de séjour : elle est remboursée dans tous les cas d'annulation. Pour un séjour payé en totalité à la réservation, la part correspondant à l'acompte est indiquée au contrat.</p>
+        <p>En cas de force majeure dûment justifiée (article 1218 du Code civil) empêchant définitivement le séjour, les sommes versées sont remboursées intégralement. En cas d'annulation par le bailleur, pour quelque motif que ce soit, le client est remboursé intégralement dans un délai de 14 jours, sans autre indemnité.</p>
+        <p>Un client qui ne se présente pas, sans avoir prévenu de son retard dans les 24 heures suivant l'heure d'arrivée prévue, perd les sommes versées, sauf la taxe de séjour, qui lui est remboursée. Un départ anticipé n'ouvre droit à aucun remboursement.</p>
         <p>Nous recommandons fortement une assurance annulation, à souscrire séparément.</p>
       </section>
-      <section><div class="legal__num">04 — Séjour</div><h2>Modalités sur place</h2>
+      <section><div class="legal__num">04 — Rétractation</div><h2>Pas de droit de rétractation</h2>
+        <p>Conformément à l'article L.221-28, 12° du Code de la consommation, le client ne dispose d'aucun droit de rétractation : la location d'un hébergement à une date déterminée en est exclue.</p>
+      </section>
+      <section><div class="legal__num">05 — Séjour</div><h2>Modalités sur place</h2>
         <p>Les heures d'arrivée et de départ sont indiquées lors de la réservation et au contrat. Linge de maison et de toilette fourni. Chauffage compris. Animaux non admis. Capacité d'accueil stricte respectée (cf. fiche de chaque gîte). La taxe de séjour s'ajoute au prix du séjour et se paie avec lui, à la réservation ; son mode de calcul figure sur la fiche de chaque gîte.</p>
       </section>
-      <section><div class="legal__num">05 — Litiges</div><h2>Litiges</h2>
+      <section><div class="legal__num">06 — Litiges</div><h2>Litiges</h2>
         <p>Tout litige relève des tribunaux français.</p>
       </section>
     `,
