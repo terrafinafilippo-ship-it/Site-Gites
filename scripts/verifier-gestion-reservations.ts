@@ -30,7 +30,7 @@ import { closeDb, getDb } from "../db";
 import { remplacerEmetteurContrat, remplacerEmetteurFacture, traiterCourriels } from "../lib/courriels-envoi";
 import { ajouterJours, aujourdhuiParis } from "../lib/dates-civiles";
 import { fmtEuro } from "../lib/format";
-import { arriveesDeparts, listerATraiter, marquerFait } from "../lib/gestion/a-traiter";
+import { arriveesDeparts, listerATraiter, marquerFait, sejoursAVenir } from "../lib/gestion/a-traiter";
 import {
   envoyerLienCaution,
   libererCaution,
@@ -414,6 +414,24 @@ async function controles(): Promise<void> {
   await db.execute(sql`update reservations set date_arrivee = ${ajouterJours(AUJ, 2)}::date, date_depart = ${ajouterJours(AUJ, 9)}::date where id = ${w.id}::uuid`);
   const mv2 = await arriveesDeparts();
   noter(mv2.arrivees.some((x) => x.reservationId === w.id) && !mv2.departs.some((x) => x.reservationId === w.id), "arrivée dans 2 jours : dans les arrivées, son départ dans 9 jours non");
+
+  // Plus loin : les séjours d'ici un an, par période.
+  const periodeDe = async (): Promise<string[]> =>
+    (await sejoursAVenir()).filter((p) => p.sejours.some((x) => x.reservationId === w.id)).map((p) => p.titre);
+  noter((await periodeDe()).length === 0, "arrivée dans 2 jours : dans aucune période plus loin");
+  const periodes = await sejoursAVenir();
+  noter(
+    periodes.length === 3 && periodes[0].du === ajouterJours(AUJ, 7) && periodes[2].au === ajouterJours(AUJ, 365),
+    "plus loin : trois périodes, du 7e jour au 365e",
+  );
+  for (const [jour, attendu] of [[10, "D'ici 1 mois"], [40, "De 1 à 6 mois"], [200, "De 6 mois à 1 an"]] as const) {
+    await db.execute(sql`update reservations set date_arrivee = ${ajouterJours(AUJ, jour)}::date, date_depart = ${ajouterJours(AUJ, jour + 7)}::date where id = ${w.id}::uuid`);
+    const t = await periodeDe();
+    noter(t.length === 1 && t[0] === attendu, `arrivée dans ${jour} jours : « ${attendu} »`, t.join(", "));
+  }
+  await db.execute(sql`update reservations set date_arrivee = ${ajouterJours(AUJ, 400)}::date, date_depart = ${ajouterJours(AUJ, 407)}::date where id = ${w.id}::uuid`);
+  noter((await periodeDe()).length === 0, "arrivée dans 400 jours : au-delà d'un an, dans aucune période");
+  await db.execute(sql`update reservations set date_arrivee = ${ajouterJours(AUJ, 2)}::date, date_depart = ${ajouterJours(AUJ, 9)}::date where id = ${w.id}::uuid`);
 }
 
 async function partieHttp(): Promise<void> {

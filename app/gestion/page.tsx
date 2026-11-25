@@ -1,12 +1,12 @@
 // Accueil du back-office (Phase 5, lot 2, réponses 9 et a du cadrage du
 // 6 novembre 2026) : tout ce qui demande un geste MAINTENANT, quelle que soit
 // la date du séjour (lib/gestion/a-traiter.ts), puis les arrivées et les
-// départs des 7 prochains jours. Les chiffres ont leur page (lot 6,
-// /gestion/statistiques).
+// départs des 7 prochains jours, puis les séjours d'ici un an (gérant,
+// 18 novembre 2026). Les chiffres ont leur page (lot 6, /gestion/statistiques).
 import Link from "next/link";
 
 import { fmtDateCourte, fmtDateLongue, fmtHeure } from "@/lib/format";
-import { arriveesDeparts, listerATraiter, type Mouvement } from "@/lib/gestion/a-traiter";
+import { arriveesDeparts, listerATraiter, sejoursAVenir, type Mouvement } from "@/lib/gestion/a-traiter";
 
 import { actionCestFait, actionRenvoyerContrat } from "./actions-reservations";
 import Entete from "./Entete";
@@ -39,7 +39,7 @@ function Mouvements({ titre, liste, vide }: { titre: string; liste: Mouvement[];
 
 export default async function AccueilGestion() {
   await exigerSession();
-  const [taches, mouvements] = await Promise.all([listerATraiter(), arriveesDeparts()]);
+  const [taches, mouvements, periodes] = await Promise.all([listerATraiter(), arriveesDeparts(), sejoursAVenir()]);
 
   return (
     <>
@@ -96,6 +96,29 @@ export default async function AccueilGestion() {
             <Mouvements titre="Arrivées" liste={mouvements.arrivees} vide="Aucune arrivée." />
             <Mouvements titre="Départs" liste={mouvements.departs} vide="Aucun départ." />
           </div>
+        </section>
+
+        <section className={styles.carte}>
+          <h2>Plus loin</h2>
+          {periodes.map((p) => (
+            <div key={p.titre}>
+              <h3>
+                {p.titre} <span className={styles.aide}>(du {fmtDateCourte(p.du)} au {fmtDateCourte(p.au)})</span>
+              </h3>
+              {p.sejours.length === 0 ? (
+                <p className={styles.aide}>Aucun séjour.</p>
+              ) : (
+                <ul>
+                  {p.sejours.map((s) => (
+                    <li key={s.reservationId}>
+                      Du {fmtDateCourte(s.arrivee)} au {fmtDateCourte(s.depart)} —{" "}
+                      <Link href={`/gestion/reservations/${s.reservationId}`}>{s.client}</Link>, {s.gite} ({s.voyageurs} pers.)
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
         </section>
       </main>
     </>

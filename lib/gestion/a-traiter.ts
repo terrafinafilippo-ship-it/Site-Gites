@@ -393,3 +393,59 @@ export async function arriveesDeparts(maintenant: Date = new Date(), ex: Execute
   const tri = (a: Mouvement, b: Mouvement) => a.date.localeCompare(b.date) || a.heure.localeCompare(b.heure);
   return { arrivees: arrivees.sort(tri), departs: departs.sort(tri) };
 }
+
+export interface SejourAVenir {
+  reservationId: string;
+  client: string;
+  gite: string;
+  arrivee: string;
+  depart: string;
+  voyageurs: number;
+}
+
+export interface PeriodeAVenir {
+  titre: string;
+  du: string;
+  au: string;
+  sejours: SejourAVenir[];
+}
+
+/** Au-delà des 7 prochains jours, sur un an : du jour 7 au jour 30, puis jusqu'au jour 182, puis jusqu'au jour 365. */
+const PERIODES_A_VENIR: { titre: string; du: number; au: number }[] = [
+  { titre: "D'ici 1 mois", du: 7, au: 30 },
+  { titre: "De 1 à 6 mois", du: 31, au: 182 },
+  { titre: "De 6 mois à 1 an", du: 183, au: 365 },
+];
+
+/**
+ * Les séjours qui commencent plus loin que les 7 prochains jours, rangés par
+ * période (gérant, 18 novembre 2026 : « avoir une idée de l'avenir »).
+ */
+export async function sejoursAVenir(maintenant: Date = new Date(), ex: Executeur = getDb()): Promise<PeriodeAVenir[]> {
+  const auj = aujourdhuiParis(maintenant);
+  const periodes = PERIODES_A_VENIR.map((p) => ({ titre: p.titre, du: ajouterJours(auj, p.du), au: ajouterJours(auj, p.au), sejours: [] as SejourAVenir[] }));
+  const lignes = await ex
+    .select({ r: reservations, gite: gites.nom })
+    .from(reservations)
+    .innerJoin(gites, eq(gites.id, reservations.gite_id))
+    .where(
+      and(
+        inArray(reservations.statut, ["confirmee", "terminee"]),
+        sql`${reservations.date_arrivee} between ${periodes[0].du}::date and ${periodes[periodes.length - 1].au}::date`,
+      ),
+    )
+    .orderBy(reservations.date_arrivee);
+  for (const { r, gite } of lignes) {
+    periodes
+      .find((p) => r.date_arrivee >= p.du && r.date_arrivee <= p.au)
+      ?.sejours.push({
+        reservationId: r.id,
+        client: nomClient(r),
+        gite,
+        arrivee: r.date_arrivee,
+        depart: r.date_depart,
+        voyageurs: r.nb_adultes + r.nb_enfants + r.nb_bebes,
+      });
+  }
+  return periodes;
+}
