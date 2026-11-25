@@ -173,8 +173,9 @@ ou décider que la fiche dégradée n'affiche plus de nom.
 - **l'accueil plus loin dans le temps** (gérant, 18 novembre, pendant ses
   essais) : sous « Les 7 prochains jours », d'autres lignes pour le mois
   prochain, dans 6 mois et dans 1 an, avec le détail si possible, pour avoir
-  une idée de l'avenir même si on les regarde rarement. Rien n'est construit ;
-  à cadrer dans une session dédiée.
+  une idée de l'avenir même si on les regarde rarement. **Construit le
+  25 novembre 2026** (« Plus loin » : d'ici 1 mois, de 1 à 6 mois, de 6 mois
+  à 1 an ; chaque séjour avec ses dates, le client, le gîte, les voyageurs).
 
 **Questions ouvertes, sans rien construire (réponse 4 A) :**
 - **Après une annulation, aucune facture n'est possible pour la somme

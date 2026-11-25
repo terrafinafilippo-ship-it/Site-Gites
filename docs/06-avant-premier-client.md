@@ -41,7 +41,7 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 | 9 | Sauvegarder le volume des PDF, et tester une restauration | **Phase de déploiement** | Au déploiement effectif — échéance tranchée le 24 septembre 2026 |
 | 10 | Taxe de séjour : régime, taux, assiette (sans le ménage) et occupants (sans les bébés) **arrêtés** ; restent les tarifs 2027 | **Le service taxe de séjour** (Ardèche Grand Air) | Phase 3 |
 | 11 | Saisir les vrais tarifs, périodes, barème et réglages de taxe | **Les propriétaires**, au back-office | Avant l'ouverture (Phase 5) |
-| 12 | Durée de conservation des tentatives de réservation abandonnées — **30 jours** (juriste, 19 novembre 2026) ; restent la saisie et la politique de confidentialité | **Le gérant** (réglage), puis développement (Phase 6) | Avant l'ouverture |
+| 12 | Durée de conservation des tentatives de réservation abandonnées — **30 jours** (juriste, 19 novembre 2026), annoncée par la politique de confidentialité (25 novembre 2026) ; reste la saisie | **Le gérant** (réglage) | Avant l'ouverture |
 | 13 | Site en anglais : relire la traduction — le juriste accepte les pages juridiques en français seulement (19 novembre 2026) | **Les propriétaires** (relecture) | Avant l'ouverture (Phase 6) |
 | 14 | Passer Stripe en mode réel et brancher l'avis de paiement | **Les propriétaires** (compte Stripe activé), puis développement | Au déploiement |
 | 15 | Brancher les courriels réels sur le serveur déployé, DMARC en « quarantaine » | **Phase de déploiement**, puis les propriétaires (réception) | Au déploiement |
@@ -569,8 +569,9 @@ CALÉE », ni « BARÈME » ; un séjour de test se chiffre dans le tunnel.
 
 > **Durée fixée le 19 novembre 2026 par le juriste : 30 jours** (D-43). Restent :
 > la saisir dans Réglages › « Tentatives de réservation abandonnées » sur la
-> base réelle (le gérant), et l'écrire dans la politique de confidentialité
-> (Phase 6). Les deux cas laissés hors de l'effacement (tentative payée en
+> base réelle (le gérant). La politique de confidentialité l'annonce depuis le
+> 25 novembre 2026 : elle lit le réglage, et dit « conservée jusqu'à ce que
+> vous en demandiez l'effacement » tant qu'il est vide. Les deux cas laissés hors de l'effacement (tentative payée en
 > retard puis remboursée, journal des courriels) n'ont pas reçu de réponse à
 > part : ils restent tels quels.
 

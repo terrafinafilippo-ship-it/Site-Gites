@@ -23,6 +23,9 @@ référencement en place.
 
 ### Contenus
 1. **Page Activités** — l'existant (`app/activites/`) est à compléter.
+   **Reportée après la mise en ligne** (gérant, 25 novembre 2026) : une
+   séance d'optimisation à part ; la page actuelle (douze activités) ne
+   bloque pas l'ouverture.
 2. **Système d'avis** — **fait le 12 novembre 2026** (D-40) : invitation le
    lendemain du départ, avis publié tout de suite, retrait pour un motif
    affiché, politique des avis. Les chiffres Gîtes de France (ceux de
@@ -54,6 +57,11 @@ référencement en place.
 8. **Mentions légales LCEN, CGV, RGPD et cookies** : les textes existent
    (`lib/data/legal.ts`) mais datent de l'ancien site et contredisent les
    documents contractuels. À reprendre après la réponse du point 5.
+   **Politique de confidentialité alignée le 25 novembre 2026** : elle reprend
+   l'article 14 du contrat (responsable, données, finalités, destinataires,
+   durées, droits) et annonce la durée des tentatives abandonnées, lue dans
+   les réglages (`abandon_conservation_jours`, point 12) ; la page est rendue
+   à la demande.
 9. **Médiation de la consommation** affichée conformément à l'art. L.612-1
    C. conso.
 
@@ -77,10 +85,10 @@ lever.
 | ~~Mentions légales, confidentialité, page Contact~~ | ~~contact@gites-samoyas.fr~~ | **Corrigé le 11 novembre 2026** : contact@gitesdesamoyas.fr (réponse du gérant), l'adresse que le contrat imprime depuis les réglages. Les pages l'écrivent en clair : si les réglages changent d'adresse, elles sont à corriger aussi | — |
 | ~~Fiches et cartes des gîtes (`lib/data/gites.ts`)~~ | ~~Note, nombre d'avis, % de recommandation par gîte (5,0 · 16 avis…)~~ | **Vrais** : avis Gîtes de France (gérant, 12 novembre 2026). **Sortis du code le 12 novembre 2026** (D-40) : saisis sur la fiche de chaque gîte du back-office, affichés avec leur source à côté des avis des clients du site | — |
 | ~~Mentions légales~~ | ~~« Les avis affichés sont collectés et vérifiés par Gîtes de France »~~ | **Vrai** : les chiffres viennent de Gîtes de France (gérant, 12 novembre 2026) | — |
-| Accueil | « Labellisés depuis 2018 » | Écrit en dur, aucune source dans le dépôt | Les propriétaires |
+| ~~Accueil~~ | ~~« Labellisés depuis 2018 »~~ | **Vrai** : labellisés Gîtes de France depuis 2018 (gérant, 25 novembre 2026) | — |
 | ~~Politique cookies, bannière~~ | ~~Mesure d'audience par Matomo~~ | **Corrigé le 12 novembre 2026** (D-39) : bannière retirée, politique cookies réécrite (aucun traceur ; cookies de Stripe au paiement) | — |
 | CGV, contrat, factures | Médiateur MTV **retiré des CGV le 14 novembre 2026**, MEDICYS **du contrat (v6) et des factures le 15 novembre** : aucun médiateur cité jusqu'à l'adhésion | E-2 | Les propriétaires (point 7) |
-| Confidentialité | Conservation 5 ans, rien sur la carte ni sur Brevo | Voir le périmètre exclu ci-dessous | Juriste, Phase 6 |
+| ~~Confidentialité~~ | ~~Conservation 5 ans, rien sur la carte ni sur Brevo~~ | **Corrigé le 25 novembre 2026** : la page reprend l'article 14 du contrat, relu par le juriste (D-43) | — |
 | ~~Mentions légales~~ | ~~« Conception … avec l'aide d'une agence partenaire »~~ | **Retiré le 12 novembre 2026** (« c'est faux », gérant) | — |
 
 ---
@@ -95,8 +103,8 @@ corrigée dans les CGV et la politique cookies le 9 octobre 2026. Il reste, au
 point 8 ci-dessus, à **aligner l'ensemble des CGV et des mentions RGPD sur
 l'article 6 et l'article 14 du contrat** : délai de mainlevée, conservation des
 données de carte par Stripe, solde au choix du client, envoi des courriels par
-Brevo. La politique de confidentialité annonce aujourd'hui une conservation de
-5 ans et ne dit rien de la carte.
+Brevo. La politique de confidentialité est alignée sur l'article 14 depuis le
+25 novembre 2026 ; restent les CGV.
 
 ---
 

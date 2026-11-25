@@ -2449,6 +2449,63 @@ messagerie, donc pas de « mot de passe oublié ».
 
 ---
 
+## Phase 6 : politique de confidentialité, accueil « Plus loin » (25 novembre 2026)
+
+Réponses du gérant : « Labellisés depuis 2018 » est vrai (Gîtes de France) ;
+la page Activités aura sa séance d'optimisation après la mise en ligne. Puis
+deux chantiers demandés sans nouveau cadrage.
+
+### Ce qui a été fait
+
+- **Politique de confidentialité** (`lib/data/legal.ts`) : réécrite sur
+  l'article 14 du contrat, relu par le juriste (responsable, données,
+  finalités et bases légales, destinataires, durées, droits). La ligne des
+  tentatives abandonnées cite le réglage `abandon_conservation_jours`, lu à
+  chaque affichage (`dureeConservationAbandons`, `lib/abandons.ts`, que
+  l'effacement utilise aussi) ; vide, elle dit « conservée jusqu'à ce que
+  vous en demandiez l'effacement ». Les pages `legal/` sont désormais rendues
+  à la demande, comme les fiches des gîtes.
+- **Accueil du back-office, « Plus loin »** (`sejoursAVenir`,
+  `lib/gestion/a-traiter.ts`) : sous « Les 7 prochains jours », les séjours
+  confirmés d'ici 1 mois (jours 7 à 30), de 1 à 6 mois (31 à 182), de 6 mois
+  à 1 an (183 à 365), chacun avec ses dates, le client, le gîte et les
+  voyageurs.
+- Contrôles : `verify:abandons` lit la politique (réglage vide, puis
+  7 jours) ; `verify:gestion-reservations` place une arrivée à 2, 10, 40,
+  200 et 400 jours.
+
+### Textes
+
+- Nouveaux, à la page de confidentialité : chaque phrase reprend l'article 14
+  du contrat ; seules phrases sans équivalent au contrat : « Réservation
+  commencée sur le site mais jamais payée : effacée automatiquement au bout
+  de N jours, chez nous comme chez Stripe. », et, réglage vide, « … conservée
+  jusqu'à ce que vous en demandiez l'effacement. »
+- Retiré : « Les données liées à votre réservation sont conservées 5 ans
+  après la fin du séjour, conformément aux obligations comptables et
+  fiscales. »
+- Back-office : « Plus loin », « D'ici 1 mois », « De 1 à 6 mois », « De 6 mois
+  à 1 an », « Aucun séjour. »
+
+### Ce qui a été vérifié
+
+- lint, `tsc`, build ; la page de confidentialité servie avec le réglage vide
+  puis à 30 jours ; l'accueil servi avec deux séjours à 12 et 75 jours.
+  Parcours complet sur une base locale jetable : **26 étapes, toutes OK**
+  (code 0), `reference.ts` inchangé. Par étape : conversion 51, tarification
+  209, blocage 42, paiement 69, courriels 41, « Ma réservation » 22, solde 61,
+  factures 38, annulation 47, caution par carte 86, virement 47, **abandons
+  24**, avis 59, back-office 107, **réservations 92**, tarifs 93, calendrier
+  111, statistiques 28, deux parcours et URL signées sans échec, contrôles en
+  base 83, contrôles des PDF 120, `db:verify` 268.
+
+### Ce qui n'a PAS été vérifié
+
+- La page sur la base réelle : la durée y est vide jusqu'à la saisie des
+  30 jours par le gérant (point 12).
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

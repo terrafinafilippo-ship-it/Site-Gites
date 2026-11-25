@@ -279,9 +279,13 @@ réservé ou non : il ne révèle pas qui a séjourné aux gîtes. Les demandes 
 lien sont des lignes du journal `courriels` (adresse et texte envoyé) : même
 durée de conservation à fixer (point 12).
 
-**Pages publiques en retard sur le contrat.** La politique de confidentialité
-(`lib/data/legal.ts`) annonce une conservation de 5 ans et ne dit rien de la
-carte ni de Brevo : à aligner en Phase 6.
+**Pages publiques alignées sur le contrat (25 novembre 2026).** La politique
+de confidentialité (`lib/data/legal.ts`) reprend l'article 14 : responsable,
+données (dont la signature et la carte chez Stripe), finalités et bases
+légales, destinataires (OVH, Stripe, Brevo, expert-comptable), durées, droits.
+Elle y ajoute la durée des tentatives abandonnées, **lue dans les réglages** à
+chaque affichage : la page dit ce que `lib/abandons.ts` applique. Contrôle :
+`verify:abandons` (réglage vide, puis 7 jours).
 
 **Point de vigilance.** L'immutabilité de la table `signatures` entre en tension
 avec le **droit à l'effacement**. Un effacement légitime exige de désactiver
