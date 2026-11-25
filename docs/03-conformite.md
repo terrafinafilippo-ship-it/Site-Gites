@@ -287,6 +287,13 @@ Elle y ajoute la durée des tentatives abandonnées, **lue dans les réglages** 
 chaque affichage : la page dit ce que `lib/abandons.ts` applique. Contrôle :
 `verify:abandons` (réglage vide, puis 7 jours).
 
+**L'absence de droit de rétractation dite avant le paiement (26 novembre
+2026).** L'article L.221-28, 12° exclut la rétractation ; encore faut-il en
+informer le client **avant** la conclusion (L.221-5). Jusque-là, seul le
+contrat le disait (article 8), et il arrive après le paiement. Les CGV, que
+le client accepte en cochant la case de l'écran de paiement, le disent
+désormais (§ 04), avec le reste des articles 5 à 7.
+
 **Point de vigilance.** L'immutabilité de la table `signatures` entre en tension
 avec le **droit à l'effacement**. Un effacement légitime exige de désactiver
 explicitement le trigger le temps de l'opération, après décision humaine tracée.

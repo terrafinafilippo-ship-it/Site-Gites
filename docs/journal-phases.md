@@ -2506,6 +2506,34 @@ deux chantiers demandés sans nouveau cadrage.
 
 ---
 
+## Phase 6 : CGV alignées sur le contrat (26 novembre 2026)
+
+### Ce qui a été fait
+
+- CGV version 6 (`lib/data/legal.ts`), comparées phrase à phrase aux
+  articles 5 à 8 du contrat. Ajouts : paiement intégral au choix ; solde
+  impayé (5.3) ; carte gardée par Stripe et sa suppression (6.2 a, 6.5) ;
+  caution manquante à l'arrivée (6.6) ; « courrier recommandé » (7.2) ; force
+  majeure et annulation par le bailleur (7.3, 7.4) ; absence et départ
+  anticipé (7.5, 7.6) ; nouvelle section « 04 — Rétractation » (article 8).
+  Les sections Séjour et Litiges deviennent 05 et 06.
+- Faille signalée et corrigée : l'absence de droit de rétractation n'était
+  dite qu'au contrat, signé après le paiement ; les CGV, acceptées avant de
+  payer, la disent maintenant (L.221-5).
+
+### Textes
+
+Toutes les phrases ajoutées reprennent le contrat ; aucun chiffre ne double
+un réglage (48 heures, 7, 14 et 3 jours, 24 heures sont des constantes du
+contrat). Texte montré au gérant avant le commit.
+
+### Ce qui a été vérifié
+
+- lint, `tsc`, build ; la page servie par le build (sections 01 à 06). Aucun
+  contrôle automatique ne lit les CGV : le parcours n'est pas concerné.
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

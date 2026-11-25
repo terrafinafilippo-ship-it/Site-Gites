@@ -61,7 +61,11 @@ référencement en place.
    l'article 14 du contrat (responsable, données, finalités, destinataires,
    durées, droits) et annonce la durée des tentatives abandonnées, lue dans
    les réglages (`abandon_conservation_jours`, point 12) ; la page est rendue
-   à la demande.
+   à la demande. **CGV alignées le 26 novembre 2026** (version 6) : paiement
+   intégral au choix, solde impayé (5.3), carte gardée par Stripe et sa
+   suppression (6.2, 6.5), caution manquante à l'arrivée (6.6), courrier
+   recommandé, force majeure, annulation par le bailleur, absence, départ
+   anticipé (7.3 à 7.6), et l'absence de droit de rétractation (article 8).
 9. **Médiation de la consommation** affichée conformément à l'art. L.612-1
    C. conso.
 
@@ -104,7 +108,7 @@ point 8 ci-dessus, à **aligner l'ensemble des CGV et des mentions RGPD sur
 l'article 6 et l'article 14 du contrat** : délai de mainlevée, conservation des
 données de carte par Stripe, solde au choix du client, envoi des courriels par
 Brevo. La politique de confidentialité est alignée sur l'article 14 depuis le
-25 novembre 2026 ; restent les CGV.
+25 novembre 2026, les CGV sur les articles 5 à 8 depuis le 26 novembre.
 
 ---
 
