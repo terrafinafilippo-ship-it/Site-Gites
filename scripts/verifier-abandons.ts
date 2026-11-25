@@ -24,7 +24,8 @@ import "../db/env";
 import { sql } from "drizzle-orm";
 
 import { closeDb, getDb } from "../db";
-import { effacerAbandons } from "../lib/abandons";
+import { dureeConservationAbandons, effacerAbandons } from "../lib/abandons";
+import { LEGAL_DOCS } from "../lib/data/legal";
 import { remplacerEmetteurContrat, remplacerEmetteurFacture } from "../lib/courriels-envoi";
 import { remplacerMessagerie } from "../lib/messagerie";
 import { remplacerPrestataire } from "../lib/stripe";
@@ -71,6 +72,12 @@ async function regler(jours: number | null): Promise<void> {
   await db.execute(sql`update reglages set abandon_conservation_jours = ${jours} where id = 1`);
 }
 
+/** Le texte de la politique de confidentialité, avec la durée lue en base, comme la page. */
+async function confidentialite(): Promise<string> {
+  const corps = LEGAL_DOCS.privacy.body;
+  return typeof corps === "string" ? corps : corps(await dureeConservationAbandons());
+}
+
 const idsEssai: string[] = [];
 
 async function nettoyer(): Promise<void> {
@@ -106,9 +113,11 @@ async function controles(): Promise<void> {
   const b0 = await effacerAbandons(new Date(), p);
   noter(b0.desactive && b0.effacees === 0, "réglage vide : rien n'est effacé", b0);
   noter(await existe(vieille.t.id), "… même une tentative de 400 jours");
+  noter((await confidentialite()).includes("jamais payée : conservée jusqu'à ce que vous en demandiez l'effacement"), "confidentialité : réglage vide, aucune durée annoncée");
 
   console.log("--- 2. durée de 7 jours");
   await regler(7);
+  noter((await confidentialite()).includes("jamais payée : effacée automatiquement au bout de 7 jours"), "confidentialité : la page annonce les 7 jours du réglage");
   const huit = await tenter(p, CLIENT, "laphine", samediDans(20), "carte");
   const six = await tenter(p, CLIENT, "maison-vieille", samediDans(20), "cheque");
   idsEssai.push(huit.t.id, six.t.id);

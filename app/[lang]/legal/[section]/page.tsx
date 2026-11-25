@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { dureeConservationAbandons } from "@/lib/abandons";
 import { LEGAL_DOCS, LEGAL_SECTIONS, isLegalSection, type LegalSection } from "@/lib/data/legal";
-import { LANGUES, langueDe, lien, type Bilingue } from "@/lib/i18n/langues";
+import { langueDe, lien, type Bilingue } from "@/lib/i18n/langues";
 import { metadonnees } from "@/lib/i18n/metadonnees";
 import styles from "./page.module.css";
 
@@ -16,11 +17,11 @@ interface Params {
   section: string;
 }
 
-export function generateStaticParams(): Params[] {
-  return LANGUES.flatMap((lang) => LEGAL_SECTIONS.map((section) => ({ lang, section })));
-}
-
-export const dynamicParams = false;
+// RENDU À LA DEMANDE, comme les fiches des gîtes : la politique de
+// confidentialité affiche la durée des tentatives abandonnées, un réglage en
+// base. Figée au build, elle exigerait la base au build et garderait la durée
+// du jour du déploiement.
+export const dynamic = "force-dynamic";
 
 const TEXTES: Bilingue<{
   accueil: string;
@@ -67,6 +68,7 @@ export default async function LegalPage({ params }: { params: Promise<Params> })
   const langue = langueDe(lang);
   const t = TEXTES[langue];
   const doc = LEGAL_DOCS[section];
+  const corps = typeof doc.body === "string" ? doc.body : doc.body(await dureeConservationAbandons());
 
   return (
     <>
@@ -104,8 +106,8 @@ export default async function LegalPage({ params }: { params: Promise<Params> })
               <div lang="fr">
                 <h1>{doc.title}</h1>
                 <div className={styles.docMeta}>{doc.meta}</div>
-                {/* Contenu légal statique rédigé en dur (lib/data/legal.ts) — aucune donnée externe. */}
-                <div dangerouslySetInnerHTML={{ __html: doc.body }} />
+                {/* Contenu légal rédigé en dur (lib/data/legal.ts) ; seule donnée externe : un nombre de jours, lu en base. */}
+                <div dangerouslySetInnerHTML={{ __html: corps }} />
               </div>
             </div>
           </div>

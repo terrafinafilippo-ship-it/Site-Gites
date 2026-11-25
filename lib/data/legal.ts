@@ -19,7 +19,8 @@ export type LegalSection = "mentions" | "cgv" | "privacy" | "cookies" | "avis";
 export interface LegalDoc {
   title: string;
   meta: string;
-  body: string;
+  /** Une fonction quand le texte cite un réglage (la confidentialité : la durée des tentatives abandonnées). */
+  body: string | ((abandonJours: number | null) => string);
 }
 
 export const LEGAL_SECTIONS: LegalSection[] = ["mentions", "cgv", "privacy", "cookies", "avis"];
@@ -88,24 +89,51 @@ export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
   },
   privacy: {
     title: "Politique de confidentialité",
-    meta: "Conforme RGPD — mise à jour le 14 novembre 2026",
-    body: `
+    meta: "Conforme RGPD — mise à jour le 25 novembre 2026",
+    // Reprend l'article 14 du contrat (relu par le juriste, D-43) ; la durée
+    // des tentatives abandonnées est le réglage que lib/abandons.ts applique.
+    body: (abandonJours) => `
       <section><div class="legal__num">01 — Responsable</div><h2>Responsable de traitement</h2>
-        <p>${EXPLOITANT}, ${SIEGE}. Email : contact@gitesdesamoyas.fr.</p>
+        <p>${EXPLOITANT}, ${SIEGE}, est responsable du traitement des données personnelles de ses clients et des occupants majeurs déclarés. Contact : contact@gitesdesamoyas.fr.</p>
       </section>
-      <section><div class="legal__num">02 — Données collectées</div><h2>Quelles données, pour quoi ?</h2>
+      <section><div class="legal__num">02 — Données collectées</div><h2>Quelles données ?</h2>
         <ul>
-          <li><strong>Identité &amp; coordonnées</strong> — pour traiter votre réservation et vous joindre.</li>
-          <li><strong>Données de paiement</strong> — traitées par Stripe (PCI-DSS), jamais stockées chez nous.</li>
-          <li><strong>Dates et préférences</strong> — pour préparer votre séjour.</li>
+          <li><strong>Identité</strong> — nom, prénom, et la civilité si vous la donnez.</li>
+          <li><strong>Coordonnées</strong> — adresse postale, téléphone, courriel.</li>
+          <li><strong>Réservation</strong> — dates, gîte, composition du foyer, identité des occupants majeurs.</li>
+          <li><strong>Données financières</strong> — montants versés, dates et modalités. Les données de votre carte bancaire ne sont pas conservées par nous : elles sont traitées et conservées par notre prestataire de paiement, Stripe, dans les conditions de l'article 6 du contrat.</li>
+          <li><strong>Signature électronique</strong> — identifiant technique de la signature, horodatage, adresse IP du signataire, empreinte SHA-256 du document signé.</li>
           <li><strong>Courriel après le séjour</strong> — pour vous inviter à donner votre avis sur ce site. Si vous en déposez un, il est publié avec votre prénom, l'initiale de votre nom, votre note, votre commentaire et le mois de votre séjour, pendant ${DUREE_AVIS_ANS} ans (voir la <a href="/legal/avis">politique des avis</a>).</li>
         </ul>
       </section>
-      <section><div class="legal__num">03 — Conservation</div><h2>Combien de temps ?</h2>
-        <p>Les données liées à votre réservation sont conservées 5 ans après la fin du séjour, conformément aux obligations comptables et fiscales. Vous pouvez nous demander leur effacement avant — sauf pièces obligatoires.</p>
+      <section><div class="legal__num">03 — Finalités</div><h2>Pour quoi ?</h2>
+        <ul>
+          <li>Exécuter le contrat de location (RGPD, art. 6.1.b).</li>
+          <li>Respecter nos obligations comptables (art. 6.1.c).</li>
+          <li>Tenir le registre de présence et nous défendre en justice : notre intérêt légitime (art. 6.1.f).</li>
+          <li>Vous envoyer des communications commerciales : seulement avec votre consentement, demandé à part (art. 6.1.a).</li>
+        </ul>
       </section>
-      <section><div class="legal__num">04 — Vos droits</div><h2>Accès, rectification, effacement</h2>
-        <p>Vous disposez d'un droit d'accès, de rectification, d'effacement, de portabilité et d'opposition. Pour l'exercer : contact@gitesdesamoyas.fr — réponse sous 30 jours. Vous pouvez également saisir la CNIL (cnil.fr).</p>
+      <section><div class="legal__num">04 — Destinataires</div><h2>Qui les reçoit ?</h2>
+        <p>Les personnes habilitées de la ${EMETTEUR.raisonSociale}, et les seuls prestataires nécessaires : l'hébergeur du site et de la base de données (OVH SAS, données hébergées en France), le prestataire de paiement (Stripe, pour l'acompte, le solde et le dépôt de garantie), le prestataire d'envoi des courriels (Brevo) et l'expert-comptable ; les autorités, sur réquisition légale. La signature électronique est recueillie directement par nous, sans prestataire tiers. Aucune donnée n'est transférée hors de l'Union européenne sans encadrement juridique approprié.</p>
+      </section>
+      <section><div class="legal__num">05 — Conservation</div><h2>Combien de temps ?</h2>
+        <ul>
+          <li>Contrat, factures et pièces comptables : 10 ans.</li>
+          <li>Signature électronique : 10 ans (durée de prescription légale).</li>
+          <li>Identité des occupants (registre) : 1 an après la fin du séjour.</li>
+          <li>Données de carte bancaire, chez Stripe : jusqu'à la mainlevée ou l'encaissement du dépôt de garantie, au plus tard 7 jours après le départ.</li>
+          <li>${
+            abandonJours === null
+              ? "Réservation commencée sur le site mais jamais payée : conservée jusqu'à ce que vous en demandiez l'effacement."
+              : `Réservation commencée sur le site mais jamais payée : effacée automatiquement au bout de ${abandonJours === 1 ? "1 jour" : `${abandonJours} jours`}, chez nous comme chez Stripe.`
+          }</li>
+          <li>Prospection commerciale : 3 ans après le dernier contact.</li>
+        </ul>
+        <p>Vous pouvez nous demander l'effacement de vos données avant ces délais, sauf les pièces que la loi nous oblige à garder.</p>
+      </section>
+      <section><div class="legal__num">06 — Vos droits</div><h2>Accès, rectification, effacement</h2>
+        <p>Vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation, de portabilité, d'opposition au traitement fondé sur notre intérêt légitime, et de retrait de votre consentement. Pour les exercer : contact@gitesdesamoyas.fr, avec un justificatif d'identité — réponse sous 30 jours. Vous pouvez aussi adresser une réclamation à la CNIL (3 place de Fontenoy, 75007 Paris — cnil.fr).</p>
       </section>
     `,
   },

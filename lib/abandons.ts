@@ -42,18 +42,24 @@ export interface BilanAbandons {
   erreurs: number;
 }
 
+/** La durée réglée, en jours ; null : rien n'est effacé. La politique de confidentialité l'affiche. */
+export async function dureeConservationAbandons(): Promise<number | null> {
+  const [r] = await getDb().select({ jours: reglages.abandon_conservation_jours }).from(reglages).where(eq(reglages.id, 1));
+  if (!r) throw new Error("ligne de réglages absente");
+  return r.jours;
+}
+
 /** Un passage des tâches sur les tentatives abandonnées. */
 export async function effacerAbandons(maintenant: Date = new Date(), p: Prestataire = prestataire()): Promise<BilanAbandons> {
   const db = getDb();
   const bilan: BilanAbandons = { desactive: false, effacees: 0, engagees: 0, erreurs: 0 };
-  const [r] = await db.select({ jours: reglages.abandon_conservation_jours }).from(reglages).where(eq(reglages.id, 1));
-  if (!r) throw new Error("ligne de réglages absente");
-  if (r.jours === null) {
+  const jours = await dureeConservationAbandons();
+  if (jours === null) {
     bilan.desactive = true;
     return bilan;
   }
 
-  const limite = new Date(maintenant.getTime() - r.jours * 86_400_000);
+  const limite = new Date(maintenant.getTime() - jours * 86_400_000);
   const aEffacer = await db
     .select({ id: reservations.id })
     .from(reservations)
@@ -76,7 +82,7 @@ export async function effacerAbandons(maintenant: Date = new Date(), p: Prestata
     try {
       const resultat = await abandonnerTentative(id, {
         p,
-        trace: { acteur: "systeme", motif: `tentative abandonnée depuis plus de ${r.jours} jours` },
+        trace: { acteur: "systeme", motif: `tentative abandonnée depuis plus de ${jours} jours` },
       });
       if (resultat === "ABANDONNEE") bilan.effacees += 1;
       if (resultat === "ENGAGEE") bilan.engagees += 1;
