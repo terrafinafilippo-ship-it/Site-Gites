@@ -356,6 +356,9 @@ volume.
 payante et un mode de défaillance supplémentaire avant d'avoir le premier
 client en direct.
 
+**Construit** le 26 novembre 2026 : voir D-44 (lien par plateforme, relecture
+à l'arrivée sur l'écran de paiement, doublons, client prévenu).
+
 ---
 
 ## D-13 · Pages publiques en rendu à la demande, avec dégradation au lieu d'une erreur
@@ -2222,6 +2225,92 @@ AV : D-41 et D-42 renvoient ici.
 
 **Si on revient dessus.** Rétablir une facture de retenue, c'est une
 migration qui rend le type, et le code retiré le 20 novembre (historique git).
+
+## D-44 · La synchronisation des calendriers avec les plateformes
+
+**Date :** 26 novembre 2026 (cadrage et construction, migration 0025).
+Choix du gérant : 0 A, 1 (Gîtes de France, Airbnb, Booking), 2 A, 3 A, 4
+(d'accord, et le client prévenu), 5 A ; délai de 24 heures, phrase validée.
+Construit D-12.
+
+**Ce qui est décidé.**
+- **La Phase 7 s'ouvre avant la clôture de la Phase 6** (choix 0 A) : la
+  Phase 6 n'attend plus que la relecture de l'anglais et le médiateur, que le
+  calendrier ne touche pas.
+- **Plateformes** : Gîtes de France, Airbnb et Booking, pour l'instant. Chaque
+  gîte a un formulaire par plateforme dans sa fiche ; vide, il n'y est pas
+  relié.
+- **Le site est le calendrier central** (choix 2 A). Il donne à chaque
+  plateforme un lien qui montre toutes les nuits prises du gîte : vendues sur
+  le site, fermées, gardées par une option, vendues sur les autres
+  plateformes ; jamais un nom (« Indisponible »), sur trois ans. Le blocage de
+  20 minutes d'un paiement en cours n'y est pas (trop court pour des
+  plateformes qui relisent toutes les quelques heures). **Un lien par
+  plateforme**, qui ne lui montre pas ses propres séjours : si une plateforme
+  renvoyait les nuits reçues de nous, elles ne resteraient pas bloquées après
+  une annulation. Le jeton du lien est secret (le lien dit quand le gîte est
+  vide).
+- **Le site lit le lien de chaque plateforme** à chaque passage des tâches
+  (15 minutes), quand un client arrive sur l'écran de paiement, et quand les
+  propriétaires collent un lien (enregistré seulement s'il se lit). Une
+  plateforme qui ne répond pas en 4 secondes avant le paiement ne bloque pas
+  le client (choix 3 A). Une lecture remplace ce que le site savait de la
+  plateforme : séjour nouveau, ses nuits sont prises ; séjour disparu (annulé),
+  elles sont rendues. **Une lecture ratée ne change rien** ; un lien qui ne se
+  lit plus depuis 2 heures apparaît dans « À traiter ».
+- **Une nuit d'une plateforme** prend une nuit libre, une ligne provisoire
+  échue, ou une nuit bloquée par un paiement en cours sur le site (ce paiement
+  est alors remboursé avec l'explication « dates prises », par le chemin qui
+  existait déjà : critère 2 de la fiche). Elle ne prend jamais une nuit vendue
+  sur le site, fermée, en option, ou vendue sur une autre plateforme : c'est
+  un **doublon**.
+- **Doublon** (choix 4) : le site ne touche à rien ; une alerte « À TRAITER »
+  par séjour de la plateforme, qui dit qui occupe les nuits et quoi faire ;
+  une ligne « À traiter » jusqu'à ce qu'une des deux réservations soit
+  annulée.
+- **Le client est prévenu** (demande du gérant), avant de payer (écran de
+  paiement, au-dessus de la case des CGV), dans sa confirmation et dans les
+  CGV (version 7) : « Nos gîtes se réservent aussi sur d'autres sites. Dans
+  le cas très rare où les mêmes dates y auraient été prises au même moment,
+  nous vous prévenons dans les 24 heures qui suivent votre paiement et nous
+  vous remboursons intégralement. » (`lib/textes-doublon.ts`). Le délai est un
+  réglage (`doublon_delai_heures`, 24), pas un délai du contrat : le contrat
+  ne change pas, l'annulation par le bailleur (article 7.4) couvre le cas.
+  L'alerte dit aux propriétaires si ce délai court encore : dans le délai, ils
+  peuvent annuler la réservation du site ou celle de la plateforme ; passé,
+  la réservation du site est définitive. Une heure ne suffisait pas : les
+  plateformes relisent notre lien toutes les quelques heures.
+- **Le séjour minimum propre à une plateforme** (3 nuits sur Airbnb, 1 sur le
+  site) ne passe pas par le lien, qui ne dit que « pris » ou « libre » : il se
+  règle dans chaque plateforme. Le piloter depuis le back-office demanderait
+  Beds24 (D-12, V2).
+- **Les propriétaires ferment leurs dates dans le calendrier du site**, pas
+  sur les plateformes : ce qu'une plateforme montre fermé est fermé sur le
+  site aussi.
+- **Affichage** (choix 5 A) : les séjours des plateformes apparaissent dans le
+  calendrier du back-office (déjà le cas) et à l'accueil (« Les 7 prochains
+  jours », « Plus loin »), au nom de la plateforme, sans client ni nombre de
+  personnes.
+
+**Ce qui pourrait mal tourner.**
+- Une plateforme qui renverrait dans son lien les nuits qu'elle a reçues du
+  nôtre ferait de chaque réservation du site un faux doublon (le lien par
+  plateforme évite seulement les nuits bloquées). À vérifier en recette, avec
+  les vrais liens.
+- Airbnb peut montrer « indisponible » des dates fermées par ses propres
+  réglages (fenêtre de réservation, jours de préparation) : le site les
+  fermerait aussi. À régler large sur Airbnb, à vérifier en recette.
+- La fenêtre n'est pas supprimée (D-12) : un doublon reste possible, d'où la
+  phrase au client et l'alerte. La recette mesurera le vrai délai de chaque
+  plateforme ; le réglage de 24 heures pourra être réduit.
+- Un lien régénéré par une plateforme cesse de se lire : la ligne « À traiter »
+  le signale au bout de 2 heures.
+
+**Si on revient dessus.** Un seul lien pour toutes les plateformes, c'est le
+risque de nuits bloquées en boucle. Refuser le paiement quand une plateforme ne
+répond pas (choix 3 B), c'est une ligne dans `relireAvantPaiement`, au prix
+d'une vente perdue à chaque panne d'une plateforme. Retirer la phrase au client
+laisse l'article 7.4 intact, mais le client n'est plus prévenu.
 
 ## Décisions ouvertes
 

@@ -2534,6 +2534,50 @@ contrat). Texte montré au gérant avant le commit.
 
 ---
 
+## Phase 7 : ouverture, synchronisation des calendriers (26 novembre 2026)
+
+### Cadrage
+
+Décisions du gérant, toutes dans D-44 : Phase 7 ouverte avant la clôture de
+la Phase 6 ; Gîtes de France, Airbnb et Booking ; le site calendrier central,
+un lien par plateforme ; relecture à l'arrivée sur l'écran de paiement, sans
+bloquer le client si une plateforme ne répond pas ; un doublon signalé, jamais
+réglé par le site ; le client prévenu avant de payer, délai de 24 heures en
+réglage ; les séjours des plateformes à l'accueil du back-office. Le séjour
+minimum propre à une plateforme ne passe pas par iCal : il se règle dans la
+plateforme (Beds24 reste en V2).
+
+### Ce qui a été fait
+
+- Migration 0025 : tables `calendriers` et `sejours_plateformes`, réglage
+  `doublon_delai_heures`.
+- `lib/ical.ts` (lire, écrire), `lib/synchronisation.ts` (liens, lecture,
+  nuits, doublons, lien du site), `lib/plateformes.ts`,
+  `lib/textes-doublon.ts`.
+- `GET /api/calendrier/{jeton}.ics` ; relecture dans `POST /api/reservations` ;
+  lecture à chaque passage des tâches.
+- Alerte « À TRAITER — doublon possible avec … » ; lignes « À traiter »
+  (doublon, calendrier qui ne se lit plus) ; séjours des plateformes à
+  l'accueil ; formulaires des liens dans la fiche de chaque gîte ; délai dans
+  les réglages (« Calendriers des plateformes »).
+- Phrase au client sur l'écran de paiement, dans la confirmation et dans les
+  CGV (version 7).
+
+### Textes
+
+Phrase au client validée par le gérant (version anglaise : à la relecture de
+l'anglais). Alerte, lignes « À traiter », formulaires et aide de la fiche des
+gîtes : montrés au gérant avant le commit.
+
+### Ce qui a été vérifié
+
+- `verify:synchronisation` (nouveau, 65 cas avec `--http`) ; `verify:courriels`
+  (la confirmation porte la phrase) ; `db:verify` (nouvelle section 6p :
+  colonnes et contraintes des deux tables, réglage) ; lint, `tsc`, build ;
+  parcours complet (vingt-sept étapes).
+
+---
+
 ## Avant le premier client réel
 
 Cette liste a **déménagé** dans `docs/06-avant-premier-client.md`, son seul

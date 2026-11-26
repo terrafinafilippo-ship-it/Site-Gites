@@ -19,7 +19,7 @@
 | 4 | Cycle de paiement complet | **Close** — 25 novembre 2026. Ouverte le 1er novembre 2026 ; lot 1 (réveil, solde, factures) livré le 1er novembre ; lot 2 (caution par carte) livré le 2 novembre ; lot 3 (chèque et virement, tentatives abandonnées, vérification de la base réelle) livré le 3 novembre ; base réelle lue puis migrée (0001 à 0024) par le gérant le 25 novembre | `docs/phases/phase-4.md` |
 | 5 | Back-office Patricia et Nicolas | **Close** — 18 novembre 2026. Ouverte le 3 novembre 2026 (cadrage : six lots) ; lot 1 (connexion et réglages) livré le 4 novembre ; lot 2 (réservations, cautions, solde par virement, « À traiter ») le 6 novembre ; lot 3 (tarifs) et lot 4 (calendrier, options, fiches des gîtes, documents) le 7 novembre ; lot 6 (statistiques) le 8 novembre ; lot 5 (annulation et avoir, D-42) le 15 novembre ; essais à l'écran par le gérant le 18 novembre | `docs/phases/phase-5.md` |
 | 6 | Contenus, légal, SEO | **En cours** — sans attendre les réponses extérieures (comptable, juriste, médiateur) : identité légale centralisée (E-7), ancien site redirigé, sauna (D-38), ménage à 0 € (D-37) ; le 12 novembre 2026, pas de bannière cookies, référencement et page de signature (D-39), avis des clients (D-40) | `docs/phases/phase-6.md` |
-| 7 | Synchronisation iCal V1, recette, go-live | À ouvrir | `docs/phases/phase-7.md` |
+| 7 | Synchronisation iCal V1, recette, go-live | **En cours** — ouverte le 26 novembre 2026, avant la clôture de la Phase 6 (choix du gérant) ; synchronisation des calendriers (D-44) construite le 26 novembre | `docs/phases/phase-7.md` |
 
 ---
 

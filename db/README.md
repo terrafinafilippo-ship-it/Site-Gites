@@ -39,6 +39,7 @@ main dans un outil graphique.
 | `migrations/0022_facture_retenue.sql` | Factures sur demande (D-41) : le type de facture `retenue` (facture d'une retenue sur la caution, même suite FAC, une par réservation). |
 | `migrations/0023_annulation.sql` | Annulation (D-42) : tables `annulations`, `remboursements`, `avoirs` ; fonction `creer_avoir` (suite AV, par `prochain_numero`) ; courriels « annulation » et « avoir ». |
 | `migrations/0024_suite_avoirs_delai_72h.sql` | Réponses du comptable (D-43) : `creer_avoir` prend le numéro dans la suite des factures (FAC) ; le type de facture `retenue` est retiré (la migration échoue si une facture de retenue existe : ne rien supprimer, prévenir le développeur) ; le solde remboursé jusqu'à 72 heures avant l'arrivée (réglage passé de 48 à 72). |
+| `migrations/0025_synchronisation_calendriers.sql` | Synchronisation des calendriers (D-44) : tables `calendriers` (liens par gîte et par plateforme) et `sejours_plateformes` (séjours annoncés) ; réglage `doublon_delai_heures` (24). Aucune ligne créée : le site crée les calendriers à la première ouverture de la fiche d'un gîte. |
 | `migrate.ts` | Applique les migrations en attente. |
 | `env.ts` | Charge `.env.local` pour les scripts. |
 
@@ -232,7 +233,8 @@ compteurs de numérotation aux numéros déjà émis, compte le contenu et lit l
 réglages. Chaque ligne est OK, INFO, A VOIR ou BLOQUANT ; **un point BLOQUANT
 interdit d'appliquer les migrations** (code de sortie 1). Au 4 novembre 2026,
 la base réelle et `gites_test` du serveur sont à la migration 0001 (vingt-trois
-migrations en attente au 20 novembre, 0002 à 0024).
+migrations en attente au 20 novembre, 0002 à 0024). Le 25 novembre 2026, le
+gérant les a appliquées sur les deux (0024) ; la 0025 (D-44) est en attente.
 
 ### Avant d'appliquer la migration 0009 sur une base existante
 

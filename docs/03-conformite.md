@@ -294,6 +294,17 @@ contrat le disait (article 8), et il arrive après le paiement. Les CGV, que
 le client accepte en cochant la case de l'écran de paiement, le disent
 désormais (§ 04), avec le reste des articles 5 à 7.
 
+**Le doublon possible avec une plateforme dit avant le paiement (D-44,
+26 novembre 2026).** La synchronisation iCal laisse une fenêtre de quelques
+heures (D-12) : une plateforme peut vendre une nuit que le site vient de
+vendre. Le contrat couvre l'annulation qui s'ensuivrait (article 7.4 :
+remboursement intégral, sans autre indemnité) ; le client en est prévenu
+avant de payer, sur l'écran de paiement et dans les CGV (version 7), puis
+dans sa confirmation, avec le délai réglé (`doublon_delai_heures`, 24 heures).
+Texte validé par le gérant ; la version anglaise attend la relecture de
+l'anglais. Contrôle : `verify:synchronisation` (CGV) et `verify:courriels`
+(confirmation).
+
 **Point de vigilance.** L'immutabilité de la table `signatures` entre en tension
 avec le **droit à l'effacement**. Un effacement légitime exige de désactiver
 explicitement le trigger le temps de l'opération, après décision humaine tracée.

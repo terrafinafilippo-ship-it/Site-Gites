@@ -35,6 +35,7 @@ signature ne se supprime pas. Ne jamais lancer ces scripts sur la base réelle.
 | Back-office, tarifs | Règles pures (saisies, découpage des périodes, jour de début, passé figé, copie d'une année, trous, état), puis sur la base : prix en deux temps (rien d'écrit avant la confirmation, empreinte périmée), périodes (découpage, période en cours, suppression, copie), barèmes, règles générales, taxe de séjour, « À traiter » (nuits sans tarif, tarif sans prix) ; puis les cinq pages par le serveur (`verify:gestion-tarifs --http`, 93 cas) ; la tarification d'essai est rechargée à la fin |
 | Back-office, calendrier | Le seed laisse un gîte existant tel quel ; la fiche d'un gîte en deux temps (bornes, récapitulatif, empreinte périmée, nouvelle caution dans le tunnel) ; bloquer des nuits (passé refusé, nuits prises et par qui, verrou expiré repris, calendrier du mois, débloquer) ; l'option posée au téléphone (nuits fermées aux autres et libres pour son client, courriel et lien, tunnel par le lien, retour en arrière, paiement, échéance, levée, anglais) ; les documents (liste, recherche, année, PDF, renvoi d'une facture, du lien de signature, du contrat signé) ; puis les pages, le PDF, la page du lien et le refus du tunnel par le serveur (`verify:gestion-calendrier --http`, 105 cas) |
 | Back-office, statistiques | Nuits louées par mois, séjours hors taxe au mois de l'arrivée, réservations (nombre, durée, délai), provenance (langue, pays, départements), cautions retenues, commissions évitées et leur réglage, registre de la taxe de séjour ; puis la page (`verify:gestion-statistiques --http`, 28 cas) |
+| Synchronisation des calendriers | Plateformes simulées : format iCal, lien collé (refusé ou lu), lien du site (ce qu'il montre et cache), « dates prises » à l'écran de paiement, plateforme muette qui ne bloque pas, annulation, paiement en cours remboursé, doublons et leur alerte, lien en panne, accueil, CGV ; puis le lien du site et les CGV par le serveur (`verify:synchronisation --http`, 65 cas) |
 | Remise à zéro | Avant les parcours : les contrats et les factures créés par le paiement ne comptent pas dans la numérotation contrôlée |
 | Contrat | Émission, numéro `CTR-AAAA-NNN`, PDF, recopie du numéro sur la réservation |
 | Signature | Page publique, preuve enregistrée, PDF signé, statut `signe` |
@@ -149,5 +150,5 @@ mise en page.
 | `controler-pdf.py` | Contrôles sur les PDF produits, et PNG de contrôle visuel. |
 | `id-reservation.ts` | Résout une référence en identifiant, pour les scripts shell. |
 | `prix-location.ts` | Modifie ou rétablit le prix d'une réservation (garde du cas B). |
-| `lancer.sh` | Enchaîne tout (vingt-six étapes). |
+| `lancer.sh` | Enchaîne tout (vingt-sept étapes). |
 | `../verifier-blocage.ts` | Le blocage des dates et le tunnel, sur la base de test ; `--http` ajoute les contrôles par le serveur. Hors de ce dossier : il se lance aussi seul (`npm run verify:blocage`). |

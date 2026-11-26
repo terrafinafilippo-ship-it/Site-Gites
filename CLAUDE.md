@@ -42,6 +42,7 @@ DB_CIBLE=test npm run verify:gestion-reservations # back-office : cautions, sold
 DB_CIBLE=test npm run verify:gestion-tarifs # back-office : prix, périodes, barèmes, taxe de séjour ; --http (base de test)
 DB_CIBLE=test npm run verify:gestion-calendrier # back-office : calendrier, options, fiches des gîtes, documents, seed ; --http (base de test)
 DB_CIBLE=test npm run verify:gestion-statistiques # back-office : statistiques, registre de la taxe de séjour ; --http (base de test)
+DB_CIBLE=test npm run verify:synchronisation # calendriers des plateformes : lien du site, lecture, doublons ; --http (base de test)
 npm run verify:production             # base RÉELLE, en lecture seule, avant d'appliquer ses migrations
 npm run gestion:compte -- adresse     # crée le compte du back-office et envoie le lien du mot de passe (ÉCRITURE)
 

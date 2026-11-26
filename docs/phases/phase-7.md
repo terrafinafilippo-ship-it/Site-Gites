@@ -1,8 +1,12 @@
 # Phase 7 — Synchronisation iCal V1, recette, go-live
 
-> Fiche à **compléter à l'ouverture de la phase**. Ce qui suit est le cadre.
+> **Ouverte le 26 novembre 2026.** Cadrage et premier lot (synchronisation
+> des calendriers) le même jour : D-44.
 
-**Dépendances :** toutes les autres phases closes. C'est la dernière.
+**Dépendances :** toutes les autres phases closes. C'est la dernière. Ouverte
+avant la clôture de la Phase 6 (choix 0 A du gérant, D-44) : elle n'attend
+plus que la relecture de l'anglais et le médiateur, que le calendrier ne
+touche pas. La recette et la mise en ligne, elles, attendent la Phase 6.
 
 ---
 
@@ -27,6 +31,24 @@ mettre en ligne.
    explicitement.
    La table `disponibilites` prévoit déjà la colonne `source`
    (`directe`, `airbnb`, `booking`, `gdf`).
+
+   **Points 1 et 2 construits le 26 novembre 2026 (D-44, migration 0025)** :
+   un lien du site par gîte et par plateforme ; lecture des plateformes toutes
+   les 15 minutes, à l'arrivée sur l'écran de paiement et quand un lien est
+   collé ; doublon signalé, jamais réglé par le site ; client prévenu avant de
+   payer (délai réglé, 24 heures). Contrôle : `verify:synchronisation`.
+
+   **Mise en service** (gérant, après la migration 0025 sur la base réelle) :
+   pour chaque gîte, coller dans le back-office le lien de calendrier de
+   chaque plateforme, et dans chaque plateforme le lien du site qui lui est
+   destiné ; régler le séjour minimum propre à chaque plateforme dans la
+   plateforme ; sur Airbnb, laisser le calendrier ouvert le plus loin possible.
+
+   **À vérifier en recette, avec les vrais liens** (D-44, « ce qui pourrait
+   mal tourner ») : une réservation du site bloque bien la nuit sur chaque
+   plateforme, et dans quel délai (pour ajuster le réglage de 24 heures) ;
+   aucune plateforme ne renvoie les nuits reçues du site (sinon, faux
+   doublons) ; les réglages d'Airbnb ne ferment pas de dates sur le site.
 3. **Recette complète** : rejouer tous les parcours, sur toutes les phases.
 4. **DNS** et **mise en production**. `NEXT_PUBLIC_SITE_URL` doit être réglée
    **avant le build** : le plan du site, les aperçus de partage et les données
