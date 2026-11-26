@@ -32,7 +32,7 @@ la réponse au mauvais endroit — dans le code, où elle n'est pas.
 |---|---|---|---|
 | ~~1~~ | ~~Nommer les options sur les documents~~ — **levé le 3 novembre 2026** (aucune option vendue) | — | — |
 | 2 | Rendre l'adresse IP du signataire non falsifiable | Développement | Au déploiement |
-| 3 | Caution (carte, chèque, virement) et paiement : confirmés par Stripe, contrat relu par le juriste sans remarque (19 novembre 2026), développés et testés ; reste la trace écrite de Stripe | **Les propriétaires** (trace écrite) | Avant l'ouverture |
+| ~~3~~ | ~~Caution (carte, chèque, virement) et paiement~~ — **levé le 26 novembre 2026** (confirmés par Stripe, trace écrite conservée par le gérant ; contrat relu par le juriste ; développés et testés) | — | — |
 | 4 | Passer la base en configuration de production — base réelle vérifiée et migrée jusqu'à 0024 (25 novembre 2026) ; restent le compte du back-office, le compte du virement, les réglages du déploiement et la séparation des rôles | **Le gérant** (compte du back-office, compte du virement), puis phase de déploiement | Avant l'ouverture |
 | 5 | Vérifier le logo sur un PDF généré **après** déploiement | Développement | Au déploiement |
 | ~~6~~ | ~~Qui est le bailleur juridique des trois gîtes~~ — **levé le 14 novembre 2026** (D-41 : la SARL DE LA VOUTE, factures sans TVA) | — | — |
@@ -99,6 +99,9 @@ l'adresse **réelle**, pas celle de l'en-tête.
 
 ## 3. Caution Stripe : confirmée, relue, développée et testée
 
+> **Levé le 26 novembre 2026** : le gérant a la copie écrite des réponses de
+> Stripe du 9 octobre 2026 et la conserve (hors du dépôt).
+>
 > **Condition 3 remplie le 19 novembre 2026** (D-43) : le juriste a relu le
 > contrat, sans remarque — les cinq questions ci-dessous comprises, et
 > l'avoir sans la phrase « tolérance commerciale ». Les conditions 1, 2 et 4
@@ -151,9 +154,7 @@ le propriétaire :
 - « aucun frais n'est facturé en cas d'annulation d'un paiement non encaissé » ;
 - validité habituelle de l'autorisation : 7 jours à compter du lancement.
 
-**Reste à faire :** conserver la trace écrite. La transcription devait être
-envoyée par courriel à la clôture du chat ; à la date de cette note, sa
-réception n'est pas confirmée. À défaut, captures d'écran de l'historique.
+**Trace écrite :** conservée par le gérant (confirmé le 26 novembre 2026).
 
 **Ajouts du cadrage de la Phase 3 (13 et 14 octobre 2026)**, à faire relire
 dans le même envoi au juriste :
