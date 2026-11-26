@@ -31,3 +31,5 @@ export * from "./options-sejour";
 // Annulation et avoir (Phase 5, lot 5).
 export * from "./annulations";
 export * from "./avoirs";
+// Synchronisation des calendriers (Phase 7).
+export * from "./calendriers";

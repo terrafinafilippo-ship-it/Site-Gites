@@ -164,6 +164,8 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     "commission_taux",
     // Avis des clients (Phase 6, migration 0021).
     "avis_courriel_jours", "avis_lien_jours",
+    // Synchronisation des calendriers (Phase 7, migration 0025).
+    "doublon_delai_heures",
     "updated_at",
   ],
   taxes_sejour: [
@@ -204,6 +206,9 @@ const COLONNES_ATTENDUES: Record<string, string[]> = {
     "fait_at", "fait_par", "created_at",
   ],
   avoirs: ["id", "numero", "reservation_id", "facture_id", "montant", "date_emission", "pdf_url", "donnees", "created_at"],
+  // Synchronisation des calendriers (Phase 7, migration 0025, D-44).
+  calendriers: ["id", "gite_id", "plateforme", "jeton_export", "lien_import", "lu_at", "erreur", "created_at", "updated_at"],
+  sejours_plateformes: ["id", "calendrier_id", "arrivee", "depart", "created_at"],
 };
 
 // Quelques types sensibles (le module de contrat en dépend).
@@ -1249,6 +1254,53 @@ async function verifierEnTransaction(client: PoolClient, giteIdSeed: string | nu
       );
       noter("6o", c.erreur === null, `courriel « ${objet} » accepté`, codePg(c.erreur));
     }
+
+    // ── 6p. Synchronisation des calendriers (Phase 7, migration 0025, D-44) ──
+    titre("6p. Synchronisation des calendriers");
+    const delaiDoublon = await client.query<{ h: number }>(`select doublon_delai_heures as h from reglages where id = 1`);
+    noter("6p", delaiDoublon.rows[0]?.h === 24, "réglage : client prévenu d'un doublon dans les 24 heures", JSON.stringify(delaiDoublon.rows[0]));
+    const jetonOk = "a".repeat(48);
+    // Le gîte d'essai peut déjà avoir ses calendriers (fiche ouverte par un contrôle) : tout est annulé à la fin.
+    await client.query(`delete from sejours_plateformes where calendrier_id in (select id from calendriers where gite_id = $1)`, [giteId]);
+    await client.query(`delete from calendriers where gite_id = $1`, [giteId]);
+    const calOk = await attendreErreur(
+      client, "sp_cal_ok",
+      `insert into calendriers (gite_id, plateforme, jeton_export, lien_import) values ($1, 'airbnb', $2, 'https://www.airbnb.fr/calendar/ical/1.ics?s=x')`,
+      [giteId, jetonOk],
+    );
+    noter("6p", calOk.erreur === null, "calendrier Airbnb valable : accepté", codePg(calOk.erreur));
+    const calDouble = await attendreErreur(
+      client, "sp_cal_double",
+      `insert into calendriers (gite_id, plateforme, jeton_export) values ($1, 'airbnb', $2)`, [giteId, "b".repeat(48)],
+    );
+    noter("6p", codePg(calDouble.erreur) === "23505", "second calendrier Airbnb pour le même gîte : refusé", codePg(calDouble.erreur));
+    const jetonDouble = await attendreErreur(
+      client, "sp_cal_jeton_double",
+      `insert into calendriers (gite_id, plateforme, jeton_export) values ($1, 'booking', $2)`, [giteId, jetonOk],
+    );
+    noter("6p", codePg(jetonDouble.erreur) === "23505", "même jeton pour deux calendriers : refusé", codePg(jetonDouble.erreur));
+    const casCal: Array<[string, string, string, unknown[]]> = [
+      ["sp_cal_plateforme", "plateforme inconnue : refusée", `insert into calendriers (gite_id, plateforme, jeton_export) values ($1, 'abritel', $2)`, [giteId, "c".repeat(48)]],
+      ["sp_cal_jeton", "jeton trop court : refusé", `insert into calendriers (gite_id, plateforme, jeton_export) values ($1, 'gdf', 'abc')`, [giteId]],
+      ["sp_cal_http", "lien de plateforme en http : refusé", `update calendriers set lien_import = 'http://www.airbnb.fr/x.ics' where jeton_export = $1`, [jetonOk]],
+      ["sp_cal_espace", "lien de plateforme avec une espace : refusé", `update calendriers set lien_import = 'https://www.airbnb.fr/a b.ics' where jeton_export = $1`, [jetonOk]],
+      ["sp_sejour_dates", "séjour d'une plateforme sans nuit : refusé", `insert into sejours_plateformes (calendrier_id, arrivee, depart) select id, '2099-06-05', '2099-06-05' from calendriers where jeton_export = $1`, [jetonOk]],
+      ["sp_doublon_delai", "délai du doublon de 0 heure : refusé", `update reglages set doublon_delai_heures = 0 where id = 1`, []],
+    ];
+    for (const [nom, quoi, sqlTexte, params] of casCal) {
+      const e = await attendreErreur(client, nom, sqlTexte, params);
+      noter("6p", codePg(e.erreur) === "23514", quoi, codePg(e.erreur));
+    }
+    const sejourOk = await attendreErreur(
+      client, "sp_sejour_ok",
+      `insert into sejours_plateformes (calendrier_id, arrivee, depart) select id, '2099-06-05', '2099-06-08' from calendriers where jeton_export = $1`, [jetonOk],
+    );
+    noter("6p", sejourOk.erreur === null, "séjour d'une plateforme valable : accepté", codePg(sejourOk.erreur));
+    const nuitPlateforme = await attendreErreur(
+      client, "sp_nuit_plateforme",
+      `insert into disponibilites (gite_id, date, statut, source) values ($1, '2098-01-10', 'reserve', 'airbnb')`, [giteId],
+    );
+    noter("6p", nuitPlateforme.erreur === null, "nuit vendue sur Airbnb, sans réservation : acceptée", codePg(nuitPlateforme.erreur));
   } finally {
     await client.query("ROLLBACK");
   }

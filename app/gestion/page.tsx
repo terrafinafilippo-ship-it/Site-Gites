@@ -3,6 +3,8 @@
 // la date du séjour (lib/gestion/a-traiter.ts), puis les arrivées et les
 // départs des 7 prochains jours, puis les séjours d'ici un an (gérant,
 // 18 novembre 2026). Les chiffres ont leur page (lot 6, /gestion/statistiques).
+// Depuis la Phase 7 (D-44) : les séjours des plateformes y figurent aussi, au
+// nom de la plateforme (« Airbnb »), sans fiche ni nombre de personnes.
 import Link from "next/link";
 
 import { fmtDateCourte, fmtDateLongue, fmtHeure } from "@/lib/format";
@@ -16,6 +18,16 @@ import { GesteBouton } from "./reservations/Gestes";
 
 export const dynamic = "force-dynamic";
 
+/** Le client avec le lien de sa fiche, ou la plateforme ; puis le gîte et le nombre de personnes s'il est connu. */
+function Qui({ s }: { s: { reservationId: string | null; client: string; gite: string; voyageurs: number | null } }) {
+  return (
+    <>
+      {s.reservationId ? <Link href={`/gestion/reservations/${s.reservationId}`}>{s.client}</Link> : s.client}, {s.gite}
+      {s.voyageurs !== null ? ` (${s.voyageurs} pers.)` : ""}
+    </>
+  );
+}
+
 function Mouvements({ titre, liste, vide }: { titre: string; liste: Mouvement[]; vide: string }) {
   return (
     <div>
@@ -25,10 +37,9 @@ function Mouvements({ titre, liste, vide }: { titre: string; liste: Mouvement[];
       ) : (
         <ul>
           {liste.map((m) => (
-            <li key={`${m.reservationId}-${m.date}`}>
+            <li key={m.cle}>
               {fmtDateCourte(m.date)}
-              {m.heure ? `, ${fmtHeure(m.heure)}` : ""} — <Link href={`/gestion/reservations/${m.reservationId}`}>{m.client}</Link>, {m.gite} (
-              {m.voyageurs} pers.)
+              {m.heure ? `, ${fmtHeure(m.heure)}` : ""} — <Qui s={m} />
             </li>
           ))}
         </ul>
@@ -52,10 +63,16 @@ export default async function AccueilGestion() {
           taches.map((t) => (
             <article key={t.cle} className={styles.tache}>
               <h3>{t.titre}</h3>
-              {t.reference && (
+              {t.reference ? (
                 <p className={styles.aide}>
                   {t.client}, {t.gite} · {t.reference} · depuis le {fmtDateLongue(t.depuis)}
                 </p>
+              ) : (
+                t.gite && (
+                  <p className={styles.aide}>
+                    {t.gite} · depuis le {fmtDateLongue(t.depuis)}
+                  </p>
+                )
               )}
               <p>{t.detail}</p>
               <div className={styles.ligne}>
@@ -72,6 +89,16 @@ export default async function AccueilGestion() {
                 {t.gestes.includes("tarifs") && (
                   <Link href="/gestion/tarifs" className={styles.boutonSecondaire}>
                     Ouvrir les tarifs
+                  </Link>
+                )}
+                {t.gestes.includes("calendrier") && (
+                  <Link href="/gestion/calendrier" className={styles.boutonSecondaire}>
+                    Ouvrir le calendrier
+                  </Link>
+                )}
+                {t.gestes.includes("gites") && (
+                  <Link href="/gestion/gites" className={styles.boutonSecondaire}>
+                    Ouvrir les fiches des gîtes
                   </Link>
                 )}
                 {t.gestes.includes("renvoyer_contrat") && t.reservationId && (
@@ -110,9 +137,8 @@ export default async function AccueilGestion() {
               ) : (
                 <ul>
                   {p.sejours.map((s) => (
-                    <li key={s.reservationId}>
-                      Du {fmtDateCourte(s.arrivee)} au {fmtDateCourte(s.depart)} —{" "}
-                      <Link href={`/gestion/reservations/${s.reservationId}`}>{s.client}</Link>, {s.gite} ({s.voyageurs} pers.)
+                    <li key={s.cle}>
+                      Du {fmtDateCourte(s.arrivee)} au {fmtDateCourte(s.depart)} — <Qui s={s} />
                     </li>
                   ))}
                 </ul>

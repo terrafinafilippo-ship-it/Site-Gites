@@ -12,6 +12,9 @@ import { fmtDateAvecJour, fmtDateLongue, fmtEuro, fmtHeure } from "@/lib/format"
 import { ibanLisible, type CompteVirement } from "@/lib/iban";
 import type { Bilingue, Langue } from "@/lib/i18n/langues";
 import { CONTACTS, LIBELLES_RECAP, type Recapitulatif } from "@/lib/recapitulatif";
+import type { Plateforme } from "@/db/schema";
+import { detenteurLisible, NOMS_PLATEFORMES, type Detenteur } from "@/lib/plateformes";
+import { PHRASE_DOUBLON } from "@/lib/textes-doublon";
 
 export interface Contenu {
   sujet: string;
@@ -103,7 +106,8 @@ const BOUTON_SUIVI: Bilingue<string> = { fr: "Voir ma réservation", en: "View m
 /**
  * Confirmation de réservation, avec le lien de signature (ou l'annonce du
  * contrat), puis le lien « Ma réservation » (second bouton, choix du gérant du
- * 28 octobre 2026).
+ * 28 octobre 2026). Depuis la Phase 7 (D-44) : la phrase sur un doublon
+ * possible avec une plateforme, déjà lue avant le paiement.
  */
 export function texteConfirmation(
   langue: Langue,
@@ -112,6 +116,7 @@ export function texteConfirmation(
   lienContrat: string | null,
   lienSuivi: string,
   adresseContact: string,
+  delaiDoublonHeures: number,
 ): Contenu {
   const en = langue === "en";
   const sujet = en
@@ -124,6 +129,7 @@ export function texteConfirmation(
     { p: bonjour(langue, s.prenom) },
     { p: en ? "Your booking is confirmed." : "Votre réservation est confirmée.", gras: true },
     { liste: lignes },
+    { p: PHRASE_DOUBLON[langue](delaiDoublonHeures) },
     ...(lienContrat
       ? [
           { p: en ? "Your contract (in French) is to be signed online:" : "Votre contrat est à signer en ligne :" },
@@ -1020,6 +1026,19 @@ export type Probleme =
       type: string | null;
       montant: number;
       motif: string;
+    }
+  | {
+      // Phase 7 (D-44) : une plateforme annonce un séjour sur des nuits déjà
+      // prises sur le site (lib/synchronisation.ts). Les occupants sont ceux
+      // vus à la lecture (`vuLe`, ISO), le premier est le plus important.
+      genre: "doublon";
+      plateforme: Plateforme;
+      gite: string;
+      arrivee: string;
+      depart: string;
+      detenteurs: Detenteur[];
+      delaiHeures: number;
+      vuLe: string;
     };
 
 const OBJETS_CLIENT: Record<string, string> = {
@@ -1159,6 +1178,31 @@ export function texteAlerteProbleme(p: Probleme, s: Sejour | null, c: FicheClien
         "Répondre à la contestation dans le tableau de bord Stripe (rubrique Litiges) avant la date limite qu'il indique : " +
         "sans réponse, la somme est perdue. Prévenir le développeur si besoin.";
       break;
+    case "doublon": {
+      const nom = NOMS_PLATEFORMES[p.plateforme];
+      const premier = p.detenteurs[0];
+      titre = `doublon possible avec ${nom}, ${p.gite} ${plageDates(p.arrivee, p.depart, "fr")}`;
+      quoi =
+        `${nom} annonce un séjour à ${p.gite} du ${plageDates(p.arrivee, p.depart, "fr")}, ` +
+        `mais ces nuits sont déjà prises sur le site : ${p.detenteurs.map(detenteurLisible).join(" ; ")}.`;
+      if (premier?.genre === "directe") {
+        const fin = premier.finDelai ? new Date(premier.finDelai) : null;
+        faire =
+          fin && fin.getTime() > new Date(p.vuLe).getTime()
+            ? `Vous êtes dans le délai de ${p.delaiHeures} heures annoncé au client (jusqu'au ${fmtDateAvecJour(aujourdhuiParis(fin), "fr")} ` +
+              `à ${fmtHeure(heureParis(fin), "fr")}) : vous pouvez annuler sa réservation depuis sa fiche (annulation par les propriétaires, ` +
+              `remboursement intégral, article 7.4 du contrat), ou annuler le séjour sur ${nom}.`
+            : `Le délai de ${p.delaiHeures} heures annoncé au client est passé : sa réservation est définitive. Annulez le séjour sur ${nom}.`;
+      } else if (premier?.genre === "option") {
+        faire = `Prévenez le client de l'option, ou annulez le séjour sur ${nom}.`;
+      } else if (premier?.genre === "ferme") {
+        faire = `Si ces nuits doivent rester fermées, annulez le séjour sur ${nom} ; sinon, rouvrez-les dans le calendrier du site.`;
+      } else {
+        faire = `Annulez l'un des deux séjours, sur ${nom} ou sur ${premier?.genre === "plateforme" ? NOMS_PLATEFORMES[premier.plateforme] : "l'autre plateforme"}.`;
+      }
+      faire += " Le site ne touche à rien ; la ligne « À traiter » disparaît quand l'une des deux réservations est annulée.";
+      break;
+    }
   }
   return assembler(`À TRAITER — ${titre}`, [
     { p: quoi, gras: true },

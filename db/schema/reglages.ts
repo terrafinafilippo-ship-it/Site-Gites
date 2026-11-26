@@ -94,6 +94,13 @@
 //   - tarifs (Phase 5, lot 3, migration 0014, D-34) : une nuit sans tarif dans
 //     les 12 prochains mois apparaît dans « À traiter » (réponse 6 A du cadrage
 //     du 7 novembre 2026).
+//
+//   - synchronisation des calendriers (Phase 7, migration 0025, D-44) : en
+//     cas de doublon avec une plateforme, le client est prévenu dans ce
+//     nombre d'heures après son paiement (24, choix du gérant du 26 novembre
+//     2026). Affiché avant le paiement, dans la confirmation et les CGV ; ce
+//     n'est pas un délai du contrat (l'annulation par le bailleur, article
+//     7.4, couvre le cas). Lu à chaque affichage.
 import { sql } from "drizzle-orm";
 import { check, integer, pgTable, text, time, timestamp, uuid } from "drizzle-orm/pg-core";
 
@@ -183,6 +190,8 @@ export const reglages = pgTable(
     // choix du gérant du 12 novembre 2026), la fin de validité de son lien.
     avis_courriel_jours: integer().notNull().default(1),
     avis_lien_jours: integer().notNull().default(30),
+    // Synchronisation des calendriers (Phase 7, migration 0025, D-44), en heures après le paiement.
+    doublon_delai_heures: integer().notNull().default(24),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -262,5 +271,6 @@ export const reglages = pgTable(
       sql`${t.avis_courriel_jours} between 0 and 60 and ${t.avis_lien_jours} between 1 and 365
           and ${t.avis_lien_jours} >= ${t.avis_courriel_jours}`,
     ),
+    check("reglages_doublon_delai_check", sql`${t.doublon_delai_heures} between 1 and 168`),
   ],
 );

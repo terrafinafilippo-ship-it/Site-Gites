@@ -9,6 +9,7 @@
  *  de EMETTEUR (lib/constantes.ts), comme sur le contrat et les factures. */
 import { DUREE_AVIS_ANS, LIBELLES_MOTIF } from "@/lib/avis-regles";
 import { EMETTEUR, LIGNE_CAPITAL, LIGNE_IMMATRICULATION } from "@/lib/constantes";
+import { PHRASE_DOUBLON } from "@/lib/textes-doublon";
 
 /** « SARL DE LA VOUTE (enseigne Les Gîtes de Samoyas) ». */
 const EXPLOITANT = `${EMETTEUR.raisonSociale} (enseigne ${EMETTEUR.enseigne})`;
@@ -16,11 +17,19 @@ const SIEGE = `${EMETTEUR.adresse}, ${EMETTEUR.codePostalVille}`;
 
 export type LegalSection = "mentions" | "cgv" | "privacy" | "cookies" | "avis";
 
+/** Les réglages que citent les textes juridiques, lus en base par la page. */
+export interface ReglagesLegaux {
+  /** Durée de conservation des tentatives abandonnées, en jours ; `null` : rien n'est effacé. */
+  abandonJours: number | null;
+  /** Délai pour prévenir le client d'un doublon avec une plateforme, en heures (Phase 7). */
+  doublonHeures: number;
+}
+
 export interface LegalDoc {
   title: string;
   meta: string;
-  /** Une fonction quand le texte cite un réglage (la confidentialité : la durée des tentatives abandonnées). */
-  body: string | ((abandonJours: number | null) => string);
+  /** Une fonction quand le texte cite un réglage (confidentialité : tentatives abandonnées ; CGV : doublon). */
+  body: string | ((r: ReglagesLegaux) => string);
 }
 
 export const LEGAL_SECTIONS: LegalSection[] = ["mentions", "cgv", "privacy", "cookies", "avis"];
@@ -56,8 +65,9 @@ export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
   },
   cgv: {
     title: "Conditions générales de vente",
-    meta: "Applicables aux séjours réservés à partir du 1ᵉʳ janvier 2026 — version 6 du 26 novembre 2026",
-    body: `
+    meta: "Applicables aux séjours réservés à partir du 1ᵉʳ janvier 2026 — version 7 du 26 novembre 2026",
+    // Version 7 (Phase 7, D-44) : le doublon possible avec une plateforme, délai réglé en base.
+    body: ({ doublonHeures }) => `
       <section><div class="legal__num">01 — Objet</div><h2>Champ d'application</h2>
         <p>Les présentes conditions s'appliquent à toute réservation effectuée en direct sur ce site, par téléphone ou par email auprès de la ${EXPLOITANT}.</p>
       </section>
@@ -80,6 +90,7 @@ export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
         </table>
         <p>La taxe de séjour n'est due qu'en cas de séjour : elle est remboursée dans tous les cas d'annulation. Pour un séjour payé en totalité à la réservation, la part correspondant à l'acompte est indiquée au contrat.</p>
         <p>En cas de force majeure dûment justifiée (article 1218 du Code civil) empêchant définitivement le séjour, les sommes versées sont remboursées intégralement. En cas d'annulation par le bailleur, pour quelque motif que ce soit, le client est remboursé intégralement dans un délai de 14 jours, sans autre indemnité.</p>
+        <p>${PHRASE_DOUBLON.fr(doublonHeures).replace(/\.$/, "")} (article 7.4 du contrat).</p>
         <p>Un client qui ne se présente pas, sans avoir prévenu de son retard dans les 24 heures suivant l'heure d'arrivée prévue, perd les sommes versées, sauf la taxe de séjour, qui lui est remboursée. Un départ anticipé n'ouvre droit à aucun remboursement.</p>
         <p>Nous recommandons fortement une assurance annulation, à souscrire séparément.</p>
       </section>
@@ -99,7 +110,7 @@ export const LEGAL_DOCS: Record<LegalSection, LegalDoc> = {
     meta: "Conforme RGPD — mise à jour le 25 novembre 2026",
     // Reprend l'article 14 du contrat (relu par le juriste, D-43) ; la durée
     // des tentatives abandonnées est le réglage que lib/abandons.ts applique.
-    body: (abandonJours) => `
+    body: ({ abandonJours }) => `
       <section><div class="legal__num">01 — Responsable</div><h2>Responsable de traitement</h2>
         <p>${EXPLOITANT}, ${SIEGE}, est responsable du traitement des données personnelles de ses clients et des occupants majeurs déclarés. Contact : contact@gitesdesamoyas.fr.</p>
       </section>

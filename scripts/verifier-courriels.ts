@@ -623,6 +623,11 @@ async function controles(): Promise<void> {
     null,
     "https://site.example/suivi/0123",
     "contact@gitesdesamoyas.fr",
+    24,
+  );
+  noter(
+    echappe.texte.includes("nous vous prévenons dans les 24 heures qui suivent votre paiement et nous vous remboursons intégralement."),
+    "la confirmation prévient d'un doublon possible avec une plateforme (24 heures, réglage)",
   );
   noter(
     echappe.html.includes("Bonjour Zoé &lt;script&gt;,") && !echappe.html.includes("<script>"),

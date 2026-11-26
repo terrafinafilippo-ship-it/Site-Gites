@@ -1,6 +1,7 @@
 "use server";
 // Les ACTIONS du back-office pour le calendrier, les fiches des gîtes et les
-// documents (Phase 5, lot 4). Chacune relit la session, lit le formulaire,
+// documents (Phase 5, lot 4), et les liens des calendriers des plateformes
+// (Phase 7). Chacune relit la session, lit le formulaire,
 // appelle lib/gestion/ ; après une écriture, le site public relit le
 // calendrier et les fiches tout de suite (étiquette « gites »), et les
 // courriels inscrits partent après la réponse (lien d'option, document
@@ -16,6 +17,7 @@ import { renvoyerDocument, type SorteDocument } from "@/lib/gestion/documents";
 import { enregistrerGite } from "@/lib/gestion/gites";
 import type { Acteur } from "@/lib/gestion/journal";
 import { isUuid, messageErreur } from "@/lib/route-helpers";
+import { enregistrerLienImport } from "@/lib/synchronisation";
 
 import type { EtatGeste } from "./actions-reservations";
 import type { EtatPlan } from "./actions-tarifs";
@@ -134,6 +136,20 @@ export async function actionGite(id: string, precedent: EtatPlan, f: FormData): 
     console.error("[gestion] fiche du gîte : enregistrement interrompu :", messageErreur(erreur));
     return { version: suivant, etape: "refus", message: "L'enregistrement a échoué (panne). Rien n'a changé. Réessayez ; si cela se répète, prévenez le développeur.", lignes: [], empreinte: "" };
   }
+}
+
+// ─── Calendriers des plateformes (Phase 7, D-44) ─────────────────────────────
+
+/** Le lien de calendrier d'une plateforme, collé (lu avant d'être enregistré) ou effacé. */
+export async function actionLienCalendrier(calendrierId: string, precedent: EtatGeste, f: FormData): Promise<EtatGeste> {
+  return geste(
+    precedent,
+    (a) => enregistrerLienImport(idValable(calendrierId), texte(f, "lien"), a),
+    () => {
+      calendrierChange();
+      revalidatePath("/gestion/gites");
+    },
+  );
 }
 
 // ─── Documents ───────────────────────────────────────────────────────────────

@@ -695,6 +695,15 @@ button.mcDay { font: inherit; font-size: 13px; color: inherit; padding: 0; }
 }
 .consentBlock label + label { border-top: 1px solid #ebe7d8; }
 .consentBlock .req { color: var(--color-sienna); }
+/* Phase 7 : doublon possible avec une plateforme, lu avant d'accepter les CGV */
+.consentBlock .doublon {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-charcoal);
+  padding-bottom: 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #ebe7d8;
+}
 
 .stepActions {
   display: flex;

@@ -75,7 +75,7 @@ async function regler(jours: number | null): Promise<void> {
 /** Le texte de la politique de confidentialité, avec la durée lue en base, comme la page. */
 async function confidentialite(): Promise<string> {
   const corps = LEGAL_DOCS.privacy.body;
-  return typeof corps === "string" ? corps : corps(await dureeConservationAbandons());
+  return typeof corps === "string" ? corps : corps({ abandonJours: await dureeConservationAbandons(), doublonHeures: 24 });
 }
 
 const idsEssai: string[] = [];

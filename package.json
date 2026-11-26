@@ -30,6 +30,7 @@
     "verify:gestion-tarifs": "tsx scripts/verifier-gestion-tarifs.ts",
     "verify:gestion-calendrier": "tsx scripts/verifier-gestion-calendrier.ts",
     "verify:gestion-statistiques": "tsx scripts/verifier-gestion-statistiques.ts",
+    "verify:synchronisation": "tsx scripts/verifier-synchronisation.ts",
     "gestion:compte": "tsx scripts/gestion-compte.ts"
   },
   "dependencies": {

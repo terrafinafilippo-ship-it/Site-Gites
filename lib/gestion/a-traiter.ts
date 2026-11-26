@@ -22,6 +22,12 @@
 // (`tarifs_horizon_mois`) et ce qui rend des dates invendables (prix, barème
 // ou taxe de séjour manquants) ont leur ligne, jusqu'à ce que la page des
 // tarifs les comble.
+//
+// Depuis la Phase 7 (D-44) : les doublons avec une plateforme (un séjour
+// annoncé par Gîtes de France, Airbnb ou Booking sur des nuits déjà prises),
+// jusqu'à ce qu'une des deux réservations soit annulée ; les liens de
+// plateforme qui ne se lisent plus depuis 2 heures. L'accueil montre aussi les
+// séjours des plateformes, sans nom de client (elles n'en donnent pas).
 import { and, eq, gte, inArray, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
@@ -29,10 +35,12 @@ import { a_traiter_faits, courriels, documents, gites, paiements, reglages, remb
 import { jourLevee, lireReglagesCaution } from "@/lib/caution";
 import { centimesDepuisNumeric } from "@/lib/centimes";
 import { OBJETS_CLIENT } from "@/lib/courriels-envoi";
-import { ajouterJours, aujourdhuiParis, jourUtc } from "@/lib/dates-civiles";
+import { ajouterJours, aujourdhuiParis, heureParis, jourUtc } from "@/lib/dates-civiles";
 import { fmtDateLongue, fmtEuro, fmtHeure } from "@/lib/format";
+import { detenteurLisible, NOMS_PLATEFORMES } from "@/lib/plateformes";
 import { chargerReservationAvecGite, type Executeur } from "@/lib/reservations";
 import { dateLimiteSolde, lireEtatSolde } from "@/lib/solde";
+import { doublonsEnCours, liensEnPanne, sejoursPlateformes } from "@/lib/synchronisation";
 import { dateLimiteVirement } from "@/lib/virement";
 
 import { journaliser, type Acteur } from "./journal";
@@ -40,7 +48,7 @@ import { lireEtatTarifs } from "./tarifs";
 import { trouLisible } from "./tarifs-regles";
 
 /** Les gestes qu'une ligne propose (la fiche de la réservation porte les formulaires). */
-export type GesteTache = "fiche" | "reglages" | "tarifs" | "renvoyer_contrat" | "c_est_fait";
+export type GesteTache = "fiche" | "reglages" | "tarifs" | "gites" | "calendrier" | "renvoyer_contrat" | "c_est_fait";
 
 export interface Tache {
   /** Identifiant stable de la ligne (et clé de « C'est fait »). */
@@ -290,7 +298,47 @@ export async function listerATraiter(maintenant: Date = new Date(), ex: Executeu
     taches.push({ ...sansSejour, cle: "tarifs_incomplets", titre: "Tarifs incomplets", detail: etat.problemes.join(" "), depuis: aujourdhui });
   }
 
-  // 7. Ce que le site ne peut pas clore : alertes « À TRAITER », courriels au client non partis.
+  // 7. La synchronisation des calendriers (Phase 7) : doublons, liens qui ne se lisent plus.
+  for (const d of await doublonsEnCours(maintenant, ex)) {
+    const nom = NOMS_PLATEFORMES[d.plateforme];
+    const directe = d.detenteurs.find((x) => x.genre === "directe");
+    const resa = directe?.genre === "directe" ? await chargerReservationAvecGite(directe.reservationId, ex) : null;
+    taches.push({
+      cle: `doublon:${d.sejourId}`,
+      titre: `Doublon possible avec ${nom}`,
+      detail:
+        `${nom} annonce un séjour à ${d.gite} du ${fmtDateLongue(d.arrivee)} au ${fmtDateLongue(d.depart)}, ` +
+        `mais ces nuits sont déjà prises sur le site : ${d.detenteurs.map(detenteurLisible).join(" ; ")}. ` +
+        "Ce qu'il faut faire est dans l'alerte « À TRAITER » reçue par courriel ; la ligne disparaît quand l'une des deux réservations est annulée.",
+      depuis: aujourdhuiParis(d.vuLe),
+      reservationId: resa?.id ?? null,
+      reference: resa?.reference ?? null,
+      client: resa ? nomClient(resa) : null,
+      gite: d.gite,
+      gestes: resa ? ["fiche", "calendrier"] : ["calendrier"],
+    });
+  }
+  for (const l of await liensEnPanne(maintenant, ex)) {
+    const nom = NOMS_PLATEFORMES[l.plateforme];
+    taches.push({
+      cle: `lien_calendrier:${l.calendrierId}`,
+      titre: `Le calendrier ${nom} ne se lit plus`,
+      detail:
+        `Le lien ${nom} de ${l.gite} ` +
+        (l.luA ? `ne se lit plus depuis le ${fmtDateLongue(aujourdhuiParis(l.luA))} à ${fmtHeure(heureParis(l.luA))}` : "n'a jamais pu être lu") +
+        (l.erreur ? ` (${l.erreur})` : "") +
+        `. Pendant ce temps, le site ne voit pas les nouvelles réservations ${nom} de ce gîte. ` +
+        `Vérifiez le lien dans la fiche du gîte, ou recollez-le depuis ${nom}.`,
+      depuis: l.luA ? aujourdhuiParis(l.luA) : aujourdhui,
+      reservationId: null,
+      reference: null,
+      client: null,
+      gite: l.gite,
+      gestes: ["gites"],
+    });
+  }
+
+  // 8. Ce que le site ne peut pas clore : alertes « À TRAITER », courriels au client non partis.
   const alertes = await ex
     .select({ cle: courriels.cle, donnees: courriels.donnees, reservationId: courriels.reservation_id, creeLe: courriels.created_at })
     .from(courriels)
@@ -353,16 +401,21 @@ export async function marquerFait(cle: string, acteur: Acteur): Promise<boolean>
 }
 
 export interface Mouvement {
-  reservationId: string;
+  /** Clé de la ligne à l'écran. */
+  cle: string;
+  /** `null` : séjour d'une plateforme (Phase 7), sans fiche sur le site. */
+  reservationId: string | null;
   reference: string;
+  /** Le client, ou le nom de la plateforme. */
   client: string;
   gite: string;
   date: string;
   heure: string;
-  voyageurs: number;
+  /** `null` : inconnu (séjour d'une plateforme). */
+  voyageurs: number | null;
 }
 
-/** Les arrivées et les départs des 7 prochains jours (réponse a du cadrage du lot 2). */
+/** Les arrivées et les départs des 7 prochains jours (réponse a du cadrage du lot 2), séjours des plateformes compris. */
 export async function arriveesDeparts(maintenant: Date = new Date(), ex: Executeur = getDb()): Promise<{ arrivees: Mouvement[]; departs: Mouvement[] }> {
   const debut = aujourdhuiParis(maintenant);
   const fin = ajouterJours(debut, 6);
@@ -387,20 +440,33 @@ export async function arriveesDeparts(maintenant: Date = new Date(), ex: Execute
       gite,
       voyageurs: r.nb_adultes + r.nb_enfants + r.nb_bebes,
     };
-    if (r.date_arrivee >= debut && r.date_arrivee <= fin) arrivees.push({ ...m, date: r.date_arrivee, heure: (r.heure_arrivee ?? "").slice(0, 5) });
-    if (r.date_depart >= debut && r.date_depart <= fin) departs.push({ ...m, date: r.date_depart, heure: (r.heure_depart ?? "").slice(0, 5) });
+    if (r.date_arrivee >= debut && r.date_arrivee <= fin) {
+      arrivees.push({ ...m, cle: `${r.id}-a`, date: r.date_arrivee, heure: (r.heure_arrivee ?? "").slice(0, 5) });
+    }
+    if (r.date_depart >= debut && r.date_depart <= fin) {
+      departs.push({ ...m, cle: `${r.id}-d`, date: r.date_depart, heure: (r.heure_depart ?? "").slice(0, 5) });
+    }
+  }
+  for (const s of await sejoursPlateformes(debut, fin, "arrivee_ou_depart", ex)) {
+    const m = { reservationId: null, reference: "", client: NOMS_PLATEFORMES[s.plateforme], gite: s.gite, heure: "", voyageurs: null };
+    if (s.arrivee >= debut && s.arrivee <= fin) arrivees.push({ ...m, cle: `${s.id}-a`, date: s.arrivee });
+    if (s.depart >= debut && s.depart <= fin) departs.push({ ...m, cle: `${s.id}-d`, date: s.depart });
   }
   const tri = (a: Mouvement, b: Mouvement) => a.date.localeCompare(b.date) || a.heure.localeCompare(b.heure);
   return { arrivees: arrivees.sort(tri), departs: departs.sort(tri) };
 }
 
 export interface SejourAVenir {
-  reservationId: string;
+  cle: string;
+  /** `null` : séjour d'une plateforme (Phase 7), sans fiche sur le site. */
+  reservationId: string | null;
+  /** Le client, ou le nom de la plateforme. */
   client: string;
   gite: string;
   arrivee: string;
   depart: string;
-  voyageurs: number;
+  /** `null` : inconnu (séjour d'une plateforme). */
+  voyageurs: number | null;
 }
 
 export interface PeriodeAVenir {
@@ -435,17 +501,20 @@ export async function sejoursAVenir(maintenant: Date = new Date(), ex: Executeur
       ),
     )
     .orderBy(reservations.date_arrivee);
-  for (const { r, gite } of lignes) {
-    periodes
-      .find((p) => r.date_arrivee >= p.du && r.date_arrivee <= p.au)
-      ?.sejours.push({
-        reservationId: r.id,
-        client: nomClient(r),
-        gite,
-        arrivee: r.date_arrivee,
-        depart: r.date_depart,
-        voyageurs: r.nb_adultes + r.nb_enfants + r.nb_bebes,
-      });
+  const sejours: SejourAVenir[] = lignes.map(({ r, gite }) => ({
+    cle: r.id,
+    reservationId: r.id,
+    client: nomClient(r),
+    gite,
+    arrivee: r.date_arrivee,
+    depart: r.date_depart,
+    voyageurs: r.nb_adultes + r.nb_enfants + r.nb_bebes,
+  }));
+  for (const s of await sejoursPlateformes(periodes[0].du, periodes[periodes.length - 1].au, "arrivee", ex)) {
+    sejours.push({ cle: s.id, reservationId: null, client: NOMS_PLATEFORMES[s.plateforme], gite: s.gite, arrivee: s.arrivee, depart: s.depart, voyageurs: null });
+  }
+  for (const s of sejours.sort((a, b) => a.arrivee.localeCompare(b.arrivee) || a.gite.localeCompare(b.gite))) {
+    periodes.find((p) => s.arrivee >= p.du && s.arrivee <= p.au)?.sejours.push(s);
   }
   return periodes;
 }

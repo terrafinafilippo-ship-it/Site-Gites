@@ -176,6 +176,13 @@
       "when": 1795191811245,
       "tag": "0024_suite_avoirs_delai_72h",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795712479806,
+      "tag": "0025_synchronisation_calendriers",
+      "breakpoints": true
     }
   ]
 }

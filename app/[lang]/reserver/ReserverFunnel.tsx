@@ -56,6 +56,7 @@ import {
   type ModeReglement,
   type MoyenCaution,
 } from "@/lib/reglement";
+import { PHRASE_DOUBLON } from "@/lib/textes-doublon";
 import type { Alternative, DonneesTunnel } from "@/lib/tunnel";
 import Calendrier from "./Calendrier";
 import EnteteTunnel from "./EnteteTunnel";
@@ -95,6 +96,8 @@ interface Tentative {
   choix: ChoixReglement;
   /** Texte d'accord pour l'enregistrement de la carte, tel qu'enregistré ; `null` sans caution par carte. */
   accordCarte: string | null;
+  /** Délai, en heures après le paiement, pour être prévenu d'un doublon avec une plateforme (Phase 7). */
+  delaiDoublonHeures: number;
 }
 
 interface Formulaire {
@@ -1015,6 +1018,7 @@ export default function ReserverFunnel({
           clientSecret: String(corps.clientSecret),
           choix: corps.choix as ChoixReglement,
           accordCarte: typeof corps.accordCarte === "string" ? corps.accordCarte : null,
+          delaiDoublonHeures: Number(corps.delaiDoublonHeures),
         });
         setCgvAccepted(false);
         goTo("step4");
@@ -1598,6 +1602,7 @@ export default function ReserverFunnel({
                       </div>
 
                       <div className={styles.consentBlock}>
+                        <p className={styles.doublon}>{PHRASE_DOUBLON[langue](tentative.delaiDoublonHeures)}</p>
                         <label>
                           <input
                             type="checkbox"

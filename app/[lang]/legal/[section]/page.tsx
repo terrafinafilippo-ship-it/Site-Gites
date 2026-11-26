@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { dureeConservationAbandons } from "@/lib/abandons";
+import { delaiDoublonHeures } from "@/lib/synchronisation";
 import { LEGAL_DOCS, LEGAL_SECTIONS, isLegalSection, type LegalSection } from "@/lib/data/legal";
 import { langueDe, lien, type Bilingue } from "@/lib/i18n/langues";
 import { metadonnees } from "@/lib/i18n/metadonnees";
@@ -18,9 +19,10 @@ interface Params {
 }
 
 // RENDU À LA DEMANDE, comme les fiches des gîtes : la politique de
-// confidentialité affiche la durée des tentatives abandonnées, un réglage en
-// base. Figée au build, elle exigerait la base au build et garderait la durée
-// du jour du déploiement.
+// confidentialité affiche la durée des tentatives abandonnées, les CGV le
+// délai pour prévenir d'un doublon (Phase 7), des réglages en base. Figée au
+// build, la page exigerait la base au build et garderait les valeurs du jour
+// du déploiement.
 export const dynamic = "force-dynamic";
 
 const TEXTES: Bilingue<{
@@ -68,7 +70,10 @@ export default async function LegalPage({ params }: { params: Promise<Params> })
   const langue = langueDe(lang);
   const t = TEXTES[langue];
   const doc = LEGAL_DOCS[section];
-  const corps = typeof doc.body === "string" ? doc.body : doc.body(await dureeConservationAbandons());
+  const corps =
+    typeof doc.body === "string"
+      ? doc.body
+      : doc.body({ abandonJours: await dureeConservationAbandons(), doublonHeures: await delaiDoublonHeures() });
 
   return (
     <>
@@ -106,7 +111,7 @@ export default async function LegalPage({ params }: { params: Promise<Params> })
               <div lang="fr">
                 <h1>{doc.title}</h1>
                 <div className={styles.docMeta}>{doc.meta}</div>
-                {/* Contenu légal rédigé en dur (lib/data/legal.ts) ; seule donnée externe : un nombre de jours, lu en base. */}
+                {/* Contenu légal rédigé en dur (lib/data/legal.ts) ; seules données externes : deux nombres lus en base. */}
                 <div dangerouslySetInnerHTML={{ __html: corps }} />
               </div>
             </div>

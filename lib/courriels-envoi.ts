@@ -52,10 +52,12 @@ import {
   gites,
   options_sejour,
   paiements,
+  PLATEFORMES,
   reglages,
   remboursements,
   retenues,
   TYPES_FACTURE,
+  type Plateforme,
   type TypeFacture,
 } from "@/db/schema";
 import type { ResultatAvoir } from "@/lib/avoirs";
@@ -63,6 +65,7 @@ import { finLienAvis, LIBELLES_MOTIF, lienAvis, signatureAvis } from "@/lib/avis
 import { jourBlocage, jourLevee, lireReglagesCaution } from "@/lib/caution";
 import { centimesDepuisNumeric } from "@/lib/centimes";
 import { aujourdhuiParis } from "@/lib/dates-civiles";
+import type { Detenteur } from "@/lib/plateformes";
 import type { ContratEmis, ResultatEmission } from "@/lib/contrat";
 import { inscrireContratARelancer, inscrireProbleme, QUOI_CAUTION, type QuoiCaution } from "@/lib/courriels";
 import {
@@ -397,6 +400,13 @@ async function adresseReponse(tx: Executeur): Promise<string> {
   return r.reponse;
 }
 
+/** Le délai annoncé au client pour être prévenu d'un doublon (Phase 7, D-44). */
+async function delaiDoublon(tx: Executeur): Promise<number> {
+  const [r] = await tx.select({ heures: reglages.doublon_delai_heures }).from(reglages).where(eq(reglages.id, 1));
+  if (!r) throw new Error("ligne de réglages absente");
+  return r.heures;
+}
+
 function lienSignature(origine: string, token: string): string {
   return `${origine}/signer/${token}`;
 }
@@ -447,6 +457,7 @@ async function preparer(tx: Executeur, c: Courriel, origine: string): Promise<Pr
         lienContrat,
         lienSuivi(origine, langue, resa.jeton_suivi),
         await adresseReponse(tx),
+        await delaiDoublon(tx),
       );
       return { contenu, apres };
     }
@@ -987,6 +998,18 @@ async function lireProbleme(
         type: typeof d.type === "string" ? d.type : null,
         montant: Number(d.montant ?? 0),
         motif: String(d.motif ?? ""),
+      };
+    case "doublon":
+      if (!PLATEFORMES.includes(d.plateforme as Plateforme) || !Array.isArray(d.detenteurs)) return null;
+      return {
+        genre: "doublon",
+        plateforme: d.plateforme as Plateforme,
+        gite: String(d.gite ?? ""),
+        arrivee: String(d.arrivee ?? ""),
+        depart: String(d.depart ?? ""),
+        detenteurs: d.detenteurs as Detenteur[],
+        delaiHeures: Number(d.delaiHeures ?? 0),
+        vuLe: String(d.vuLe ?? ""),
       };
     default:
       return null;

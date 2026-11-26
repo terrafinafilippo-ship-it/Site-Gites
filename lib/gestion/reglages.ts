@@ -69,6 +69,22 @@ export const RUBRIQUES: Rubrique[] = [
     ],
   },
   {
+    id: "synchronisation",
+    titre: "Calendriers des plateformes",
+    aide: "Les liens de Gîtes de France, Airbnb et Booking se règlent sur la fiche de chaque gîte.",
+    champs: [
+      {
+        cle: "doublon_delai_heures",
+        libelle: "Doublon avec une plateforme : le client est prévenu dans les",
+        sorte: "entier",
+        min: 1,
+        max: 168,
+        unite: "heures après son paiement",
+        aide: "Annoncé au client avant le paiement, dans sa confirmation et dans les CGV. Passé ce délai, sa réservation est définitive.",
+      },
+    ],
+  },
+  {
     id: "horaires",
     titre: "Horaires des trois gîtes",
     aide: "Imprimés sur le contrat des nouvelles réservations ; une réservation déjà faite garde les siens.",

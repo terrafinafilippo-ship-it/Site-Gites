@@ -60,7 +60,9 @@ export type GenreProbleme =
   // saisi (ou son IBAN est faux) — le client n'a pas reçu les coordonnées.
   | "virement_coordonnees_absentes"
   // Phase 5, lot 1 : le compte de virement a été modifié depuis le back-office.
-  | "virement_compte_modifie";
+  | "virement_compte_modifie"
+  // Phase 7 (D-44) : une plateforme annonce un séjour sur des nuits déjà prises.
+  | "doublon";
 
 async function inscrire(
   executeur: Executeur,

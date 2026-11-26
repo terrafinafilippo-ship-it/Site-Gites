@@ -1,15 +1,21 @@
 // Fiches des gîtes (Phase 5, lot 4, réponse 12 A du cadrage de la phase) :
 // capacité, ménage, caution, équipements, téléphone pour l'arrivée, spa, sauna,
 // et les chiffres Gîtes de France affichés sur le site (Phase 6, D-40) ;
-// enregistrés en deux temps, comme les tarifs.
+// enregistrés en deux temps, comme les tarifs. Depuis la Phase 7 (D-44) : les
+// calendriers des plateformes, un formulaire par plateforme (le lien collé est
+// lu avant d'être enregistré).
 import { numericDepuisCentimes } from "@/lib/centimes";
+import { fmtDateCourte } from "@/lib/format";
 import { lireGitesGestion } from "@/lib/gestion/gites";
 import { noteLisible } from "@/lib/gestion/reglages";
+import { aujourdhuiParis } from "@/lib/dates-civiles";
+import { calendriersDuGite, type CalendrierGite } from "@/lib/synchronisation";
 
-import { actionGite } from "../actions-calendrier";
+import { actionGite, actionLienCalendrier } from "../actions-calendrier";
 import Entete from "../Entete";
 import styles from "../gestion.module.css";
-import { exigerSession } from "../outils";
+import { exigerSession, heureLisible, origine } from "../outils";
+import { GesteFormulaire } from "../reservations/Gestes";
 import { FormulairePlan } from "../tarifs/Formulaires";
 
 export const dynamic = "force-dynamic";
@@ -19,9 +25,48 @@ function saisie(centimes: number): string {
   return numericDepuisCentimes(centimes).replace(/\.00$/, "").replace(".", ",");
 }
 
+/** Où en est la lecture du lien de la plateforme. */
+function etatLecture(c: CalendrierGite): string {
+  if (!c.lienImport) return "Pas relié : aucun lien enregistré.";
+  const lu = c.luA
+    ? `Lu le ${fmtDateCourte(aujourdhuiParis(c.luA))} à ${heureLisible(c.luA)} : ` +
+      (c.sejours === 0 ? "aucun séjour à venir." : c.sejours === 1 ? "1 séjour à venir." : `${c.sejours} séjours à venir.`)
+    : "Pas encore lu.";
+  return c.erreur ? `${lu} Dernière lecture ratée : ${c.erreur}.` : lu;
+}
+
+function Calendriers({ calendriers, site }: { calendriers: CalendrierGite[]; site: string }) {
+  return (
+    <fieldset className={styles.groupe}>
+      <legend>Calendriers des plateformes</legend>
+      <p className={styles.aide}>
+        Pour chaque plateforme où ce gîte se loue : copiez le lien du site dans la plateforme (rubrique « synchroniser » ou « importer un
+        calendrier »), et collez ci-dessous le lien de calendrier que la plateforme vous donne (« exporter »). Le lien du site est secret : il dit
+        quand le gîte est vide, ne le donnez qu&apos;à la plateforme. Fermez vos dates dans le calendrier du site, pas sur les plateformes.
+      </p>
+      {calendriers.map((c) => (
+        <div key={c.id} className={styles.champ}>
+          <h3>{c.nom}</h3>
+          <label htmlFor={`export-${c.id}`}>Lien du site, à coller dans {c.nom}</label>
+          <input id={`export-${c.id}`} type="text" readOnly value={`${site}${c.cheminExport}`} className={styles.large} />
+          <GesteFormulaire action={actionLienCalendrier.bind(null, c.id)} libelle={`Enregistrer le lien ${c.nom}`}>
+            <div className={styles.champ}>
+              <label htmlFor={`import-${c.id}`}>Lien de calendrier donné par {c.nom} (vide : pas relié)</label>
+              <input id={`import-${c.id}`} name="lien" type="text" inputMode="url" maxLength={2000} defaultValue={c.lienImport ?? ""} className={styles.large} autoComplete="off" />
+              <span className={styles.aide}>{etatLecture(c)}</span>
+            </div>
+          </GesteFormulaire>
+        </div>
+      ))}
+    </fieldset>
+  );
+}
+
 export default async function PageGites() {
   await exigerSession();
   const fiches = await lireGitesGestion();
+  const calendriers = await Promise.all(fiches.map((g) => calendriersDuGite(g.id)));
+  const site = await origine();
 
   return (
     <>
@@ -32,7 +77,7 @@ export default async function PageGites() {
           Le nom, la référence Gîtes de France, les textes et les photos du site ne se modifient pas ici. Chaque enregistrement montre
           d&apos;abord ce qui va changer.
         </p>
-        {fiches.map((g) => (
+        {fiches.map((g, i) => (
           <section key={g.id} className={styles.carte} aria-labelledby={`titre-${g.id}`}>
             <h2 id={`titre-${g.id}`}>{g.nom}</h2>
             <p className={styles.aide}>Référence Gîtes de France : {g.refGdf}</p>
@@ -95,6 +140,7 @@ export default async function PageGites() {
                 </div>
               </fieldset>
             </FormulairePlan>
+            <Calendriers calendriers={calendriers[i]} site={site} />
           </section>
         ))}
       </main>

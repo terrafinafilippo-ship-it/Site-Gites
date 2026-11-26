@@ -27,6 +27,7 @@ import { ouvrirPaiement } from "@/lib/paiement";
 import { carteEnregistree } from "@/lib/reglement";
 import { messageErreur, resolveSiteOrigin } from "@/lib/route-helpers";
 import { PaiementIndisponible } from "@/lib/stripe";
+import { delaiDoublonHeures, relireAvantPaiement } from "@/lib/synchronisation";
 import { abandonnerTentative, enregistrerTentative, TunnelIndisponible } from "@/lib/tunnel";
 
 const MESSAGES: Bilingue<{
@@ -173,6 +174,9 @@ export async function POST(request: Request) {
   }
 
   try {
+    // Les plateformes relues avant de bloquer les dates (Phase 7, D-44) : une
+    // nuit vendue ailleurs depuis le dernier passage donne l'écran « dates prises ».
+    await relireAvantPaiement(gite);
     // Option posée au téléphone (Phase 5, lot 4) : le jeton de son lien, revérifié par le serveur.
     const jetonOption = chaine(corps.option) || null;
     const r = await enregistrerTentative(
@@ -212,6 +216,7 @@ export async function POST(request: Request) {
         reference: r.reference,
         expireA: r.expireA.toISOString(),
         dureeBlocageMinutes: r.dureeBlocageMinutes,
+        delaiDoublonHeures: await delaiDoublonHeures(),
         devis: r.devis,
         prixModifie: r.prixModifie,
         choix: r.choix,

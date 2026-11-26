@@ -17,7 +17,9 @@
 // des tentatives abandonnées (lib/abandons.ts). Phase 6 (D-40) : l'invitation
 // à donner son avis et l'effacement des avis trop anciens (lib/avis.ts).
 // Phase 5, lot 5 (D-42) : les remboursements par carte d'une annulation
-// restés à faire après une panne de Stripe (lib/annulation.ts).
+// restés à faire après une panne de Stripe (lib/annulation.ts). Phase 7
+// (D-44) : la lecture des calendriers des plateformes (lib/synchronisation.ts),
+// en premier : les nuits vendues ailleurs sont prises au plus tôt.
 import { sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
@@ -27,9 +29,11 @@ import { traiterAvis, type BilanAvis } from "@/lib/avis";
 import { traiterCautions, type BilanCautions } from "@/lib/caution";
 import { traiterSoldes, type BilanSoldes } from "@/lib/solde";
 import { prestataire, type Prestataire } from "@/lib/stripe";
+import { synchroniserCalendriers, type BilanSynchronisation, type Lecteur } from "@/lib/synchronisation";
 import { traiterVirements, type BilanVirements } from "@/lib/virement";
 
 export interface BilanTaches {
+  calendriers: BilanSynchronisation;
   soldes: BilanSoldes;
   virements: BilanVirements;
   cautions: BilanCautions;
@@ -42,6 +46,7 @@ export interface BilanTaches {
 export async function executerTaches(
   maintenant: Date = new Date(),
   p: Prestataire = prestataire(),
+  lire?: Lecteur,
 ): Promise<BilanTaches | null> {
   return getDb().transaction(async (tx) => {
     const verrou = await tx.execute<{ pris: boolean }>(sql`select pg_try_advisory_xact_lock(hashtext('taches')) as pris`);
@@ -49,6 +54,7 @@ export async function executerTaches(
     // Le travail se fait sur d'autres connexions ; le verrou tient tant que
     // cette transaction reste ouverte.
     return {
+      calendriers: await synchroniserCalendriers(maintenant, lire),
       soldes: await traiterSoldes(maintenant, p),
       virements: await traiterVirements(maintenant),
       cautions: await traiterCautions(maintenant, p),
